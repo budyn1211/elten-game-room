@@ -1,0 +1,46 @@
+{
+  "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
+  "name": "ELTEN Game Room",
+  "description": "Accessible multiplayer games for ELTEN users.",
+  "version": "1.1.0",
+  "build_id": "176",
+  "EltenAPIVersion": "3.0.2",
+  "main_language": "en",
+  "supported_languages": [
+    "en",
+    "pl"
+  ],
+  "localized_descriptions": {
+    "pl": "Dostępne gry wieloosobowe dla użytkowników ELTEN-a."
+  },
+  "author": "papierek",
+  "main": "__app.rb",
+  "main_class": "EltenGameRoom",
+  "platforms": [
+    "all"
+  ],
+  "menu": {
+    "main": "ELTEN Game Room"
+  },
+  "required_assets": {
+    "sounds": [
+      "connect",
+      "disconnect",
+      "ding",
+      "shuffle",
+      "draw",
+      "draw2",
+      "farkle",
+      "lose1",
+      "lose3",
+      "play",
+      "play2",
+      "replay",
+      "reverse",
+      "reverse3",
+      "roll",
+      "win1",
+      "win2"
+    ]
+  }
+}

@@ -1,0 +1,304 @@
+require "json"
+require_relative "game_random"
+require_relative "game_bots"
+require_relative "../games/base"
+
+module GameRoomSimulation
+  MatchResult = Struct.new(
+    :game_id,
+    :players,
+    :winner,
+    :draw,
+    :rewards,
+    :events,
+    :actions,
+    :seed,
+    :reason,
+    :final_state,
+    keyword_init: true
+  ) do
+    def finished?
+      reason == :finished
+    end
+  end
+
+  class Repository
+    attr_reader :players
+
+    def initialize(players)
+      @players = GameRoomParticipants.unique(players)
+    end
+
+    def players_for(_session)
+      @players
+    end
+
+    def actor_of(event, _session = nil)
+      event.fetch("actor").to_s
+    end
+
+    def event_id(event)
+      (event["__id"] || event["id"]).to_i
+    end
+  end
+
+  # A complete game session that uses the production replay and action_for
+  # methods but has no dependency on Elten, its UI or the shared server.
+  class Environment
+    attr_reader :game, :session, :events, :repository, :random_source
+
+    def self.new_game(game:, players:, options: nil, seed: 1)
+      normalized = game.normalize_options(options || {})
+      session = {
+        "__id" => 1,
+        "table_id" => 1,
+        "game" => game.id,
+        "options" => JSON.generate(normalized),
+        "__players" => GameRoomParticipants.unique(players)
+      }
+      new(
+        game: game,
+        session: session,
+        events: [],
+        players: players,
+        random_source: GameRoomRandom::SeededSource.new(seed),
+        seed: seed
+      ).tap(&:stabilize!)
+    end
+
+    def self.from_snapshot(game:, session:, events:, players:, seed: 1)
+      new(
+        game: game,
+        session: deep_copy(session),
+        events: deep_copy(events),
+        players: players,
+        random_source: GameRoomRandom::SeededSource.new(seed),
+        seed: seed
+      ).tap(&:stabilize!)
+    end
+
+    def self.deep_copy(value)
+      Marshal.load(Marshal.dump(value))
+    end
+
+    def initialize(game:, session:, events:, players:, random_source:, seed: nil)
+      @game = game
+      @session = session
+      @events = events.to_a
+      @repository = Repository.new(players)
+      @random_source = random_source
+      @seed = seed
+      @next_event_id = @events.map { |event| @repository.event_id(event) }.max.to_i + 1
+      @replay = nil
+    end
+
+    def initialize_copy(original)
+      super
+      if original.game.shareable_simulation_snapshot?
+        @session = original.session.dup
+        @events = original.events.dup
+        @replay = original.replay
+      else
+        @session = self.class.deep_copy(original.session)
+        @events = self.class.deep_copy(original.events)
+        @replay = nil
+      end
+      @repository = Repository.new(original.repository.players)
+      @random_source = original.random_source.dup
+    end
+
+    def fork
+      dup
+    end
+
+    def replay
+      @replay ||= @game.replay(@session, @events, @repository)
+    end
+
+    def players
+      @repository.players
+    end
+
+    def finished?
+      replay.finished?
+    end
+
+    def active_actor
+      @game.active_actors(replay).first
+    end
+
+    def legal_actions(actor = active_actor)
+      return [] if actor == nil || finished?
+
+      @game.legal_actions(replay, actor, context: context).to_a
+    end
+
+    def observation(actor)
+      @game.bot_observation(replay, actor)
+    end
+
+    def reward(actor)
+      @game.bot_reward(replay, actor).to_f
+    end
+
+    def step(selection, actor: active_actor)
+      return :finished if finished?
+      return :no_actor if actor == nil
+
+      before = replay.accepted_events.length
+      status, plan = @game.action_for(selection, replay, actor, context: context)
+      return status if status != :ok
+      return :invalid_plan if !plan.is_a?(GameRoomGames::ActionPlan) || plan.events.to_a.empty?
+
+      append_plan(plan, actor)
+      after = replay.accepted_events.length
+      return :rejected if after != before + plan.events.length
+
+      stabilize!
+      :ok
+    end
+
+    # Runs server-owner actions such as dealing a new hand. A strict bound turns
+    # a faulty automatic action into an obvious simulation failure, not a hang.
+    def stabilize!
+      100.times do
+        break if finished?
+
+        automatic = nil
+        players.each do |actor|
+          selection = @game.automatic_action(replay, actor, context: context)
+          next if selection == nil
+
+          automatic = [actor, selection]
+          break
+        end
+        break if automatic == nil
+
+        actor, selection = automatic
+        before = replay.accepted_events.length
+        status, plan = @game.action_for(selection, replay, actor, context: context)
+        break if status != :ok || !plan.is_a?(GameRoomGames::ActionPlan) || plan.events.to_a.empty?
+
+        append_plan(plan, actor)
+        break if replay.accepted_events.length != before + plan.events.length
+      end
+      self
+    end
+
+    def context
+      GameRoomGames::ActionContext.new(
+        session_id: @session["__id"].to_i,
+        table_id: @session["table_id"].to_i,
+        hidden_submissions: nil,
+        random_source: @random_source,
+        now: @events.length
+      )
+    end
+
+    private
+
+    def append_plan(plan, actor)
+      appended = []
+      plan.events.each do |command|
+        event = {
+          "id" => @next_event_id,
+          "sequence" => @next_event_id,
+          "actor" => actor.to_s,
+          "action" => command.action.to_s,
+          "value" => command.value.to_s
+        }
+        @events << event
+        appended << event
+        @next_event_id += 1
+      end
+      cached = @replay
+      @replay = if cached == nil
+        nil
+      else
+        @game.incremental_replay(cached, @session, appended, @repository)
+      end
+    end
+  end
+
+  class MatchRunner
+    def initialize(game:, players: nil, options: nil, strategies: {}, default_strategy: nil, max_actions: 10_000)
+      @game = game
+      @players = players || GameRoomParticipants.bots_for(1, game.minimum_players)
+      @options = options
+      @strategies = strategies
+      @default_strategy = default_strategy || game.bot_strategy || GameRoomBots::RandomStrategy.new
+      @max_actions = [max_actions.to_i, 1].max
+    end
+
+    def run(seed: 1)
+      environment = Environment.new_game(
+        game: @game,
+        players: @players,
+        options: @options,
+        seed: seed
+      )
+      action_count = 0
+      reason = :finished
+      while !environment.finished?
+        if action_count >= @max_actions
+          reason = :action_limit
+          break
+        end
+
+        actor = environment.active_actor
+        actions = environment.legal_actions(actor)
+        if actor == nil || actions.empty?
+          reason = :no_legal_action
+          break
+        end
+
+        strategy = strategy_for(actor)
+        action = GameRoomBots.choose(strategy, {
+          actions: actions,
+          observation: environment.observation(actor),
+          actor: actor,
+          random_source: environment.random_source,
+          game: @game,
+          replay: environment.replay,
+          context: environment.context,
+          simulation: environment
+        })
+        if action == nil || environment.step(action, actor: actor) != :ok
+          reason = :invalid_strategy_action
+          break
+        end
+        action_count += 1
+      end
+
+      rewards = @players.each_with_object({}) do |actor, result|
+        result[actor.to_s] = environment.reward(actor)
+      end
+      finish_strategies(rewards)
+      MatchResult.new(
+        game_id: @game.id,
+        players: @players.dup,
+        winner: environment.replay.winner,
+        draw: environment.replay.draw == true,
+        rewards: rewards,
+        events: Environment.deep_copy(environment.events),
+        actions: action_count,
+        seed: seed.to_i,
+        reason: reason,
+        final_state: Environment.deep_copy(environment.replay.state)
+      )
+    end
+
+    private
+
+    def strategy_for(actor)
+      @strategies[actor] || @strategies[actor.to_s] || @strategies[:default] || @default_strategy
+    end
+
+    def finish_strategies(rewards)
+      @players.each do |actor|
+        strategy = strategy_for(actor)
+        strategy.finish_episode(actor, rewards[actor.to_s]) if strategy.respond_to?(:finish_episode)
+      end
+    end
+  end
+end

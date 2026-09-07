@@ -1,0 +1,835 @@
+module GameSurfaces
+  Action = Struct.new(:kind, :name, :payload, :source, keyword_init: true) do
+    def initialize(kind:, name:, payload: {}, source: nil)
+      raise ArgumentError, "surface action payload must be a hash" if !payload.respond_to?(:to_h)
+
+      normalized = {}
+      payload.to_h.each { |key, value| normalized[key.to_s] = value }
+      super(
+        kind: kind.to_s,
+        name: name.to_s,
+        payload: normalized,
+        source: source == nil ? nil : source.to_s
+      )
+    end
+
+    def [](key)
+      normalized = key.to_s
+      return kind if normalized == "kind"
+      return name if normalized == "action" || normalized == "name"
+      return source if normalized == "source"
+
+      payload[normalized]
+    end
+
+    def key?(key)
+      normalized = key.to_s
+      ["kind", "action", "name", "source"].include?(normalized) || payload.key?(normalized)
+    end
+
+    def to_h
+      payload.merge(
+        "kind" => kind,
+        "action" => name,
+        "source" => source
+      ).reject { |_key, value| value == nil }
+    end
+
+    def with_source(value)
+      self.class.new(kind: kind, name: name, payload: payload, source: value)
+    end
+  end
+
+  module ActionEmitter
+    def on_action(&handler)
+      @action_handler = handler
+      self
+    end
+
+    def suppress_next_focus!(_field_index = 0)
+      nil
+    end
+
+    def cancel_pending_action?
+      false
+    end
+
+    def cancel_pending_action!
+      false
+    end
+
+    private
+
+    def emit_action(kind, name, payload = {}, source: nil)
+      @action_handler&.call(
+        Action.new(kind: kind, name: name, payload: payload, source: source)
+      )
+    end
+  end
+
+  # Form#resume ends the current wait. Re-entering Form#wait normally plays
+  # form_marker and focuses the current field again, which is correct after a
+  # nested dialog but noisy after a maintenance refresh. Keep the framework's
+  # normal wait loop without that re-entry announcement. Any one-shot focus
+  # suppression left by older callers must be discarded here so it cannot
+  # silence the user's next arrow movement.
+  class RefreshAwareForm < Form
+    def wait_without_announcement
+      previous_quiet = @quiet
+      current = fields[@index.to_i]
+      current.clear_suppressed_focus! if current.respond_to?(:clear_suppressed_focus!)
+      @quiet = false
+      @updated = false
+      wait
+    ensure
+      @quiet = previous_quiet
+    end
+  end
+
+  GridSpec = Struct.new(
+    :width,
+    :height,
+    :header,
+    :cells,
+    :row_origin,
+    keyword_init: true
+  )
+
+  CardChoice = Struct.new(:id, :label, :value, keyword_init: true)
+  Card = Struct.new(:id, :label, :value, :choices, :shift_choice, :choice_header, keyword_init: true)
+  CardZoneSpec = Struct.new(:id, :header, :cards, :empty_label, keyword_init: true)
+  CardTableSpec = Struct.new(:zones, keyword_init: true)
+
+  class OrientedGridBox < GridBox
+    def initialize(width, height, row_origin:, column_origin: :left, coordinate_labels: nil, coordinate_first: false, **options)
+      @row_origin = row_origin.to_sym
+      @column_origin = column_origin.to_sym
+      @coordinate_labels = coordinate_labels
+      @coordinate_first = coordinate_first == true
+      super(width, height, **options)
+    end
+
+    def set_orientation(row_origin:, column_origin:)
+      logical = logical_position
+      @row_origin = row_origin.to_sym
+      @column_origin = column_origin.to_sym
+      set_logical_position(*logical)
+    end
+
+    def coordinate_labels=(labels)
+      @coordinate_labels = labels
+    end
+
+    def logical_position
+      [logical_x(@x), logical_y(@y)]
+    end
+
+    def set_logical_position(x, y)
+      @x = internal_x(x)
+      @y = internal_y(y)
+    end
+
+    def suppress_next_focus!
+      @suppress_next_focus = true
+    end
+
+    attr_writer :silent_focus_handler
+
+    def silent_positions=(positions)
+      @silent_position_lookup = positions.to_a.each_with_object({}) do |position, lookup|
+        lookup[[position[0].to_i, position[1].to_i]] = true
+      end.freeze
+    end
+
+    def clear_suppressed_focus!
+      @suppress_next_focus = false
+    end
+
+    # Limits arrow navigation to meaningful cells while preserving the
+    # original grid coordinates announced by GridBox.  A nil value keeps the
+    # normal rectangular navigation used by chess, checkers and other boards.
+    def navigable_positions=(positions)
+      if positions == nil
+        @navigable_positions = nil
+        @navigable_position_lookup = nil
+        return
+      end
+
+      @navigable_positions = positions.to_a.map do |position|
+        [position[0].to_i, position[1].to_i].freeze
+      end.uniq.freeze
+      @navigable_position_lookup = @navigable_positions.each_with_object({}) do |position, lookup|
+        lookup[position] = true
+      end.freeze
+      if !@navigable_position_lookup[[@x, @y]] && (first = @navigable_positions.first) != nil
+        @x, @y = first
+      end
+    end
+
+    def move_by(dx, dy)
+      return super if @navigable_position_lookup == nil
+
+      step_x = dx.to_i <=> 0
+      step_y = dy.to_i <=> 0
+      return if step_x == 0 && step_y == 0
+
+      if step_x == 0
+        candidate_y = @y + step_y
+        while candidate_y.between?(0, @height - 1)
+          current_row = @navigable_positions.select { |position| position[1] == @y }.sort_by(&:first)
+          current_column = current_row.index([@x, @y])
+          candidates = @navigable_positions.select { |position| position[1] == candidate_y }.sort_by(&:first)
+          if !candidates.empty?
+            nearest = candidates.each_with_index.min_by do |position, column|
+              column_distance = current_column == nil ? 0 : (column - current_column).abs
+              [(position[0] - @x).abs, column_distance, position[0]]
+            end.first
+            @x, @y = nearest
+            return
+          end
+          candidate_y += step_y
+        end
+      end
+
+      candidate_x = @x + step_x
+      candidate_y = @y + step_y
+      while candidate_x.between?(0, @width - 1) && candidate_y.between?(0, @height - 1)
+        if @navigable_position_lookup[[candidate_x, candidate_y]]
+          @x = candidate_x
+          @y = candidate_y
+          return
+        end
+        candidate_x += step_x
+        candidate_y += step_y
+      end
+
+      play_sound("border", volume: 100, pitch: 100, pan: lpos) if @border_sound && !@silent && respond_to?(:play_sound, true)
+      trigger(:border, @x, @y, border_direction(step_x, step_y), step_x, step_y)
+    end
+
+    def focus(index = nil, count = nil, spk = true, include_header: true)
+      if @suppress_next_focus
+        @suppress_next_focus = false
+        spk = false
+      end
+      if @silent_position_lookup&.key?([@x, @y])
+        @silent_focus_handler&.call if spk && !@silent
+        NVDA.braille("") if defined?(NVDA) && NVDA.check
+        return true
+      end
+      return super(index, count, spk, include_header: include_header) if !@coordinate_first
+
+      position = respond_to?(:lpos) ? lpos : (@width <= 1 ? 50 : @x.to_f / (@width - 1).to_f * 100.0)
+      if spk && !@silent && defined?(Configuration) && Configuration.controlspresentation != :voice_only && respond_to?(:play_sound, true)
+        play_sound("listbox_marker", volume: 100, pitch: 100, pan: position)
+      end
+      return if instance_variable_defined?(:@speech) && !@speech
+
+      label = if respond_to?(:cell_label)
+        cell_label.to_s
+      else
+        @cells.to_a[@y].to_a[@x].to_s
+      end
+      value = coordinate_label
+      value = "#{value}, #{label}" if !label.empty?
+      if include_header && instance_variable_defined?(:@header) && !@header.to_s.empty?
+        separator = " .:?!,".include?(@header.to_s[-1..-1].to_s) ? " " : ": "
+        value = "#{@header}#{separator}#{value}"
+      end
+      speak(value, pan: position) if spk
+      NVDA.braille(value) if defined?(NVDA) && NVDA.check
+      true
+    end
+
+    def coordinate_label(x = @x, y = @y)
+      logical_column = logical_x(x)
+      logical_row = logical_y(y)
+      custom = @coordinate_labels&.dig(logical_row, logical_column).to_s
+      return custom if !custom.empty?
+
+      column = logical_column
+      letters = ""
+      loop do
+        letters = (65 + (column % 26)).chr + letters
+        column = column / 26 - 1
+        break if column < 0
+      end
+      "#{letters}#{logical_row + 1}"
+    end
+
+    def logical_x(internal_x = @x)
+      return @width - internal_x.to_i - 1 if @column_origin == :right
+
+      internal_x.to_i
+    end
+
+    def logical_y(internal_y = @y)
+      return @height - internal_y.to_i - 1 if @row_origin == :bottom
+
+      internal_y.to_i
+    end
+
+    def internal_y(logical_y)
+      return @height - logical_y.to_i - 1 if @row_origin == :bottom
+
+      logical_y.to_i
+    end
+
+    def internal_x(logical_x)
+      return @width - logical_x.to_i - 1 if @column_origin == :right
+
+      logical_x.to_i
+    end
+  end
+
+  class RefreshAwareListBox < ListBox
+    attr_reader :last_focus_spoken
+
+    def game_shortcut_keys=(keys)
+      @game_shortcut_character_keys = keys.to_a.each_with_object([]) do |key, result|
+        normalized = key.to_s.downcase
+        result << normalized if normalized.length == 1 && !result.include?(normalized)
+      end
+    end
+
+    def suppress_next_focus!
+      @suppress_next_focus = true
+    end
+
+    def clear_suppressed_focus!
+      @suppress_next_focus = false
+    end
+
+    def focus(index = nil, count = nil, header = @header, spk = true)
+      if @suppress_next_focus
+        @suppress_next_focus = false
+        spk = false
+      end
+      @last_focus_spoken = spk
+      super(index, count, header, spk)
+    end
+
+    private
+
+    def getkeychar(*arguments)
+      character = super
+      return "" if @game_shortcut_character_keys.to_a.include?(character.to_s.downcase)
+
+      character
+    end
+
+  end
+
+  class RefreshAwareEditBox < EditBox
+    attr_reader :last_focus_spoken
+
+    class ContextShortcutFilter
+      def initialize(menu, blocked_shortcuts)
+        @menu = menu
+        @blocked_shortcuts = blocked_shortcuts
+      end
+
+      def option(label, value = nil, shortcut = "", &handler)
+        filtered = @blocked_shortcuts.include?(shortcut.to_s) ? "" : shortcut
+        @menu.option(label, value, filtered, &handler)
+      end
+
+      def submenu(label, &handler)
+        return @menu.submenu(label) if handler == nil
+
+        @menu.submenu(label) do |submenu|
+          filtered_submenu = self.class.new(submenu, @blocked_shortcuts)
+          if handler.arity <= 0
+            filtered_submenu.instance_eval(&handler)
+          else
+            handler.call(filtered_submenu)
+          end
+        end
+      end
+
+      def method_missing(name, *arguments, &handler)
+        @menu.public_send(name, *arguments, &handler)
+      end
+
+      def respond_to_missing?(name, include_private = false)
+        @menu.respond_to?(name, include_private) || super
+      end
+    end
+
+    def game_shortcut_signatures=(signatures)
+      @blocked_context_shortcuts = signatures.to_a.each_with_object([]) do |signature, result|
+        key, modifiers = signature
+        modifiers = modifiers.to_a.map(&:to_sym)
+        next if key.to_s.length != 1
+        next if (modifiers - [:control, :shift]).any? || !modifiers.include?(:control)
+
+        shortcut = modifiers.include?(:shift) ? key.to_s.upcase : key.to_s.downcase
+        result << shortcut if !result.include?(shortcut)
+      end
+    end
+
+    def context(menu, submenu = false)
+      if submenu == false && !@blocked_context_shortcuts.to_a.empty?
+        menu = ContextShortcutFilter.new(menu, @blocked_context_shortcuts)
+      end
+      super(menu, submenu)
+    end
+
+    def suppress_next_focus!
+      @suppress_next_focus = true
+    end
+
+    def clear_suppressed_focus!
+      @suppress_next_focus = false
+    end
+
+    def focus(index = nil, count = nil, spk = true)
+      if @suppress_next_focus
+        @suppress_next_focus = false
+        spk = false
+      end
+      @last_focus_spoken = spk
+      super(index, count, spk)
+    end
+  end
+
+  class GridBoard
+    include ActionEmitter
+
+    def initialize(spec, state: {})
+      @spec = spec
+      validate_spec!
+      x = state_value(state, "x", 0)
+      y = state_value(state, "y", 0)
+      @control = OrientedGridBox.new(
+        @spec.width,
+        @spec.height,
+        row_origin: row_origin,
+        header: @spec.header.to_s,
+        x: x,
+        y: internal_y(y),
+        quiet: true
+      )
+      @control.set_cells(display_rows)
+      @control.on(:select) do |params|
+        coordinates = params.to_a
+        emit_action(
+          "grid",
+          "select",
+          {
+            "x" => coordinates[0].to_i,
+            "y" => logical_y(coordinates[1])
+          }
+        )
+      end
+    end
+
+    def fields
+      [@control]
+    end
+
+    def suppress_next_focus!(_field_index = 0)
+      @control.suppress_next_focus!
+    end
+
+    def state
+      {
+        "x" => @control.x.to_i,
+        "y" => logical_y(@control.y)
+      }
+    end
+
+    private
+
+    def validate_spec!
+      raise ArgumentError, "grid width must be positive" if @spec.width.to_i <= 0
+      raise ArgumentError, "grid height must be positive" if @spec.height.to_i <= 0
+      rows = @spec.cells.to_a
+      raise ArgumentError, "grid cells must match its height" if rows.length != @spec.height.to_i
+      if rows.any? { |row| row.to_a.length != @spec.width.to_i }
+        raise ArgumentError, "grid cells must match its width"
+      end
+      raise ArgumentError, "unsupported row origin" if ![:top, :bottom].include?(row_origin)
+    end
+
+    def display_rows
+      rows = @spec.cells.to_a.map { |row| row.to_a.map(&:to_s) }
+      row_origin == :bottom ? rows.reverse : rows
+    end
+
+    def row_origin
+      (@spec.row_origin || :top).to_sym
+    end
+
+    def logical_y(internal_y)
+      row_origin == :bottom ? @spec.height.to_i - internal_y.to_i - 1 : internal_y.to_i
+    end
+
+    def internal_y(logical_y)
+      value = [[logical_y.to_i, 0].max, @spec.height.to_i - 1].min
+      row_origin == :bottom ? @spec.height.to_i - value - 1 : value
+    end
+
+    def state_value(state, key, default)
+      return default if !state.respond_to?(:key?)
+      return state[key].to_i if state.key?(key)
+      return state[key.to_sym].to_i if state.key?(key.to_sym)
+
+      default
+    end
+  end
+
+  class CardTable
+    include ActionEmitter
+
+    def initialize(spec, state: {})
+      @spec = spec
+      @zones = @spec.zones.to_a
+      raise ArgumentError, "a card table requires at least one zone" if @zones.empty?
+
+      remembered = state.respond_to?(:[]) ? (state["zones"] || state[:zones] || {}) : {}
+      remembered_choices = state.respond_to?(:[]) ? (state["card_choices"] || state[:card_choices] || {}) : {}
+      @controls = []
+      @cards = {}
+      @pending_choices = {}
+      @zones.each do |zone|
+        cards = zone.cards.to_a
+        validate_card_choices!(cards)
+        zone_id = zone.id.to_s
+        @cards[zone_id] = cards
+        index = remembered_index(remembered, zone.id)
+        pending = remembered_choice(remembered_choices, zone_id, cards)
+        labels = cards.map { |card| card_label(card) }
+        header = zone.header.to_s
+        if pending != nil
+          @pending_choices[zone_id] = pending
+          labels = card_choices(pending[:card]).map { |choice| choice_label(choice) }
+          header = choice_header(pending[:card])
+          index = pending[:choice_index]
+        end
+        control = RefreshAwareListBox.new(
+          labels,
+          header: header,
+          index: index,
+          quiet: true,
+          empty_label: zone.empty_label.to_s
+        )
+        control.on(:select) do |params|
+          selected_index = params.to_a[0].to_i
+          pending = @pending_choices[zone_id]
+          if pending != nil
+            choice = card_choices(pending[:card])[selected_index]
+            next if choice == nil
+
+            payload = {
+              "zone" => zone_id,
+              "index" => pending[:card_index],
+              "card_id" => card_id(pending[:card]),
+              "card" => choice_value(choice),
+              "choice_id" => choice_id(choice)
+            }
+            restore_card_list(zone, control, speak: false)
+            emit_action("card", "select", payload)
+            next
+          end
+
+          card = cards[selected_index]
+          next if card == nil
+
+          choices = card_choices(card)
+          if shift_pressed?
+            quick_choice = shifted_choice(card, choices)
+            if quick_choice != nil
+              emit_action(
+                "card",
+                "select",
+                {
+                  "zone" => zone.id.to_s,
+                  "index" => selected_index,
+                  "card_id" => card_id(card),
+                  "card" => choice_value(quick_choice),
+                  "choice_id" => choice_id(quick_choice)
+                }
+              )
+              next
+            end
+
+            # A card may advertise a Shift action even when that action is
+            # currently unavailable. Emit the ordinary card payload together
+            # with the requested choice so the game can report the reason,
+            # instead of silently playing the card as a normal move.
+            unavailable_choice = shift_choice_id(card)
+            if !unavailable_choice.empty?
+              emit_action(
+                "card",
+                "select",
+                {
+                  "zone" => zone.id.to_s,
+                  "index" => selected_index,
+                  "card_id" => card_id(card),
+                  "card" => card_value(card),
+                  "choice_id" => unavailable_choice
+                }
+              )
+              next
+            end
+          end
+
+          if !choices.empty?
+            begin_card_choice(zone, control, card, selected_index)
+            next
+          end
+
+          emit_action(
+            "card",
+            "select",
+            {
+              "zone" => zone.id.to_s,
+              "index" => selected_index,
+              "card_id" => card_id(card),
+              "card" => card_value(card)
+            }
+          )
+        end
+        @controls << control
+      end
+    end
+
+    def fields
+      @controls
+    end
+
+    def suppress_next_focus!(field_index = 0)
+      control = @controls[field_index.to_i]
+      control.suppress_next_focus! if control != nil
+    end
+
+    def state
+      indices = {}
+      choices = {}
+      @zones.each_with_index do |zone, index|
+        zone_id = zone.id.to_s
+        pending = @pending_choices[zone_id]
+        if pending == nil
+          indices[zone_id] = @controls[index].index.to_i
+        else
+          indices[zone_id] = pending[:card_index]
+          choices[zone_id] = {
+            "card_id" => card_id(pending[:card]),
+            "card_index" => pending[:card_index],
+            "choice_index" => @controls[index].index.to_i
+          }
+        end
+      end
+      result = { "zones" => indices }
+      result["card_choices"] = choices if !choices.empty?
+      result
+    end
+
+    def cancel_pending_action?
+      !@pending_choices.empty?
+    end
+
+    def cancel_pending_action!
+      zone_index = @zones.index { |zone| @pending_choices.key?(zone.id.to_s) }
+      return false if zone_index == nil
+
+      restore_card_list(@zones[zone_index], @controls[zone_index], speak: true)
+      true
+    end
+
+    private
+
+    def shifted_choice(card, choices)
+      id = shift_choice_id(card)
+      return nil if id.to_s.empty?
+
+      choices.find { |choice| choice_id(choice) == id.to_s }
+    end
+
+    def shift_choice_id(card)
+      value = if card.respond_to?(:shift_choice)
+        card.shift_choice
+      elsif card.respond_to?(:key?)
+        card["shift_choice"] || card[:shift_choice]
+      end
+      value.to_s
+    end
+
+    def shift_pressed?
+      key_held?(0x10) == true
+    rescue Exception
+      false
+    end
+
+    def validate_card_choices!(cards)
+      cards.each do |card|
+        choices = card_choices(card)
+        ids = choices.map { |choice| choice_id(choice) }
+        raise ArgumentError, "card choice ids must not be empty" if ids.any?(&:empty?)
+        raise ArgumentError, "card choice ids must be unique" if ids.uniq.length != ids.length
+        raise ArgumentError, "card choices require labels" if choices.any? { |choice| choice_label(choice).empty? }
+      end
+    end
+
+    def begin_card_choice(zone, control, card, card_index)
+      zone_id = zone.id.to_s
+      @pending_choices[zone_id] = { card: card, card_index: card_index.to_i }
+      control.options = card_choices(card).map { |choice| choice_label(choice) }
+      control.header = choice_header(card)
+      control.index = 0
+      control.focus(0)
+    end
+
+    def restore_card_list(zone, control, speak:)
+      zone_id = zone.id.to_s
+      pending = @pending_choices.delete(zone_id)
+      return false if pending == nil
+
+      control.options = @cards.fetch(zone_id).map { |card| card_label(card) }
+      control.header = zone.header.to_s
+      control.index = pending[:card_index]
+      control.focus(control.index) if speak
+      true
+    end
+
+    def remembered_choice(remembered, zone_id, cards)
+      return nil if !remembered.respond_to?(:key?)
+      value = remembered[zone_id]
+      value = remembered[zone_id.to_sym] if value == nil && zone_id.respond_to?(:to_sym)
+      return nil if !value.respond_to?(:[])
+
+      card_id_value = value["card_id"] || value[:card_id]
+      card_index = (value["card_index"] || value[:card_index]).to_i
+      card = cards[card_index]
+      card = cards.find { |candidate| card_id(candidate) == card_id_value.to_s } if card_id(card) != card_id_value.to_s
+      return nil if card == nil || card_choices(card).empty?
+
+      {
+        card: card,
+        card_index: cards.index(card),
+        choice_index: (value["choice_index"] || value[:choice_index]).to_i
+      }
+    end
+
+    def choice_header(card)
+      custom = if card.respond_to?(:choice_header)
+        card.choice_header
+      elsif card.respond_to?(:key?)
+        card["choice_header"] || card[:choice_header]
+      end
+      return custom.to_s if !custom.to_s.empty?
+
+      _("%{card}. Choose how to play it") % { card: card_label(card) }
+    end
+
+    def remembered_index(remembered, zone_id)
+      value = remembered[zone_id.to_s]
+      value = remembered[zone_id.to_sym] if value == nil && zone_id.respond_to?(:to_sym)
+      value.to_i
+    end
+
+    def card_label(card)
+      return card.label.to_s if card.respond_to?(:label)
+      return (card["label"] || card[:label]).to_s if card.respond_to?(:[])
+
+      card.to_s
+    end
+
+    def card_value(card)
+      return card.value if card.respond_to?(:value)
+      if card.respond_to?(:[])
+        return card["value"] if card.respond_to?(:key?) && card.key?("value")
+        return card[:value] if card.respond_to?(:key?) && card.key?(:value)
+      end
+
+      card
+    end
+
+    def card_choices(card)
+      return card.choices.to_a if card.respond_to?(:choices)
+      if card.respond_to?(:key?)
+        return card["choices"].to_a if card.key?("choices")
+        return card[:choices].to_a if card.key?(:choices)
+      end
+
+      []
+    end
+
+    def choice_id(choice)
+      return choice.id.to_s if choice.respond_to?(:id)
+      if choice.respond_to?(:key?)
+        return choice["id"].to_s if choice.key?("id")
+        return choice[:id].to_s if choice.key?(:id)
+      end
+
+      ""
+    end
+
+    def choice_label(choice)
+      return choice.label.to_s if choice.respond_to?(:label)
+      if choice.respond_to?(:key?)
+        return choice["label"].to_s if choice.key?("label")
+        return choice[:label].to_s if choice.key?(:label)
+      end
+
+      choice.to_s
+    end
+
+    def choice_value(choice)
+      return choice.value if choice.respond_to?(:value)
+      if choice.respond_to?(:key?)
+        return choice["value"] if choice.key?("value")
+        return choice[:value] if choice.key?(:value)
+      end
+
+      choice
+    end
+
+    def card_id(card)
+      return card.id.to_s if card.respond_to?(:id)
+      if card.respond_to?(:key?)
+        return card["id"].to_s if card.key?("id")
+        return card[:id].to_s if card.key?(:id)
+      end
+
+      ""
+    end
+  end
+
+  require_relative "game_surfaces/command_panel"
+  require_relative "game_surfaces/pawn_track"
+  require_relative "game_surfaces/piece_board"
+  require_relative "game_surfaces/dice_tray"
+  require_relative "game_surfaces/question_surface"
+  require_relative "game_surfaces/answer_sheet"
+  require_relative "game_surfaces/review_surface"
+  require_relative "game_surfaces/composite_surface"
+
+  def self.build(spec, state: {})
+    case spec
+    when GridSpec
+      GridBoard.new(spec, state: state)
+    when CardTableSpec
+      CardTable.new(spec, state: state)
+    when CommandPanelSpec
+      CommandPanel.new(spec, state: state)
+    when PawnTrackSpec
+      PawnTrackSurface.new(spec, state: state)
+    when PieceBoardSpec
+      PieceBoard.new(spec, state: state)
+    when DiceTraySpec
+      DiceTray.new(spec, state: state)
+    when QuestionSpec
+      QuestionSurface.new(spec, state: state)
+    when AnswerSheetSpec
+      AnswerSheet.new(spec, state: state)
+    when ReviewSpec
+      ReviewSurface.new(spec, state: state)
+    when CompositeSpec
+      CompositeSurface.new(spec, state: state)
+    else
+      raise ArgumentError, "unsupported game surface: #{spec.class}"
+    end
+  end
+end

@@ -1,0 +1,32 @@
+# Packages and release outputs
+*.eltsetup
+*.eltup
+build/
+dist/
+coverage/
+tmp/
+
+# Signing material and credentials
+*.key
+*.key.pem
+*.p12
+*.pfx
+*.crt
+*.crt.pem
+*.pem
+.env
+.env.*
+
+# Local ELTEN and MCP state
+profiles/
+logs/
+sessions/
+.mcp/
+*.log
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+.DS_Store

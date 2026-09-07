@@ -1,0 +1,44 @@
+name: Zgłoszenie błędu
+description: Zgłoś powtarzalny problem w ELTEN Game Room
+title: "[Błąd] "
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Wersja i build
+      placeholder: "np. 1.1.0, build 176"
+    validations:
+      required: true
+  - type: input
+    id: game
+    attributes:
+      label: Gra lub ekran
+      placeholder: "np. Ninety-Nine, lobby, zaproszenia"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Kroki odtworzenia
+      description: Napisz dokładnie, co robisz od uruchomienia programu.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Co się dzieje?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Co powinno się wydarzyć?
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log lub dodatkowe informacje
+      description: Usuń tokeny, prywatne wiadomości i zbędne dane użytkowników.
+      render: text
