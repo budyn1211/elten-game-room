@@ -108,6 +108,13 @@ end
 hand_zone = passing_cards.zones.find { |zone| zone.id == "hand" }
 assert(hand_zone.cards.length == 10, "the revealed talon is not shown inside the taker's hand")
 assert(!passing_cards.zones.any? { |zone| zone.id == "talon" }, "the revealed talon is duplicated in a separate field")
+assert(passing_cards.zones.map(&:id) == ["hand"], "cards on the table still occupy a separate Tab field")
+table_card_shortcuts = game.game_shortcuts(replay, "Bob").select { |shortcut| shortcut.key == "c" }
+table_cards_announcement = table_card_shortcuts.find { |shortcut| shortcut.modifiers.empty? }
+table_cards_list = table_card_shortcuts.find { |shortcut| shortcut.modifiers == [:control] }
+assert(table_cards_announcement&.kind == :announcement, "plain C no longer reads the cards on the table")
+assert(table_cards_list&.kind == :browse, "Ctrl+C does not open the cards-on-table list")
+assert(table_cards_list.choices.map(&:label) == ["No cards have been played in this trick"], "the empty Ctrl+C card list is incorrect")
 playroom_hand = %w[AC TC 9H AS 9S TD 9D 9C TH AH].sort_by do |card|
   game.send(:card_sort_key, card)
 end
@@ -126,13 +133,26 @@ assert(
   first_pass_descriptions.last == "Choose a card to give to Carol.",
   "the taker is not told who should receive the second card"
 )
+first_card_label = game.send(:card_label, first_card)
+assert(first_pass_descriptions.first.include?(first_card_label), "the taker cannot see the card they gave away")
+alice_first_pass = game.describe_event(events.last, repository, replay, "Alice")
+carol_first_pass = game.describe_event(events.last, repository, replay, "Carol")
+assert(alice_first_pass.first.include?(first_card_label), "the recipient cannot see the card they received")
+assert(!carol_first_pass.first.include?(first_card_label), "an unrelated player can see somebody else's passed card")
 second_card = replay.state[:hands]["Bob"].first
 events << event(6, "Bob", "pass_card", "Carol|#{second_card}")
 replay = game.replay(session, events, repository)
 assert(replay.state[:phase] == :contract, "passing two cards did not reach the final contract")
 assert(replay.state[:hands].values.all? { |hand| hand.length == 8 }, "players do not have eight cards after passing")
+second_card_label = game.send(:card_label, second_card)
 pass_history = replay.history.select { |entry| entry.kind == :pass_card }.map(&:text).join(" ")
-assert(pass_history.include?(game.send(:card_label, first_card)) && pass_history.include?(game.send(:card_label, second_card)), "passed cards are missing from public history")
+assert(!pass_history.include?(first_card_label) && !pass_history.include?(second_card_label), "public history exposes passed cards")
+bob_history = game.history_entries_for_display(replay, "Bob").select { |entry| entry.kind == :pass_card }.map(&:text).join(" ")
+alice_history = game.history_entries_for_display(replay, "Alice").select { |entry| entry.kind == :pass_card }.map(&:text).join(" ")
+carol_history = game.history_entries_for_display(replay, "Carol").select { |entry| entry.kind == :pass_card }.map(&:text).join(" ")
+assert(bob_history.include?(first_card_label) && bob_history.include?(second_card_label), "the taker lost their passed-card history")
+assert(alice_history.include?(first_card_label) && !alice_history.include?(second_card_label), "Alice can see the wrong passed card")
+assert(carol_history.include?(second_card_label) && !carol_history.include?(first_card_label), "Carol can see the wrong passed card")
 observation = game.bot_observation(replay, "Alice")
 assert(!observation.key?("hands"), "a Tysiac bot observation exposed private opponent hands")
 

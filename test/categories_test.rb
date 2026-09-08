@@ -111,6 +111,18 @@ assert(GameRoomGames::Categories::MEDIUM_CATEGORY_IDS.length == 18, "the medium 
 assert(GameRoomGames::Categories::HARD_CATEGORY_IDS.length == 27, "the hard category pool has the wrong size")
 assert(JSON.generate(game.default_options).length <= 256, "default Categories options exceed the server field limit")
 assert(JSON.generate(custom_options).length <= 256, "custom Categories options exceed the server field limit")
+large_round_categories = GameRoomGames::Categories::CATEGORY_IDS.last(9)
+encoded_categories = game.send(:encode_round_categories, large_round_categories)
+round_value = [1, 1, 0, "A", 2_000_000_000, encoded_categories].join(",")
+assert(round_value.length <= 64, "a nine-category round still exceeds the server event limit")
+assert(
+  game.send(:decode_round_categories, encoded_categories) == large_round_categories,
+  "compact round categories did not decode to their original values"
+)
+assert(
+  game.send(:decode_round_categories, "country.city") == %w[country city],
+  "the compact format broke an existing dotted category round"
+)
 
 options = custom_options.merge("round_time" => 90, "target_score" => 100)
 session = { "options" => JSON.generate(options) }

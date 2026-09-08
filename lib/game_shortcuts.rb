@@ -6,6 +6,7 @@ module GameRoomShortcuts
     scores: ["s", _("read the scores")],
     hand: ["h", _("read your hand")],
     table_cards: ["c", _("read the cards on the table")],
+    table_cards_list: ["c", _("browse the cards on the table"), [:control]],
     led_suit: ["f", _("read the led suit")],
     bidding: ["b", _("read the bids")],
     draw_card: ["space", _("draw a card")],
@@ -66,6 +67,12 @@ module GameRoomShortcuts
       GameRoomGames::GameShortcut.new(
         **common,
         message: value(data, :message)
+      )
+    when :browse
+      GameRoomGames::GameShortcut.new(
+        **common,
+        prompt: value(data, :prompt),
+        choices: value(data, :choices)
       )
     when :number_input
       GameRoomGames::GameShortcut.new(

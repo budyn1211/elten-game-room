@@ -456,6 +456,33 @@ module GameRoomGames
       end
     end
 
+    def table_cards_browse_data(state)
+      plays = state[:current_trick].to_a
+      choices = if plays.empty?
+        [
+          ShortcutChoice.new(
+            value: nil,
+            label: _("No cards have been played in this trick")
+          )
+        ]
+      else
+        plays.map do |play|
+          ShortcutChoice.new(
+            value: play[:card],
+            label: _("%{player}: %{card}") % {
+              player: participant_name(play[:player]),
+              card: card_label(play[:card])
+            }
+          )
+        end
+      end
+      {
+        kind: :browse,
+        prompt: _("Cards on the table"),
+        choices: choices
+      }
+    end
+
     def custom_game_shortcuts(_replay, _viewer)
       []
     end

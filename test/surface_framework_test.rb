@@ -187,6 +187,7 @@ end
 
 require_relative "../lib/game_surfaces"
 require_relative "../lib/game_layout"
+require_relative "../lib/game_chat_commands"
 
 def assert(condition, message)
   raise message if !condition
@@ -244,6 +245,19 @@ layout.form.held_modifiers = [:main_modifier]
 assert(layout.form.key_processed(:t) == false, "Ctrl+T was captured by the active edit field")
 layout.form.held_modifiers = [:shift]
 assert(layout.form.key_processed(:t) == true, "Shift+T was captured instead of being typed in an edit field")
+layout.form.history_navigation_signatures = [
+  ["left", [:shift]],
+  ["right", [:control]],
+  ["left", [:control, :shift]]
+]
+layout.form.held_modifiers = [:shift]
+assert(layout.form.key_processed(:left) == true, "Shift+Left was stolen from the active edit field")
+layout.form.held_modifiers = [:main_modifier]
+assert(layout.form.key_processed(:right) == true, "Ctrl+Right was stolen from the active edit field")
+layout.form.index = 0
+assert(layout.form.key_processed(:right) == false, "Ctrl+Right did not activate history navigation outside an edit field")
+layout.form.held_modifiers = [:shift, :main_modifier]
+assert(layout.form.key_processed(:left) == false, "Ctrl+Shift+Left did not activate history navigation outside an edit field")
 layout.form.index = 0
 layout.form.held_modifiers = []
 layout.form.game_shortcut_keys = ["s", "space"]
@@ -269,6 +283,15 @@ assert(layout_snapshot.users_index == 1, "the shared layout did not bound the us
 assert(layout_snapshot.form_index == 2, "the shared layout did not bound the active section")
 assert(layout_snapshot.focus_location == [:chat, 0], "the shared layout did not remember the active section semantically")
 assert(layout_snapshot.chat_text == "", "the shared layout did not preserve the chat draft")
+layout.history.index = 0
+layout.form.index = 1
+browsing_history_snapshot = layout.snapshot
+assert(browsing_history_snapshot.history_index == 0, "browsing old history was forced back to the newest item")
+assert(!browsing_history_snapshot.history_follows_tail, "old history unexpectedly followed the tail while it was focused")
+layout.form.index = 2
+returning_history_snapshot = layout.snapshot
+assert(returning_history_snapshot.history_index == 1, "leaving history did not prepare its newest item for the next visit")
+assert(returning_history_snapshot.history_follows_tail, "history did not resume following new entries after losing focus")
 layout.chat.text = "draft message"
 layout.chat.index = 8
 layout.chat.check = 3
@@ -386,6 +409,17 @@ grid.on_action { |value| grid_action = value }
 grid.fields.first.trigger(:select, [1, 0])
 assert(grid_action.kind == "grid" && grid_action.name == "select", "grid emitted an invalid action")
 assert(grid_action["x"] == 1 && grid_action["y"] == 1, "grid emitted invalid logical coordinates")
+grid_command = grid.movement_command(["B2"])
+assert(grid_command.message == nil, "a valid grid command returned an error")
+assert(
+  grid_command.action["x"] == 1 && grid_command.action["y"] == 1 && grid_command.action.source == "chat_command",
+  "a grid command did not create the same logical selection as Enter"
+)
+assert(grid.movement_command(["C1"]).action == nil, "a command accepted a field outside the grid")
+chat_command = GameRoomChatCommands.interpret("/B2", grid)
+assert(chat_command.kind == :movement && chat_command.action["x"] == 1, "chat did not route a slash command to the grid")
+literal_chat = GameRoomChatCommands.interpret("//B2", grid)
+assert(literal_chat.kind == :chat && literal_chat.text == "/B2", "double slash did not escape a chat command")
 
 rook = GameSurfaces::Piece.new(
   id: "white_rook_a1",
@@ -432,6 +466,15 @@ assert(piece_action["piece_id"] == "white_rook_a1", "piece board lost the piece 
 assert(piece_action["from_field"] == "A1" && piece_action["to_field"] == "B1", "piece board lost field labels")
 assert(piece_action["from_x"] == 0 && piece_action["from_y"] == 0, "piece board lost source coordinates")
 assert(piece_action["to_x"] == 1 && piece_action["to_y"] == 0, "piece board lost destination coordinates")
+piece_command = piece_board.movement_command(["A1", "A2"])
+assert(piece_command.message == nil, "a valid piece-board command returned an error")
+assert(
+  piece_command.action["from_x"] == 0 && piece_command.action["from_y"] == 0 &&
+    piece_command.action["to_x"] == 0 && piece_command.action["to_y"] == 1 &&
+    piece_command.action.source == "chat_command",
+  "a piece-board command did not produce the ordinary move action"
+)
+assert(piece_board.movement_command(["A1", "C3"]).action == nil, "a command accepted an unavailable piece move")
 
 assert(piece_board.cancel_pending_action!, "piece board did not cancel a pending selection")
 assert(!piece_board.cancel_pending_action?, "piece board kept a cancelled selection")
@@ -559,6 +602,11 @@ presentation_spec = GameSurfaces::PieceBoardSpec.new(
 presentation_board = GameSurfaces.build(presentation_spec, state: { "x" => 0, "y" => 0 })
 presentation_control = presentation_board.fields.first
 assert(presentation_control.coordinate_label == "7", "piece board ignored its default coordinate notation")
+numeric_command = presentation_board.movement_command(["7", "4"])
+assert(
+  numeric_command.action != nil && numeric_command.action["from_field"] == "7" && numeric_command.action["to_field"] == "4",
+  "a piece-board command ignored the active numeric notation"
+)
 presentation_control.focus
 assert($spoken_messages.last == "7, White rook", "piece board did not announce the field before its occupant")
 presentation_board.handle_command("toggle_coordinate_labels")

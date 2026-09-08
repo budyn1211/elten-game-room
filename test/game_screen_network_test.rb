@@ -21,6 +21,16 @@ def assert(condition, message)
 end
 
 screen = GameScreen.allocate
+finished_replay = Object.new
+finished_replay.define_singleton_method(:finished?) { true }
+active_replay = Object.new
+active_replay.define_singleton_method(:finished?) { false }
+screen.instance_variable_set(:@review_finished_game, false)
+assert(screen.send(:exit_after_finished_game?, finished_replay), "a finished live game did not return to the table")
+assert(!screen.send(:exit_after_finished_game?, active_replay), "an active game returned to the table")
+screen.instance_variable_set(:@review_finished_game, true)
+assert(!screen.send(:exit_after_finished_game?, finished_replay), "the read-only final-position view closed immediately")
+
 assert(
   screen.send(:normalize_event_descriptions, "one event") == ["one event"],
   "a legacy single event description was not preserved"
@@ -69,6 +79,47 @@ shortcut_handlers.fetch(:key_t).call([false, false, false])
 assert(activated_shortcuts.empty?, "an ordinary T activated the Ctrl+T announcement")
 shortcut_handlers.fetch(:key_t).call([false, true, false])
 assert(activated_shortcuts == [initial_shortcut], "Ctrl+T was not handled after the form passed the key through")
+
+plain_c_shortcut = GameRoomGames::GameShortcut.new(
+  key: "c",
+  label: "read cards",
+  kind: :announcement,
+  message: "cards"
+)
+control_c_shortcut = GameRoomGames::GameShortcut.new(
+  key: "c",
+  modifiers: [:control],
+  label: "browse cards",
+  kind: :browse,
+  prompt: "Cards on the table",
+  choices: [GameRoomGames::ShortcutChoice.new(value: "AS", label: "Alice: ace of spades")]
+)
+activated_shortcuts.clear
+screen.send(:bind_game_shortcuts, shortcut_form, [shortcut_field], [plain_c_shortcut, control_c_shortcut]) do |shortcut|
+  activated_shortcuts << shortcut
+end
+shortcut_handlers.fetch(:key_c).call([false, false, false])
+shortcut_handlers.fetch(:key_c).call([false, true, false])
+assert(
+  activated_shortcuts == [plain_c_shortcut, control_c_shortcut],
+  "plain C and Ctrl+C were not distinguished by the shared shortcut handler"
+)
+
+history_handlers = {}
+history_form = Object.new
+history_signatures = nil
+history_form.define_singleton_method(:history_navigation_signatures=) { |value| history_signatures = value }
+history_form.define_singleton_method(:on) { |event, &handler| history_handlers[event] = handler }
+history_actions = []
+screen.send(:bind_history_navigation, history_form) { |operation, value| history_actions << [operation, value] }
+history_handlers.fetch(:key_left).call([false, true, false])
+history_handlers.fetch(:key_right).call([true, false, false])
+history_handlers.fetch(:key_left).call([true, true, false])
+assert(
+  history_actions == [[:move, -1], [:category, 1], [:jump, :first]],
+  "shared history navigation mapped arrow modifiers incorrectly"
+)
+assert(history_signatures.length == 6, "the form did not receive all shared history-navigation combinations")
 
 surface_calls = []
 surface = Object.new
@@ -187,11 +238,22 @@ synchronizer.define_singleton_method(:synchronize) do |&operation|
   operation.call
 end
 screen.instance_variable_set(:@synchronizer, synchronizer)
-synchronized_result = screen.send(:synchronized_network_task, "Updating game") { :updated }
+chat_control = Object.new
+screen.instance_variable_set(:@chat_control, chat_control)
+screen.instance_variable_set(:@focus_location, [:chat, 0])
+synchronized_result = screen.send(
+  :synchronized_network_task,
+  "Updating game",
+  ui: screen.send(:refresh_input_ui)
+) { :updated }
 synchronized_options = EltenAPI::Tasks.game_screen_test_options
 assert(synchronizations == 1, "a maintenance read bypassed the shared synchronizer")
-assert(synchronized_options[:ui] == :none, "a maintenance read opened a separate task interface")
+assert(synchronized_options[:ui].equal?(chat_control), "a maintenance read stopped servicing the active chat field")
 assert(synchronized_result == :updated, "a synchronized maintenance read changed its result")
+screen.instance_variable_set(:@focus_location, [:game, 0])
+screen.send(:synchronized_network_task, "Updating game") { :updated }
+assert(EltenAPI::Tasks.game_screen_test_options[:ui] == :none, "a maintenance read kept an inactive chat field open")
+screen.instance_variable_set(:@chat_control, nil)
 
 activity = Struct.new(:id, :created_at).new(8, 100)
 activity_repository = Object.new

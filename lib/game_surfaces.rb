@@ -1,4 +1,6 @@
 module GameSurfaces
+  MovementCommandResult = Struct.new(:action, :message, keyword_init: true)
+
   Action = Struct.new(:kind, :name, :payload, :source, keyword_init: true) do
     def initialize(kind:, name:, payload: {}, source: nil)
       raise ArgumentError, "surface action payload must be a hash" if !payload.respond_to?(:to_h)
@@ -465,7 +467,43 @@ module GameSurfaces
       }
     end
 
+    def movement_command(arguments)
+      values = arguments.to_a.map { |value| value.to_s.strip }
+      if values.length != 1
+        return MovementCommandResult.new(message: _("Enter one destination field, for example /C4."))
+      end
+
+      position = command_coordinate(values.first)
+      if position == nil
+        return MovementCommandResult.new(
+          message: _("Field %{field} is outside this board.") % { field: values.first }
+        )
+      end
+
+      MovementCommandResult.new(
+        action: Action.new(
+          kind: "grid",
+          name: "select",
+          payload: { "x" => position[0], "y" => position[1] },
+          source: "chat_command"
+        )
+      )
+    end
+
     private
+
+    def command_coordinate(value)
+      match = /\A([A-Za-z]+)([1-9]\d*)\z/.match(value)
+      return nil if match == nil
+
+      column = match[1].upcase.each_byte.reduce(0) do |number, character|
+        number * 26 + character - 64
+      end - 1
+      row = match[2].to_i - 1
+      return nil if !column.between?(0, @spec.width.to_i - 1) || !row.between?(0, @spec.height.to_i - 1)
+
+      [column, row]
+    end
 
     def validate_spec!
       raise ArgumentError, "grid width must be positive" if @spec.width.to_i <= 0

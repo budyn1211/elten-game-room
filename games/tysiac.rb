@@ -93,7 +93,7 @@ module GameRoomGames
           _("Controls"),
           _("During your auction turn, press Enter on your hand to open the bid list, then choose a bid or pass. After taking the talon, use the Arrow keys and Enter to choose one card for each opponent. Press B only if you want to change the final contract; playing the first card accepts the current contract automatically."),
           _("During play use the Arrow keys to browse your hand and Enter to play. Press Shift+Enter to declare a marriage when possible; if no marriage is available, the game reports it and does not play the card. Enter on a king or queen with an available marriage opens its choices. Use the surrender action before giving away the first talon card if you want to abandon the deal."),
-          _("Press T for the current turn, H for your hand, C for cards on the table, F for trump, S for scores, Shift+S for zeros, surrenders and barrels, and B for auction information or your final contract. Tab moves between the game, history and users. Ctrl+F1 opens these rules. Escape returns to the table.")
+          _("Press T for the current turn, H for your hand, C to read the cards on the table, Ctrl+C to browse them, F for trump, S for scores, Shift+S for zeros, surrenders and barrels, and B for auction information or your final contract. Tab moves between the game, history and users. Ctrl+F1 opens these rules. Escape returns to the table.")
         )
       ]
     end
@@ -362,30 +362,14 @@ module GameRoomGames
       hand_cards = hand_for(state, viewer).sort_by { |card| card_sort_key(card) }.map do |card|
         surface_card(state, viewer, card)
       end
-      zones = [
+      cards = GameSurfaces::CardTableSpec.new(zones: [
         GameSurfaces::CardZoneSpec.new(
           id: "hand",
           header: hand_header(state, viewer),
           cards: hand_cards,
           empty_label: _("Your hand is empty")
         )
-      ]
-      zones << GameSurfaces::CardZoneSpec.new(
-        id: "trick",
-        header: _("Cards on the table"),
-        cards: state[:current_trick].map do |play|
-          GameSurfaces::Card.new(
-            id: "#{play[:player]}:#{play[:card]}",
-            label: _("%{player}: %{card}") % {
-              player: participant_name(play[:player]),
-              card: card_label(play[:card])
-            },
-            value: play[:card]
-          )
-        end,
-        empty_label: _("No cards have been played in this trick")
-      )
-      cards = GameSurfaces::CardTableSpec.new(zones: zones)
+      ])
       command = surrender_command(state, viewer)
       return cards if command == nil
 
@@ -398,7 +382,7 @@ module GameRoomGames
     end
 
     def shortcut_features
-      super + [:hand, :table_cards, :led_suit, :scores, :statistics, :bidding]
+      super + [:hand, :table_cards, :table_cards_list, :led_suit, :scores, :statistics, :bidding]
     end
 
     def shortcut_feature_data(feature, replay, viewer)
@@ -408,6 +392,8 @@ module GameRoomGames
         { message: hand_text(state, viewer) }
       when :table_cards
         { message: table_cards_text(state) }
+      when :table_cards_list
+        table_cards_browse_data(state)
       when :led_suit
         {
           label: _("read the trump suit"),
@@ -445,14 +431,25 @@ module GameRoomGames
       end
     end
 
+    def history_entries_for_display(replay, viewer, surface_state: {})
+      replay.history.map do |entry|
+        next entry if entry.kind != :pass_card
+
+        displayed = entry.dup
+        displayed.text = passed_card_text(entry.actor, entry.field, entry.value, viewer)
+        displayed
+      end
+    end
+
     def describe_event(event, repository, replay, viewer)
+      event_id = repository.event_id(event)
+      entries = history_entries_for_display(replay, viewer).select do |entry|
+        entry.event_id.to_i == event_id.to_i
+      end
+      messages = entries.map(&:text)
       if event["action"].to_s == "pass_card" && same_user?(repository.actor_of(event), viewer)
         target, card = event["value"].to_s.split("|", 2)
         if target != nil && card != nil
-          messages = [_("You gave %{card} to %{player}.") % {
-            card: card_label(card),
-            player: participant_name(target)
-          }]
           recipients = replay.players.reject do |player|
             same_user?(player, repository.actor_of(event))
           end
@@ -466,9 +463,7 @@ module GameRoomGames
           return messages
         end
       end
-      event_id = repository.event_id(event)
-      entries = replay.history.select { |entry| entry.event_id.to_i == event_id.to_i }
-      entries.empty? ? nil : entries.map(&:text)
+      messages.empty? ? nil : messages
     end
 
     def turn_announcement(replay, viewer)
@@ -655,14 +650,15 @@ module GameRoomGames
       event_id = repository.event_id(event)
       history << HistoryEntry.new(
         key: "pass:#{event_id}",
-        text: _("%{taker} gave %{card} to %{player}.") % {
+        text: _("%{taker} gave a card to %{player}.") % {
           taker: participant_name(taker),
-          card: card_label(card),
           player: participant_name(expected)
         },
         event_id: event_id,
         actor: taker,
-        kind: :pass_card
+        kind: :pass_card,
+        field: expected,
+        value: card
       )
       if state[:pass_index] >= 2
         state[:phase] = :contract
@@ -1284,6 +1280,26 @@ module GameRoomGames
 
     def hand_header(state, viewer)
       passing_prompt(state, viewer) || _("Your hand")
+    end
+
+    def passed_card_text(taker, target, card, viewer)
+      if same_user?(taker, viewer)
+        return _("You gave %{card} to %{player}.") % {
+          card: card_label(card),
+          player: participant_name(target)
+        }
+      end
+      if same_user?(target, viewer)
+        return _("%{player} gave you %{card}.") % {
+          player: participant_name(taker),
+          card: card_label(card)
+        }
+      end
+
+      _("%{taker} gave a card to %{player}.") % {
+        taker: participant_name(taker),
+        player: participant_name(target)
+      }
     end
 
     def passing_prompt(state, viewer)

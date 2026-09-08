@@ -275,24 +275,29 @@ assert(
 
 surface = game.surface_spec(after_lead, "Carol")
 assert(surface.is_a?(GameSurfaces::CardTableSpec), "the active hand is not rendered as a card table")
+assert(surface.zones.map(&:id) == ["hand"], "cards on the table still occupy a separate Tab field")
 assert(surface.zones.first.header == "Your hand", "the hand field still contains a full game report")
 view = game.game_view_spec(after_lead, "Carol")
 assert(view.is_a?(GameRoomLayout::ViewSpec), "Spades bypasses the shared game layout")
 assert(view.sections == [:game, :history, :chat, :users], "Spades changed the shared field order")
 shortcuts = game.game_shortcuts(after_lead, "Carol").each_with_object({}) do |shortcut, result|
-  result[shortcut.key] = shortcut
+  result[[shortcut.key, shortcut.modifiers.to_a]] = shortcut
 end
-assert(shortcuts["s"].message.include?("Scores:"), "the score shortcut is missing")
-assert(!shortcuts["s"].message.include?("bags"), "bags are still presented as a separate score field")
-assert(shortcuts["h"].message.include?("Your hand:"), "the shared hand shortcut is missing")
-assert(shortcuts["b"].message.include?("Alice: 1"), "the bids shortcut is incomplete")
-assert(shortcuts["c"].message.include?("Bob:"), "the cards-on-table shortcut is incomplete")
-assert(shortcuts["f"].message.include?("led suit"), "the led-suit shortcut is missing")
-assert(shortcuts["v"].message.include?("Alice: 0/1"), "V does not report Alice's tricks against her bid")
-assert(shortcuts["v"].message.include?("Carol: 0/1"), "V does not report the viewer's tricks against their bid")
-assert(shortcuts["i"].message.include?("Carol: 0/1"), "I does not report the viewer's tricks against their bid")
-assert(!shortcuts["i"].message.include?("Alice: 0/1"), "I still duplicates the all-player round summary")
-assert(shortcuts["t"].message.include?("Carol"), "the turn shortcut names the wrong player")
+assert(shortcuts[["s", []]].message.include?("Scores:"), "the score shortcut is missing")
+assert(!shortcuts[["s", []]].message.include?("bags"), "bags are still presented as a separate score field")
+assert(shortcuts[["h", []]].message.include?("Your hand:"), "the shared hand shortcut is missing")
+assert(shortcuts[["b", []]].message.include?("Alice: 1"), "the bids shortcut is incomplete")
+assert(shortcuts[["c", []]].message.include?("Bob:"), "plain C no longer reads the cards on the table")
+table_cards_list = shortcuts[["c", [:control]]]
+assert(table_cards_list.kind == :browse, "Ctrl+C does not open the cards-on-table list")
+assert(table_cards_list.prompt == "Cards on the table", "the Ctrl+C card list has the wrong header")
+assert(table_cards_list.choices.map(&:label).any? { |label| label.include?("Bob:") }, "the Ctrl+C card list is incomplete")
+assert(shortcuts[["f", []]].message.include?("led suit"), "the led-suit shortcut is missing")
+assert(shortcuts[["v", []]].message.include?("Alice: 0/1"), "V does not report Alice's tricks against her bid")
+assert(shortcuts[["v", []]].message.include?("Carol: 0/1"), "V does not report the viewer's tricks against their bid")
+assert(shortcuts[["i", []]].message.include?("Carol: 0/1"), "I does not report the viewer's tricks against their bid")
+assert(!shortcuts[["i", []]].message.include?("Alice: 0/1"), "I still duplicates the all-player round summary")
+assert(shortcuts[["t", []]].message.include?("Carol"), "the turn shortcut names the wrong player")
 
 bidding_shortcuts = game.game_shortcuts(no_hell_replay, "Alice").each_with_object({}) do |shortcut, result|
   result[shortcut.key] = shortcut

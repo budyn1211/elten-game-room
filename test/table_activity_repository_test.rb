@@ -77,6 +77,17 @@ merged = repository.merge_history(
   game_name: ->(_id) { "Spades" }
 )
 assert(merged.include?("Alice played a card.") && merged.include?("Bob: hello there"), "shared history lost game or table events")
+categorized = repository.merged_history_entries(
+  game_entries: [game_entry],
+  game_events: [game_event],
+  activity_entries: [created, joined, chat],
+  game_name: ->(_id) { "Spades" }
+)
+assert(
+  categorized.map(&:category).sort_by(&:to_s) == [:chat, :game, :room, :room].sort_by(&:to_s),
+  "shared history did not classify game, chat and room events"
+)
+assert(categorized.map(&:text) == merged, "categorized history changed chronological presentation")
 
 left = repository.append(table: room, kind: "left", actor: "Bob")
 rejoined = repository.append(table: room, kind: "joined", actor: "Bob")

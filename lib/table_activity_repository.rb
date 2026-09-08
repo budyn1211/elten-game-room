@@ -1,4 +1,5 @@
 require_relative "game_participants"
+require_relative "game_history_navigation"
 
 class TableActivityRepository
   Entry = Struct.new(
@@ -153,15 +154,27 @@ class TableActivityRepository
   end
 
   def merge_history(game_entries:, game_events:, activity_entries:, game_name:)
+    merged_history_entries(
+      game_entries: game_entries,
+      game_events: game_events,
+      activity_entries: activity_entries,
+      game_name: game_name
+    ).map(&:text)
+  end
+
+  def merged_history_entries(game_entries:, game_events:, activity_entries:, game_name:)
     event_times = game_events.to_a.each_with_object({}) do |event, result|
       result[row_id(event)] = event["created_at"].to_i
     end
     records = game_entries.to_a.each_with_index.map do |entry, index|
-      [event_times.fetch(entry.event_id.to_i, 0), 0, entry.event_id.to_i, index, entry.text.to_s]
+      item = GameRoomHistory::Entry.new(text: entry.text.to_s, category: :game)
+      [event_times.fetch(entry.event_id.to_i, 0), 0, entry.event_id.to_i, index, item]
     end
     activity_entries.to_a.each_with_index do |entry, index|
       text = text_for(entry, game_name: game_name, global: false)
-      records << [entry.created_at.to_i, 1, entry.id.to_i, index, text.to_s] if !text.to_s.empty?
+      category = entry.kind == "chat" ? :chat : :room
+      item = GameRoomHistory::Entry.new(text: text.to_s, category: category)
+      records << [entry.created_at.to_i, 1, entry.id.to_i, index, item] if !text.to_s.empty?
     end
     records.sort_by { |record| record[0, 4] }.map(&:last)
   end

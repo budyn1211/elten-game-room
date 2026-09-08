@@ -6,6 +6,8 @@ require_relative "game_simulation"
 require_relative "game_rules"
 require_relative "invitation_shortcuts"
 require_relative "game_sounds"
+require_relative "game_chat_commands"
+require_relative "game_history_navigation"
 
 class GameScreen
   TIMER_INTERVAL = 0.05
@@ -27,7 +29,8 @@ class GameScreen
     game_status_changed: nil,
     activity_repository: nil,
     game_name: nil,
-    send_chat: nil
+    send_chat: nil,
+    review_finished_game: false
   )
     @program = program
     @repository = repository
@@ -46,6 +49,7 @@ class GameScreen
     @activity_repository = activity_repository
     @game_name = game_name || ->(id) { id.to_s }
     @send_chat = send_chat
+    @review_finished_game = review_finished_game == true
     @room_snapshot = nil
     @surface_state = {}
     @selected_surface_action = nil
@@ -70,6 +74,9 @@ class GameScreen
     @chat_index = 0
     @chat_check = 0
     @chat_control = nil
+    @pending_chat_message = nil
+    @clear_chat_after_action = false
+    @history_navigator = GameRoomHistory::Navigator.new
     @hidden_submissions = HiddenSubmissions::Vault.new(
       HiddenSubmissions::ProgramStorage.new(@program)
     )
@@ -86,7 +93,11 @@ class GameScreen
       using_cached_payload = false
       snapshot_started_at = monotonic_time
       log_signal_timing("snapshot_started", signal_received_at)
-      payload = network_task(_("Updating game"), silent: confirmation_pending) do
+      payload = network_task(
+        _("Updating game"),
+        ui: refresh_input_ui,
+        silent: confirmation_pending
+      ) do
         @synchronizer.synchronize do
           room_snapshot = @room_snapshot || @room_snapshot_provider.call
           [
@@ -141,7 +152,9 @@ class GameScreen
         verified: verification_forced
       )
       log_bot_confirmation(confirmation) if ![:idle, :cooldown, :waiting_for_confirmation].include?(confirmation)
-      if !using_cached_payload && perform_automatic_action(replay)
+      return :finished if exit_after_finished_game?(replay)
+
+      if !replay.finished? && !using_cached_payload && perform_automatic_action(replay)
         @suppress_surface_focus = true
         next
       end
@@ -165,6 +178,8 @@ class GameScreen
       case action
       when :game_action
         submit_action(replay)
+        clear_chat_draft if @clear_chat_after_action
+        @clear_chat_after_action = false
         @suppress_surface_focus = true
       when :new_session
         switch_to_new_session
@@ -241,7 +256,7 @@ class GameScreen
     end
     shortcuts = normalized_game_shortcuts(@game.game_shortcuts(replay, Session.name))
     handle_shortcut = lambda do |shortcut|
-      if bot_actor != nil && ![:announcement, :browse, :surface].include?(shortcut.kind)
+      if (bot_actor != nil || replay.finished?) && ![:announcement, :browse, :surface].include?(shortcut.kind)
         next
       end
 
@@ -265,6 +280,18 @@ class GameScreen
       shortcuts,
       &handle_shortcut
     )
+    bind_history_navigation(form) do |operation, value|
+      entries = combined_history_entries(replay)
+      message = case operation
+      when :category
+        @history_navigator.change_category(entries, value)
+      when :move
+        @history_navigator.move(entries, value)
+      when :jump
+        @history_navigator.jump(entries, value)
+      end
+      speak(message.to_s) if !message.to_s.empty?
+    end
     GameRoomRules.bind_ctrl_f1(form, layout.shortcut_fields) do
       next if action != nil
 
@@ -309,7 +336,7 @@ class GameScreen
       end)
     )
     surface.on_action do |selection|
-      next if bot_actor != nil
+      next if bot_actor != nil || replay.finished?
 
       if selection["_stay_open"] == true
         remember_position.call
@@ -337,13 +364,24 @@ class GameScreen
       next if action != nil
 
       remember_position.call
-      if @chat_text.to_s.strip.empty?
+      submission = GameRoomChatCommands.interpret(@chat_text, surface)
+      if submission.kind == :empty
         alert(_("Type a chat message first."))
-      elsif @send_chat == nil
+      elsif submission.kind == :error
+        alert(submission.message.to_s)
+        clear_chat_draft
+      elsif submission.kind == :chat && @send_chat == nil
         alert(_("Chat is not available."))
-      else
+      elsif submission.kind == :chat
+        @pending_chat_message = submission.text
         action = :chat
         cancel_bot_decision(bot_token, :chat)
+        form.resume
+      elsif submission.kind == :movement
+        @selected_surface_action = submission.action
+        @clear_chat_after_action = true
+        action = :game_action
+        cancel_bot_decision(bot_token, :chat_command)
         form.resume
       end
     end
@@ -351,12 +389,16 @@ class GameScreen
       next if action != nil
 
       announce_due_timers(replay)
-      local_action = @game.automatic_surface_action(
-        replay,
-        Session.name,
-        surface: surface,
-        context: action_context
-      )
+      local_action = if replay.finished?
+        nil
+      else
+        @game.automatic_surface_action(
+          replay,
+          Session.name,
+          surface: surface,
+          context: action_context
+        )
+      end
       if local_action != nil
         remember_position.call
         @selected_surface_action = local_action
@@ -503,7 +545,10 @@ class GameScreen
             revision = [revision[0].to_i + inserted.length, [revision[1].to_i, newest_id].max]
           end
         when :check_signal
-          remote_action, remote_session_id = synchronized_network_task(_("Checking for game updates")) do
+          remote_action, remote_session_id = synchronized_network_task(
+            _("Checking for game updates"),
+            ui: refresh_input_ui
+          ) do
             remote_game_update(revision)
           end || [nil, nil]
           if remote_action == :new_session
@@ -516,7 +561,10 @@ class GameScreen
           end
           @pending_signal_received_at = nil
         when :room_refresh
-          room_status, snapshot, activity_entries = synchronized_network_task(_("Updating table")) do
+          room_status, snapshot, activity_entries = synchronized_network_task(
+            _("Updating table"),
+            ui: refresh_input_ui
+          ) do
             fetch_room_snapshot
           end || [:failed, nil, []]
           if room_status == :closed
@@ -527,7 +575,7 @@ class GameScreen
           end
         when :recovery_refresh
           recovery_started_at = monotonic_time
-          payload = synchronized_network_task(_("Updating game")) do
+          payload = synchronized_network_task(_("Updating game"), ui: refresh_input_ui) do
             room_status, snapshot, activity_entries = fetch_room_snapshot
             remote_action, remote_session_id = remote_game_update(revision)
             [room_status, snapshot, activity_entries, remote_action, remote_session_id]
@@ -644,6 +692,10 @@ class GameScreen
     ].include?(action)
   end
 
+  def exit_after_finished_game?(replay)
+    replay.finished? && !@review_finished_game
+  end
+
   # Recovery waits until no automatic action or bot calculation is active, so
   # reconnecting cannot interrupt a valid move and strand the current turn.
   def recovery_allowed?(automatic_due, bot_actor)
@@ -695,6 +747,39 @@ class GameScreen
 
         consume_game_shortcut_key(key)
         handler.call(shortcut)
+      end
+    end
+  end
+
+  def bind_history_navigation(form, &handler)
+    signatures = [
+      ["left", [:shift]],
+      ["right", [:shift]],
+      ["left", [:control]],
+      ["right", [:control]],
+      ["left", [:control, :shift]],
+      ["right", [:control, :shift]]
+    ]
+    form.history_navigation_signatures = signatures if form.respond_to?(:history_navigation_signatures=)
+    {
+      left: -1,
+      right: 1
+    }.each do |key, direction|
+      form.on(("key_" + key.to_s).to_sym) do |parameters|
+        shift, control, alt = parameters.to_a
+        next if alt == true
+
+        operation, value = if shift == true && control == true
+          [:jump, direction < 0 ? :first : :last]
+        elsif shift == true && control != true
+          [:category, direction]
+        elsif control == true && shift != true
+          [:move, direction]
+        end
+        next if operation == nil
+
+        consume_game_shortcut_key(key)
+        handler.call(operation, value)
       end
     end
   end
@@ -873,7 +958,7 @@ class GameScreen
     )
     if status != :ok
       alert(@game.move_error_for(status, selection: selection, replay: replay, actor: Session.name))
-      return
+      return false
     end
 
     recipients = game_recipients
@@ -887,9 +972,10 @@ class GameScreen
         actor: Session.name
       )
     end
-    return if inserted == nil
+    return false if inserted == nil
 
     @pending_event_ids = inserted.map { |event| @repository.event_id(event) }
+    true
   end
 
   def submit_inline_action(replay, selection)
@@ -934,6 +1020,7 @@ class GameScreen
     return if session == nil
 
     @session = session
+    @review_finished_game = false
     @bot_turn_controller.switch_session(@repository.session_id(session))
     @synchronizer.update_session(@repository.session_id(session), discard_pending: true).synchronized!
     @surface_state = {}
@@ -951,6 +1038,8 @@ class GameScreen
     @latest_wait_replay = nil
     @spoken_timer_announcements = {}
     @last_game_payload = nil
+    @clear_chat_after_action = false
+    @history_navigator = GameRoomHistory::Navigator.new
   end
 
   def fetch_room_snapshot
@@ -1019,20 +1108,28 @@ class GameScreen
     @activity_repository.entries_for(snapshot.table, viewer: Session.name)
   end
 
-  def combined_history_items(replay)
+  def combined_history_entries(replay)
     game_entries = @game.history_entries_for_display(
       replay,
       Session.name,
       surface_state: @surface_state
     )
-    return game_entries.map(&:text) if @activity_repository == nil
+    if @activity_repository == nil
+      return game_entries.map do |entry|
+        GameRoomHistory::Entry.new(text: entry.text.to_s, category: :game)
+      end
+    end
 
-    @activity_repository.merge_history(
+    @activity_repository.merged_history_entries(
       game_entries: game_entries,
       game_events: replay.accepted_events,
       activity_entries: @activity_entries.to_a,
       game_name: @game_name
     )
+  end
+
+  def combined_history_items(replay)
+    combined_history_entries(replay).map(&:text)
   end
 
   def refresh_history_control(history, replay)
@@ -1067,7 +1164,9 @@ class GameScreen
   end
 
   def submit_chat
-    message = @chat_text.to_s.strip
+    pending_message = @pending_chat_message
+    @pending_chat_message = nil
+    message = (pending_message == nil ? @chat_text : pending_message).to_s.strip
     return if message.empty? || @send_chat == nil
 
     entry = network_task(_("Sending chat message"), ui: :none) do
@@ -1082,6 +1181,10 @@ class GameScreen
     @activity_entries.sort_by! { |candidate| [candidate.created_at.to_i, candidate.id.to_i] }
     text = @activity_repository&.text_for(entry, game_name: @game_name, global: false)
     speak(text, stop: false, break_sequence: false) if !text.to_s.empty?
+    clear_chat_draft
+  end
+
+  def clear_chat_draft
     @chat_text = ""
     @chat_index = 0
     @chat_check = 0
@@ -1477,10 +1580,17 @@ class GameScreen
     nil
   end
 
-  def synchronized_network_task(title, &operation)
-    network_task(title, ui: :none, silent: true) do
+  def synchronized_network_task(title, ui: :none, &operation)
+    network_task(title, ui: ui, silent: true) do
       @synchronizer.synchronize(&operation)
     end
+  end
+
+  def refresh_input_ui
+    return :none if @chat_control == nil
+    return :none if @focus_location.to_a[0]&.to_sym != :chat
+
+    @chat_control
   end
 
   # Bot policies may perform a complete-round search. The worker calculates the

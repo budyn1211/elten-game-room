@@ -141,6 +141,30 @@ module GameSurfaces
       true
     end
 
+    def movement_command(arguments)
+      values = arguments.to_a.map { |value| value.to_s.strip }
+      if values.length != 2
+        return MovementCommandResult.new(message: _("Enter a source and destination, for example /A1 B2."))
+      end
+
+      origin = command_coordinate(values[0])
+      destination = command_coordinate(values[1])
+      missing = origin == nil ? values[0] : values[1]
+      if origin == nil || destination == nil
+        return MovementCommandResult.new(
+          message: _("Field %{field} is not available in the current board notation.") % { field: missing }
+        )
+      end
+      if !@selectable.include?(origin) || piece_at(origin) == nil
+        return MovementCommandResult.new(message: origin_error_message(origin))
+      end
+      if origin == destination || !target_allowed?(origin, destination)
+        return MovementCommandResult.new(message: destination_error_message(origin, destination))
+      end
+
+      MovementCommandResult.new(action: move_action(origin, destination, source: "chat_command"))
+    end
+
     private
 
     def handle_selection(x, y)
@@ -197,23 +221,29 @@ module GameSurfaces
     end
 
     def emit_move(destination)
-      piece = piece_at(@selected)
-      emit_action(
-        "piece_board",
-        "move",
-        {
+      action = move_action(@selected, destination)
+      @action_handler&.call(action)
+    end
+
+    def move_action(origin, destination, source: nil)
+      piece = piece_at(origin)
+      Action.new(
+        kind: "piece_board",
+        name: "move",
+        payload: {
           "board_id" => @spec.id.to_s,
           "piece_id" => piece.id.to_s,
           "piece_owner" => piece.owner,
           "piece_kind" => piece.kind,
           "piece_value" => piece.value,
-          "from_x" => @selected[0],
-          "from_y" => @selected[1],
-          "from_field" => coordinate_label(@selected),
+          "from_x" => origin[0],
+          "from_y" => origin[1],
+          "from_field" => coordinate_label(origin),
           "to_x" => destination[0],
           "to_y" => destination[1],
           "to_field" => coordinate_label(destination)
-        }
+        },
+        source: source
       )
     end
 
@@ -454,6 +484,22 @@ module GameSurfaces
         number * 26 + character - 64
       end
       [column - 1, match[2].to_i - 1]
+    end
+
+    def command_coordinate(value)
+      labels = active_coordinate_labels
+      if labels != nil
+        labels.each_with_index do |row, y|
+          row.to_a.each_with_index do |label, x|
+            return [x, y].freeze if !label.to_s.empty? && label.to_s.casecmp?(value.to_s)
+          end
+        end
+        return nil
+      end
+
+      normalize_coordinate(value)
+    rescue ArgumentError
+      nil
     end
 
     def coordinate_label(position)

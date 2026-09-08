@@ -3,8 +3,8 @@
   "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
-  "version": "1.1.1",
-  "build_id": "184",
+  "version": "1.1.2",
+  "build_id": "190",
   "EltenAPIVersion": "3.0.2",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -829,6 +829,7 @@ class EltenGameRoom < Program
 
     action_index = 0
     history_index = 0
+    history_follows_tail = true
     users_index = 0
     form_index = 0
     chat_text = ""
@@ -851,7 +852,12 @@ class EltenGameRoom < Program
     loop do
       state = cached_state
       cached_state = nil
-      state ||= load_room_state(row, title: _("Updating table"), synchronizer: synchronizer)
+      state ||= load_room_state(
+        row,
+        title: _("Updating table"),
+        synchronizer: synchronizer,
+        ui: form_index.to_i == 2 ? chat : :none
+      )
       return if state == nil
 
       snapshot = state.room
@@ -868,7 +874,11 @@ class EltenGameRoom < Program
       history_items = room_history_items(state, activity_entries)
       user_items = room_user_labels(state)
       action_index = bounded_index(action_index, action_items)
-      history_index = bounded_index(history_index, history_items)
+      history_index = if history_follows_tail
+        [history_items.length - 1, 0].max
+      else
+        bounded_index(history_index, history_items)
+      end
       users_index = bounded_index(users_index, user_items)
       action = nil
       started_session_id = nil
@@ -906,7 +916,13 @@ class EltenGameRoom < Program
       form.hide(leave_button)
       remember_position = lambda do
         action_index = actions.index.to_i
-        history_index = history.index.to_i
+        if form.index.to_i == 1
+          history_index = history.index.to_i
+          history_follows_tail = history_index >= history_items.length - 1
+        else
+          history_follows_tail = true
+          history_index = [history_items.length - 1, 0].max
+        end
         users_index = users.index.to_i
         chat_text = chat.text
         chat_index = chat.index.to_i
@@ -1621,6 +1637,9 @@ class EltenGameRoom < Program
         { action: :start_game, label: _("Start a new game") },
         { action: :rules, label: _("Game rules") }
       ]
+      if state.finished?
+        actions.insert(1, { action: :review_finished_game, label: _("Review the finished game") })
+      end
       if state.game != nil
         maximum = [@lobby.capacity_of(state.room.table), state.game.maximum_players.to_i].min
         if state.game.supports_bots? && state.room.participants.length < maximum
@@ -1632,7 +1651,7 @@ class EltenGameRoom < Program
       end
       actions
     else
-      [
+      actions = [
         {
           action: :wait,
           label: _("Waiting for %{owner} to start a game") % {
@@ -1644,6 +1663,10 @@ class EltenGameRoom < Program
           label: _("Game rules")
         }
       ]
+      if state.finished?
+        actions.unshift({ action: :review_finished_game, label: _("Review the finished game") })
+      end
+      actions
     end
   end
 
@@ -1733,6 +1756,15 @@ class EltenGameRoom < Program
       run_game_screen(state.game_snapshot.session, state.game, table: state.room.table)
     when :start_game
       start_new_game(row, state: state)
+    when :review_finished_game
+      return if state.game_snapshot == nil || !state.finished?
+
+      run_game_screen(
+        state.game_snapshot.session,
+        state.game,
+        table: state.room.table,
+        review_finished_game: true
+      )
     when :rules
       game = state.game || game_definition(row["game"])
       options = game == nil ? nil : game.options_from_json(row["game_options"])
@@ -1942,8 +1974,8 @@ class EltenGameRoom < Program
     end
   end
 
-  def load_room_state(row, title:, synchronizer: nil)
-    payload = run_network_task(title) do
+  def load_room_state(row, title:, synchronizer: nil, ui: nil)
+    payload = run_network_task(title, ui: ui) do
       operation = lambda do
         room = @lobby.snapshot_for(row)
         if room == nil
@@ -1979,7 +2011,7 @@ class EltenGameRoom < Program
     )
   end
 
-  def run_game_screen(session, game = nil, table:)
+  def run_game_screen(session, game = nil, table:, review_finished_game: false)
     game ||= game_definition(session["game"])
     if game == nil
       alert(_("This game is not supported by this version of ELTEN Game Room."))
@@ -2020,7 +2052,8 @@ class EltenGameRoom < Program
         saved = @table_activity.append(table: current_table, kind: "chat", message: message)
         @lobby.announce_table_activity(current_table, users, actor: Session.name) if saved != nil
         saved
-      end
+      end,
+      review_finished_game: review_finished_game
     ).run
   end
 

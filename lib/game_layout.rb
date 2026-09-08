@@ -42,11 +42,22 @@ module GameRoomLayout
       self.game_shortcut_keys = @game_shortcut_signatures.map(&:first)
     end
 
+    def history_navigation_signatures=(signatures)
+      @history_navigation_signatures = signatures.to_a.map do |key, modifiers|
+        [key.to_s.sub(/\Akey_/, "").downcase, modifiers.to_a.map(&:to_sym).uniq.sort]
+      end
+    end
+
     def key_processed(key)
       normalized = key.to_s.sub(/\Akey_/, "").downcase
+      modifiers = active_shortcut_modifiers
+      if @history_navigation_signatures.to_a.include?([normalized, modifiers])
+        return true if editable_text_field?
+
+        return false
+      end
       if @game_shortcut_keys.to_a.include?(normalized)
         if editable_text_field?
-          modifiers = active_shortcut_modifiers
           return true if !modifiers.include?(:control) && !modifiers.include?(:alt)
           return false if @game_shortcut_signatures.to_a.include?([normalized, modifiers])
 
@@ -178,14 +189,23 @@ module GameRoomLayout
     end
 
     def snapshot
+      form_index = bounded_index(@form.index, @content_fields)
+      focus_location = @field_locations[form_index]
+      history_is_focused = focus_location.to_a[0]&.to_sym == :history
+      history_follows_tail = !history_is_focused || @history.index.to_i >= @history_items.length - 1
+      history_index = if history_follows_tail
+        [@history_items.length - 1, 0].max
+      else
+        @history.index.to_i
+      end
       Snapshot.new(
         surface_state: @surface.state,
-        history_index: @history.index.to_i,
+        history_index: history_index,
         users_index: @users.index.to_i,
-        form_index: bounded_index(@form.index, @content_fields),
-        focus_location: @field_locations[bounded_index(@form.index, @content_fields)],
+        form_index: form_index,
+        focus_location: focus_location,
         surface_identity: @surface_identity,
-        history_follows_tail: @history.index.to_i >= @history_items.length - 1,
+        history_follows_tail: history_follows_tail,
         chat_text: @chat.text,
         chat_index: @chat.index.to_i,
         chat_check: @chat.check.to_i

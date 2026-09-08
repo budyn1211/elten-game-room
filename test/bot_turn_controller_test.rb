@@ -151,9 +151,9 @@ controller = GameRoomBots::TurnController.new(clock: -> { clock })
   clock += 1.0
 end
 
-# Farkle must not expose Roll, Keep or Bank as human actions while a computer
-# owns the turn; the surrounding history, users and shortcut fields are built
-# by GameScreen and remain independent from this surface.
+# Farkle must not expose Roll, Keep or Bank while another participant owns the
+# turn. The surrounding history, users and shortcut fields are built by
+# GameScreen and remain independent from this surface.
 farkle = GameRoomGames::Farkle.new
 state = {
   phase: :awaiting_roll,
@@ -166,6 +166,18 @@ state = {
 replay = GameRoomGames::Replay.new(players: state[:players], current_player: state[:current_player], state: state)
 surface = farkle.surface_spec(replay, "Alice")
 assert(surface.zones.first.cards.empty?, "Farkle exposed human action fields during the computer turn")
+
+state[:current_player] = "Bob"
+state[:players] = ["Alice", "Bob"]
+replay = GameRoomGames::Replay.new(players: state[:players], current_player: state[:current_player], state: state)
+surface = farkle.surface_spec(replay, "Alice")
+assert(surface.zones.first.cards.empty?, "Farkle exposed action fields during another human player's turn")
+assert(surface.zones.first.header.include?("Bob"), "Farkle did not identify the human player whose turn is active")
+
+state[:current_player] = "Alice"
+replay = GameRoomGames::Replay.new(players: state[:players], current_player: state[:current_player], state: state)
+surface = farkle.surface_spec(replay, "Alice")
+assert(surface.zones.first.cards.map(&:id).include?("roll"), "Farkle hid Roll from the human player whose turn is active")
 
 clock = 30.0
 controller = GameRoomBots::TurnController.new(clock: -> { clock })

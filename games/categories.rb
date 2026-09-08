@@ -19,6 +19,7 @@ module GameRoomGames
       "hard" => HARD_CATEGORY_IDS
     }.freeze
     CATEGORY_SET_CUSTOM = "custom".freeze
+    ROUND_CATEGORY_ENCODING_PREFIX = "m:".freeze
     DEFAULT_CUSTOM_CATEGORY_MASK = 0
     ROUND_CATEGORY_COUNTS = (1..9).to_a.freeze
     ANSWER_MAX_LENGTH = 48
@@ -892,7 +893,7 @@ module GameRoomGames
         duration = state[:options]["round_time"].to_i
         deadline = duration > 0 ? context.now.to_i + duration : 0
         categories = draw_categories(state[:options], roll.values.first, round)
-        value = [attempt, round, judge, letter, deadline, categories.join(".")].join(",")
+        value = [attempt, round, judge, letter, deadline, encode_round_categories(categories)].join(",")
         [:ok, event_plan("category_round", value)]
       when "close_answers"
         return [:not_your_turn, nil] if state[:phase] != :answering || !owner?(state[:players], actor)
@@ -1224,6 +1225,35 @@ module GameRoomGames
         values.all? { |category| pool.include?(category) }
     end
 
+    def encode_round_categories(categories)
+      mask = categories.to_a.reduce(0) do |result, category|
+        index = CATEGORY_IDS.index(category.to_s)
+        raise ArgumentError, "unknown category" if index == nil
+
+        result | (1 << index)
+      end
+      raise ArgumentError, "empty category selection" if mask == 0
+
+      "#{ROUND_CATEGORY_ENCODING_PREFIX}#{mask.to_s(36)}"
+    end
+
+    def decode_round_categories(value)
+      text = value.to_s
+      return text.split(".") if !text.start_with?(ROUND_CATEGORY_ENCODING_PREFIX)
+
+      encoded = text.delete_prefix(ROUND_CATEGORY_ENCODING_PREFIX)
+      return nil if !/\A[0-9a-z]+\z/.match?(encoded)
+
+      mask = Integer(encoded, 36)
+      return nil if mask <= 0 || mask >= (1 << CATEGORY_IDS.length)
+
+      CATEGORY_IDS.each_with_index.filter_map do |category, index|
+        category if (mask & (1 << index)) != 0
+      end
+    rescue ArgumentError
+      nil
+    end
+
     def round_category_ids(state)
       state[:round_categories].to_a
     end
@@ -1236,7 +1266,8 @@ module GameRoomGames
       parts = value.to_s.split(",", -1)
       return nil if parts.length != 6 || !/\A[A-Z]\z/.match?(parts[3])
 
-      categories = parts[5].split(".")
+      categories = decode_round_categories(parts[5])
+      return nil if categories == nil
 
       {
         attempt: Integer(parts[0], 10),

@@ -226,7 +226,7 @@ module GameRoomGames
           :controls,
           _("Controls"),
           _("Use the Arrow keys to browse your hand and press Enter to play the current card. During your bid, press B, enter a number and confirm it. Outside bidding, B reads all declarations."),
-          _("Press T for the current turn, S for scores and bags, C for cards on the table, F for the led suit, I for your own round information, and V for every player's round information. Trick progress is read as tricks won over tricks bid, for example 3/5."),
+          _("Press T for the current turn, S for scores and bags, C to read the cards on the table, Ctrl+C to browse them, F for the led suit, I for your own round information, and V for every player's round information. Trick progress is read as tricks won over tricks bid, for example 3/5."),
           _("Tab moves between your hand and other game fields, history and users. F1 gives shortcut hints. Ctrl+F1 opens these complete rules. Escape returns to the table.")
         )
       ]
@@ -672,6 +672,7 @@ module GameRoomGames
       [:bidding] + super + [
         :hand,
         :table_cards,
+        :table_cards_list,
         :led_suit,
         :round_summary,
         :round_information,
@@ -712,6 +713,8 @@ module GameRoomGames
         { message: hand_information_text(state, viewer) }
       when :table_cards
         { message: table_cards_information_text(state) }
+      when :table_cards_list
+        table_cards_browse_data(state)
       when :led_suit
         { message: led_suit_information_text(state) }
       when :round_summary
@@ -2465,16 +2468,6 @@ module GameRoomGames
       hand_cards = hand.map do |card|
         GameSurfaces::Card.new(id: card, label: card_label(card), value: card)
       end
-      trick_cards = state[:current_trick].map do |play|
-        GameSurfaces::Card.new(
-          id: "#{play[:player]}:#{play[:card]}",
-          label: _("%{player}: %{card}") % {
-            player: participant_name(play[:player]),
-            card: card_label(play[:card])
-          },
-          value: play[:card]
-        )
-      end
       GameSurfaces::CardTableSpec.new(
         zones: [
           GameSurfaces::CardZoneSpec.new(
@@ -2482,12 +2475,6 @@ module GameRoomGames
             header: _("Your hand"),
             cards: hand_cards,
             empty_label: _("Your hand is empty")
-          ),
-          GameSurfaces::CardZoneSpec.new(
-            id: "trick",
-            header: _("Cards on the table"),
-            cards: trick_cards,
-            empty_label: _("No cards have been played in this trick")
           )
         ]
       )

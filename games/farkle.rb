@@ -279,14 +279,15 @@ module GameRoomGames
 
     def surface_spec(replay, viewer)
       state = replay.state
-      if !replay.finished? && GameRoomParticipants.bot?(state[:current_player])
+      if !replay.finished? && !same_user?(state[:current_player], viewer)
+        waiting_label = current_turn_shortcut_text(replay, viewer)
         return GameSurfaces::CardTableSpec.new(
           zones: [
             GameSurfaces::CardZoneSpec.new(
               id: "actions",
-              header: _("Computer is thinking"),
+              header: waiting_label,
               cards: [],
-              empty_label: _("Computer is thinking")
+              empty_label: waiting_label
             )
           ]
         )
