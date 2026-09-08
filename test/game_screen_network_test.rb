@@ -2,6 +2,12 @@ def _(text)
   text
 end
 
+$spoken_messages = []
+
+def speak(text, **_options)
+  $spoken_messages << text.to_s
+end
+
 module Session
   def self.name
     "Alice"
@@ -188,11 +194,21 @@ assert(synchronized_options[:ui] == :none, "a maintenance read opened a separate
 assert(synchronized_result == :updated, "a synchronized maintenance read changed its result")
 
 activity = Struct.new(:id, :created_at).new(8, 100)
+activity_repository = Object.new
+activity_repository.define_singleton_method(:text_for) do |_entry, game_name:, global:|
+  raise "incorrect chat presentation context" if global != false || !game_name.respond_to?(:call)
+
+  "Alice: hello"
+end
 sent_chat = nil
 screen.instance_variable_set(:@table, { "__id" => 7 })
 screen.instance_variable_set(:@room_snapshot, Struct.new(:members).new(["Alice", "Bob"]))
 screen.instance_variable_set(:@activity_entries, [])
+screen.instance_variable_set(:@activity_repository, activity_repository)
+screen.instance_variable_set(:@game_name, ->(id) { id.to_s })
 screen.instance_variable_set(:@chat_text, "hello")
+screen.instance_variable_set(:@chat_index, 5)
+screen.instance_variable_set(:@chat_check, 2)
 screen.instance_variable_set(:@send_chat, lambda do |table, message, users|
   sent_chat = [table, message, users]
   activity
@@ -200,7 +216,14 @@ end)
 screen.send(:submit_chat)
 assert(sent_chat[1] == "hello" && sent_chat[2] == ["Alice", "Bob"], "chat was not sent to the table members")
 assert(screen.instance_variable_get(:@chat_text).empty?, "a sent chat draft was not cleared")
+assert(screen.instance_variable_get(:@chat_index) == 0 && screen.instance_variable_get(:@chat_check) == 0, "a sent chat message retained its old selection")
 assert(screen.instance_variable_get(:@activity_entries) == [activity], "the sent chat was not added to local history")
+assert($spoken_messages.last == "Alice: hello", "the sender's own chat message was not spoken")
+
+speech_stopped = false
+screen.define_singleton_method(:speech_stop) { speech_stopped = true }
+screen.send(:stop_pending_speech)
+assert(speech_stopped, "leaving a game did not stop queued history speech")
 
 assert(
   screen.send(:recovery_allowed?, false, nil),

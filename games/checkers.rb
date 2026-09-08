@@ -14,7 +14,16 @@ module GameRoomGames
     KING_PRIORITY = 128
     CLASSIC_RULES = MEN_CAPTURE_BACKWARD | FLYING_KINGS | MANDATORY_CAPTURE |
       MAXIMUM_CAPTURE | CONTINUE_CAPTURE
-    DIAGONALS = [[-1, -1], [1, -1], [-1, 1], [1, 1]].freeze
+    DIAGONALS = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(&:freeze).freeze
+    FORWARD_DIRECTIONS = {
+      0 => [[-1, 1], [1, 1]].map(&:freeze).freeze,
+      1 => [[-1, -1], [1, -1]].map(&:freeze).freeze
+    }.freeze
+    PLAYABLE_COORDINATES = [8, 10, 12].each_with_object({}) do |size, result|
+      result[size] = Array.new(size) do |y|
+        Array.new(size) { |x| [x, y].freeze if (x + y).odd? }
+      end.flatten(1).compact.freeze
+    end.freeze
 
     def id
       "checkers"
@@ -93,7 +102,11 @@ module GameRoomGames
     end
 
     def bot_strategy
-      @bot_strategy ||= GameRoomBots::AlphaBetaStrategy.new(max_depth: 7, node_limit: 60_000)
+      @bot_strategy ||= GameRoomBots::AlphaBetaStrategy.new(
+        max_depth: 7,
+        node_limit: 60_000,
+        optimize_transpositions: true
+      )
     end
 
     def replay(session, events, repository)
@@ -126,7 +139,14 @@ module GameRoomGames
     end
 
     def available_board_moves(replay, actor)
-      moves_for_state(replay.state, actor)
+      cached = replay.instance_variable_get(:@checkers_available_moves)
+      if cached != nil && same_user?(cached[:actor], actor)
+        return cached[:moves]
+      end
+
+      moves = moves_for_state(replay.state, actor).freeze
+      cache_available_moves(replay, actor, moves)
+      moves
     end
 
     def history_presentation_depends_on_surface_state?
@@ -147,6 +167,18 @@ module GameRoomGames
         displayed.field = checkers_history_field(data, "to", notation: "algebraic")
         displayed
       end
+    end
+
+    def describe_event_for_display(event, repository, replay, viewer, surface_state: {})
+      event_id = repository.event_id(event).to_i
+      entry = history_entries_for_display(
+        replay,
+        viewer,
+        surface_state: surface_state
+      ).find do |candidate|
+        candidate.kind == :move && candidate.event_id.to_i == event_id
+      end
+      entry&.text
     end
 
     def surface_spec(replay, viewer)
@@ -357,8 +389,73 @@ module GameRoomGames
 
     def bot_search_key(replay, actor)
       state = replay.state
-      board = state[:board].flatten.map { |piece| piece || "--" }.join
-      "#{state[:size]}:#{state[:rules]}:#{player_index(replay.players, actor)}:#{player_index(replay.players, replay.current_player)}:#{state[:forced_from]}:#{board}"
+      repetitions = state[:positions].each_with_object([]) do |(position, count), result|
+        next if count.to_i <= 0
+
+        result << [position.to_s.dup.freeze, count.to_i].freeze
+      end.sort_by(&:first).freeze
+      [
+        state[:size],
+        state[:rules],
+        player_index(replay.players, actor),
+        player_index(replay.players, replay.current_player),
+        state[:forced_from]&.dup&.freeze,
+        state[:captured_this_turn] == true ? 1 : 0,
+        state[:promoted_this_turn] == true ? 1 : 0,
+        state[:quiet_moves].to_i,
+        state[:last_to]&.dup&.freeze,
+        state[:winner],
+        state[:draw] == true ? 1 : 0,
+        compact_board_key(state[:board]),
+        repetitions
+      ].freeze
+    end
+
+    # The static evaluation reads only the board, rule set and point of view.
+    # Repetition and quiet-move counters remain in bot_search_key for deeper
+    # searches, but do not prevent safe reuse of an identical leaf evaluation.
+    def bot_evaluation_key(replay, actor)
+      state = replay.state
+      [
+        state[:size],
+        state[:rules],
+        player_index(replay.players, actor),
+        compact_board_key(state[:board])
+      ].freeze
+    end
+
+    # Search receives one of available_board_moves, so this transition can use
+    # that already validated move directly. It produces the same rule state as
+    # the event/replay path without serializing, parsing and validating it two
+    # more times. Real game actions never call this method.
+    def bot_search_transition(replay, selection, actor, event_id:, context: nil)
+      return [:finished, nil] if replay.finished?
+      return [:not_your_turn, nil] if !same_user?(replay.current_player, actor)
+
+      requested = action_to_move(selection)
+      move = available_board_moves(replay, actor).find do |candidate|
+        same_board_move?(candidate, requested)
+      end
+      return [:invalid_move, nil] if move == nil
+
+      state = duplicate_state(replay.state)
+      search_history = []
+      apply_move!(state, move, actor)
+      next_moves = finish_turn!(state, actor, event_id, search_history)
+      next_replay = Replay.new(
+        board: state[:board],
+        players: state[:players],
+        current_player: state[:current_player],
+        winner: state[:winner],
+        draw: state[:draw],
+        accepted_events: replay.accepted_events,
+        history: search_history,
+        state: state
+      )
+      if !next_replay.finished? && next_replay.current_player != nil && next_moves != nil
+        cache_available_moves(next_replay, next_replay.current_player, next_moves.freeze)
+      end
+      [:ok, next_replay]
     end
 
     def bot_action_score(replay, actor, action, context: nil)
@@ -388,7 +485,7 @@ module GameRoomGames
           sign = piece_owner(code) == marker ? 1 : -1
           base = king?(code) ? 185.0 : 100.0
           advancement = king?(code) ? 0 : (piece_owner(code) == 0 ? y : state[:size] - y - 1) * 3
-          center = [x, y].all? { |v| v.between?(2, state[:size] - 3) } ? 8 : 0
+          center = x.between?(2, state[:size] - 3) && y.between?(2, state[:size] - 3) ? 8 : 0
           edge = [0, state[:size] - 1].include?(x) ? 4 : 0
           value += sign * (base + advancement + center + edge)
         end
@@ -399,6 +496,13 @@ module GameRoomGames
     end
 
     private
+
+    def cache_available_moves(replay, actor, moves)
+      replay.instance_variable_set(
+        :@checkers_available_moves,
+        { actor: actor.to_s, moves: moves }.freeze
+      )
+    end
 
     def checkers_origin_fields(moves, labeler)
       moves.map(&:from).uniq.map { |position| labeler.call(position) }.join(", ")
@@ -467,57 +571,74 @@ module GameRoomGames
     def raw_moves(state, marker)
       moves = []
       each_piece(state[:board], marker) do |x, y, code|
-        directions = if king?(code) || rule?(state[:rules], MEN_MOVE_BACKWARD)
-          DIAGONALS
-        else
-          forward_directions(marker)
-        end
-        directions.each do |dx, dy|
-          if king?(code) && rule?(state[:rules], FLYING_KINGS)
-            cx = x + dx
-            cy = y + dy
-            while inside?(state, cx, cy) && state[:board][cy][cx] == nil
-              moves << BoardMove.new(from: [x, y], to: [cx, cy])
-              cx += dx
-              cy += dy
-            end
-          else
-            tx = x + dx
-            ty = y + dy
-            moves << BoardMove.new(from: [x, y], to: [tx, ty]) if inside?(state, tx, ty) && state[:board][ty][tx] == nil
-          end
-        end
+        add_moves_for_piece(state, moves, x, y, marker, code)
       end
       moves
     end
 
     def raw_captures(state, marker, only: nil)
       moves = []
+      if only != nil
+        x, y = only
+        return moves if !inside?(state, x, y)
+
+        code = state[:board][y][x]
+        return moves if code == nil || piece_owner(code) != marker
+
+        add_captures_for_piece(state, moves, x, y, marker, code)
+        return moves
+      end
+
       each_piece(state[:board], marker) do |x, y, code|
-        next if only != nil && [x, y] != only
-
-        capture_directions = if king?(code) || rule?(state[:rules], MEN_CAPTURE_BACKWARD)
-          DIAGONALS
-        else
-          forward_directions(marker)
-        end
-        capture_directions.each do |dx, dy|
-          if king?(code) && rule?(state[:rules], FLYING_KINGS)
-            add_flying_captures(state, moves, x, y, marker, dx, dy)
-          else
-            mx = x + dx
-            my = y + dy
-            tx = x + dx * 2
-            ty = y + dy * 2
-            next if !inside?(state, tx, ty)
-            victim = state[:board][my][mx]
-            next if victim == nil || piece_owner(victim) == marker || state[:board][ty][tx] != nil
-
-            moves << BoardMove.new(from: [x, y], to: [tx, ty], metadata: { "capture" => "#{mx},#{my}" })
-          end
-        end
+        add_captures_for_piece(state, moves, x, y, marker, code)
       end
       moves
+    end
+
+    def add_moves_for_piece(state, moves, x, y, marker, code)
+      directions = if king?(code) || rule?(state[:rules], MEN_MOVE_BACKWARD)
+        DIAGONALS
+      else
+        forward_directions(marker)
+      end
+      directions.each do |dx, dy|
+        if king?(code) && rule?(state[:rules], FLYING_KINGS)
+          cx = x + dx
+          cy = y + dy
+          while inside?(state, cx, cy) && state[:board][cy][cx] == nil
+            moves << BoardMove.new(from: [x, y], to: [cx, cy])
+            cx += dx
+            cy += dy
+          end
+        else
+          tx = x + dx
+          ty = y + dy
+          moves << BoardMove.new(from: [x, y], to: [tx, ty]) if inside?(state, tx, ty) && state[:board][ty][tx] == nil
+        end
+      end
+    end
+
+    def add_captures_for_piece(state, moves, x, y, marker, code)
+      capture_directions = if king?(code) || rule?(state[:rules], MEN_CAPTURE_BACKWARD)
+        DIAGONALS
+      else
+        forward_directions(marker)
+      end
+      capture_directions.each do |dx, dy|
+        if king?(code) && rule?(state[:rules], FLYING_KINGS)
+          add_flying_captures(state, moves, x, y, marker, dx, dy)
+        else
+          mx = x + dx
+          my = y + dy
+          tx = x + dx * 2
+          ty = y + dy * 2
+          next if !inside?(state, tx, ty)
+          victim = state[:board][my][mx]
+          next if victim == nil || piece_owner(victim) == marker || state[:board][ty][tx] != nil
+
+          moves << BoardMove.new(from: [x, y], to: [tx, ty], metadata: { "capture" => "#{mx},#{my}" })
+        end
+      end
     end
 
     def add_flying_captures(state, moves, x, y, marker, dx, dy)
@@ -538,17 +659,31 @@ module GameRoomGames
     end
 
     def filter_maximum_captures(state, moves)
-      lengths = moves.map { |move| [move, capture_length_after(state, move)] }
+      continuation_cache = {}
+      lengths = moves.map { |move| [move, capture_length_after(state, move, continuation_cache)] }
       maximum = lengths.map(&:last).max
       lengths.select { |_move, length| length == maximum }.map(&:first)
     end
 
-    def capture_length_after(state, move)
+    def capture_length_after(state, move, continuation_cache = nil)
+      continuation_cache ||= {}
       copy = duplicate_state(state)
       marker = piece_owner(copy[:board][move.from[1]][move.from[0]])
       apply_step_to_board!(copy, move)
-      continuations = raw_captures(copy, marker, only: move.to)
-      1 + (continuations.empty? ? 0 : continuations.map { |candidate| capture_length_after(copy, candidate) }.max)
+      key = [marker, move.to, compact_board_key(copy[:board])]
+      remaining = continuation_cache[key]
+      if remaining == nil
+        continuations = raw_captures(copy, marker, only: move.to)
+        remaining = if continuations.empty?
+          0
+        else
+          continuations.map do |candidate|
+            capture_length_after(copy, candidate, continuation_cache)
+          end.max
+        end
+        continuation_cache[key] = remaining
+      end
+      1 + remaining
     end
 
     def apply_move!(state, move, actor)
@@ -592,7 +727,7 @@ module GameRoomGames
     end
 
     def finish_turn!(state, actor, event_id, history)
-      return if state[:forced_from] != nil
+      return moves_for_state(state, actor) if state[:forced_from] != nil
 
       x, y = state[:last_to]
       code = x == nil ? nil : state[:board][y][x]
@@ -610,14 +745,15 @@ module GameRoomGames
         state[:winner] = actor
         state[:current_player] = nil
         history << result_history(event_id: event_id, winner: actor)
-        return
+        return []
       end
       state[:current_player] = opponent
-      if moves_for_state(state, opponent).empty?
+      opponent_moves = moves_for_state(state, opponent)
+      if opponent_moves.empty?
         state[:winner] = actor
         state[:current_player] = nil
         history << result_history(event_id: event_id, winner: actor)
-        return
+        return []
       end
       key = position_key(state)
       state[:positions][key] += 1
@@ -625,7 +761,9 @@ module GameRoomGames
         state[:draw] = true
         state[:current_player] = nil
         history << result_history(event_id: event_id, draw: true)
+        return []
       end
+      opponent_moves
     end
 
     def move_history(event_id, actor, move, result)
@@ -760,10 +898,10 @@ module GameRoomGames
     end
 
     def each_piece(board, marker)
-      board.each_with_index do |row, y|
-        row.each_with_index do |code, x|
-          yield(x, y, code) if code != nil && piece_owner(code) == marker
-        end
+      coordinates = PLAYABLE_COORDINATES[board.length] || playable_fields(board.length)
+      coordinates.each do |x, y|
+        code = board[y][x]
+        yield(x, y, code) if code != nil && piece_owner(code) == marker
       end
     end
 
@@ -790,7 +928,7 @@ module GameRoomGames
     end
 
     def forward_directions(marker)
-      marker == 0 ? [[-1, 1], [1, 1]] : [[-1, -1], [1, -1]]
+      FORWARD_DIRECTIONS.fetch(marker)
     end
 
     def promotion_row?(state, marker, y)
@@ -811,6 +949,10 @@ module GameRoomGames
 
     def position_key(state)
       "#{state[:current_player]}:#{state[:board].flatten.map { |piece| piece || "--" }.join}"
+    end
+
+    def compact_board_key(board)
+      board.flatten.map { |piece| piece || "--" }.join
     end
   end
 end

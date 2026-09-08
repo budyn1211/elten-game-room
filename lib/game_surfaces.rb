@@ -74,6 +74,14 @@ module GameSurfaces
   # suppression left by older callers must be discarded here so it cannot
   # silence the user's next arrow movement.
   class RefreshAwareForm < Form
+    # Timer-driven maintenance replaces the surrounding form. Form#resume
+    # performs an extra loop_update, which can consume the next typed character
+    # after the active field has already been snapshotted. Leave that input for
+    # the next form iteration instead.
+    def resume_for_refresh
+      @wait = false
+    end
+
     def wait_without_announcement
       previous_quiet = @quiet
       current = fields[@index.to_i]
@@ -381,6 +389,24 @@ module GameSurfaces
 
     def clear_suppressed_focus!
       @suppress_next_focus = false
+    end
+
+    # A chat control can survive several surrounding form instances. Keep one
+    # submit bridge and replace only its current screen callback, rather than
+    # accumulating :select handlers on every refresh.
+    def on_submit(&handler)
+      @submit_handler = handler
+      if !@submit_handler_bound
+        @submit_handler_bound = true
+        on(:select) { @submit_handler&.call }
+      end
+      self
+    end
+
+    def restore_selection(index:, check:)
+      maximum = text.to_s.length
+      self.index = [[index.to_i, 0].max, maximum].min
+      self.check = [[check.to_i, 0].max, maximum].min
     end
 
     def focus(index = nil, count = nil, spk = true)

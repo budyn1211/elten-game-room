@@ -390,15 +390,22 @@ assert(ludo_replay.state[:pawns].all? { |pawns| pawns == [-1, -1, -1, -1] }, "Lu
 ludo_shortcuts = ludo.game_shortcuts(ludo_replay, "Alice")
 own_pawns_shortcut = ludo_shortcuts.find { |shortcut| shortcut.key == "p" && shortcut.modifiers.empty? }
 opponent_pawns_shortcut = ludo_shortcuts.find { |shortcut| shortcut.key == "p" && shortcut.modifiers == [:shift] }
+own_pawn_list = ludo_shortcuts.find { |shortcut| shortcut.key == "v" && shortcut.modifiers.empty? }
+all_pawn_list = ludo_shortcuts.find { |shortcut| shortcut.key == "v" && shortcut.modifiers == [:shift] }
 assert(own_pawns_shortcut&.message == "Your pawns: Pawns in base: 1, 2, 3, 4.", "Ludo P does not group base pawns")
 assert(opponent_pawns_shortcut&.message.to_s.include?("Bob: Pawns in base: 1, 2, 3, 4"), "Ludo Shift+P does not report opposing pawn positions")
+assert(own_pawn_list&.kind == :browse && own_pawn_list.choices.map(&:label) == ["Pawn 1: base", "Pawn 2: base", "Pawn 3: base", "Pawn 4: base"], "Ludo V does not expose one own pawn per row")
+assert(all_pawn_list&.kind == :browse && all_pawn_list.choices.length == 16, "Ludo Shift+V does not expose every pawn in one list")
+assert(all_pawn_list.choices.first.label == "Alice's pawn 1: base", "Ludo Shift+V does not identify a pawn owner")
 ludo_waiting_surface = ludo.surface_spec(ludo_replay, "Alice")
 ludo_track_spec = ludo_waiting_surface
 assert(ludo_track_spec.is_a?(GameSurfaces::PawnTrackSpec), "Ludo still exposes a spatial board")
 assert(ludo_track_spec.activation_action&.kind == "dice" && ludo_track_spec.activation_action&.name == "roll", "Ludo pawn list Enter does not roll the die")
-assert(ludo_track_spec.items.map(&:label) == ["Pawns in base: 1, 2, 3, 4"], "Ludo waiting surface repeats every base pawn")
+assert(ludo_track_spec.header == "Ludo", "Ludo exposes pawn positions in the main field header")
+assert(ludo_track_spec.items.map(&:label) == ["Roll the die"], "Ludo exposes pawn positions before rolling")
 two_player_ludo = ludo.replay(session, [], NewGamesRepository.new(["Alice", "Bob"]))
 assert(ludo.surface_spec(two_player_ludo, "Alice").items.length == 1, "Two-player Ludo did not expose the compact pawn list")
+assert(ludo.surface_spec(two_player_ludo, "Bob").items.map(&:label) == ["Waiting for Alice"], "Ludo exposes pawn positions while waiting")
 ludo_events = [{ "id" => 1, "actor" => "Alice", "action" => "roll", "value" => "6" }]
 ludo_rolled = ludo.replay(session, ludo_events, ludo_repository)
 assert(ludo_rolled.state[:phase] == :moving, "A Ludo 6 did not open pawn selection")

@@ -52,7 +52,7 @@ module GameRoomGames
     :choices,
     keyword_init: true
   ) do
-    KINDS = [:announcement, :number_input, :choice, :action, :surface].freeze
+    KINDS = [:announcement, :browse, :number_input, :choice, :action, :surface].freeze
     NAMED_KEYS = ["space"].freeze
 
     def initialize(
@@ -92,10 +92,12 @@ module GameRoomGames
         values = allowed_values.to_a.map(&:to_i).uniq.sort
         raise ArgumentError, "a number shortcut requires allowed values" if values.empty?
         allowed_values = values
-      elsif normalized_kind == :choice
+      elsif [:browse, :choice].include?(normalized_kind)
         raise ArgumentError, "a choice shortcut requires a prompt" if prompt.to_s.empty?
-        raise ArgumentError, "a choice shortcut requires an action" if action_kind.to_s.empty? || action_name.to_s.empty?
-        raise ArgumentError, "a choice shortcut requires a payload key" if value_key.to_s.empty?
+        if normalized_kind == :choice
+          raise ArgumentError, "a choice shortcut requires an action" if action_kind.to_s.empty? || action_name.to_s.empty?
+          raise ArgumentError, "a choice shortcut requires a payload key" if value_key.to_s.empty?
+        end
         choices = choices.to_a.map do |choice|
           if choice.respond_to?(:value) && choice.respond_to?(:label)
             ShortcutChoice.new(value: choice.value, label: choice.label.to_s)
@@ -579,6 +581,12 @@ module GameRoomGames
       nil
     end
 
+    # Allows a game to adapt the spoken description to the current surface
+    # presentation without changing the stored, canonical history entry.
+    def describe_event_for_display(event, repository, replay, viewer, surface_state: {})
+      describe_event(event, repository, replay, viewer)
+    end
+
     def result_text(replay)
       if replay.winner != nil
         return _("%{player} won the game.") % { player: participant_name(replay.winner) }
@@ -802,6 +810,17 @@ module GameRoomGames
         label: label,
         kind: :announcement,
         message: message
+      )
+    end
+
+    def browse_shortcut(key:, label:, prompt:, choices:, modifiers: nil)
+      GameShortcut.new(
+        key: key,
+        modifiers: modifiers,
+        label: label,
+        kind: :browse,
+        prompt: prompt,
+        choices: choices
       )
     end
 

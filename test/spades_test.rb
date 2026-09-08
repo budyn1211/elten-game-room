@@ -278,7 +278,7 @@ assert(surface.is_a?(GameSurfaces::CardTableSpec), "the active hand is not rende
 assert(surface.zones.first.header == "Your hand", "the hand field still contains a full game report")
 view = game.game_view_spec(after_lead, "Carol")
 assert(view.is_a?(GameRoomLayout::ViewSpec), "Spades bypasses the shared game layout")
-assert(view.sections == [:game, :history, :users, :chat], "Spades changed the shared field order")
+assert(view.sections == [:game, :history, :chat, :users], "Spades changed the shared field order")
 shortcuts = game.game_shortcuts(after_lead, "Carol").each_with_object({}) do |shortcut, result|
   result[shortcut.key] = shortcut
 end

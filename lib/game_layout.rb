@@ -1,5 +1,5 @@
 module GameRoomLayout
-  STANDARD_SECTIONS = [:game, :history, :users, :chat].freeze
+  STANDARD_SECTIONS = [:game, :history, :chat, :users].freeze
 
   class ViewSpec
     attr_reader :surface, :sections, :history_header, :history_empty_label
@@ -23,6 +23,8 @@ module GameRoomLayout
     :surface_identity,
     :history_follows_tail,
     :chat_text,
+    :chat_index,
+    :chat_check,
     keyword_init: true
   )
 
@@ -34,14 +36,44 @@ module GameRoomLayout
     end
 
     def game_shortcut_signatures=(signatures)
-      self.game_shortcut_keys = signatures.to_a.map(&:first)
+      @game_shortcut_signatures = signatures.to_a.map do |key, modifiers|
+        [key.to_s.sub(/\Akey_/, "").downcase, modifiers.to_a.map(&:to_sym).uniq.sort]
+      end
+      self.game_shortcut_keys = @game_shortcut_signatures.map(&:first)
     end
 
     def key_processed(key)
       normalized = key.to_s.sub(/\Akey_/, "").downcase
-      return false if @game_shortcut_keys.to_a.include?(normalized)
+      if @game_shortcut_keys.to_a.include?(normalized)
+        if editable_text_field?
+          modifiers = active_shortcut_modifiers
+          return true if !modifiers.include?(:control) && !modifiers.include?(:alt)
+          return false if @game_shortcut_signatures.to_a.include?([normalized, modifiers])
+
+          return true
+        end
+        return false
+      end
 
       super
+    end
+
+    private
+
+    def editable_text_field?
+      field = fields[index.to_i] if respond_to?(:fields) && respond_to?(:index)
+      return false if !defined?(EditBox) || !field.is_a?(EditBox)
+
+      flags = field.respond_to?(:flags) ? field.flags.to_i : field.instance_variable_get(:@flags).to_i
+      (flags & EditBox::Flags::ReadOnly) == 0
+    end
+
+    def active_shortcut_modifiers
+      modifiers = []
+      modifiers << :shift if respond_to?(:raw_key_held?, true) && raw_key_held?(:key_shift)
+      modifiers << :control if respond_to?(:modifier_held?, true) && modifier_held?(:main_modifier)
+      modifiers << :alt if respond_to?(:modifier_held?, true) && modifier_held?(:option)
+      modifiers.sort
     end
   end
 
@@ -59,7 +91,10 @@ module GameRoomLayout
       focus_location: nil,
       previous_surface_identity: nil,
       users_header:,
-      chat_text: ""
+      chat_text: "",
+      chat_index: 0,
+      chat_check: 0,
+      chat_control: nil
     )
       raise ArgumentError, "a game screen requires a view specification" if !view_spec.is_a?(ViewSpec)
 
@@ -83,12 +118,16 @@ module GameRoomLayout
         index: bounded_index(users_index, @user_items),
         quiet: true
       )
-      @chat = GameSurfaces::RefreshAwareEditBox.new(
-        _("Chat"),
-        text: chat_text.to_s,
-        quiet: true,
-        max_length: 400
-      )
+      @chat = chat_control
+      if @chat == nil
+        @chat = GameSurfaces::RefreshAwareEditBox.new(
+          _("Chat"),
+          text: chat_text.to_s,
+          quiet: true,
+          max_length: 400
+        )
+        @chat.restore_selection(index: chat_index, check: chat_check)
+      end
       @back_button = Button.new(_("Back to the table"))
 
       section_fields = {
@@ -147,7 +186,9 @@ module GameRoomLayout
         focus_location: @field_locations[bounded_index(@form.index, @content_fields)],
         surface_identity: @surface_identity,
         history_follows_tail: @history.index.to_i >= @history_items.length - 1,
-        chat_text: @chat.text
+        chat_text: @chat.text,
+        chat_index: @chat.index.to_i,
+        chat_check: @chat.check.to_i
       )
     end
 

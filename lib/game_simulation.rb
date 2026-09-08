@@ -90,6 +90,7 @@ module GameRoomSimulation
       @seed = seed
       @next_event_id = @events.map { |event| @repository.event_id(event) }.max.to_i + 1
       @replay = nil
+      @legal_actions_cache = {}
     end
 
     def initialize_copy(original)
@@ -105,9 +106,14 @@ module GameRoomSimulation
       end
       @repository = Repository.new(original.repository.players)
       @random_source = original.random_source.dup
+      @legal_actions_cache = original.instance_variable_get(:@legal_actions_cache).to_h.dup
     end
 
     def fork
+      dup
+    end
+
+    def fork_for_search
       dup
     end
 
@@ -130,7 +136,10 @@ module GameRoomSimulation
     def legal_actions(actor = active_actor)
       return [] if actor == nil || finished?
 
-      @game.legal_actions(replay, actor, context: context).to_a
+      key = actor.to_s.downcase
+      return @legal_actions_cache[key] if @legal_actions_cache.key?(key)
+
+      @legal_actions_cache[key] = @game.legal_actions(replay, actor, context: context).to_a.freeze
     end
 
     def observation(actor)
@@ -156,6 +165,32 @@ module GameRoomSimulation
 
       stabilize!
       :ok
+    end
+
+    # Tree-search games may provide an exact in-memory transition which skips
+    # serializing and replaying an event that will never leave this simulation.
+    # Normal matches and every real player action continue to use #step.
+    def step_for_search(selection, actor: active_actor)
+      if @game.respond_to?(:bot_search_transition)
+        result = @game.bot_search_transition(
+          replay,
+          selection,
+          actor,
+          event_id: @next_event_id,
+          context: context
+        )
+        if result != nil
+          status, next_replay = result
+          if status == :ok
+            @replay = next_replay
+            @next_event_id += 1
+            @legal_actions_cache = {}
+          end
+          return status
+        end
+      end
+
+      step(selection, actor: actor)
     end
 
     # Runs server-owner actions such as dealing a new hand. A strict bound turns
@@ -217,6 +252,7 @@ module GameRoomSimulation
       else
         @game.incremental_replay(cached, @session, appended, @repository)
       end
+      @legal_actions_cache = {}
     end
   end
 

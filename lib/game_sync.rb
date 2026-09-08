@@ -35,8 +35,14 @@ module GameRoomSync
     end
 
     def next_event(idle:, allow_recovery: true)
+      # Form#resume performs one last host input update before the old form is
+      # discarded.  Do not consume a wake-up while a key is active, otherwise
+      # a character queued by that final update can be spoken but never reach
+      # the replacement edit field.
+      return nil if !idle
+
       if @transport.respond_to?(:consume_recovery) && @transport.consume_recovery(@table_id)
-        return Event.new(kind: :recovery, session_id: @session_id) if allow_recovery && idle
+        return Event.new(kind: :recovery, session_id: @session_id) if allow_recovery
 
         request_recovery!
       end
@@ -57,7 +63,7 @@ module GameRoomSync
         return Event.new(kind: :table_changed, session_id: @session_id)
       end
 
-      return nil if !@recovery_pending || !allow_recovery || !idle || now < @next_reconcile_at
+      return nil if !@recovery_pending || !allow_recovery || now < @next_reconcile_at
 
       @recovery_pending = false
       @next_reconcile_at = Float::INFINITY

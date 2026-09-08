@@ -47,12 +47,17 @@ assert(controller.next_event(idle: true) == nil, "reconciliation ran before it w
 
 transport.recoveries[7] = true
 assert(controller.next_event(idle: false) == nil, "a LiveSessions gap interrupted active input")
+assert(transport.recoveries[7] == true, "a LiveSessions gap was consumed during active input")
 event = controller.next_event(idle: true)
 assert(event.kind == :recovery, "a LiveSessions gap did not trigger reconciliation")
 
 transport.game_starts[7] = 12
 transport.game_changes[11] = 99.5
 transport.table_changes[7] = true
+assert(controller.next_event(idle: false) == nil, "a LiveSessions update interrupted active input")
+assert(transport.game_starts[7] == 12, "a game start was consumed during active input")
+assert(transport.game_changes[11] == 99.5, "a game change was consumed during active input")
+assert(transport.table_changes[7] == true, "a table change was consumed during active input")
 event = controller.next_event(idle: true)
 assert(event.kind == :game_started && event.session_id == 12, "a new game did not have first priority")
 event = controller.next_event(idle: true)

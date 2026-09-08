@@ -53,10 +53,10 @@ module GameRoomGames
       [
         rule_section(:goal, _("Goal"), _("Move all four of your pawns from the base, around the shared track, through your private home lane and to the finish before the other players.")),
         rule_section(:setup, _("Setup"), _("Two to four players each receive four pawns. With the classic defaults, a player must roll a 6 to move a pawn out of the base."), _("The players' starting fields, in seating order, are 1, 14, 27 and 40 on the same shared track."), _("The shared track has 52 numbered fields. After field 52 comes field 1, so every player travels the same distance despite starting at a different number."), _("After completing the shared track, each player enters a private six-field home lane. Reaching its end places the pawn at the finish, where it no longer moves.")),
-        rule_section(:play, _("How to play"), _("Press Enter on the pawn list to roll. If exactly one pawn can move, it moves automatically. If several pawns can move, the list shows only those choices together with their destinations; use the Arrow keys and Enter to choose."), _("Landing on an opposing pawn outside a safe start field sends it back to its base. Two pawns of one player form a blockade."), _("A 6 gives another roll. Three consecutive sixes end the turn. The finish must be reached by an exact roll.")),
+        rule_section(:play, _("How to play"), _("Press Enter on Roll the die. If exactly one pawn can move, it moves automatically. If several pawns can move, the list shows only those choices together with their destinations; use the Arrow keys and Enter to choose."), _("Landing on an opposing pawn outside a safe start field sends it back to its base. Two pawns of one player form a blockade."), _("A 6 gives another roll. Three consecutive sixes end the turn. The finish must be reached by an exact roll.")),
         rule_section(:ending, _("Ending the game"), _("The first player to place all four pawns at the finish wins.")),
         rule_section(:variants, _("Variants and table options"), _("The default settings are the classic rules. The table creator may change entry, extra-roll, exact-finish, three-sixes and blockade rules.")),
-        rule_section(:controls, _("Controls"), _("Press Enter on the pawn list to roll or to choose a displayed move. Press P for your pawn positions, Shift+P for the opponents' pawn positions, T for the turn and Ctrl+F1 for these rules."))
+        rule_section(:controls, _("Controls"), _("Press Enter to roll or to choose a displayed move. Press V to browse your pawns, Shift+V to browse all pawns, P for a summary of your pawn positions, Shift+P for a summary of the opponents' pawn positions, T for the turn and Ctrl+F1 for these rules."))
       ]
     end
 
@@ -108,10 +108,8 @@ module GameRoomGames
       choosing = own_turn && state[:phase] == :moving
       items = if choosing
         move_choice_items(state, player)
-      elsif player == nil
-        spectator_status_items(state)
       else
-        pawn_status_items(state, player)
+        main_status_items(replay, viewer)
       end
       activation_action = if own_turn && state[:phase] == :awaiting_roll
         GameSurfaces::Action.new(kind: "dice", name: "roll", source: "ludo_pawns")
@@ -207,24 +205,42 @@ module GameRoomGames
           label: _("read the opponents' pawn positions"),
           kind: :announcement,
           message: opponents_pawn_positions_text(replay.state, viewer)
+        ),
+        browse_shortcut(
+          key: "v",
+          label: _("browse your pawns"),
+          prompt: _("Your pawns"),
+          choices: own_pawn_browse_choices(replay.state, viewer)
+        ),
+        browse_shortcut(
+          key: "v",
+          modifiers: [:shift],
+          label: _("browse all pawns"),
+          prompt: _("All pawns"),
+          choices: all_pawn_browse_choices(replay.state)
         )
       ]
     end
 
     private
 
+    def main_status_items(replay, viewer)
+      label = if replay.finished?
+        result_text(replay) || _("The game is finished.")
+      elsif same_user?(replay.state[:current_player], viewer) && replay.state[:phase] == :awaiting_roll
+        _("Roll the die")
+      else
+        _("Waiting for %{player}") % { player: participant_name(replay.state[:current_player]) }
+      end
+      [GameSurfaces::PawnTrackItem.new(id: "status", label: label)]
+    end
+
     def pawn_track_header(replay, viewer)
       state = replay.state
-      if replay.finished?
-        _("Your pawns. The game has ended")
-      elsif same_user?(state[:current_player], viewer) && state[:phase] == :awaiting_roll
-        _("Your pawns. Press Enter to roll the die")
-      elsif same_user?(state[:current_player], viewer) && state[:phase] == :moving
+      if !replay.finished? && same_user?(state[:current_player], viewer) && state[:phase] == :moving
         _("You rolled %{value}. Choose a pawn to move") % { value: state[:roll] }
-      elsif player_index(state[:players], viewer) == nil
-        _("Pawns. Waiting for %{player}") % { player: participant_name(state[:current_player]) }
       else
-        _("Your pawns. Waiting for %{player}") % { player: participant_name(state[:current_player]) }
+        name
       end
     end
 
@@ -258,23 +274,6 @@ module GameRoomGames
       label
     end
 
-    def pawn_status_items(state, player)
-      pawn_status_labels(state, player).each_with_index.map do |label, index|
-        GameSurfaces::PawnTrackItem.new(id: "status:#{player}:#{index}", label: label)
-      end
-    end
-
-    def spectator_status_items(state)
-      state[:players].each_index.flat_map do |player|
-        pawn_status_labels(state, player).each_with_index.map do |label, index|
-          GameSurfaces::PawnTrackItem.new(
-            id: "status:#{player}:#{index}",
-            label: _("%{player}: %{position}") % { player: participant_name(state[:players][player]), position: label }
-          )
-        end
-      end
-    end
-
     def pawn_status_labels(state, player)
       pawns = state[:pawns][player]
       labels = []
@@ -293,6 +292,43 @@ module GameRoomGames
         labels << _("At the finish: %{count} of %{total} pawns") % { count: finished, total: PAWNS_PER_PLAYER }
       end
       labels
+    end
+
+    def own_pawn_browse_choices(state, viewer)
+      player = player_index(state[:players], viewer)
+      labels = if player == nil
+        [_("You are not a player in this game.")]
+      else
+        state[:pawns][player].each_with_index.map do |progress, pawn|
+          _("Pawn %{pawn}: %{position}") % {
+            pawn: pawn + 1,
+            position: progress_label(player, progress)
+          }
+        end
+      end
+      shortcut_choices(labels)
+    end
+
+    def all_pawn_browse_choices(state)
+      labels = state[:players].each_index.flat_map do |player|
+        state[:pawns][player].each_with_index.map do |progress, pawn|
+          pawn_name = _("%{player}'s pawn %{pawn}") % {
+            player: participant_name(state[:players][player]),
+            pawn: pawn + 1
+          }
+          _("%{pawn}: %{position}") % {
+            pawn: pawn_name,
+            position: progress_label(player, progress)
+          }
+        end
+      end
+      shortcut_choices(labels)
+    end
+
+    def shortcut_choices(labels)
+      labels.each_with_index.map do |label, index|
+        ShortcutChoice.new(value: index, label: label)
+      end
     end
 
     def pawn_positions_text(state, viewer)

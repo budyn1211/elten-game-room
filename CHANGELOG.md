@@ -1,5 +1,53 @@
 # Historia zmian
 
+## 1.1.1 — build 184
+
+- bieżący komunikat głosowy ruchu w Warcabach używa wybranego sposobu
+  prezentacji pól; po przełączeniu na współrzędne szachowe wypowiada np. A3–B4
+  tak samo jak historia, zamiast numeracji pól warcabowych.
+
+## 1.1.1 — build 183
+
+- bot Warcabów nadal analizuje do głębokości 7 z limitem 60 000 węzłów i
+  używa niezmienionej funkcji oceny, ale nie przelicza wielokrotnie tych samych
+  legalnych ruchów podczas jednej gałęzi;
+- wyszukiwanie korzysta z dokładnej, wewnętrznej ścieżki symulacji, pamięci
+  ocen pozycji, tablicy transpozycji i kolejności ruchów z poprzedniej
+  głębokości; rzeczywiste ruchy graczy i zapis zdarzeń pozostały bez zmian;
+- generowanie ruchów pomija niegrywalne pola, szybciej kontynuuje wymuszone
+  bicie i zapamiętuje wspólne fragmenty wielokrotnych bić;
+- klucz pozycji obejmuje wszystkie dane mające wpływ na legalność i remis,
+  w tym trwające bicie, ruchy bez bicia oraz historię powtórzeń.
+
+## 1.1.1 — build 182
+
+- pole czatu pozostaje tym samym polem podczas odświeżeń formularza i jest
+  czyszczone dopiero po pomyślnym wysłaniu wiadomości;
+- LiveSessions, boty i lokalne automatyczne akcje działają bez wstrzymywania
+  podczas pisania, a techniczne zakończenie formularza nie pobiera i nie gubi
+  następnego znaku z klawiatury.
+
+## 1.1.1 — build 181
+
+- zdarzenia LiveSessions i automatyczne odświeżenia czekają, gdy aktywne jest
+  pole czatu, aby szybkie pisanie nie gubiło wypowiedzianych znaków; po wysłaniu
+  wiadomości lub opuszczeniu pola oczekujące zmiany są przetwarzane;
+- pole czatu znajduje się bezpośrednio za historią, zarówno przy otwartym stole,
+  jak i podczas partii.
+
+## 1.1.1 — build 180
+
+- czat zachowuje pozycję kursora i zaznaczenie podczas zdalnych aktualizacji,
+  a własna wysłana wiadomość jest odczytywana jeden raz;
+- zwykłe skróty literowe gier nie przechwytują liter wpisywanych w edytowalnych
+  polach, natomiast skróty z klawiszem Ctrl nadal działają;
+- zaproszenie otwarte z powiadomienia pokazuje Przyjmij i Odrzuć na jednej
+  liście obsługiwanej strzałkami;
+- główne pole Chińczyka pokazuje tylko akcję rzutu, oczekiwanie albo legalne
+  wybory ruchu; V otwiera listę własnych pionków, a Shift+V listę wszystkich;
+- wyjście klawiszem Escape z partii zatrzymuje oczekujące komunikaty historii,
+  aby ekran stołu nie odczytywał ich ponownie.
+
 ## 1.1.0 — build 176
 
 Pierwszy stan opublikowany w tym repozytorium. Odpowiada paczce ELTEN Game Room

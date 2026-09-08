@@ -3,8 +3,8 @@
   "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
-  "version": "1.1.0",
-  "build_id": "176",
+  "version": "1.1.1",
+  "build_id": "184",
   "EltenAPIVersion": "3.0.2",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -75,8 +75,8 @@ require_relative "games/categories"
 require_relative "games/registry"
 
 class EltenGameRoom < Program
-  GAME_ROOM_VERSION = "1.1.0".freeze
-  GAME_ROOM_BUILD_ID = 176
+  GAME_ROOM_VERSION = "1.1.1".freeze
+  GAME_ROOM_BUILD_ID = 184
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
 
@@ -832,6 +832,14 @@ class EltenGameRoom < Program
     users_index = 0
     form_index = 0
     chat_text = ""
+    chat_index = 0
+    chat_check = 0
+    chat = GameSurfaces::RefreshAwareEditBox.new(
+      _("Chat"),
+      text: chat_text,
+      quiet: true,
+      max_length: TableActivityRepository::MESSAGE_MAX_LENGTH
+    )
     last_seen_activity_id = nil
     cached_state = nil
     quiet_reentry = false
@@ -885,16 +893,10 @@ class EltenGameRoom < Program
         index: users_index,
         quiet: true
       )
-      chat = GameSurfaces::RefreshAwareEditBox.new(
-        _("Chat"),
-        text: chat_text,
-        quiet: true,
-        max_length: TableActivityRepository::MESSAGE_MAX_LENGTH
-      )
       open_button = Button.new(_("Open"))
       leave_button = Button.new(_("Leave"))
       form = GameSurfaces::RefreshAwareForm.new(
-        [actions, history, users, chat, open_button, leave_button],
+        [actions, history, chat, users, open_button, leave_button],
         index: [[form_index.to_i, 0].max, 3].min,
         quiet: true
       )
@@ -907,6 +909,8 @@ class EltenGameRoom < Program
         history_index = history.index.to_i
         users_index = users.index.to_i
         chat_text = chat.text
+        chat_index = chat.index.to_i
+        chat_check = chat.check.to_i
         form_index = [[form.index.to_i, 0].max, 3].min
       end
       open_button.on(:press) do
@@ -921,7 +925,7 @@ class EltenGameRoom < Program
         action = :leave
         form.resume
       end
-      chat.on(:select) do
+      chat.on_submit do
         remember_position.call
         if chat_text.to_s.strip.empty?
           alert(_("Type a chat message first."))
@@ -977,19 +981,19 @@ class EltenGameRoom < Program
           remember_position.call
           started_session_id = sync_event.session_id
           action = :game_started
-          form.resume
+          form.resume_for_refresh
         elsif sync_event&.kind == :game_changed
           remember_position.call
           action = :refresh
-          form.resume
+          form.resume_for_refresh
         elsif sync_event&.kind == :table_changed
           remember_position.call
           action = :refresh
-          form.resume
+          form.resume_for_refresh
         elsif sync_event&.kind == :recovery
           remember_position.call
           action = :reconcile_game_start
-          form.resume
+          form.resume_for_refresh
         end
       end)
 
@@ -1049,7 +1053,17 @@ class EltenGameRoom < Program
           @lobby.announce_table_activity(row, snapshot.members, actor: Session.name) if saved != nil
           saved
         end
-        chat_text = "" if entry != nil
+        if entry != nil
+          text = @table_activity.text_for(entry, game_name: ->(id) { game_name(id) }, global: false)
+          speak(text, stop: false, break_sequence: false) if !text.to_s.empty?
+          chat_text = ""
+          chat_index = 0
+          chat_check = 0
+          chat.set_text("")
+          chat.index = 0
+          chat.check = 0
+          quiet_reentry = true
+        end
       when :game_started
         open_started_game(row, started_session_id)
       when :leave
@@ -1419,19 +1433,17 @@ class EltenGameRoom < Program
 
   def select_notification_invitation_action
     action = nil
-    accept_button = Button.new(_("Accept invitation"))
-    reject_button = Button.new(_("Reject invitation"))
+    choices = [_("Accept invitation"), _("Reject invitation")]
+    actions = ListBox.new(choices, header: _("Invitation"), index: 0, quiet: true)
+    select_button = Button.new(_("Select"))
     back_button = Button.new(_("Back"))
-    form = Form.new([accept_button, reject_button, back_button], quiet: true)
-    form.accept_button = accept_button
+    form = Form.new([actions, select_button, back_button], quiet: true)
+    form.accept_button = select_button
     form.cancel_button = back_button
+    form.hide(select_button)
     form.hide(back_button)
-    accept_button.on(:press) do
-      action = :accept
-      form.resume
-    end
-    reject_button.on(:press) do
-      action = :reject
+    select_button.on(:press) do
+      action = actions.index.to_i == 0 ? :accept : :reject
       form.resume
     end
     back_button.on(:press) { form.resume }

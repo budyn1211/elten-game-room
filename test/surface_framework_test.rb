@@ -139,7 +139,7 @@ class Form < FakeControl
 end
 
 class EditBox < FakeControl
-  attr_accessor :text
+  attr_accessor :text, :index, :check, :flags
   attr_reader :header, :last_focus_spoken
 
   module Flags
@@ -151,7 +151,9 @@ class EditBox < FakeControl
     super()
     @header = header
     @type = type
+    @flags = type
     @text = text
+    @index = @check = 0
     @max_length = max_length
   end
 
@@ -209,12 +211,12 @@ layout = GameRoomLayout::Screen.new(
   form_index: 99,
   users_header: "Users at the table (2)"
 )
-assert(layout_spec.sections == [:game, :history, :users, :chat], "the shared game layout has the wrong section order")
+assert(layout_spec.sections == [:game, :history, :chat, :users], "the shared game layout has the wrong section order")
 assert(layout.shortcut_fields.length == 3, "the shared game layout did not expose all content fields")
 assert(layout.form.controls[0] == layout.surface.fields[0], "the game field is not first in the shared layout")
 assert(layout.form.controls[1] == layout.history, "history is not second in the shared layout")
-assert(layout.form.controls[2] == layout.users, "users are not third in the shared layout")
-assert(layout.form.controls[3] == layout.chat, "chat is not fourth in the shared layout")
+assert(layout.form.controls[2] == layout.chat, "chat is not third in the shared layout")
+assert(layout.form.controls[3] == layout.users, "users are not fourth in the shared layout")
 assert(layout.form.hidden_controls == [layout.back_button], "the back action became a visible tab stop")
 layout.form.instance_variable_set(:@updated, true)
 layout.wait_without_announcement
@@ -234,12 +236,15 @@ assert(
   layout.surface.fields.first.last_focus_spoken == true,
   "a silent form re-entry swallowed the first manual board movement"
 )
-layout.form.index = 3
-layout.form.game_shortcut_signatures = [["t", [:control]]]
+layout.form.index = 2
+layout.form.game_shortcut_signatures = [["t", []], ["t", [:control]]]
 layout.form.held_modifiers = []
-assert(layout.form.key_processed(:t) == false, "an edit field swallowed a shared modified shortcut before the form handler")
+assert(layout.form.key_processed(:t) == true, "an ordinary game shortcut captured a letter typed in an edit field")
 layout.form.held_modifiers = [:main_modifier]
 assert(layout.form.key_processed(:t) == false, "Ctrl+T was captured by the active edit field")
+layout.form.held_modifiers = [:shift]
+assert(layout.form.key_processed(:t) == true, "Shift+T was captured instead of being typed in an edit field")
+layout.form.index = 0
 layout.form.held_modifiers = []
 layout.form.game_shortcut_keys = ["s", "space"]
 assert(layout.form.key_processed(:s) == false, "an active list can block a shared letter shortcut")
@@ -257,15 +262,58 @@ assert(
   context_menu.options.map { |option| option[2] } == ["", "T"],
   "the answer field left the conflicting Ctrl+T translator shortcut active"
 )
+layout.form.index = 2
 layout_snapshot = layout.snapshot
 assert(layout_snapshot.history_index == 1, "the shared layout did not bound the history position")
 assert(layout_snapshot.users_index == 1, "the shared layout did not bound the user position")
-assert(layout_snapshot.form_index == 3, "the shared layout did not bound the active section")
+assert(layout_snapshot.form_index == 2, "the shared layout did not bound the active section")
 assert(layout_snapshot.focus_location == [:chat, 0], "the shared layout did not remember the active section semantically")
 assert(layout_snapshot.chat_text == "", "the shared layout did not preserve the chat draft")
+layout.chat.text = "draft message"
+layout.chat.index = 8
+layout.chat.check = 3
+chat_snapshot = layout.snapshot
+restored_chat_layout = GameRoomLayout::Screen.new(
+  view_spec: layout_spec,
+  surface_state: {},
+  history_items: [],
+  user_items: [],
+  history_index: 0,
+  users_index: 0,
+  form_index: 2,
+  users_header: "Users at the table (2)",
+  chat_text: chat_snapshot.chat_text,
+  chat_index: chat_snapshot.chat_index,
+  chat_check: chat_snapshot.chat_check
+)
+assert(restored_chat_layout.chat.text == "draft message", "a refresh lost the chat draft")
+assert(restored_chat_layout.chat.index == 8, "a refresh moved the chat caret")
+assert(restored_chat_layout.chat.check == 3, "a refresh lost the chat selection anchor")
 layout.suppress_focus!
 layout.chat.focus
 assert(layout.chat.last_focus_spoken == false, "a remote refresh repeated the active chat field")
+
+persistent_chat_layout = GameRoomLayout::Screen.new(
+  view_spec: layout_spec,
+  surface_state: {},
+  history_items: ["Remote move"],
+  user_items: ["Alice", "Bob"],
+  history_index: 0,
+  users_index: 0,
+  form_index: 2,
+  users_header: "Users at the table (2)",
+  chat_text: "stale copy",
+  chat_index: 0,
+  chat_check: 0,
+  chat_control: layout.chat
+)
+assert(persistent_chat_layout.chat.equal?(layout.chat), "a refresh replaced the active chat control")
+assert(persistent_chat_layout.chat.text == "draft message", "a refresh restored a stale chat copy")
+submit_result = []
+persistent_chat_layout.chat.on_submit { submit_result << :old }
+persistent_chat_layout.chat.on_submit { submit_result << :current }
+persistent_chat_layout.chat.trigger(:select)
+assert(submit_result == [:current], "a persistent chat control accumulated old submit handlers")
 
 waiting_spec = GameRoomLayout::ViewSpec.new(
   surface: GameSurfaces::QuestionSpec.new(

@@ -67,6 +67,9 @@ class GameScreen
     @last_seen_activity_id = nil
     @last_game_payload = nil
     @chat_text = ""
+    @chat_index = 0
+    @chat_check = 0
+    @chat_control = nil
     @hidden_submissions = HiddenSubmissions::Vault.new(
       HiddenSubmissions::ProgramStorage.new(@program)
     )
@@ -180,6 +183,7 @@ class GameScreen
         submit_chat
         @suppress_surface_focus = true
       when :back
+        stop_pending_speech
         return
       when :refresh
         @suppress_surface_focus = true
@@ -206,8 +210,12 @@ class GameScreen
       focus_location: @focus_location,
       previous_surface_identity: @surface_identity,
       users_header: users_header,
-      chat_text: @chat_text
+      chat_text: @chat_text,
+      chat_index: @chat_index,
+      chat_check: @chat_check,
+      chat_control: @chat_control
     )
+    @chat_control = layout.chat
     silent_entry = @suppress_surface_focus
     @suppress_surface_focus = false
     surface = layout.surface
@@ -228,10 +236,12 @@ class GameScreen
       @focus_location = snapshot.focus_location
       @surface_identity = snapshot.surface_identity
       @chat_text = snapshot.chat_text
+      @chat_index = snapshot.chat_index
+      @chat_check = snapshot.chat_check
     end
     shortcuts = normalized_game_shortcuts(@game.game_shortcuts(replay, Session.name))
     handle_shortcut = lambda do |shortcut|
-      if bot_actor != nil && ![:announcement, :surface].include?(shortcut.kind)
+      if bot_actor != nil && ![:announcement, :browse, :surface].include?(shortcut.kind)
         next
       end
 
@@ -323,7 +333,7 @@ class GameScreen
         form.resume
       end
     end
-    chat.on(:select) do
+    chat.on_submit do
       next if action != nil
 
       remember_position.call
@@ -351,7 +361,7 @@ class GameScreen
         remember_position.call
         @selected_surface_action = local_action
         action = :game_action
-        form.resume
+        form.resume_for_refresh
         next
       end
 
@@ -365,7 +375,7 @@ class GameScreen
         @new_session_id = sync_event.session_id
         action = :new_session
         cancel_bot_decision(bot_token, :new_session_signal)
-        form.resume
+        form.resume_for_refresh
       elsif sync_event&.kind == :game_changed
         remember_position.call
         received_at = sync_event.received_at
@@ -376,32 +386,32 @@ class GameScreen
         # or already-applied notifications stay invisible to the user.
         action = :check_signal
         cancel_bot_decision(bot_token, :game_signal)
-        form.resume
+        form.resume_for_refresh
       elsif sync_event&.kind == :table_changed
         remember_position.call
         action = :room_refresh
         cancel_bot_decision(bot_token, :room_change_signal)
-        form.resume
+        form.resume_for_refresh
       elsif automatic_due
         remember_position.call
         action = :refresh
-        form.resume
+        form.resume_for_refresh
       elsif sync_event&.kind == :recovery
         remember_position.call
         action = :recovery_refresh
         cancel_bot_decision(bot_token, :connection_recovery)
-        form.resume
+        form.resume_for_refresh
       elsif bot_actor != nil && bot_lease == nil && @bot_turn_controller.verification_due?
         remember_position.call
         action = :bot_verification
-        form.resume
+        form.resume_for_refresh
       elsif bot_actor != nil && bot_lease == nil && @bot_turn_controller.ready?(
         session_id: @repository.session_id(@session),
         actor: bot_actor
       )
         remember_position.call
         action = :bot_ready
-        form.resume
+        form.resume_for_refresh
       end
     end)
 
@@ -442,6 +452,10 @@ class GameScreen
 
       remember_position.call
       changed = perform_bot_turn(replay, decision, lease: bot_lease, form: form)
+      # The form remains interactive while the network task submits the bot's
+      # move. Preserve anything typed during that task before deciding whether
+      # the screen needs to be rebuilt.
+      remember_position.call
       waiting_for_confirmation = @bot_turn_controller.waiting_for_confirmation?
       @bot_turn_controller.cancel(bot_lease) if !waiting_for_confirmation
       bot_lease = nil
@@ -545,6 +559,7 @@ class GameScreen
               @repository.snapshot_for(@session, force_events: true)
             end
           end
+          remember_position.call
           if verified_snapshot == nil
             @bot_turn_controller.defer_verification
           else
@@ -694,6 +709,9 @@ class GameScreen
     when :announcement
       speak(shortcut.message) if !shortcut.message.to_s.empty?
       nil
+    when :browse
+      browse_shortcut_choices(shortcut)
+      nil
     when :number_input
       number_shortcut_action(shortcut)
     when :choice
@@ -812,6 +830,23 @@ class GameScreen
       payload: { shortcut.value_key => result.value },
       source: "shortcut:#{shortcut.key}"
     )
+  end
+
+  def browse_shortcut_choices(shortcut)
+    choices = shortcut.choices.to_a
+    list = ListBox.new(
+      choices.map(&:label),
+      header: shortcut.prompt,
+      index: 0,
+      quiet: true
+    )
+    back_button = Button.new(_("Back"))
+    form = Form.new([list, back_button], quiet: true)
+    form.cancel_button = back_button
+    form.hide(back_button)
+    back_button.on(:press) { form.resume }
+    form.wait
+    EltenAPI::KeyboardState.clear_current_frame if defined?(EltenAPI::KeyboardState)
   end
 
   def allowed_values_text(values)
@@ -1045,7 +1080,20 @@ class GameScreen
     @activity_entries ||= []
     @activity_entries << entry if !@activity_entries.any? { |candidate| candidate.id.to_i == entry.id.to_i }
     @activity_entries.sort_by! { |candidate| [candidate.created_at.to_i, candidate.id.to_i] }
+    text = @activity_repository&.text_for(entry, game_name: @game_name, global: false)
+    speak(text, stop: false, break_sequence: false) if !text.to_s.empty?
     @chat_text = ""
+    @chat_index = 0
+    @chat_check = 0
+    if @chat_control != nil
+      @chat_control.set_text("")
+      @chat_control.index = 0
+      @chat_control.check = 0
+    end
+  end
+
+  def stop_pending_speech
+    send(:speech_stop) if respond_to?(:speech_stop, true)
   end
 
   def synchronize_table_status(replay)
@@ -1279,7 +1327,13 @@ class GameScreen
       )
 
       descriptions = normalize_event_descriptions(
-        @game.describe_event(event, @repository, replay, Session.name)
+        @game.describe_event_for_display(
+          event,
+          @repository,
+          replay,
+          Session.name,
+          surface_state: @surface_state
+        )
       )
       descriptions.each_with_index do |description, index|
         log_signal_timing(
