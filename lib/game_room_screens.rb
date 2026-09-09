@@ -1,3 +1,5 @@
+require_relative "context_help"
+
 module GameRoomScreens
   MenuResult = Struct.new(:action, :index, keyword_init: true)
 
@@ -42,12 +44,13 @@ module GameRoomScreens
         form.resume
       end
       if @invitations
+        invitation_entries = [
+          [:invitations, _("Accept invitation"), "j", "Ctrl+J"],
+          [:reject_invitation, _("Reject invitation"), "J", "Ctrl+Shift+J"]
+        ]
         options.disable_contextinglobal
         options.bind_context do |menu|
-          [
-            [:invitations, _("Accept invitation"), "j"],
-            [:reject_invitation, _("Reject invitation"), "J"]
-          ].each do |requested, label, key|
+          invitation_entries.each do |requested, label, key, _help_key|
             menu.option(label, nil, key) do
               next if action != nil
 
@@ -57,6 +60,10 @@ module GameRoomScreens
             end
           end
         end
+        help_tips = invitation_entries.map do |_requested, label, _key, help_key|
+          _("Press %{key} for %{action}.") % { key: help_key, action: label }
+        end
+        GameRoomContextHelp.replace([options, history], help_tips)
       end
       if @refresh != nil
         form.add_timer(FormTimer.new(0.5, repeat: true) do

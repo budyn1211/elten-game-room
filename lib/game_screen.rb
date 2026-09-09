@@ -256,10 +256,11 @@ class GameScreen
     layout.back_button.label = _("Leave")
     layout.activity_cursor = @last_seen_activity_id
     @chat_control = layout.chat
-    # Moving to Restart/Waiting after the final event must not focus the new
-    # field aloud and interrupt the result announcements already in the speech
-    # queue. The field is still selected and speaks on the user's next action.
-    silent_entry = @suppress_surface_focus || (phase_changed && phase == :finished)
+    # Moving to Restart/Waiting after the final event must preserve the result
+    # announcements, but the newly focused status should still be spoken after
+    # them. speech_wait below queues that focus instead of letting it interrupt.
+    announce_finished_focus = phase_changed && phase == :finished
+    silent_entry = @suppress_surface_focus && !announce_finished_focus
     @suppress_surface_focus = false
     surface = layout.surface
     surface.sound_player = ->(name) { GameRoomSounds.play(@program, name) } if surface.respond_to?(:sound_player=)
@@ -534,7 +535,10 @@ class GameScreen
       end
 
       if action == nil
-        if !waited_once && !silent_entry && !background_work
+        if !waited_once && announce_finished_focus && !background_work
+          speech_wait
+          form.wait
+        elsif !waited_once && !silent_entry && !background_work
           form.wait
         else
           layout.wait_without_announcement

@@ -1,5 +1,6 @@
 require_relative "game_participants"
 require_relative "game_rules"
+require_relative "context_help"
 
 # One native global menu for the waiting room, active game and final-position
 # view. Only Delete remains local to the selected row in the users list.
@@ -66,11 +67,6 @@ module GameRoomParticipantMenu
       _("Press %{key} for %{action}.") % { key: entry.help_key, action: entry.label }
     end
     help_fields = layout.form.fields.reject { |field| field.equal?(layout.back_button) }
-    help_fields.each do |field|
-      next if !field.respond_to?(:add_tip)
-
-      existing = field.respond_to?(:get_tips) ? field.get_tips.to_a : []
-      tips.each { |tip| field.add_tip(tip) if !existing.include?(tip) }
-    end
+    GameRoomContextHelp.replace(help_fields, tips)
   end
 end

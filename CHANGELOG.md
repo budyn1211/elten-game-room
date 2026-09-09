@@ -1,5 +1,15 @@
 # Historia zmian
 
+## 1.1.3 — build 196
+
+- po zakończeniu partii końcowe komunikaty nie są przerywane, a następnie
+  odczytywany jest przycisk ponownego rozpoczęcia gry albo oczekiwanie na nową
+  grę;
+- pomoc `F1` na ekranie stołu i partii pokazuje tylko akcje dostępne w
+  aktualnym menu kontekstowym, dlatego podczas partii nie wymienia `Ctrl+O`;
+- pomoc `F1` w głównym menu podaje skróty przyjęcia i odrzucenia zaproszenia
+  zgodnie z jego menu kontekstowym.
+
 ## 1.1.3 — build 195
 
 - naprawiono błąd `undefined method 'chrsize' for nil`, który występował po
