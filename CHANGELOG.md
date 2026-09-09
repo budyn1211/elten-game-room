@@ -1,5 +1,10 @@
 # Historia zmian
 
+## 1.1.3 — build 195
+
+- naprawiono błąd `undefined method 'chrsize' for nil`, który występował po
+  użyciu klawisza na ekranie stołu wskutek pustego skrótu pozycji „Wyjdź”.
+
 ## 1.1.3 — build 194
 
 - potwierdzenie utworzenia stołu podaje nazwę gry i nie jest przerywane przez
