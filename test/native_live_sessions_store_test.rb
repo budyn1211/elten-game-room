@@ -363,21 +363,6 @@ end
   $game_room_test_user = "Alice"
   alice_snapshot = lobbies.fetch("Alice").snapshot_for(table)
   assert(alice_snapshot.members.sort == %w[Alice Bob], "room membership did not synchronize")
-  stale_core = broker.cores.values.first
-  stale_alice_view = stale_core.views.find do |view|
-    view.instance_variable_get(:@endpoint).user == "Alice"
-  end
-  stale_bob = stale_core.participants.fetch("bob")
-  stale_alice_view.participant_left(stale_bob)
-  assert(
-    lobbies.fetch("Alice").snapshot_for(table).members == ["Alice"],
-    "a participant left behind by ELTEN remained visible in the room"
-  )
-  stale_alice_view.participant_joined(stale_bob)
-  assert(
-    lobbies.fetch("Alice").snapshot_for(table).members.sort == %w[Alice Bob],
-    "a participant rejoining with the same identity remained filtered"
-  )
   bot_result = lobbies.fetch("Alice").add_bot(table, snapshot: alice_snapshot)
   assert(bot_result.updated? && bot_result.snapshot.participants.length == 3, "bot room state did not synchronize")
 

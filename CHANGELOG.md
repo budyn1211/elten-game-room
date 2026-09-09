@@ -1,5 +1,12 @@
 # Historia zmian
 
+## 1.1.4 — build 202
+
+- wycofano lokalne ukrywanie uczestników po zdarzeniu odejścia z LiveSession;
+- wycofano specjalne filtrowanie historycznego składu przerwanej partii;
+- lista uczestników ponownie korzysta bezpośrednio ze stanu przekazanego przez
+  LiveSessions, tak jak w buildzie 197.
+
 ## 1.1.4 — build 201
 
 - wycofano zmianę mastera stołu, migrację pokoju do zastępczej LiveSession
