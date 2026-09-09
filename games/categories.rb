@@ -591,6 +591,10 @@ module GameRoomGames
       end
     end
 
+    def participant_scores(replay)
+      replay.state[:scores].dup
+    end
+
     def shortcut_features
       [:turn, :remaining_time, :scores, :round_summary]
     end

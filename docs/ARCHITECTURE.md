@@ -48,6 +48,50 @@ dostępny formularz partii. Powierzchnie obejmują między innymi planszę z
 figurami, tor pionków, rękę kart, tacę kości, panel poleceń, arkusz odpowiedzi i
 widok oceniania.
 
+Formularz stołu i partii ma wspólną kolejność: opcjonalna powierzchnia gry,
+użytkownicy, rozpoczęcie partii, restart, czat, zdarzenia i przycisk zasad gry.
+Przyciski zależą od fazy i uprawnień: rozpoczęcie jest dostępne przed pierwszą
+partią, restart po jej zakończeniu, oba tylko dla właściciela. Nową sesję tworzy
+standardowe repozytorium, a kontroler stołu otwiera jej ekran.
+Wejście do oczekującego stołu ustawia fokus na użytkownikach. Rozpoczęcie
+lub restart partii przenosi go na pierwsze pole powierzchni gry, również
+po otrzymaniu nowej sesji od innego klienta. Gdy powierzchni nie ma, fokus
+pozostaje na użytkownikach. Zakończenie partii przenosi fokus na użytkowników,
+pozostawiając planszę dostępną przez Shift+Tab. Nie ma osobnego przycisku ani
+trybu podglądu. Próby wykonania akcji nadal przechodzą przez `action_for`, które
+odrzuca je z komunikatem zakończonej gry. Zwykłe aktualizacje tej samej partii zachowują
+aktywną sekcję, tożsamość zaznaczonej osoby, szkic i zaznaczenie czatu oraz
+przeglądaną pozycję historii.
+
+`GameRoomLayout::Screen` zachowuje formularz, listy, przyciski i edytor czatu;
+zmienia jedynie potrzebną powierzchnię gry. Identyfikator sesji pozwala zachować
+zaznaczenie planszy po ponownym wejściu i wyczyścić je dla nowej partii.
+Powiązania zdarzeń są wymieniane
+bez mnożenia natywnych handlerów, a timery usuwane przy opuszczeniu widoku.
+Zasady gry otwiera przycisk na końcu formularza lub Ctrl+F1; nie występują
+w menu użytkowników. Powrót z zasad zachowuje fokus i szkic czatu.
+`GameRoomParticipantMenu` wiąże natywne menu listy użytkowników: zapraszanie
+użytkownika online przez Ctrl+I, zapraszanie z kontaktów przez Ctrl+Shift+I,
+dodawanie komputera przez Ctrl+O i Delete na wskazanym komputerze. Skróty działają
+wyłącznie na tej liście, także podczas partii i po jej zakończeniu. Menu i skróty
+wywołują te same operacje. Zmiana składu sprawdza aktualny stan i uprawnienia
+również po otwarciu menu.
+
+Przyjmowanie i odrzucanie zaproszeń jest dostępne w menu kontekstowym listy
+menu głównego, przez Ctrl+J i Ctrl+Shift+J. Pozycja „Zaproszenia” nadal otwiera
+standardową ścieżkę przyjmowania. Powiadomienie pozwala przyjąć lub odrzucić
+konkretne zaproszenie, z weryfikacją jego aktualności i usunięciem powiadomienia
+po obsłużeniu. Formularze nie przechwytują globalnie skrótów zaproszeń;
+nie są one dostępne z planszy, czatu ani historii.
+
+`RoomPresentation` przechowuje identyfikator uczestnika oddzielnie od etykiety.
+Gra udostępnia `participant_scores(replay)`: mapę uczestników na punkty albo
+`nil`, jeśli nie prowadzi punktacji. Farkle, Tysiąc, Spades i Państwa-miasta
+zwracają wyniki z odtworzonego stanu. Spades przypisuje wynik drużyny jej
+członkom. Zero jest wynikiem; obserwator ani gra bez punktacji nie dostają
+sztucznej etykiety punktów. Wyniki zakończonej partii pozostają przy obecnych
+uczestnikach do rozpoczęcia kolejnej.
+
 Gra opisuje powierzchnię i akcje. Nie powinna bez potrzeby tworzyć własnego
 formularza, przechwytywać systemowych klawiszy ani ręcznie sterować pętlą UI.
 
@@ -56,6 +100,15 @@ formularza, przechwytywać systemowych klawiszy ani ręcznie sterować pętlą U
 `game_room_screens.rb`, `game_lifecycle.rb`, `game_participants.rb` oraz
 repozytoria lobby i aktywności obsługują tworzenie stołu, dołączanie, boty,
 rozpoczęcie, zakończenie i następną partię.
+
+Komputery w pokoju nadal wynikają z `bot_count` i mają numery od 1 do N.
+Delete na dowolnym zaznaczonym komputerze wywołuje istniejącą operację
+zmniejszenia ich liczby o jeden. Numeracja pozostaje ciągła, a lista zachowuje
+bieżącą pozycję, o ile nadal istnieje. UI sprawdza uprawnienia, fazę partii,
+limit graczy i obecność wskazanego komputera przed wywołaniem repozytorium.
+Protokół Game Room pozostaje w wersji **2**, z dotychczasowym formatem danych,
+discovery i zaproszeniami; refaktor interfejsu nie wymaga zmiany pozostałych
+klientów.
 
 Skład rozpoczętej partii jest utrwalany w zdarzeniu `game_started` na stosie
 sesji, dzięki czemu miejsca graczy są stabilne przez całą partię.

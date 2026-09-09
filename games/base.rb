@@ -371,6 +371,12 @@ module GameRoomGames
       []
     end
 
+    # nil means that the game has no point score. A scored participant may
+    # legitimately have zero (or negative) points; observers have no entry.
+    def participant_scores(_replay)
+      nil
+    end
+
     def participant_status(_replay, _participant, connected: true)
       connected ? nil : _("disconnected")
     end

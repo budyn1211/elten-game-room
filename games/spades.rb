@@ -668,6 +668,14 @@ module GameRoomGames
       _("%{winner} won the game.") % { winner: unit_label(replay.state, replay.winner) }
     end
 
+    def participant_scores(replay)
+      state = replay.state
+      scoring = Scoring.new(state[:players], state[:options])
+      scoring.unit_ids.each_with_object({}) do |unit, scores|
+        scoring.members_for(unit).each { |player| scores[player] = state[:scores].fetch(unit, 0) }
+      end
+    end
+
     def shortcut_features
       [:bidding] + super + [
         :hand,

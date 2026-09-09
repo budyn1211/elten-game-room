@@ -1,3 +1,6 @@
+require_relative "support/ui"
+require_relative "../lib/game_surfaces"
+
 def _(text)
   text
 end
@@ -21,16 +24,6 @@ def assert(condition, message)
 end
 
 screen = GameScreen.allocate
-finished_replay = Object.new
-finished_replay.define_singleton_method(:finished?) { true }
-active_replay = Object.new
-active_replay.define_singleton_method(:finished?) { false }
-screen.instance_variable_set(:@review_finished_game, false)
-assert(screen.send(:exit_after_finished_game?, finished_replay), "a finished live game did not return to the table")
-assert(!screen.send(:exit_after_finished_game?, active_replay), "an active game returned to the table")
-screen.instance_variable_set(:@review_finished_game, true)
-assert(!screen.send(:exit_after_finished_game?, finished_replay), "the read-only final-position view closed immediately")
-
 assert(
   screen.send(:normalize_event_descriptions, "one event") == ["one event"],
   "a legacy single event description was not preserved"
@@ -190,7 +183,9 @@ assert(
   screen.send(:combined_history_items, history_replay).first == "first card:algebraic",
   "the game screen did not apply a client's local history-presentation filter"
 )
-history_control = Struct.new(:options, :index).new([], 0)
+history_layout = GameRoomLayout::Screen.new(view_spec: GameRoomLayout::ViewSpec.new)
+screen.instance_variable_set(:@layout, history_layout)
+history_control = history_layout.history
 screen.instance_variable_set(:@history_follows_tail, true)
 screen.send(:refresh_history_control, history_control, history_replay)
 assert(history_control.options.last == "final silent transition:algebraic", "the visible history was not updated after a local presentation change")

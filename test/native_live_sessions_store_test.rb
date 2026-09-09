@@ -351,6 +351,26 @@ assert(transports.fetch("Dave").establish_membership(table_id: table["__id"], ow
 assert(lobbies.fetch("Dave").join_table(dave_public, "Dave").status == :joined, "fourth client was not recorded")
 
 $game_room_test_user = "Alice"
+# The UI refactor must retain the existing count-only protocol for every
+# participant, including clients using the original room implementation.
+owner_lobby = lobbies.fetch("Alice")
+2.times { assert(owner_lobby.add_bot(table, snapshot: owner_lobby.snapshot_for(table)).updated?, "could not add a test computer") }
+removed = owner_lobby.remove_bot(table, snapshot: owner_lobby.snapshot_for(table))
+assert(removed.updated?, "count-only computer removal failed")
+users.each do |user|
+  snapshot = lobbies.fetch(user).snapshot_for(table)
+  assert(snapshot.table["bot_count"] == 2, "#{user} did not receive the smaller bot count")
+  assert(snapshot.bots == ["bot:#{table['__id']}:1", "bot:#{table['__id']}:2"], "#{user} lost contiguous computer numbering")
+end
+added = owner_lobby.add_bot(table, snapshot: owner_lobby.snapshot_for(table))
+assert(GameRoomParticipants.bot_number(added.snapshot.bots.last) == 3, "adding after removal changed the existing numbering convention")
+core = broker.cores.values.first
+assert(core.metadata["protocol"] == 2, "UI refactor changed the discovery protocol")
+packets = core.entries.map { |entry| entry.fetch("packet") }
+assert(packets.all? { |packet| packet["version"] == 2 }, "UI refactor changed the stack protocol")
+bot_updates = packets.select { |packet| packet["kind"] == "room_state" && packet["data"].key?("bot_count") }
+assert(bot_updates.all? { |packet| packet["data"].keys.sort == %w[bot_count updated_at] }, "computer management introduced incompatible room fields")
+
 players = lobbies.fetch("Alice").snapshot_for(table).participants
 session = games.fetch("Alice").start_session(table: table, game: "four_in_a_row", players: players, options: "{}")
 events = [GameRoomGames::EventCommand.new(action: "drop", value: "1")]

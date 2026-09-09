@@ -4,10 +4,11 @@ require_relative "game_layout"
 require_relative "game_sync"
 require_relative "game_simulation"
 require_relative "game_rules"
-require_relative "invitation_shortcuts"
 require_relative "game_sounds"
 require_relative "game_chat_commands"
 require_relative "game_history_navigation"
+require_relative "room_presentation"
+require_relative "participant_menu"
 
 class GameScreen
   TIMER_INTERVAL = 0.05
@@ -23,15 +24,16 @@ class GameScreen
     synchronizer:,
     invite_online: nil,
     invite_contacts: nil,
-    accept_invitation: nil,
-    reject_invitation: nil,
     membership_tracker: nil,
     game_status_changed: nil,
     activity_repository: nil,
     game_name: nil,
     send_chat: nil,
-    review_finished_game: false
+    layout: nil,
+    manage_computer: nil
   )
+    @layout = layout
+    @manage_computer = manage_computer
     @program = program
     @repository = repository
     @game = game
@@ -42,14 +44,11 @@ class GameScreen
     @synchronizer = synchronizer
     @invite_online = invite_online
     @invite_contacts = invite_contacts
-    @accept_invitation = accept_invitation
-    @reject_invitation = reject_invitation
     @membership_tracker = membership_tracker
     @game_status_changed = game_status_changed
     @activity_repository = activity_repository
     @game_name = game_name || ->(id) { id.to_s }
     @send_chat = send_chat
-    @review_finished_game = review_finished_game == true
     @room_snapshot = nil
     @surface_state = {}
     @selected_surface_action = nil
@@ -63,6 +62,7 @@ class GameScreen
     @pending_event_ids = []
     @history_follows_tail = true
     @new_session_id = nil
+    @focus_new_game = false
     @pending_signal_received_at = nil
     @suppress_surface_focus = false
     @latest_wait_replay = nil
@@ -74,6 +74,20 @@ class GameScreen
     @chat_index = 0
     @chat_check = 0
     @chat_control = nil
+    if @layout != nil
+      initial_view = @layout.snapshot
+      @focus_location = initial_view.focus_location
+      @chat_control = @layout.chat
+      @chat_text = initial_view.chat_text
+      @chat_index = initial_view.chat_index
+      @chat_check = initial_view.chat_check
+      if @layout.session_id == @repository.session_id(@session)
+        @surface_state = initial_view.surface_state
+        @surface_identity = initial_view.surface_identity
+      else
+        @focus_new_game = true
+      end
+    end
     @pending_chat_message = nil
     @clear_chat_after_action = false
     @history_navigator = GameRoomHistory::Navigator.new
@@ -152,7 +166,6 @@ class GameScreen
         verified: verification_forced
       )
       log_bot_confirmation(confirmation) if ![:idle, :cooldown, :waiting_for_confirmation].include?(confirmation)
-      return :finished if exit_after_finished_game?(replay)
 
       if !replay.finished? && !using_cached_payload && perform_automatic_action(replay)
         @suppress_surface_focus = true
@@ -190,16 +203,19 @@ class GameScreen
         @invite_online&.call(@table)
       when :invite_contacts
         @invite_contacts&.call(@table)
-      when :accept_invitation
-        @accept_invitation&.call
-      when :reject_invitation
-        @reject_invitation&.call
+      when :add_bot, :remove_bot
+        @manage_computer&.call(@table, action, @selected_participant)
+        @room_snapshot = nil
+        @activity_entries = nil
+        @suppress_surface_focus = true
+      when :restart
+        return :restart
       when :chat
         submit_chat
         @suppress_surface_focus = true
       when :back
         stop_pending_speech
-        return
+        return :back
       when :refresh
         @suppress_surface_focus = true
         next
@@ -214,24 +230,33 @@ class GameScreen
     bot_token = bot_lease == nil ? nil : EltenAPI::Tasks::CancellationToken.new
     history_items = combined_history_items(replay)
     user_items = room_user_items(replay)
-    layout = GameRoomLayout::Screen.new(
-      view_spec: @game.game_view_spec(replay, Session.name),
-      surface_state: @surface_state,
-      history_items: history_items,
-      user_items: user_items,
-      history_index: @history_index,
-      users_index: @users_index,
-      form_index: @form_index,
-      focus_location: @focus_location,
-      previous_surface_identity: @surface_identity,
-      users_header: users_header,
-      chat_text: @chat_text,
-      chat_index: @chat_index,
-      chat_check: @chat_check,
-      chat_control: @chat_control
-    )
+    view_spec = @game.game_view_spec(replay, Session.name)
+    phase = replay.finished? ? :finished : :active
+    phase_changed = @layout != nil && (@layout.phase != phase || @focus_new_game == true)
+    if @layout == nil
+      @layout = GameRoomLayout::Screen.new(
+        view_spec: view_spec, history_items: history_items, user_items: user_items,
+        users_header: users_header, chat_control: @chat_control,
+        phase: phase,
+        own_table: same_user?(@table_owner, Session.name)
+      )
+    else
+      @layout.update(
+        view_spec: view_spec, history_items: history_items, user_items: user_items,
+        users_header: users_header, phase: phase,
+        own_table: same_user?(@table_owner, Session.name),
+        surface_state: @surface_state, reset_surface: @surface_identity == nil,
+        new_game: @focus_new_game == true
+      )
+    end
+    @focus_new_game = false
+    @layout.session_id = @repository.session_id(@session)
+    layout = @layout
+    layout.begin_bindings
+    layout.back_button.label = _("Leave")
+    layout.activity_cursor = @last_seen_activity_id
     @chat_control = layout.chat
-    silent_entry = @suppress_surface_focus
+    silent_entry = @suppress_surface_focus && !phase_changed
     @suppress_surface_focus = false
     surface = layout.surface
     surface.sound_player = ->(name) { GameRoomSounds.play(@program, name) } if surface.respond_to?(:sound_player=)
@@ -256,7 +281,7 @@ class GameScreen
     end
     shortcuts = normalized_game_shortcuts(@game.game_shortcuts(replay, Session.name))
     handle_shortcut = lambda do |shortcut|
-      if (bot_actor != nil || replay.finished?) && ![:announcement, :browse, :surface].include?(shortcut.kind)
+      if bot_actor != nil && ![:announcement, :browse, :surface].include?(shortcut.kind)
         next
       end
 
@@ -292,51 +317,44 @@ class GameScreen
       end
       speak(message.to_s) if !message.to_s.empty?
     end
-    GameRoomRules.bind_ctrl_f1(form, layout.shortcut_fields) do
+    show_rules = lambda do
       next if action != nil
 
       remember_position.call
       action = :rules
+      cancel_bot_decision(bot_token, :rules)
       form.resume
     end
-    GameRoomInvitationShortcuts.bind(
-      form,
-      layout.shortcut_fields,
-      invite_online: (@invite_online == nil ? nil : -> do
-        next if action != nil
+    layout.rules_button.on(:press) { show_rules.call }
+    GameRoomRules.bind_ctrl_f1(form, layout.shortcut_fields, &show_rules)
+    GameRoomParticipantMenu.bind(layout, available: -> do
+      actions = [:leave]
+      actions << :invite_online if @invite_online != nil
+      actions << :invite_contacts if @invite_contacts != nil
+      if @manage_computer != nil
+        actions.concat(GameRoomParticipantMenu.management_actions(
+          room: @room_snapshot, game: @game, active: !replay.finished?, viewer: Session.name, owner: @table_owner
+        ))
+      end
+      actions
+    end) do |requested, participant|
+      next if action != nil
 
-        remember_position.call
-        action = :invite_online
-        cancel_bot_decision(bot_token, :invitation_shortcut)
-        form.resume
-      end),
-      invite_contacts: (@invite_contacts == nil ? nil : -> do
-        next if action != nil
+      remember_position.call
+      @selected_participant = participant
+      action = requested == :leave ? :back : requested
+      cancel_bot_decision(bot_token, :participant_menu)
+      form.resume
+    end
+    layout.restart_button.on(:press) do
+      next if action != nil || !replay.finished? || !same_user?(@table_owner, Session.name)
 
-        remember_position.call
-        action = :invite_contacts
-        cancel_bot_decision(bot_token, :invitation_shortcut)
-        form.resume
-      end),
-      accept: (@accept_invitation == nil ? nil : -> do
-        next if action != nil
-
-        remember_position.call
-        action = :accept_invitation
-        cancel_bot_decision(bot_token, :invitation_shortcut)
-        form.resume
-      end),
-      reject: (@reject_invitation == nil ? nil : -> do
-        next if action != nil
-
-        remember_position.call
-        action = :reject_invitation
-        cancel_bot_decision(bot_token, :invitation_shortcut)
-        form.resume
-      end)
-    )
+      remember_position.call
+      action = :restart
+      form.resume
+    end
     surface.on_action do |selection|
-      next if bot_actor != nil || replay.finished?
+      next if bot_actor != nil
 
       if selection["_stay_open"] == true
         remember_position.call
@@ -679,6 +697,7 @@ class GameScreen
     end
   ensure
     @bot_turn_controller.cancel(bot_lease)
+    @layout&.begin_bindings
   end
 
   def maintenance_action?(action)
@@ -690,10 +709,6 @@ class GameScreen
       :bot_verification,
       :bot_ready
     ].include?(action)
-  end
-
-  def exit_after_finished_game?(replay)
-    replay.finished? && !@review_finished_game
   end
 
   # Recovery waits until no automatic action or bot calculation is active, so
@@ -1020,7 +1035,7 @@ class GameScreen
     return if session == nil
 
     @session = session
-    @review_finished_game = false
+    @focus_new_game = true
     @bot_turn_controller.switch_session(@repository.session_id(session))
     @synchronizer.update_session(@repository.session_id(session), discard_pending: true).synchronized!
     @surface_state = {}
@@ -1056,15 +1071,10 @@ class GameScreen
     @room_snapshot = snapshot
     @activity_entries = activity_entries.to_a
     process_new_table_activity(replay)
-    items = room_user_items(replay)
-    @users_index = bounded_index(users.index, items)
-    users.options = items
-    users.index = @users_index
-    users.header = users_header
-    history_items = combined_history_items(replay)
-    @history_index = @history_follows_tail ? [history_items.length - 1, 0].max : bounded_index(history.index, history_items)
-    history.options = history_items
-    history.index = @history_index
+    @layout.update_users(room_user_items(replay), header: users_header)
+    @layout.update_history(combined_history_items(replay))
+    @users_index = users.index.to_i
+    @history_index = history.index.to_i
   end
 
   def remote_game_update(revision)
@@ -1078,27 +1088,12 @@ class GameScreen
   end
 
   def room_user_items(replay)
-    players = replay.finished? ? [] : @repository.players_for(@session)
-    game_bots = players.select do |participant|
-      GameRoomParticipants.bot?(participant)
-    end
-    options = @game.options_from_json(@session["options"])
-    connected = @room_snapshot == nil ? [] : @room_snapshot.members
-    statuses = players.each_with_object({}) do |participant, result|
-      result[participant] = @game.participant_status(
-        replay,
-        participant,
-        connected: GameRoomParticipants.includes?(connected, participant)
-      )
-    end
-    RoomPresentation.user_labels(
-      @room_snapshot == nil ? [] : @room_snapshot.members,
-      bots: (@room_snapshot == nil ? [] : @room_snapshot.bots.to_a) + game_bots,
-      owner: @table_owner,
-      players: players,
-      active: !replay.finished?,
-      team_assignment: replay.finished? ? nil : @game.team_assignment(options, players: players),
-      statuses: statuses
+    return [] if @room_snapshot == nil
+
+    RoomPresentation.game_users(
+      room: @room_snapshot, game: @game, replay: replay,
+      players: @repository.players_for(@session), owner: @table_owner,
+      options: @game.options_from_json(@session["options"])
     )
   end
 
@@ -1133,20 +1128,16 @@ class GameScreen
   end
 
   def refresh_history_control(history, replay)
-    items = combined_history_items(replay)
-    @history_index = if @history_follows_tail
-      [items.length - 1, 0].max
-    else
-      bounded_index(history.index, items)
-    end
-    history.options = items
-    history.index = @history_index
+    @layout.update_history(combined_history_items(replay))
+    @history_index = history.index.to_i
   end
 
   def process_new_table_activity(replay)
+    @last_seen_activity_id = @layout.activity_cursor if @last_seen_activity_id == nil && @layout != nil
     newest_id = @activity_entries.to_a.map(&:id).max.to_i
     if @last_seen_activity_id == nil
       @last_seen_activity_id = newest_id
+      @layout.activity_cursor = newest_id if @layout != nil
       return
     end
 
@@ -1161,6 +1152,7 @@ class GameScreen
       @history_index = [combined_history_items(replay).length - 1, 0].max
     end
     @last_seen_activity_id = [@last_seen_activity_id.to_i, newest_id].max
+    @layout.activity_cursor = @last_seen_activity_id if @layout != nil
   end
 
   def submit_chat

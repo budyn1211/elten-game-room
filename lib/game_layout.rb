@@ -1,12 +1,10 @@
 module GameRoomLayout
-  STANDARD_SECTIONS = [:game, :history, :chat, :users].freeze
+  STANDARD_SECTIONS = [:game, :users, :primary, :restart, :chat, :history, :rules].freeze
 
   class ViewSpec
     attr_reader :surface, :sections, :history_header, :history_empty_label
 
-    def initialize(surface:, history_header: nil, history_empty_label: nil)
-      raise ArgumentError, "a game view requires a surface" if surface == nil
-
+    def initialize(surface: nil, history_header: nil, history_empty_label: nil)
       @sections = STANDARD_SECTIONS
       @surface = surface
       @history_header = history_header == nil ? nil : history_header.to_s
@@ -88,87 +86,181 @@ module GameRoomLayout
     end
   end
 
+  # These controls survive game updates. Install each native handler once,
+  # then replace only our callbacks; leave the control's own handlers intact.
+  module Bindings
+    def reset_bindings!
+      @screen_events = {}
+      @screen_contexts = []
+      @screen_timers.to_a.each { |timer| delete_timer(timer) }
+      @screen_timers = []
+    end
+
+    def on(event, *arguments, &handler)
+      @screen_events ||= {}
+      @screen_event_proxies ||= {}
+      unless @screen_event_proxies[event]
+        super(event, *arguments) do |*params|
+          @screen_events.fetch(event, []).dup.each { |callback| callback.call(*params) }
+        end
+        @screen_event_proxies[event] = true
+      end
+      (@screen_events[event] ||= []) << handler
+    end
+
+    def bind_context(header = "", &handler)
+      unless @screen_context_proxy
+        super(header) { |menu| @screen_contexts.to_a.each { |callback| callback.call(menu) } }
+        @screen_context_proxy = true
+      end
+      (@screen_contexts ||= []) << handler
+    end
+
+    def add_timer(timer, *arguments)
+      (@screen_timers ||= []) << timer
+      super
+    end
+
+    def add_tip(tip)
+      @screen_tips ||= []
+      return if @screen_tips.include?(tip)
+
+      @screen_tips << tip
+      super
+    end
+  end
+
   class Screen
-    attr_reader :surface, :history, :users, :chat, :back_button, :form
+    attr_accessor :activity_cursor, :session_id
+    attr_reader :surface, :history, :users, :chat, :back_button, :form,
+      :primary_button, :restart_button, :rules_button, :phase
 
     def initialize(
-      view_spec:,
-      surface_state:,
-      history_items:,
-      user_items:,
-      history_index:,
-      users_index:,
-      form_index:,
-      focus_location: nil,
-      previous_surface_identity: nil,
-      users_header:,
-      chat_text: "",
-      chat_index: 0,
-      chat_check: 0,
-      chat_control: nil
+      view_spec:, surface_state: {}, history_items: [], user_items: [],
+      history_index: nil, users_index: 0,
+      focus_location: [:users, 0], previous_surface_identity: nil,
+      users_header: "", chat_text: "", chat_index: 0, chat_check: 0,
+      chat_control: nil, phase: :active, own_table: false
     )
+      @surface_identity = previous_surface_identity
+      @history_items = []
+      @user_items = []
+      @history = GameSurfaces::RefreshAwareListBox.new([], header: "", quiet: true)
+      @users = GameSurfaces::RefreshAwareListBox.new([], header: "", quiet: true)
+      @chat = chat_control || GameSurfaces::RefreshAwareEditBox.new(
+        _("Chat"), text: chat_text.to_s, quiet: true, max_length: 400
+      )
+      @chat.restore_selection(index: chat_index, check: chat_check) if chat_control == nil
+      @primary_button = Button.new(_("Start game"))
+      @restart_button = Button.new(_("Restart game"))
+      @rules_button = Button.new(_("Game rules"))
+      @back_button = Button.new(_("Leave"))
+      @form = GameSurfaces::RefreshAwareForm.new([], index: 0, quiet: true)
+      @form.extend(ShortcutFormBehavior)
+      binding_controls.each { |control| control.extend(Bindings) }
+      update(
+        view_spec: view_spec, surface_state: surface_state,
+        history_items: history_items, user_items: user_items, users_header: users_header,
+        phase: phase, own_table: own_table, focus_location: focus_location,
+        history_index: history_index, users_index: users_index
+      )
+    end
+
+    def begin_bindings
+      binding_controls.each(&:reset_bindings!)
+      @form.game_shortcut_signatures = []
+      @form.history_navigation_signatures = []
+    end
+
+    def selected_participant
+      item = @user_items[@users.index.to_i]
+      item.respond_to?(:participant) ? item.participant : item&.to_s
+    end
+
+    def update_users(items, header: @users.header)
+      selected = selected_participant
+      previous_index = @users.index.to_i
+      @user_items = items.to_a
+      labels = @user_items.map(&:to_s)
+      @users.options = labels if @users.options != labels
+      selected_index = @user_items.index do |item|
+        id = item.respond_to?(:participant) ? item.participant : item.to_s
+        selected != nil && id.to_s.casecmp(selected.to_s) == 0
+      end
+      @users.index = selected_index || bounded_index(previous_index, labels)
+      @users.header = header
+    end
+
+    def update_history(items, header: @history.header)
+      follows_tail = focus_location.to_a[0] != :history || @history.index.to_i >= @history_items.length - 1
+      old_index = @history.index.to_i
+      @history_items = items.to_a.map(&:to_s)
+      @history.options = @history_items if @history.options != @history_items
+      @history.index = follows_tail ? [@history_items.length - 1, 0].max : bounded_index(old_index, @history_items)
+      @history.header = header
+    end
+
+    def update(view_spec:, history_items:, user_items:, users_header:,
+      phase: :active, own_table: false, surface_state: nil, focus_location: nil,
+      history_index: nil, users_index: nil, reset_surface: false, new_game: false)
       raise ArgumentError, "a game screen requires a view specification" if !view_spec.is_a?(ViewSpec)
 
-      @view_spec = view_spec
-      @surface_identity = surface_identity_for(@view_spec.surface)
-      @history_items = history_items.to_a.map(&:to_s)
-      @user_items = user_items.to_a.map(&:to_s)
-      @surface = GameSurfaces.build(@view_spec.surface, state: surface_state || {})
-      raise ArgumentError, "a game surface must expose at least one field" if @surface.fields.empty?
-
-      @history = GameSurfaces::RefreshAwareListBox.new(
-        @history_items,
-        header: text_or_default(@view_spec.history_header, _("Game history")),
-        index: bounded_index(history_index, @history_items),
-        quiet: true,
-        empty_label: text_or_default(@view_spec.history_empty_label, _("No moves yet"))
-      )
-      @users = GameSurfaces::RefreshAwareListBox.new(
-        @user_items,
-        header: users_header.to_s,
-        index: bounded_index(users_index, @user_items),
-        quiet: true
-      )
-      @chat = chat_control
-      if @chat == nil
-        @chat = GameSurfaces::RefreshAwareEditBox.new(
-          _("Chat"),
-          text: chat_text.to_s,
-          quiet: true,
-          max_length: 400
-        )
-        @chat.restore_selection(index: chat_index, check: chat_check)
+      # Phase transitions focus the board at start and users at the end.
+      # Ordinary updates preserve the user's field, including board inspection.
+      location = if phase == :active && (@phase != :active || new_game)
+        [:game, 0]
+      elsif phase == :finished && (@phase != :finished || new_game)
+        [:users, 0]
+      else
+        focus_location || self.focus_location || [:users, 0]
       end
-      @back_button = Button.new(_("Back to the table"))
-
+      old_identity = @surface_identity
+      state = surface_state || @surface&.state || {}
+      if reset_surface || @view_spec == nil || @view_spec.surface != view_spec.surface
+        @surface = view_spec.surface == nil ? nil : GameSurfaces.build(view_spec.surface, state: state)
+      end
+      @view_spec = view_spec
+      @surface_identity = surface_identity_for(view_spec.surface)
+      location = [:game, 0] if location[0] == :game && old_identity != @surface_identity
+      update_users(user_items, header: users_header)
+      update_history(history_items, header: text_or_default(view_spec.history_header, _("Game history")))
+      @history.empty_label = text_or_default(view_spec.history_empty_label, _("No moves yet")) if @history.respond_to?(:empty_label=)
+      @history.index = bounded_index(history_index, @history_items) if history_index != nil
+      @users.index = bounded_index(users_index, @user_items) if users_index != nil
+      @phase = phase
       section_fields = {
-        game: @surface.fields,
-        history: [@history],
+        game: @surface == nil ? [] : @surface.fields,
         users: [@users],
-        chat: [@chat]
+        primary: phase == :waiting && own_table ? [@primary_button] : [],
+        restart: phase == :finished && own_table ? [@restart_button] : [],
+        chat: [@chat], history: [@history], rules: [@rules_button]
       }
       @content_fields = []
       @field_locations = []
-      @view_spec.sections.each do |section|
-        section_fields.fetch(section).each_with_index do |field, section_index|
+      view_spec.sections.each do |section|
+        section_fields.fetch(section).each_with_index do |field, index|
           @content_fields << field
-          @field_locations << [section, section_index]
+          @field_locations << [section, index]
         end
       end
-      initial_focus_location = focus_location
-      if focus_location.to_a[0]&.to_sym == :game && previous_surface_identity != nil &&
-          previous_surface_identity != @surface_identity
-        initial_focus_location = [:game, 0]
+      new_fields = @content_fields + [@back_button]
+      if @form.fields != new_fields
+        @form.show_all
+        @form.fields.replace(new_fields)
+        @form.hide(@back_button)
       end
-      initial_form_index = form_index_for_location(initial_focus_location, fallback: form_index)
-      @form = GameSurfaces::RefreshAwareForm.new(
-        @content_fields + [@back_button],
-        index: initial_form_index,
-        quiet: true
-      )
-      @form.extend(ShortcutFormBehavior)
       @form.cancel_button = @back_button
-      @form.hide(@back_button)
+      new_index = form_index_for_location(location)
+      @form.index = new_index if @form.index.to_i != new_index
+      self
+    end
+
+    def focus_location
+      @field_locations&.[](@form.index.to_i)
+    end
+
+    def focus_users
+      @form.index = form_index_for_location([:users, 0])
     end
 
     def shortcut_fields
@@ -176,12 +268,8 @@ module GameRoomLayout
     end
 
     def suppress_focus!
-      location = @field_locations[@form.index.to_i]
-      return false if location == nil
-
-      field = @content_fields[@form.index.to_i]
+      field = @form.fields[@form.index.to_i]
       field.suppress_next_focus! if field.respond_to?(:suppress_next_focus!)
-      true
     end
 
     def wait_without_announcement
@@ -189,30 +277,23 @@ module GameRoomLayout
     end
 
     def snapshot
-      form_index = bounded_index(@form.index, @content_fields)
-      focus_location = @field_locations[form_index]
-      history_is_focused = focus_location.to_a[0]&.to_sym == :history
-      history_follows_tail = !history_is_focused || @history.index.to_i >= @history_items.length - 1
-      history_index = if history_follows_tail
-        [@history_items.length - 1, 0].max
-      else
-        @history.index.to_i
-      end
+      location = focus_location
+      follows_tail = location.to_a[0] != :history || @history.index.to_i >= @history_items.length - 1
       Snapshot.new(
-        surface_state: @surface.state,
-        history_index: history_index,
-        users_index: @users.index.to_i,
-        form_index: form_index,
-        focus_location: focus_location,
-        surface_identity: @surface_identity,
-        history_follows_tail: history_follows_tail,
-        chat_text: @chat.text,
-        chat_index: @chat.index.to_i,
-        chat_check: @chat.check.to_i
+        surface_state: @surface&.state || {},
+        history_index: follows_tail ? [@history_items.length - 1, 0].max : @history.index.to_i,
+        users_index: @users.index.to_i, form_index: @form.index.to_i,
+        focus_location: location, surface_identity: @surface_identity,
+        history_follows_tail: follows_tail, chat_text: @chat.text,
+        chat_index: @chat.index.to_i, chat_check: @chat.check.to_i
       )
     end
 
     private
+
+    def binding_controls
+      [@form, @users, @history, @primary_button, @restart_button, @rules_button, @back_button]
+    end
 
     def bounded_index(index, items)
       return 0 if items.empty?
@@ -220,25 +301,18 @@ module GameRoomLayout
       [[index.to_i, 0].max, items.length - 1].min
     end
 
-    def form_index_for_location(location, fallback:)
-      section = location.to_a[0]&.to_sym
-      section_index = location.to_a[1].to_i
-      matches = @field_locations.each_index.select do |index|
-        @field_locations[index][0] == section
-      end
-      return bounded_index(fallback, @content_fields) if matches.empty?
+    def form_index_for_location(location)
+      matches = @field_locations.each_index.select { |index| @field_locations[index][0] == location.to_a[0] }
+      return @field_locations.index([:users, 0]) || 0 if matches.empty?
 
-      matches[[[section_index, 0].max, matches.length - 1].min]
+      matches[[[location.to_a[1].to_i, 0].max, matches.length - 1].min]
     end
 
     def surface_identity_for(spec)
       if spec.is_a?(GameSurfaces::CompositeSpec)
-        children = spec.parts.to_a.map do |part|
-          "#{part.id}=#{surface_identity_for(part.surface)}"
-        end
+        children = spec.parts.to_a.map { |part| "#{part.id}=#{surface_identity_for(part.surface)}" }
         return "#{spec.class.name}[#{children.join('|')}]"
       end
-
       id = spec.respond_to?(:id) ? spec.id.to_s : ""
       "#{spec.class.name}:#{id}"
     end

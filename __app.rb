@@ -37,7 +37,6 @@ require_relative "lib/table_activity_repository"
 require_relative "lib/game_rules"
 require_relative "lib/game_room_screens"
 require_relative "lib/invitation_repository"
-require_relative "lib/invitation_shortcuts"
 require_relative "lib/invitation_notifications"
 require_relative "lib/game_participants"
 require_relative "lib/game_sounds"
@@ -281,8 +280,6 @@ class EltenGameRoom < Program
         reset_lobby_activity_cursor
       when :refresh
         next
-      when :invite_online, :invite_contacts
-        alert(_("Create or join a table before inviting someone."))
       end
     end
   end
@@ -732,287 +729,173 @@ class EltenGameRoom < Program
   def show_table_screen(row)
     return if row == nil
 
-    resume_current_game(row)
-
-    action_index = 0
-    history_index = 0
-    history_follows_tail = true
-    users_index = 0
-    form_index = 0
-    chat_text = ""
-    chat_index = 0
-    chat_check = 0
-    chat = GameSurfaces::RefreshAwareEditBox.new(
-      _("Chat"),
-      text: chat_text,
-      quiet: true,
-      max_length: TableActivityRepository::MESSAGE_MAX_LENGTH
-    )
-    last_seen_activity_id = nil
-    cached_state = nil
+    @table_layouts ||= {}
+    table_id = @lobby.table_id(row)
+    layout = nil
     quiet_reentry = false
     synchronizer = GameRoomSync::Controller.new(
-      transport: @transport,
-      table_id: @lobby.table_id(row),
+      transport: @transport, table_id: table_id,
       reconnect: -> { activate_table_transport(row) }
     )
     loop do
-      state = cached_state
-      cached_state = nil
-      state ||= load_room_state(
-        row,
-        title: _("Updating table"),
-        synchronizer: synchronizer,
-        ui: form_index.to_i == 2 ? chat : :none
+      state = load_room_state(
+        row, title: _("Updating table"), synchronizer: synchronizer,
+        ui: layout&.focus_location.to_a[0] == :chat ? layout.chat : :none
       )
       return if state == nil
 
       snapshot = state.room
-      activity_entries = state.activity_entries
-      last_seen_activity_id = announce_new_table_activity(
-        activity_entries,
-        after_id: last_seen_activity_id
-      )
-      play_game_sounds(room_membership_tracker(snapshot.table).observe(snapshot.members))
       row = snapshot.table
       owner = @lobby.owner_of(row)
-      own_table = owner.casecmp(Session.name.to_s) == 0
-      action_items = room_actions(state, own_table)
-      history_items = room_history_items(state, activity_entries)
-      user_items = room_user_labels(state)
-      action_index = bounded_index(action_index, action_items)
-      history_index = if history_follows_tail
-        [history_items.length - 1, 0].max
+      own_table = GameRoomParticipants.same?(owner, Session.name)
+      play_game_sounds(room_membership_tracker(row).observe(snapshot.members))
+      activity_cursor = announce_new_table_activity(state.activity_entries, after_id: layout&.activity_cursor)
+      synchronizer.update_session(state.session_id(@games))
+      view_spec = if state.replay != nil && state.game != nil
+        state.game.game_view_spec(state.replay, Session.name)
       else
-        bounded_index(history_index, history_items)
+        GameRoomLayout::ViewSpec.new(history_empty_label: _("No games have been played yet"))
       end
-      users_index = bounded_index(users_index, user_items)
+      options = {
+        view_spec: view_spec, history_items: room_history_items(state, state.activity_entries),
+        user_items: room_user_rows(state), users_header: table_header(snapshot),
+        phase: state.phase, own_table: own_table
+      }
+      if layout == nil
+        layout = GameRoomLayout::Screen.new(**options)
+        @table_layouts[table_id] = layout
+      else
+        layout.update(**options)
+      end
+      layout.activity_cursor = activity_cursor
+      if state.active? || state.finished?
+        result = run_game_screen(state.session, state.game, table: row)
+        start_new_game(row) if result == :restart
+        return if result == :back && leave_table_from_screen(row)
+
+        quiet_reentry = true
+        next
+      end
+
+      layout.begin_bindings
+      layout.back_button.label = _("Leave")
+      form = layout.form
       action = nil
-      started_session_id = nil
-      current_session_id = state.game_snapshot == nil ? 0 : @games.session_id(state.game_snapshot.session)
-      synchronizer.update_session(current_session_id)
-      actions = GameSurfaces::RefreshAwareListBox.new(
-        action_items.map { |item| item[:label] },
-        header: _("Actions"),
-        index: action_index,
-        quiet: true
-      )
-      history = GameSurfaces::RefreshAwareListBox.new(
-        history_items,
-        header: room_history_header(state),
-        index: history_index,
-        quiet: true,
-        empty_label: _("No games have been played yet")
-      )
-      users = GameSurfaces::RefreshAwareListBox.new(
-        user_items,
-        header: table_header(snapshot),
-        index: users_index,
-        quiet: true
-      )
-      open_button = Button.new(_("Open"))
-      leave_button = Button.new(_("Leave"))
-      form = GameSurfaces::RefreshAwareForm.new(
-        [actions, history, chat, users, open_button, leave_button],
-        index: [[form_index.to_i, 0].max, 3].min,
-        quiet: true
-      )
-      form.accept_button = open_button
-      form.cancel_button = leave_button
-      form.hide(open_button)
-      form.hide(leave_button)
-      remember_position = lambda do
-        action_index = actions.index.to_i
-        if form.index.to_i == 1
-          history_index = history.index.to_i
-          history_follows_tail = history_index >= history_items.length - 1
-        else
-          history_follows_tail = true
-          history_index = [history_items.length - 1, 0].max
-        end
-        users_index = users.index.to_i
-        chat_text = chat.text
-        chat_index = chat.index.to_i
-        chat_check = chat.check.to_i
-        form_index = [[form.index.to_i, 0].max, 3].min
-      end
-      open_button.on(:press) do
-        if form.index.to_i == 0
-          remember_position.call
-          action = :open
-          form.resume
-        end
-      end
-      leave_button.on(:press) do
-        remember_position.call
-        action = :leave
+      participant = nil
+      dispatch = lambda do |requested, selected = nil|
+        next if action != nil
+
+        action = requested
+        participant = selected
         form.resume
       end
-      chat.on_submit do
-        remember_position.call
-        if chat_text.to_s.strip.empty?
+      layout.primary_button.on(:press) { dispatch.call(:start_game) }
+      layout.rules_button.on(:press) { dispatch.call(:rules) }
+      layout.back_button.on(:press) { dispatch.call(:leave) }
+      layout.chat.on_submit do
+        if layout.chat.text.to_s.strip.empty?
           alert(_("Type a chat message first."))
         else
-          action = :chat
-          form.resume
+          dispatch.call(:chat)
         end
       end
-      GameRoomRules.bind_ctrl_f1(form, [actions, history, users]) do
+      GameRoomParticipantMenu.bind(layout, available: -> do
+        [:invite_online, :invite_contacts, :leave] +
+          GameRoomParticipantMenu.management_actions(
+            room: snapshot, game: state.game, active: state.active?, viewer: Session.name, owner: owner
+          )
+      end, &dispatch)
+      GameRoomRules.bind_ctrl_f1(form, layout.shortcut_fields) { dispatch.call(:rules) }
+      form.add_timer(FormTimer.new(GameScreen::TIMER_INTERVAL, repeat: true) do
         next if action != nil
 
-        remember_position.call
-        action = :rules
-        form.resume
-      end
-      GameRoomInvitationShortcuts.bind(
-        form,
-        [actions, history, users],
-        invite_online: -> do
-          next if action != nil
+        event = synchronizer.next_event(idle: form.keyboard_idle_frame?)
+        next if event == nil
 
-          remember_position.call
-          action = :invite_online
-          form.resume
-        end,
-        invite_contacts: -> do
-          next if action != nil
-
-          remember_position.call
-          action = :invite_contacts
-          form.resume
-        end,
-        accept: -> do
-          next if action != nil
-
-          remember_position.call
-          action = :accept_invitation
-          form.resume
-        end,
-        reject: -> do
-          next if action != nil
-
-          remember_position.call
-          action = :reject_invitation
-          form.resume
-        end
-      )
-      form.add_timer(FormTimer.new(0.5, repeat: true) do
-        next if action != nil
-
-        sync_event = synchronizer.next_event(idle: form.keyboard_idle_frame?)
-        if sync_event&.kind == :game_started
-          remember_position.call
-          started_session_id = sync_event.session_id
-          action = :game_started
-          form.resume_for_refresh
-        elsif sync_event&.kind == :game_changed
-          remember_position.call
-          action = :refresh
-          form.resume_for_refresh
-        elsif sync_event&.kind == :table_changed
-          remember_position.call
-          action = :refresh
-          form.resume_for_refresh
-        elsif sync_event&.kind == :recovery
-          remember_position.call
-          action = :reconcile_game_start
-          form.resume_for_refresh
-        end
+        action = :refresh
+        form.resume_for_refresh
       end)
-
-      if quiet_reentry
-        current_field = form.fields[form.index.to_i]
-        current_field.suppress_next_focus! if current_field.respond_to?(:suppress_next_focus!)
-        quiet_reentry = false
-        form.wait_without_announcement
-      else
-        form.wait
-      end
-      while action == :reconcile_game_start
-        recovered_session_id = run_network_task(_("Checking the current game"), ui: :none, silent: true) do
-          synchronizer.synchronize do
-            recover_missed_game_start(row, current_session_id)
-          end
-        end
-        if recovered_session_id != nil
-          started_session_id = recovered_session_id
-          action = :game_started
-        else
-          action = nil
-          current_field = form.fields[form.index.to_i]
-          current_field.suppress_next_focus! if current_field.respond_to?(:suppress_next_focus!)
-          form.wait_without_announcement
-        end
-      end
+      quiet_reentry ? layout.wait_without_announcement : form.wait
+      layout.begin_bindings
+      quiet_reentry = false
       case action
-      when :open
-        room_result = open_room_action(row, state, action_items[action_index][:action])
-        if room_result.is_a?(LobbyRepository::BotUpdateResult)
-          if room_result.status == :stale
-            quiet_reentry = true
-          else
-            if room_result.activity != nil && !state.activity_entries.any? { |entry| entry.id.to_i == room_result.activity.id.to_i }
-              state.activity_entries << room_result.activity
-            end
-            cached_state = state
-            quiet_reentry = true
-          end
-        end
+      when :start_game
+        start_new_game(row)
+        quiet_reentry = true
+      when :add_bot, :remove_bot
+        change_room_computer(row, action, participant)
+        quiet_reentry = true
       when :rules
-        game = state.game || game_definition(row["game"])
-        options = game == nil ? nil : game.options_from_json(row["game_options"])
-        show_game_rules(game, options: options)
+        show_game_rules(state.game, options: state.game&.options_from_json(row["game_options"]))
       when :invite_online
         show_invite_users(row, source: :online)
       when :invite_contacts
         show_invite_users(row, source: :contacts)
-      when :accept_invitation
-        switch_to_invited_table
-      when :reject_invitation
-        show_pending_invitations(mode: :reject)
       when :chat
         entry = run_network_task(_("Sending chat message"), ui: :none) do
-          saved = @table_activity.append(table: row, kind: "chat", message: chat_text)
+          saved = @table_activity.append(table: row, kind: "chat", message: layout.chat.text)
           @lobby.announce_table_activity(row, snapshot.members, actor: Session.name) if saved != nil
           saved
         end
         if entry != nil
           text = @table_activity.text_for(entry, game_name: ->(id) { game_name(id) }, global: false)
           speak(text, stop: false, break_sequence: false) if !text.to_s.empty?
-          chat_text = ""
-          chat_index = 0
-          chat_check = 0
-          chat.set_text("")
-          chat.index = 0
-          chat.check = 0
-          quiet_reentry = true
+          layout.chat.set_text("")
+          layout.chat.index = layout.chat.check = 0
         end
-      when :game_started
-        open_started_game(row, started_session_id)
+        quiet_reentry = true
       when :leave
-        question = if own_table
-          _("Do you want to leave the table? The table will be closed for everyone.")
-        else
-          _("Do you want to leave the table?")
-        end
-        next if !confirm(question)
-
-        result = run_network_task(_("Leaving table")) do
-          table_id = @lobby.table_id(row)
-          left = @lobby.leave_table(row, Session.name)
-          @transport.deactivate_table(table_id: table_id) if left != nil
-          left
-        end
-        if result != nil
-          play_game_sound("disconnect")
-          forget_room_membership(row)
-          return
-        end
+        return if leave_table_from_screen(row)
       when :refresh
         quiet_reentry = true
-        next
       end
     end
+  ensure
+    layout&.begin_bindings
+    @table_layouts&.delete(table_id) if table_id != nil
+  end
+
+  def leave_table_from_screen(row)
+    own_table = GameRoomParticipants.same?(@lobby.owner_of(row), Session.name)
+    question = own_table ? _("Do you want to leave the table? The table will be closed for everyone.") : _("Do you want to leave the table?")
+    return false if !confirm(question)
+
+    result = run_network_task(_("Leaving table")) do
+      left = @lobby.leave_table(row, Session.name)
+      @transport.deactivate_table(table_id: @lobby.table_id(row)) if left != nil
+      left
+    end
+    return false if result == nil
+
+    play_game_sound("disconnect")
+    forget_room_membership(row)
+    true
+  end
+
+  def change_room_computer(row, action, participant)
+    state = load_room_state(row, title: _("Checking the table members"))
+    return if state == nil
+
+    available = GameRoomParticipantMenu.management_actions(
+      room: state.room, game: state.game, active: state.active?,
+      viewer: Session.name, owner: @lobby.owner_of(state.room.table)
+    )
+    return if !available.include?(action)
+    return if action == :remove_bot && !GameRoomParticipants.includes?(state.room.bots, participant)
+
+    result = run_network_task(action == :add_bot ? _("Adding computer") : _("Removing computer")) do
+      if action == :add_bot
+        @lobby.add_bot(row, snapshot: state.room)
+      else
+        # Computers are numbered slots in the existing protocol. Delete on
+        # any computer removes one slot; the remaining numbering is 1..N.
+        @lobby.remove_bot(row, snapshot: state.room)
+      end
+    end
+    status = result.respond_to?(:status) ? result.status : result
+    alert(_("This table is full.")) if status == :full
+    alert(_("This table is no longer available.")) if status == :closed
+    result
   end
 
   def show_invite_users(row, source:)
@@ -1529,55 +1412,6 @@ class EltenGameRoom < Program
     game.combined_options_summary(game.options_from_json(row["game_options"]))
   end
 
-  def room_actions(state, own_table)
-    if active_game?(state)
-      label = if RoomPresentation.includes_user?(room_players(state), Session.name)
-        _("Enter current game")
-      else
-        _("Observe current game")
-      end
-      [
-        { action: :enter_game, label: label },
-        { action: :rules, label: _("Game rules") }
-      ]
-    elsif own_table
-      actions = [
-        { action: :start_game, label: _("Start a new game") },
-        { action: :rules, label: _("Game rules") }
-      ]
-      if state.finished?
-        actions.insert(1, { action: :review_finished_game, label: _("Review the finished game") })
-      end
-      if state.game != nil
-        maximum = [@lobby.capacity_of(state.room.table), state.game.maximum_players.to_i].min
-        if state.game.supports_bots? && state.room.participants.length < maximum
-          actions << { action: :add_bot, label: _("Add a computer") }
-        end
-      end
-      if !state.room.bots.empty?
-        actions << { action: :remove_bot, label: _("Remove a computer") }
-      end
-      actions
-    else
-      actions = [
-        {
-          action: :wait,
-          label: _("Waiting for %{owner} to start a game") % {
-            owner: @lobby.owner_of(state.room.table)
-          }
-        },
-        {
-          action: :rules,
-          label: _("Game rules")
-        }
-      ]
-      if state.finished?
-        actions.unshift({ action: :review_finished_game, label: _("Review the finished game") })
-      end
-      actions
-    end
-  end
-
   def room_history_items(state, room_activity = [])
     replay = state.replay
     game_events = replay == nil ? [] : replay.accepted_events
@@ -1609,21 +1443,11 @@ class EltenGameRoom < Program
     _("Game history")
   end
 
-  def room_user_labels(state)
-    current_players = active_game?(state) ? room_players(state) : []
-    game_bots = current_players.select { |participant| GameRoomParticipants.bot?(participant) }
-    options = if state.game == nil || state.session == nil
-      {}
-    else
-      state.game.options_from_json(state.session["options"])
-    end
-    RoomPresentation.user_labels(
-      state.room.members,
-      bots: state.room.bots.to_a + game_bots,
-      owner: @lobby.owner_of(state.room.table),
-      players: current_players,
-      active: active_game?(state),
-      team_assignment: active_game?(state) ? state.game&.team_assignment(options, players: current_players) : nil
+  def room_user_rows(state)
+    options = state.session == nil ? {} : state.game&.options_from_json(state.session["options"])
+    RoomPresentation.game_users(
+      room: state.room, game: state.game, replay: state.replay,
+      players: state.players, owner: @lobby.owner_of(state.room.table), options: options
     )
   end
 
@@ -1639,70 +1463,6 @@ class EltenGameRoom < Program
     state.active?
   end
 
-  def recover_missed_game_start(row, current_session_id)
-    latest_session_id = @games.latest_session_id_for_table(row)
-    return nil if latest_session_id <= 0 || latest_session_id == current_session_id.to_i
-
-    Log.debug(
-      "ELTEN Game Room recovered missed game start " \
-      "table=#{@lobby.table_id(row)} session=#{latest_session_id}"
-    ) if defined?(Log)
-    latest_session_id
-  end
-
-  def resume_current_game(row)
-    state = load_room_state(row, title: _("Checking the current game"))
-    return if state == nil || !active_game?(state)
-    return if !RoomPresentation.includes_user?(room_players(state), Session.name)
-
-    run_game_screen(state.game_snapshot.session, state.game, table: state.room.table)
-  end
-
-  def open_room_action(row, state, action)
-    case action
-    when :enter_game
-      run_game_screen(state.game_snapshot.session, state.game, table: state.room.table)
-    when :start_game
-      start_new_game(row, state: state)
-    when :review_finished_game
-      return if state.game_snapshot == nil || !state.finished?
-
-      run_game_screen(
-        state.game_snapshot.session,
-        state.game,
-        table: state.room.table,
-        review_finished_game: true
-      )
-    when :rules
-      game = state.game || game_definition(row["game"])
-      options = game == nil ? nil : game.options_from_json(row["game_options"])
-      show_game_rules(game, options: options)
-    when :add_bot
-      result = run_network_task(_("Adding computer")) { @lobby.add_bot(row, snapshot: state.room) }
-      status = result.respond_to?(:status) ? result.status : result
-      alert(_("This table is full.")) if status == :full
-      alert(_("This table is no longer available.")) if status == :closed
-      result
-    when :remove_bot
-      result = run_network_task(_("Removing computer")) { @lobby.remove_bot(row, snapshot: state.room) }
-      status = result.respond_to?(:status) ? result.status : result
-      alert(_("There is no computer to remove.")) if status == :none
-      alert(_("This table is no longer available.")) if status == :closed
-      result
-    when :wait
-      alert(_("Waiting for %{owner} to start a game.") % { owner: @lobby.owner_of(row) })
-    end
-  end
-
-  def open_started_game(row, session_id)
-    state = load_room_state(row, title: _("Opening the new game"))
-    return if state == nil || state.game_snapshot == nil || !active_game?(state)
-    return if @games.session_id(state.game_snapshot.session) != session_id.to_i
-    return if !RoomPresentation.includes_user?(room_players(state), Session.name)
-
-    run_game_screen(state.game_snapshot.session, state.game, table: state.room.table)
-  end
-
   def start_new_game(row, state: nil)
     state ||= load_room_state(row, title: _("Checking the table before starting"))
     return if state == nil
@@ -1715,8 +1475,7 @@ class EltenGameRoom < Program
     end
     if state.active?
       alert(_("A game has already started. Opening the current game."))
-      run_game_screen(state.session, state.game, table: row)
-      return
+      return state.session
     end
 
     game = state.game || game_definition(row["game"])
@@ -1748,8 +1507,7 @@ class EltenGameRoom < Program
       return if refreshed == nil || !refreshed.active?
 
       alert(_("A game has already started. Opening the current game."))
-      run_game_screen(refreshed.session, refreshed.game, table: refreshed.room.table)
-      return
+      return refreshed.session
     end
     latest_participants = refreshed_room.participants
     if !same_participant_order?(participants, latest_participants)
@@ -1768,7 +1526,7 @@ class EltenGameRoom < Program
     row = refreshed_room.table
 
     previous_id = state.session_id(@games)
-    session = run_network_task(_("Starting game")) do
+    run_network_task(_("Starting game")) do
       started = @games.start_session(
         table: row,
         game: game.id,
@@ -1780,7 +1538,6 @@ class EltenGameRoom < Program
       @lobby.set_game_active(row, true, snapshot: refreshed_room) if started != nil
       started
     end
-    run_game_screen(session, game, table: row) if session != nil
   end
 
   def configure_team_assignment(game, options, participants)
@@ -1919,7 +1676,7 @@ class EltenGameRoom < Program
     )
   end
 
-  def run_game_screen(session, game = nil, table:, review_finished_game: false)
+  def run_game_screen(session, game = nil, table:)
     game ||= game_definition(session["game"])
     if game == nil
       alert(_("This game is not supported by this version of ELTEN Game Room."))
@@ -1950,8 +1707,6 @@ class EltenGameRoom < Program
       synchronizer: synchronizer,
       invite_online: ->(current_table) { show_invite_users(current_table, source: :online) },
       invite_contacts: ->(current_table) { show_invite_users(current_table, source: :contacts) },
-      accept_invitation: -> { switch_to_invited_table },
-      reject_invitation: -> { show_pending_invitations(mode: :reject) },
       membership_tracker: room_membership_tracker(table),
       game_status_changed: ->(current_table, active) { @lobby.set_game_active(current_table, active) },
       activity_repository: @table_activity,
@@ -1961,7 +1716,8 @@ class EltenGameRoom < Program
         @lobby.announce_table_activity(current_table, users, actor: Session.name) if saved != nil
         saved
       end,
-      review_finished_game: review_finished_game
+      layout: @table_layouts&.[](@lobby.table_id(table)),
+      manage_computer: ->(current_table, action, participant) { change_room_computer(current_table, action, participant) }
     ).run
   end
 

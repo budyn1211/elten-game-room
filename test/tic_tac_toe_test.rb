@@ -76,7 +76,7 @@ empty_surface = game.surface_spec(empty, "Alice")
 assert(empty_surface.cells.flatten.all?(&:empty?), "an empty Tic-tac-toe field says empty")
 view = game.game_view_spec(empty, "Alice")
 assert(view.is_a?(GameRoomLayout::ViewSpec), "tic-tac-toe bypasses the shared game layout")
-assert(view.sections == [:game, :history, :chat, :users], "tic-tac-toe changed the shared field order")
+assert(view.sections == [:game, :users, :primary, :restart, :chat, :history, :rules], "tic-tac-toe changed the shared field order")
 assert(view.surface.header == "Tic-tac-toe", "the board header still repeats the turn status")
 assert(game.legal_actions(empty, "Alice").length == 9, "tic-tac-toe did not expose all empty fields")
 status, move = game.action_for(
