@@ -332,7 +332,7 @@ match_repository.define_singleton_method(:confirmed_event_ids) { |_current| matc
 match_repository.define_singleton_method(:events_revision) { |events| [events.length, events.last.to_h["id"].to_i] }
 match_repository.define_singleton_method(:next_sequence) { |_current, events| events.length + 1 }
 writes = 0
-match_repository.define_singleton_method(:append_events) do |session:, sequence:, events:, recipients:, actor:, authority: nil|
+match_repository.define_singleton_method(:append_events) do |session:, sequence:, events:, recipients:, actor:|
   writes += 1
   inserted = events.map.with_index do |event, index|
     { "id" => sequence + index, "actor" => actor, "action" => event.action, "value" => event.value }

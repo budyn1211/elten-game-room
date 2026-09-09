@@ -30,14 +30,10 @@ class GameScreen
     game_name: nil,
     send_chat: nil,
     layout: nil,
-    manage_computer: nil,
-    transfer_master: nil,
-    competitor_departed: nil
+    manage_computer: nil
   )
     @layout = layout
     @manage_computer = manage_computer
-    @transfer_master = transfer_master
-    @competitor_departed = competitor_departed
     @program = program
     @repository = repository
     @game = game
@@ -149,17 +145,10 @@ class GameScreen
         GameRoomSounds.play_all(@program, @membership_tracker.observe(next_room_snapshot.members))
       end
       @room_snapshot = next_room_snapshot
-      @table = next_room_snapshot.table
-      @table_owner = @table["owner"].to_s
       @activity_entries = next_activity_entries.to_a
       @session = snapshot.session
       replay_started_at = monotonic_time
       replay = @game.replay(@session, snapshot.events, @repository)
-      departed = departed_active_competitor(replay)
-      if departed != nil && @competitor_departed&.call(@table, @session, departed)
-        stop_pending_speech
-        return :cancelled
-      end
       synchronize_table_status(replay)
       log_signal_timing(
         "replay_finished",
@@ -219,23 +208,8 @@ class GameScreen
         @room_snapshot = nil
         @activity_entries = nil
         @suppress_surface_focus = true
-      when :transfer_master
-        @transfer_master&.call(@table, @selected_participant)
-        @room_snapshot = nil
-        @activity_entries = nil
-        @suppress_surface_focus = true
       when :restart
         return :restart
-      when :game_cancelled
-        stop_pending_speech
-        return :cancelled
-      when :participant_departed
-        departed = @departed_participant
-        @departed_participant = nil
-        if departed != nil && @competitor_departed&.call(@table, @session, departed)
-          stop_pending_speech
-          return :cancelled
-        end
       when :chat
         submit_chat
         @suppress_surface_focus = true
@@ -256,7 +230,7 @@ class GameScreen
     bot_token = bot_lease == nil ? nil : EltenAPI::Tasks::CancellationToken.new
     history_items = combined_history_items(replay)
     user_items = room_user_items(replay)
-    view_spec = @game.game_view_spec(replay, Session.name, context: action_context)
+    view_spec = @game.game_view_spec(replay, Session.name)
     phase = replay.finished? ? :finished : :active
     phase_changed = @layout != nil && (@layout.phase != phase || @focus_new_game == true)
     if @layout == nil
@@ -347,11 +321,11 @@ class GameScreen
       end
       speak(message.to_s) if !message.to_s.empty?
     end
-    GameRoomParticipantMenu.bind(layout, viewer: Session.name, available: -> do
+    GameRoomParticipantMenu.bind(layout, available: -> do
       actions = [:rules, :leave]
       actions << :invite_online if @invite_online != nil
       actions << :invite_contacts if @invite_contacts != nil
-      if @manage_computer != nil || @transfer_master != nil
+      if @manage_computer != nil
         actions.concat(GameRoomParticipantMenu.management_actions(
           room: @room_snapshot, game: @game, active: !replay.finished?, viewer: Session.name, owner: @table_owner
         ))
@@ -596,9 +570,6 @@ class GameScreen
             @new_session_id = remote_session_id
             action = :new_session
             break
-          elsif remote_action == :game_cancelled
-            action = :game_cancelled
-            break
           elsif remote_action == :refresh
             action = :refresh
             break
@@ -616,12 +587,6 @@ class GameScreen
             break
           elsif room_status == :updated
             apply_room_snapshot(users, history, replay, snapshot, activity_entries)
-            departed = departed_active_competitor(replay)
-            if departed != nil
-              @departed_participant = departed
-              action = :participant_departed
-              break
-            end
           end
         when :recovery_refresh
           recovery_started_at = monotonic_time
@@ -642,17 +607,9 @@ class GameScreen
             break
           end
           apply_room_snapshot(users, history, replay, snapshot, activity_entries) if room_status == :updated
-          if room_status == :updated && (departed = departed_active_competitor(replay)) != nil
-            @departed_participant = departed
-            action = :participant_departed
-            break
-          end
           if remote_action == :new_session
             @new_session_id = remote_session_id
             action = :new_session
-            break
-          elsif remote_action == :game_cancelled
-            action = :game_cancelled
             break
           elsif remote_action == :refresh
             action = :refresh
@@ -1024,8 +981,7 @@ class GameScreen
         sequence: @repository.next_sequence(@session, replay.accepted_events),
         events: plan.events,
         recipients: recipients,
-        actor: Session.name,
-        authority: plan.authority
+        actor: Session.name
       )
     end
     return false if inserted == nil
@@ -1053,8 +1009,7 @@ class GameScreen
         sequence: @repository.next_sequence(@session, replay.accepted_events),
         events: plan.events,
         recipients: game_recipients,
-        actor: Session.name,
-        authority: plan.authority
+        actor: Session.name
       )
     end
     return nil if inserted == nil
@@ -1111,8 +1066,6 @@ class GameScreen
       GameRoomSounds.play_all(@program, @membership_tracker.observe(snapshot.members))
     end
     @room_snapshot = snapshot
-    @table = snapshot.table
-    @table_owner = @table["owner"].to_s
     @activity_entries = activity_entries.to_a
     process_new_table_activity(replay)
     @layout.update_users(room_user_items(replay), header: users_header)
@@ -1126,7 +1079,6 @@ class GameScreen
     latest_id = @repository.session_id(latest)
     current_id = @repository.session_id(@session)
     return [:new_session, latest_id] if latest_id > 0 && latest_id != current_id
-    return [:game_cancelled, nil] if @repository.cancelled?(latest || @session)
     return [:refresh, nil] if @repository.event_revision(@session, known_revision: revision) != revision
 
     [nil, nil]
@@ -1140,17 +1092,6 @@ class GameScreen
       players: @repository.players_for(@session), owner: @table_owner,
       options: @game.options_from_json(@session["options"])
     )
-  end
-
-  def departed_active_competitor(replay)
-    return nil if replay == nil || replay.finished? || @room_snapshot == nil
-    return nil if !same_user?(@table_owner, Session.name)
-
-    @repository.players_for(@session).find do |participant|
-      GameRoomParticipants.human?(participant) &&
-        @game.active_competitor?(replay, participant) &&
-        !GameRoomParticipants.includes?(@room_snapshot.members, participant)
-    end
   end
 
   def activity_entries_for(snapshot)
@@ -1327,8 +1268,7 @@ class GameScreen
           sequence: @repository.next_sequence(@session, replay.accepted_events),
           events: plan.events,
           recipients: game_recipients,
-          actor: decision.actor,
-          authority: plan.authority
+          actor: decision.actor
         )
       end
     rescue Exception
@@ -1392,8 +1332,7 @@ class GameScreen
         sequence: @repository.next_sequence(@session, replay.accepted_events),
         events: plan.events,
         recipients: game_recipients,
-        actor: Session.name,
-        authority: plan.authority
+        actor: Session.name
       )
     end
     return false if inserted == nil
@@ -1421,8 +1360,7 @@ class GameScreen
       table_id: table_id,
       hidden_submissions: @hidden_submissions,
       random_source: @random_source,
-      now: Time.now.to_i,
-      table_owner: @table_owner
+      now: Time.now.to_i
     )
   end
 

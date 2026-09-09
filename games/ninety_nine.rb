@@ -122,17 +122,6 @@ module GameRoomGames
       }
     end
 
-    def active_competitor?(replay, participant)
-      player = player_key(replay.state, participant)
-      player != nil && replay.state[:eliminated][player] != true
-    end
-
-    def participant_status(replay, participant, connected: true)
-      return _("eliminated") if !active_competitor?(replay, participant)
-
-      super
-    end
-
     def bot_action_score(replay, actor, action, context: nil)
       state = replay.state
       case action["action"].to_s
@@ -230,7 +219,7 @@ module GameRoomGames
     def automatic_action(replay, actor, context: nil)
       state = replay.state
       return nil if state == nil || state[:winner] != nil
-      return nil if !table_master_action?(replay.players, actor, context)
+      return nil if !same_user?(actor, replay.players.first)
       return nil if ![:awaiting_deal, :round_complete].include?(state[:phase])
 
       { "kind" => "command", "action" => "deal" }
@@ -263,14 +252,14 @@ module GameRoomGames
       return [:finished, nil] if replay.finished?
 
       if selection["kind"].to_s == "command" && selection["action"].to_s == "deal"
-        return [:not_your_turn, nil] if !table_master_action?(replay.players, actor, context)
+        return [:not_your_turn, nil] if !same_user?(actor, replay.players.first)
         return [:invalid, nil] if ![:awaiting_deal, :round_complete].include?(state[:phase])
         return [:invalid, nil] if context == nil || context.random_source == nil
 
         round = state[:round].to_i + 1
         seed = random_seed(context.random_source)
         dealer = next_dealer_index(state, seed)
-        return [:ok, event_plan("deal", [round, dealer, seed].join("|"), authority: :table_master)]
+        return [:ok, event_plan("deal", [round, dealer, seed].join("|"))]
       end
 
       return [:not_your_turn, nil] if !same_user?(state[:current_player], actor)
@@ -388,7 +377,7 @@ module GameRoomGames
     end
 
     def apply_deal(state, event, actor, repository, history)
-      return false if !table_master_event?(event, state[:players], actor)
+      return false if !same_user?(actor, state[:players].first)
       return false if ![:awaiting_deal, :round_complete].include?(state[:phase])
 
       round, dealer, seed = parse_deal(event["value"])

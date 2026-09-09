@@ -247,7 +247,7 @@ module GameRoomGames
           expected_round = state[:completed_rounds] + 1
           expected_attempt = state[:attempt] + 1
           expected_judge = judge_index(options, players, expected_round, state)
-          if table_master_event?(event, players, actor) && [:setup, :round_complete].include?(state[:phase]) &&
+          if owner?(players, actor) && [:setup, :round_complete].include?(state[:phase]) &&
               parsed != nil && parsed[:round] == expected_round && parsed[:attempt] == expected_attempt &&
               parsed[:judge_index] == expected_judge && valid_round_letter?(parsed[:letter], options, state[:used_letters]) &&
               valid_round_categories?(parsed[:categories], options)
@@ -301,7 +301,7 @@ module GameRoomGames
             )
           end
         when "answers_closed"
-          if state[:phase] == :answering && table_master_event?(event, players, actor)
+          if state[:phase] == :answering && owner?(players, actor)
             state[:phase] = :revealing
             accepted_event = true
             history << history_entry(event_id, _("Answering has closed."), actor, :answers_closed)
@@ -314,8 +314,7 @@ module GameRoomGames
             accepted_event = accept_reveal_part(state, actor, category_index, value, event, event_id, history)
           end
         when "review_started"
-          if state[:phase] == :revealing &&
-              (table_master_event?(event, players, actor) || same_user?(state[:judge], actor))
+          if state[:phase] == :revealing && (owner?(players, actor) || same_user?(state[:judge], actor))
             state[:phase] = :review
             accepted_event = true
             missing = state[:commitments].keys.reject { |player| player_hash_key?(state[:reveals], player) }
@@ -386,7 +385,7 @@ module GameRoomGames
           parsed = parse_score(value)
           expected = expected_round_scores(state)
           scored_player = parsed == nil ? nil : state[:active_players][parsed[:player_index]]
-          if state[:phase] == :review && table_master_event?(event, players, actor) && reviews_complete?(state) &&
+          if state[:phase] == :review && owner?(players, actor) && reviews_complete?(state) &&
               scored_player != nil && expected[scored_player] == parsed[:points] &&
               !player_hash_key?(state[:round_scores], scored_player)
             player = scored_player
@@ -404,7 +403,7 @@ module GameRoomGames
             )
           end
         when "round_finished"
-          if state[:phase] == :review && table_master_event?(event, players, actor) && round_scores_complete?(state)
+          if state[:phase] == :review && owner?(players, actor) && round_scores_complete?(state)
             state[:completed_rounds] += 1
             state[:phase] = :round_complete
             accepted_event = true
@@ -418,7 +417,7 @@ module GameRoomGames
             state[:phase] = :finished if winner != nil || draw
           end
         when "round_cancelled"
-          if [:revealing, :review].include?(state[:phase]) && table_master_event?(event, players, actor)
+          if [:revealing, :review].include?(state[:phase]) && owner?(players, actor)
             state[:phase] = :round_complete
             accepted_event = true
             history << history_entry(
@@ -448,18 +447,14 @@ module GameRoomGames
     end
 
     def surface_spec(replay, viewer)
-      surface_spec_with_context(replay, viewer)
-    end
-
-    def surface_spec_with_context(replay, viewer, context: nil)
       state = replay.state
       case state[:phase]
       when :answering
         answering_surface(state, viewer)
       when :revealing
-        revealing_surface(state, viewer, context)
+        revealing_surface(state, viewer)
       when :review
-        review_surface(state, viewer, context)
+        review_surface(state, viewer)
       else
         information_surface("categories_status", status_text(state, viewer))
       end
@@ -520,7 +515,7 @@ module GameRoomGames
         end
       end
 
-      return nil if !table_master_action?(state[:players], actor, context)
+      return nil if !owner?(state[:players], actor)
 
       case state[:phase]
       when :setup, :round_complete
@@ -547,7 +542,7 @@ module GameRoomGames
 
     def automatic_action_due?(replay, actor, context: nil)
       state = replay.state
-      table_master_action?(state[:players], actor, context) && state[:phase] == :answering &&
+      owner?(state[:players], actor) && state[:phase] == :answering &&
         closing_deadline_reached?(state, context&.now)
     end
 
@@ -708,7 +703,7 @@ module GameRoomGames
       information_surface("answering_status", message)
     end
 
-    def revealing_surface(state, viewer, context = nil)
+    def revealing_surface(state, viewer)
       message = if player_hash_key?(state[:reveals], viewer)
         _("Your answers have been revealed. Waiting for the other players.")
       elsif player_hash_key?(state[:commitments], viewer)
@@ -716,12 +711,12 @@ module GameRoomGames
       else
         _("Waiting for submitted answers to be revealed.")
       end
-      with_review_commands(information_surface("revealing_status", message), state, viewer, context)
+      with_review_commands(information_surface("revealing_status", message), state, viewer)
     end
 
-    def review_surface(state, viewer, context = nil)
+    def review_surface(state, viewer)
       if same_user?(state[:judge], viewer)
-        return with_cancel_command(review_spec(state), state, viewer, context)
+        return with_cancel_command(review_spec(state), state, viewer)
       end
       information_surface(
         "review_waiting",
@@ -758,17 +753,16 @@ module GameRoomGames
       )
     end
 
-    def with_review_commands(surface, state, viewer, context = nil)
+    def with_review_commands(surface, state, viewer)
       commands = []
-      master = table_master_action?(state[:players], viewer, context)
-      if master || same_user?(state[:judge], viewer)
+      if owner?(state[:players], viewer) || same_user?(state[:judge], viewer)
         commands << GameSurfaces::Command.new(
           id: "start_review",
           label: _("Begin review without missing answers"),
           enabled: true
         )
       end
-      if master
+      if owner?(state[:players], viewer)
         commands << GameSurfaces::Command.new(
           id: "cancel_round",
           label: _("Cancel the unjudged round"),
@@ -778,8 +772,8 @@ module GameRoomGames
       commands.empty? ? surface : composite(surface, "status", commands)
     end
 
-    def with_cancel_command(surface, state, viewer, context = nil)
-      return surface if !table_master_action?(state[:players], viewer, context)
+    def with_cancel_command(surface, state, viewer)
+      return surface if !owner?(state[:players], viewer)
 
       composite(
         surface,
@@ -876,18 +870,15 @@ module GameRoomGames
     def command_action(action, state, actor, context)
       case action
       when "close_answers"
-        return [:not_your_turn, nil] if state[:phase] != :answering || !table_master_action?(state[:players], actor, context)
-        [:ok, event_plan("answers_closed", state[:round], authority: :table_master)]
+        return [:not_your_turn, nil] if state[:phase] != :answering || !owner?(state[:players], actor)
+        [:ok, event_plan("answers_closed", state[:round])]
       when "start_review"
-        master = table_master_action?(state[:players], actor, context)
-        allowed = master || same_user?(state[:judge], actor)
+        allowed = owner?(state[:players], actor) || same_user?(state[:judge], actor)
         return [:not_your_turn, nil] if state[:phase] != :revealing || !allowed
-        authority = master ? :table_master : nil
-        [:ok, event_plan("review_started", state[:round], authority: authority)]
+        [:ok, event_plan("review_started", state[:round])]
       when "cancel_round"
-        return [:not_your_turn, nil] if ![:revealing, :review].include?(state[:phase]) ||
-          !table_master_action?(state[:players], actor, context)
-        [:ok, event_plan("round_cancelled", state[:round], authority: :table_master)]
+        return [:not_your_turn, nil] if ![:revealing, :review].include?(state[:phase]) || !owner?(state[:players], actor)
+        [:ok, event_plan("round_cancelled", state[:round])]
       else
         [:invalid, nil]
       end
@@ -896,8 +887,7 @@ module GameRoomGames
     def automatic_plan(action, selection, state, actor, context)
       case action
       when "start_round"
-        return [:not_your_turn, nil] if !table_master_action?(state[:players], actor, context) ||
-          ![:setup, :round_complete].include?(state[:phase])
+        return [:not_your_turn, nil] if !owner?(state[:players], actor) || ![:setup, :round_complete].include?(state[:phase])
         available = available_letters(state[:options], state[:used_letters])
         roll = context.random_source.roll(count: 1, sides: available.length)
         letter = available[roll.values.first - 1]
@@ -908,21 +898,19 @@ module GameRoomGames
         deadline = duration > 0 ? context.now.to_i + duration : 0
         categories = draw_categories(state[:options], roll.values.first, round)
         value = [attempt, round, judge, letter, deadline, encode_round_categories(categories)].join(",")
-        [:ok, event_plan("category_round", value, authority: :table_master)]
+        [:ok, event_plan("category_round", value)]
       when "close_answers"
-        return [:not_your_turn, nil] if state[:phase] != :answering ||
-          !table_master_action?(state[:players], actor, context)
+        return [:not_your_turn, nil] if state[:phase] != :answering || !owner?(state[:players], actor)
         return [:invalid, nil] if !commitments_complete?(state) && !closing_deadline_reached?(state, context&.now)
-        [:ok, event_plan("answers_closed", state[:round], authority: :table_master)]
+        [:ok, event_plan("answers_closed", state[:round])]
       when "reveal"
         return reveal_plan(selection["envelope"], state, actor, context)
       when "start_review"
-        return [:not_your_turn, nil] if state[:phase] != :revealing ||
-          !table_master_action?(state[:players], actor, context)
+        return [:not_your_turn, nil] if state[:phase] != :revealing || !owner?(state[:players], actor)
         return [:invalid, nil] if !reveals_complete?(state)
-        [:ok, event_plan("review_started", state[:round], authority: :table_master)]
+        [:ok, event_plan("review_started", state[:round])]
       when "score_round"
-        return score_round_plan(state, actor, context)
+        return score_round_plan(state, actor)
       else
         [:invalid, nil]
       end
@@ -942,9 +930,8 @@ module GameRoomGames
       [:ok, ActionPlan.new(events: events)]
     end
 
-    def score_round_plan(state, actor, context)
-      return [:not_your_turn, nil] if state[:phase] != :review ||
-        !table_master_action?(state[:players], actor, context)
+    def score_round_plan(state, actor)
+      return [:not_your_turn, nil] if state[:phase] != :review || !owner?(state[:players], actor)
       return [:invalid, nil] if !reviews_complete?(state)
 
       scores = expected_round_scores(state)
@@ -952,7 +939,7 @@ module GameRoomGames
         EventCommand.new(action: "round_score", value: "#{index},#{scores.fetch(player)}")
       end
       events << EventCommand.new(action: "round_finished", value: state[:round].to_s)
-      [:ok, ActionPlan.new(events: events, authority: :table_master)]
+      [:ok, ActionPlan.new(events: events)]
     end
 
     def accept_reveal_part(state, actor, part, value, _event, _event_id, _history)

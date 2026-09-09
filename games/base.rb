@@ -20,12 +20,9 @@ module GameRoomGames
     keyword_init: true
   )
 
-  ActionPlan = Struct.new(:events, :authority, keyword_init: true) do
-    def self.single(action:, value:, authority: nil)
-      new(
-        events: [EventCommand.new(action: action.to_s, value: value.to_s)],
-        authority: authority
-      )
+  ActionPlan = Struct.new(:events, keyword_init: true) do
+    def self.single(action:, value:)
+      new(events: [EventCommand.new(action: action.to_s, value: value.to_s)])
     end
   end
 
@@ -35,7 +32,6 @@ module GameRoomGames
     :hidden_submissions,
     :random_source,
     :now,
-    :table_owner,
     keyword_init: true
   )
 
@@ -385,13 +381,6 @@ module GameRoomGames
       connected ? nil : _("disconnected")
     end
 
-    # A participant remains a competitor unless a game explicitly records a
-    # formal elimination. Being unable to move at this exact moment is not an
-    # elimination and must never silently turn a player into an observer.
-    def active_competitor?(replay, participant)
-      replay != nil && replay.players.to_a.any? { |player| same_user?(player, participant) }
-    end
-
     def active_actors(replay)
       replay.current_player == nil ? [] : [replay.current_player]
     end
@@ -598,12 +587,8 @@ module GameRoomGames
       raise NotImplementedError, "a game must implement surface_spec"
     end
 
-    def game_view_spec(replay, viewer, context: nil)
-      GameRoomLayout::ViewSpec.new(surface: surface_spec_with_context(replay, viewer, context: context))
-    end
-
-    def surface_spec_with_context(replay, viewer, context: nil)
-      surface_spec(replay, viewer)
+    def game_view_spec(replay, viewer)
+      GameRoomLayout::ViewSpec.new(surface: surface_spec(replay, viewer))
     end
 
     # A game may locally adapt history labels to presentation settings such
@@ -909,25 +894,8 @@ module GameRoomGames
       )
     end
 
-    def event_plan(action, value, authority: nil)
-      ActionPlan.single(action: action, value: value, authority: authority)
-    end
-
-    def table_master_action?(players, actor, context)
-      owner = context&.table_owner.to_s
-      owner = players.to_a.first.to_s if owner.empty?
-      !owner.empty? && same_user?(owner, actor)
-    end
-
-    # LiveSessions validates this marker before storing an action. Projecting
-    # it onto each event lets a migrated room replay transitions made by every
-    # previous table master. Legacy events keep the original first-player rule.
-    def table_master_event?(event, players, actor)
-      authority = event["__authority"].to_s
-      return true if authority == "table_master"
-      return false if !authority.empty?
-
-      players.to_a.first != nil && same_user?(players.first, actor)
+    def event_plan(action, value)
+      ActionPlan.single(action: action, value: value)
     end
 
     def starting_history(players)

@@ -42,13 +42,8 @@ module RoomPresentation
     active = replay != nil && !replay.finished? if active == nil
     # Finished results annotate people still at the table. Departed players
     # remain in the game's replay, but are not manageable room members.
-    listed_players = if active
-      players.select { |participant| game.active_competitor?(replay, participant) }
-    else
-      []
-    end
-    status_participants = active ? players : []
-    statuses = status_participants.each_with_object({}) do |participant, result|
+    listed_players = active ? players : []
+    statuses = listed_players.each_with_object({}) do |participant, result|
       result[participant] = game.participant_status(
         replay, participant,
         connected: GameRoomParticipants.bot?(participant) || includes_user?(room.members, participant)

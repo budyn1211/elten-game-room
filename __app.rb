@@ -4,7 +4,7 @@
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
   "version": "1.1.4",
-  "build_id": "200",
+  "build_id": "201",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -75,7 +75,7 @@ require_relative "games/registry"
 
 class EltenGameRoom < Program
   GAME_ROOM_VERSION = "1.1.4".freeze
-  GAME_ROOM_BUILD_ID = 200
+  GAME_ROOM_BUILD_ID = 201
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
 
@@ -787,10 +787,6 @@ class EltenGameRoom < Program
       row = snapshot.table
       owner = @lobby.owner_of(row)
       own_table = GameRoomParticipants.same?(owner, Session.name)
-      if own_table && interrupt_departed_competitor(state)
-        quiet_reentry = true
-        next
-      end
       play_game_sounds(room_membership_tracker(row).observe(snapshot.members))
       activity_cursor = announce_new_table_activity(state.activity_entries, after_id: layout&.activity_cursor)
       synchronizer.update_session(state.session_id(@games))
@@ -841,7 +837,7 @@ class EltenGameRoom < Program
           dispatch.call(:chat)
         end
       end
-      GameRoomParticipantMenu.bind(layout, viewer: Session.name, available: -> do
+      GameRoomParticipantMenu.bind(layout, available: -> do
         [:invite_online, :invite_contacts, :rules, :leave] +
           GameRoomParticipantMenu.management_actions(
             room: snapshot, game: state.game, active: state.active?, viewer: Session.name, owner: owner
@@ -865,9 +861,6 @@ class EltenGameRoom < Program
         quiet_reentry = true
       when :add_bot, :remove_bot
         change_room_computer(row, action, participant)
-        quiet_reentry = true
-      when :transfer_master
-        change_room_master(row, participant)
         quiet_reentry = true
       when :rules
         show_game_rules(state.game, options: state.game&.options_from_json(row["game_options"]))
@@ -901,103 +894,20 @@ class EltenGameRoom < Program
   end
 
   def leave_table_from_screen(row)
-    state = load_room_state(row, title: _("Checking the table"))
-    return false if state == nil
-
-    owner = @lobby.owner_of(state.room.table)
-    own_table = GameRoomParticipants.same?(owner, Session.name)
-    remaining = GameRoomParticipants.humans(state.room.members).reject do |participant|
-      GameRoomParticipants.same?(participant, Session.name)
-    end
-    question = if state.active_competitor?(Session.name)
-      _("Do you want to leave the table? The current game will be interrupted.")
-    elsif own_table && remaining.empty?
-      _("Do you want to leave the table? The table will be closed for everyone.")
-    else
-      _("Do you want to leave the table?")
-    end
+    own_table = GameRoomParticipants.same?(@lobby.owner_of(row), Session.name)
+    question = own_table ? _("Do you want to leave the table? The table will be closed for everyone.") : _("Do you want to leave the table?")
     return false if !confirm(question)
 
     result = run_network_task(_("Leaving table")) do
-      perform_table_departure(state)
+      left = @lobby.leave_table(row, Session.name)
+      @transport.deactivate_table(table_id: @lobby.table_id(row)) if left != nil
+      left
     end
     return false if result == nil
 
     play_game_sound("disconnect")
     forget_room_membership(row)
     true
-  end
-
-  def perform_table_departure(state)
-    row = state.room.table
-    if state.active_competitor?(Session.name)
-      @games.cancel_session(state.session, departed: Session.name, actor: Session.name)
-      @table_activity.append_safely(
-        table: row,
-        kind: "game_interrupted",
-        actor: Session.name,
-        message: Session.name
-      )
-    end
-    owner = @lobby.owner_of(row)
-    successor = if GameRoomParticipants.same?(owner, Session.name)
-      GameRoomParticipants.humans(state.room.members).find do |participant|
-        !GameRoomParticipants.same?(participant, Session.name)
-      end
-    end
-    @lobby.leave_table(row, Session.name, successor: successor)
-  end
-
-  def interrupt_departed_competitor(state)
-    return false if !state.active?
-
-    departed = state.players.find do |participant|
-      GameRoomParticipants.human?(participant) &&
-        state.game.active_competitor?(state.replay, participant) &&
-        !GameRoomParticipants.includes?(state.room.members, participant)
-    end
-    return false if departed == nil
-
-    interrupt_game_for_departed(state.room.table, state.session, departed)
-  end
-
-  def interrupt_game_for_departed(row, session, departed)
-    result = run_network_task(_("Interrupting game"), ui: :none) do
-      cancelled = @games.cancel_session(session, departed: departed, actor: Session.name)
-      if cancelled
-        @table_activity.append_safely(
-          table: row,
-          kind: "game_interrupted",
-          actor: Session.name,
-          message: departed
-        )
-      end
-      cancelled
-    end
-    result == true
-  end
-
-  def change_room_master(row, participant)
-    state = load_room_state(row, title: _("Checking the table members"))
-    return if state == nil
-
-    available = GameRoomParticipantMenu.management_actions(
-      room: state.room, game: state.game, active: state.active?,
-      viewer: Session.name, owner: @lobby.owner_of(state.room.table)
-    )
-    return if !available.include?(:transfer_master)
-    if participant.to_s.empty? || GameRoomParticipants.bot?(participant) ||
-        GameRoomParticipants.same?(participant, Session.name) ||
-        !GameRoomParticipants.includes?(state.room.members, participant)
-      alert(_("Select another user at the table."))
-      return
-    end
-
-    result = run_network_task(_("Transferring table master")) do
-      @lobby.transfer_master(state.room.table, participant, snapshot: state.room)
-    end
-    alert(_("%{player} is now the table master.") % { player: participant }) if result != nil
-    result
   end
 
   def change_room_computer(row, action, participant)
@@ -1258,9 +1168,6 @@ class EltenGameRoom < Program
       return nil
     end
 
-    current_state = current == nil ? nil : load_room_state(current, title: _("Checking the current table"))
-    return nil if current != nil && current_state == nil
-
     left_current = false
     result = run_network_task(_("Accepting invitation")) do
       connected = establish_table_transport(current_invitation.table, invitation_id: current_invitation.id)
@@ -1271,7 +1178,9 @@ class EltenGameRoom < Program
       end
 
       if current != nil
-        perform_table_departure(current_state)
+        old_table_id = @lobby.table_id(current)
+        @lobby.leave_table(current, Session.name)
+        @transport.deactivate_table(table_id: old_table_id)
         left_current = true
       end
 
@@ -1863,11 +1772,7 @@ class EltenGameRoom < Program
         saved
       end,
       layout: @table_layouts&.[](@lobby.table_id(table)),
-      manage_computer: ->(current_table, action, participant) { change_room_computer(current_table, action, participant) },
-      transfer_master: ->(current_table, participant) { change_room_master(current_table, participant) },
-      competitor_departed: lambda do |current_table, current_session, participant|
-        interrupt_game_for_departed(current_table, current_session, participant)
-      end
+      manage_computer: ->(current_table, action, participant) { change_room_computer(current_table, action, participant) }
     ).run
   end
 

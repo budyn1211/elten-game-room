@@ -79,28 +79,6 @@ assert(active_lifecycle.role_for("Bob") == :player, "a current player became an 
 assert(active_lifecycle.role_for("Carol") == :observer, "a late participant became a player in the running game")
 assert(!active_lifecycle.startable_by?("Alice", owner: "Alice"), "an active game allowed another start")
 
-elimination_game = Object.new
-elimination_game.define_singleton_method(:active_competitor?) { |_replay, participant| participant != "Bob" }
-eliminated_lifecycle = GameRoomLifecycle::State.new(
-  room: room_snapshot,
-  game_snapshot: snapshot_struct.new(sessions.last),
-  game: elimination_game,
-  replay: active_replay,
-  players: ["Alice", "Bob"]
-)
-assert(eliminated_lifecycle.role_for("Bob") == :observer, "a formally eliminated player remained an active competitor")
-assert(!eliminated_lifecycle.active_competitor?("Bob"), "a formally eliminated player could still interrupt the game by leaving")
-
-cancelled_lifecycle = GameRoomLifecycle::State.new(
-  room: room_snapshot,
-  game_snapshot: snapshot_struct.new(sessions.last.merge("status" => "cancelled")),
-  game: Object.new,
-  replay: active_replay,
-  players: ["Alice", "Bob"]
-)
-assert(cancelled_lifecycle.phase == :waiting, "an interrupted game did not reopen the room")
-assert(cancelled_lifecycle.startable_by?("Alice", owner: "Alice"), "an interrupted game could not be restarted")
-
 finished_lifecycle = GameRoomLifecycle::State.new(
   room: room_snapshot,
   game_snapshot: snapshot_struct.new(sessions.last),

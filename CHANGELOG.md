@@ -1,37 +1,16 @@
 # Historia zmian
 
-## 1.1.4 — build 200
+## 1.1.4 — build 201
 
-- po przerwaniu partii lista użytkowników jest oparta na rzeczywistym składzie
-  pokoju, dlatego rozłączony gracz nie pozostaje na niej jako zawodnik;
-- pełny skład przerwanej partii nadal pozostaje w jej zapisie i historii.
-
-## 1.1.4 — build 199
-
-- po przekazaniu mastera nowy master wykonuje rozdania, rozpoczyna następne
-  rundy i obsługuje przejścia czasowe, bez zmiany miejsc graczy ani kolejności
-  rozdającego; dotyczy to Ninety-Nine, Spades, Tysiąca i Państw-Miast;
-- automatyczne czynności mastera są zapisywane z weryfikowanym uprawnieniem,
-  dlatego pozostają poprawnie odtwarzane także po kolejnych migracjach stołu;
-- uczestnik, który opuścił LiveSession, znika lokalnie z listy użytkowników
-  nawet wtedy, gdy ELTEN pozostawił go w wewnętrznej liście sesji; ponowne
-  dołączenie przywraca go bez dodatkowych zapytań ani odświeżania okresowego.
-
-## 1.1.4 — build 198
-
-- master stołu może przekazać swoją rolę innemu człowiekowi wskazanemu na
-  liście użytkowników za pomocą `Ctrl+M`;
-- przekazanie mastera przenosi cały pokój do nowej LiveSession należącej do
-  nowego mastera, zachowując uczestników, boty, czat, historię oraz stan
-  rozpoczętej partii;
-- gdy master opuszcza pokój, rola przechodzi automatycznie na kolejnego
-  człowieka według kolejności uczestników, a boty przechodzą pod jego kontrolę;
-- wyjście aktywnego gracza przerywa bieżącą partię i ponownie otwiera pokój;
-  wyeliminowany gracz pozostaje obserwatorem, więc jego późniejsze wyjście nie
-  przerywa rozgrywki;
-- dodano nowe dźwięki wejścia do pokoju, wyjścia z pokoju oraz wiadomości
-  czatu; dźwięk czatu działa dla własnej wysłanej wiadomości i wiadomości
-  otrzymanych od innych osób.
+- wycofano zmianę mastera stołu, migrację pokoju do zastępczej LiveSession
+  oraz przerywanie partii po opuszczeniu jej przez aktywnego gracza;
+- właściciel stołu ponownie zamyka go przy wyjściu, zgodnie z zachowaniem
+  sprzed buildu 198;
+- zachowano lokalne odfiltrowywanie uczestników, których ELTEN pozostawia w
+  wewnętrznej liście LiveSession po ich odejściu;
+- po przejściu do nieaktywnej partii interfejs pokazuje aktualny skład pokoju,
+  nie historyczny skład rozgrywki;
+- zachowano niezależne dźwięki wejścia, wyjścia i wiadomości czatu.
 
 ## 1.1.3 — build 197
 

@@ -217,55 +217,18 @@ class LobbyRepository
     notify_table_changed(row, users, actor: actor)
   end
 
-  def transfer_master(row, new_owner, snapshot: nil)
-    raise ArgumentError, "Master transfer requires LiveSessions" if !native_live_sessions?
-
-    current_snapshot = snapshot.is_a?(TableSnapshot) ? snapshot : snapshot_for(row)
-    return nil if current_snapshot == nil
-
-    current = current_snapshot.table
-    owner = owner_of(current)
-    candidate = new_owner.to_s
-    raise ArgumentError, "Only the table master may transfer this role" if !GameRoomParticipants.same?(owner, Session.name)
-    raise ArgumentError, "Select another user" if GameRoomParticipants.same?(candidate, owner)
-    raise ArgumentError, "A computer cannot be the table master" if GameRoomParticipants.bot?(candidate)
-    raise ArgumentError, "This user is no longer at the table" if !GameRoomParticipants.includes?(current_snapshot.members, candidate)
-
-    updated = @transport.transfer_master(current, new_owner: candidate, actor: Session.name)
-    return nil if updated == nil
-
-    current_snapshot.table.replace(updated)
-    row.replace(updated) if row.is_a?(Hash)
-    append_activity(
-      updated, "master_changed", actor: Session.name,
-      message: candidate, table_users: current_snapshot.members
-    )
-    current_snapshot
-  end
-
-  def leave_table(row, user, successor: nil)
+  def leave_table(row, user)
     if native_live_sessions?
       snapshot = snapshot_for(row)
       return :closed if snapshot == nil
 
-      current = snapshot.table
-      owner_leaving = GameRoomParticipants.same?(owner_of(current), user)
-      remaining = GameRoomParticipants.humans(snapshot.members).reject do |participant|
-        GameRoomParticipants.same?(participant, user)
-      end
-      if owner_leaving && !remaining.empty?
-        target = remaining.find { |participant| GameRoomParticipants.same?(participant, successor) } || remaining.first
-        transfer_master(current, target, snapshot: snapshot)
-        current = snapshot.table
-      elsif owner_leaving
-        append_activity(current, "left", actor: user, table_users: snapshot.members)
-        @transport.close_room(current, actor: user)
+      if owner_of(snapshot.table).casecmp(user.to_s) == 0
+        @transport.deactivate_table(table_id: table_id(snapshot.table))
         return :closed
       end
-
-      append_activity(current, "left", actor: user, table_users: snapshot.members)
-      @transport.leave_room(current, user: user)
-      return owner_leaving ? :transferred : :left
+      append_activity(snapshot.table, "left", actor: user, table_users: snapshot.members)
+      @transport.deactivate_table(table_id: table_id(snapshot.table))
+      return :left
     end
 
     tables = open_tables
@@ -335,7 +298,7 @@ class LobbyRepository
       return false if current == nil
       raise ArgumentError, "Only the table owner may close it" if owner_of(current).casecmp(Session.name.to_s) != 0
 
-      return @transport.close_room(current, actor: Session.name)
+      return @transport.deactivate_table(table_id: table_id(current))
     end
 
     tables = open_tables
@@ -676,8 +639,8 @@ class LobbyRepository
     users.to_a.map { |user| user.to_s.downcase }.reject(&:empty?).uniq.sort
   end
 
-  def append_activity(row, kind, actor:, message: nil, table_users: [])
-    @activity_repository&.append_safely(table: row, kind: kind, actor: actor, message: message)
+  def append_activity(row, kind, actor:, table_users: [])
+    @activity_repository&.append_safely(table: row, kind: kind, actor: actor)
   end
 
   def status_rank(row)

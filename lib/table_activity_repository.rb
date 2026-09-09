@@ -15,8 +15,8 @@ class TableActivityRepository
   )
 
   TABLE_NAME = "table_activity".freeze
-  KINDS = %w[created joined left bot_added bot_removed chat master_changed game_interrupted].freeze
-  GLOBAL_KINDS = %w[created joined left bot_added bot_removed].freeze
+  KINDS = %w[created joined left bot_added bot_removed chat].freeze
+  GLOBAL_KINDS = (KINDS - ["chat"]).freeze
   TABLE_LIMIT = 2_000
   GLOBAL_LIMIT = 200
   MESSAGE_MAX_LENGTH = 400
@@ -39,10 +39,8 @@ class TableActivityRepository
     raise ArgumentError, "Activity table owner is required" if owner.empty?
     raise ArgumentError, "Activity game is required" if game.empty?
 
-    clean_message = %w[chat master_changed game_interrupted].include?(normalized_kind) ? normalize_message(message) : ""
+    clean_message = normalized_kind == "chat" ? normalize_message(message) : ""
     raise ArgumentError, "A chat message cannot be empty" if normalized_kind == "chat" && clean_message.empty?
-    raise ArgumentError, "A new table master is required" if normalized_kind == "master_changed" && clean_message.empty?
-    raise ArgumentError, "A departed player is required" if normalized_kind == "game_interrupted" && clean_message.empty?
 
     if native_live_sessions?
       inserted = @transport.append_activity(
@@ -171,15 +169,6 @@ class TableActivityRepository
         _("%{player} removed a computer.") % { player: player }
       when "chat"
         _("%{player}: %{message}") % { player: player, message: entry.message }
-      when "master_changed"
-        _("%{player} made %{new_master} the table master.") % {
-          player: player,
-          new_master: GameRoomParticipants.display_name(entry.message)
-        }
-      when "game_interrupted"
-        _("The game was interrupted because %{player} left.") % {
-          player: GameRoomParticipants.display_name(entry.message)
-        }
       end
     end
   end
@@ -252,9 +241,7 @@ class TableActivityRepository
   def entry_from(row, table)
     return nil if row_id(row) <= 0 || row["table_id"].to_i != row_id(table)
     return nil if !KINDS.include?(row["kind"].to_s)
-    if !native_live_sessions? && row["table_owner"].to_s.casecmp(table_owner(table)) != 0
-      return nil
-    end
+    return nil if row["table_owner"].to_s.casecmp(table_owner(table)) != 0
     return nil if row["game"].to_s != table["game"].to_s
 
     insertion_user = row["__insertion_user"].to_s
@@ -264,7 +251,7 @@ class TableActivityRepository
     actor = insertion_user.empty? ? claimed_actor : insertion_user
     return nil if actor.empty?
 
-    message = %w[chat master_changed game_interrupted].include?(row["kind"].to_s) ? normalize_message(row["message"]) : ""
+    message = row["kind"].to_s == "chat" ? normalize_message(row["message"]) : ""
     return nil if row["kind"].to_s == "chat" && message.empty?
 
     Entry.new(

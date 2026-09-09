@@ -60,15 +60,13 @@ end
 
 def append_plan(events, plan, actor, now: 100)
   plan.events.each do |command|
-    event = {
+    events << {
       "id" => events.length + 1,
       "actor" => actor,
       "action" => command.action,
       "value" => command.value,
       "created_at" => now
     }
-    event["__authority"] = plan.authority.to_s if plan.authority != nil
-    events << event
   end
 end
 
@@ -139,35 +137,6 @@ assert(replay.state[:judge] == "Alice", "the rotating judge started in the wrong
 assert(replay.state[:letter] == "A" && replay.state[:deadline] == 190, "the round letter or deadline is wrong")
 assert(replay.state[:round_categories] == %w[country city], "the configured categories were not selected for the round")
 assert(game.automatic_action_due?(replay, "Alice", context: context) == false, "the answer deadline fired too early")
-
-migrated_context = context.dup
-migrated_context.table_owner = "Bob"
-migrated_context.random_source = GameRoomRandom::SequenceSource.new([1, 1])
-migrated_events = []
-migrated_empty = game.replay(session, migrated_events, repository)
-assert(game.automatic_action(migrated_empty, "Alice", context: migrated_context) == nil, "the former Categories master could still start a round")
-migrated_start = game.automatic_action(migrated_empty, "Bob", context: migrated_context)
-status, migrated_plan = game.action_for(migrated_start, migrated_empty, "Bob", context: migrated_context)
-assert(status == :ok && migrated_plan.authority == :table_master, "the new Categories master could not start a round")
-append_plan(migrated_events, migrated_plan, "Bob")
-migrated_replay = game.replay(session, migrated_events, repository)
-assert(migrated_replay.state[:phase] == :answering, "a Categories round by the migrated master was rejected")
-next_master_context = migrated_context.dup
-next_master_context.table_owner = "Carol"
-next_master_context.now = 10_000
-assert(game.automatic_action_due?(migrated_replay, "Carol", context: next_master_context), "the next master did not inherit the round deadline")
-migrated_close = game.automatic_action(migrated_replay, "Carol", context: next_master_context)
-status, migrated_plan = game.action_for(migrated_close, migrated_replay, "Carol", context: next_master_context)
-assert(status == :ok && migrated_plan.authority == :table_master, "the next Categories master could not close answering")
-append_plan(migrated_events, migrated_plan, "Carol", now: 10_000)
-migrated_replay = game.replay(session, migrated_events, repository)
-assert(migrated_replay.state[:phase] == :revealing, "a Categories transition by a later master was rejected")
-master_surface = game.surface_spec_with_context(migrated_replay, "Carol", context: next_master_context)
-assert(
-  master_surface.is_a?(GameSurfaces::CompositeSpec) &&
-    master_surface.parts.last.surface.commands.any? { |command| command.id == "start_review" },
-  "the current Categories master did not receive master controls"
-)
 answer_surface = game.surface_spec(replay, "Bob")
 assert(answer_surface.is_a?(GameSurfaces::AnswerSheetSpec), "an answering player did not receive the answer sheet")
 assert(

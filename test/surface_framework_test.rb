@@ -821,7 +821,7 @@ require_relative "../lib/participant_menu"
 menu_calls = []
 allowed = [:invite_online, :invite_contacts, :accept_invitation, :reject_invitation, :add_bot, :remove_bot, :rules]
 room_layout.users.index = 2
-GameRoomParticipantMenu.bind(room_layout, viewer: "Alice", available: -> { allowed }) { |action, id| menu_calls << [action, id] }
+GameRoomParticipantMenu.bind(room_layout, available: -> { allowed }) { |action, id| menu_calls << [action, id] }
 global_menu = FakeMenu.new
 room_layout.form.context(global_menu, false)
 assert(global_menu.options.none? { |option| ["Accept a game invitation", "Reject a game invitation"].include?(option[0]) }, "global table menu exposes accepting or rejecting invitations")
@@ -848,27 +848,6 @@ assert(menu.options.none? { |option| option[2] == :del }, "human participant exp
 other_menu = FakeMenu.new
 room_layout.history.context(other_menu, false)
 assert(other_menu.options.none? { |option| option[2] == :del }, "Delete leaked outside the users list")
-
-allowed << :transfer_master
-transfer_rows = ["Alice", "Bob", "bot:7:1"].map do |id|
-  RoomPresentation::User.new(participant: id, label: id)
-end
-room_layout.update_users(transfer_rows)
-room_layout.users.index = 1
-transfer_menu = FakeMenu.new
-room_layout.users.context(transfer_menu, false)
-transfer = transfer_menu.options.find { |option| option[2] == "m" }
-assert(transfer != nil, "another human participant has no Ctrl+M master-transfer action")
-transfer[3].call
-assert(menu_calls.last == [:transfer_master, "Bob"], "master transfer lost the selected human participant")
-room_layout.users.index = 0
-self_menu = FakeMenu.new
-room_layout.users.context(self_menu, false)
-assert(self_menu.options.none? { |option| option[2] == "m" }, "the table master could transfer the role to themselves")
-room_layout.users.index = 2
-bot_menu = FakeMenu.new
-room_layout.users.context(bot_menu, false)
-assert(bot_menu.options.none? { |option| option[2] == "m" }, "a computer exposed the table-master action")
 puts "Room layout and participant menu tests passed"
 
 room_layout.update(view_spec: empty_view, history_items: [], user_items: room_rows, users_header: "Users", phase: :waiting)

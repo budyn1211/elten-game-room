@@ -716,24 +716,6 @@ class GameRoomTransport
     @live_store.update_room(table_or_id, changes, actor: actor)
   end
 
-  def transfer_master(table_or_id, new_owner:, actor:)
-    raise "The native LiveSessions store is unavailable" if !live_store?
-
-    @live_store.transfer_master(table_or_id, new_owner: new_owner, actor: actor)
-  end
-
-  def leave_room(table_or_id, user:)
-    raise "The native LiveSessions store is unavailable" if !live_store?
-
-    @live_store.leave_room(table_or_id, user: user)
-  end
-
-  def close_room(table_or_id, actor:)
-    raise "The native LiveSessions store is unavailable" if !live_store?
-
-    @live_store.close_room(table_or_id, actor: actor)
-  end
-
   def append_activity(**arguments)
     raise "The native LiveSessions store is unavailable" if !live_store?
 
@@ -768,18 +750,6 @@ class GameRoomTransport
     raise "The native LiveSessions store is unavailable" if !live_store?
 
     @live_store.append_game_action(**arguments)
-  end
-
-  def cancel_game(**arguments)
-    raise "The native LiveSessions store is unavailable" if !live_store?
-
-    @live_store.cancel_game(**arguments)
-  end
-
-  def game_cancelled?(session)
-    return false if !live_store?
-
-    @live_store.game_cancelled?(session)
   end
 
   def game_events(session)
