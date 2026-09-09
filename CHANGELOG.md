@@ -1,5 +1,18 @@
 # Historia zmian
 
+## 1.1.3 — build 192
+
+- aplikacja pomija operacje na trwałych tabelach, gdy ELTEN nie przyznał do
+  nich dostępu, dzięki czemu tryb deweloperski może nadal korzystać z
+  podstawowych funkcji Game Roomu;
+- ekran oczekującego stołu, aktywnej partii i zakończonej gry jest teraz jednym
+  trwałym formularzem, który zachowuje fokus, pozycje list oraz zawartość czatu;
+- lista użytkowników pokazuje role i — w obsługiwanych grach — bieżące wyniki;
+- zapraszanie oraz dodawanie i usuwanie komputerów jest dostępne z menu
+  kontekstowego listy użytkowników;
+- po rozpoczęciu gry fokus trafia na pole gry, a po jej zakończeniu na listę
+  użytkowników; zakończona plansza pozostaje dostępna do przeglądania.
+
 ## 1.1.3 — build 191
 
 - stoły są publicznymi sesjami LiveSessions i znikają z lobby wraz z
