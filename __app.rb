@@ -177,6 +177,7 @@ class EltenGameRoom < Program
 
   def program_main
     initialize_services
+    check_server_table_access
     current = run_network_task(_("Checking your current table")) do
       @transport.start
       register_game_room_user
@@ -196,6 +197,7 @@ class EltenGameRoom < Program
     return false if action.to_s.to_sym != :open_invitation
 
     initialize_services
+    check_server_table_access
     run_network_task(_("Connecting to Elten")) { @transport.start }
     invitation_id = notification.metadata.to_h["invitation_id"].to_i
     choices = load_pending_invitations
@@ -239,6 +241,40 @@ class EltenGameRoom < Program
     )
   end
 
+  def check_server_table_access
+    @announced_table_access_state = nil
+    # Reset before entering Tasks.run: cancelling before the worker starts must
+    # not retain access from an earlier invocation on this same instance.
+    @server_tables.reset_access!
+    run_network_task(_("Checking server table access"), silent: true) do
+      @server_tables.check_access(username: Session.name)
+    end
+  end
+
+  def announce_server_table_access
+    state = @server_tables&.access_state
+    return if ![:stamp_required, :unavailable].include?(state)
+    return if @announced_table_access_state == state
+
+    @announced_table_access_state = state
+    if state == :stamp_required
+      alert(_("Development mode without server table access. Global lobby history and sending invitations are unavailable."))
+    else
+      alert(_("Server table access could not be checked. Global lobby history and sending invitations are unavailable until you reopen Game Room."))
+    end
+  end
+
+  def invitation_sending_available?
+    return true if @server_tables.available?
+
+    if @server_tables.stamp_required?
+      alert(_("Sending invitations is unavailable in development mode without server table access."))
+    else
+      alert(_("Sending invitations is unavailable because server table access could not be confirmed."))
+    end
+    false
+  end
+
   def run_program_interface(initial_table = nil)
     @lobby_activity_entries = []
     reset_lobby_activity_cursor
@@ -264,7 +300,7 @@ class EltenGameRoom < Program
         history_items: history_items,
         index: selected_index,
         invitations: true,
-        refresh: ->(form, history) { poll_lobby_activity(form, history) }
+        refresh: (@server_tables.available? ? ->(form, history) { poll_lobby_activity(form, history) } : nil)
       ).wait
       selected_index = result.index
       case result.action
@@ -282,12 +318,14 @@ class EltenGameRoom < Program
       when :refresh
         next
       when :invite_online, :invite_contacts
-        alert(_("Create or join a table before inviting someone."))
+        alert(_("Create or join a table before inviting someone.")) if invitation_sending_available?
       end
     end
   end
 
   def load_lobby_history
+    return [] if !@server_tables.available?
+
     entries = run_network_task(_("Loading Game Room history"), ui: :none, silent: true) do
       @table_activity.global_entries
     end
@@ -327,7 +365,7 @@ class EltenGameRoom < Program
   end
 
   def poll_lobby_activity(form, history)
-    return false if @lobby_activity_polling == true
+    return false if !@server_tables.available? || @lobby_activity_polling == true
 
     now = monotonic_time
     if @last_lobby_activity_poll_at != nil && now - @last_lobby_activity_poll_at < LOBBY_ACTIVITY_POLL_INTERVAL
@@ -1016,6 +1054,8 @@ class EltenGameRoom < Program
   end
 
   def show_invite_users(row, source:)
+    return if !invitation_sending_available?
+
     payload = run_network_task(_("Loading users")) do
       snapshot = @lobby.snapshot_for(row)
       next nil if snapshot == nil
@@ -1419,19 +1459,27 @@ class EltenGameRoom < Program
   def run_network_task(title, ui: nil, silent: false, &operation)
     options = { title: title, cancellable: true, show_after: 5.0 }
     options[:ui] = ui if ui != nil
-    EltenAPI::Tasks.run(**options) do |progress, token|
+    result = EltenAPI::Tasks.run(**options) do |progress, token|
       token.raise_if_cancelled!
       operation.call
     end
+    announce_server_table_access
+    result
   rescue EltenAPI::Tasks::Cancelled
     nil
   rescue EltenLink::Error => error
     Log.warning("ELTEN Game Room network operation failed: #{error.class}: #{error.message}")
-    alert(_("The operation could not be completed. Please try again.")) if !silent
+    if @server_tables&.last_error.equal?(error)
+      announce_server_table_access
+    else
+      alert(_("The operation could not be completed. Please try again.")) if !silent
+    end
     nil
   end
 
   def register_game_room_user
+    return if !@server_tables.available?
+
     @game_room_users.register(
       username: Session.name,
       version: GAME_ROOM_VERSION,

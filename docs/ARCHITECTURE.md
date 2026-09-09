@@ -30,6 +30,23 @@ rejestr gier i główną klasę programu. Tabele służą wyłącznie rejestracj
 użytkowników Game Roomu i krótkim ogłoszeniom globalnego lobby; nie przechowują
 stołów, członkostwa, zaproszeń, partii ani ruchów.
 
+### Dostęp do tabel pomocniczych
+
+Każde wywołanie `program_main` oraz wejście przez powiadomienie ponownie
+sprawdza dostęp do `game_room_users` minimalnym odczytem dla bieżącego konta.
+`GameRoomServerTables` współdzieli wynik z istniejącymi uchwytami tabel.
+Detekcja korzysta z odpowiedzi serwera: kod
+`apps.tables.stamp_required` oznacza tryb deweloperski bez tabel.
+
+Po odmowie nie są wykonywane dalsze odczyty ani zapisy tabel pomocniczych.
+Nie uruchamia się odpytywanie globalnej historii lobby, a próba wysłania
+zaproszenia kończy się informacją o ograniczeniu. Discovery, rozgrywka,
+odbieranie zaproszeń oraz historia i czat pokoju nadal korzystają z LiveSessions.
+Timeout i inne błędy również wstrzymują operacje tabelowe do kolejnego wejścia,
+ale są przedstawiane jako problem sprawdzenia dostępu, nie tryb deweloperski.
+Ponowne uruchomienie maina może przywrócić funkcje tabelowe bez tworzenia
+nowej instancji aplikacji.
+
 ### Modele gier
 
 `GameRoomGames::Base` definiuje wspólną umowę: identyfikator, nazwę, zasady,
