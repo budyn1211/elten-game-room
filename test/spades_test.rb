@@ -42,8 +42,10 @@ def assert(condition, message)
   raise message if !condition
 end
 
-def spades_event(id, actor, action, value)
-  { "id" => id, "actor" => actor, "action" => action, "value" => value.to_s }
+def spades_event(id, actor, action, value, authority: nil)
+  event = { "id" => id, "actor" => actor, "action" => action, "value" => value.to_s }
+  event["__authority"] = authority.to_s if authority != nil
+  event
 end
 
 def spades_session(options = {})
@@ -197,6 +199,22 @@ hands = dealt.state[:hands]
 assert(dealt.state[:phase] == :bidding, "the first deal did not start bidding")
 assert(hands.values.all? { |hand| hand.length == 13 }, "four-player hands do not contain 13 cards")
 assert(hands.values.flatten.uniq.length == 52, "the deal contains missing or duplicate cards")
+
+migrated_context = context.dup
+migrated_context.random_source = GameRoomRandom::SequenceSource.new((1..16).to_a)
+migrated_context.table_owner = "Bob"
+migrated_empty = game.replay(session, [], repository)
+assert(game.automatic_action(migrated_empty, "Alice", context: migrated_context) == nil, "the former Spades master could still deal")
+migrated_action = game.automatic_action(migrated_empty, "Bob", context: migrated_context)
+status, migrated_plan = game.action_for(migrated_action, migrated_empty, "Bob", context: migrated_context)
+assert(status == :ok && migrated_plan.authority == :table_master, "the new Spades master could not prepare a deal")
+migrated_deal = migrated_plan.events.first
+migrated_replay = game.replay(
+  session,
+  [spades_event(100, "Bob", migrated_deal.action, migrated_deal.value, authority: :table_master)],
+  repository
+)
+assert(migrated_replay.state[:phase] == :bidding, "a Spades deal by the migrated table master was rejected")
 
 no_hell_session = spades_session("partnership" => false, "no_hell" => true)
 no_hell_events = [spades_event(1, "Alice", "deal", "1|0|000102030405060708090a0b0c0d0e0f")]

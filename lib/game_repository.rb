@@ -151,7 +151,7 @@ class GameRepository
     accepted_events.to_a.map { |event| event["sequence"].to_i + 1 }.max.to_i
   end
 
-  def append_events(session:, sequence:, events:, recipients: nil, actor: Session.name)
+  def append_events(session:, sequence:, events:, recipients: nil, actor: Session.name, authority: nil)
     raise ArgumentError, "The game no longer exists" if session_id(session) <= 0 || session["table_id"].to_i <= 0
     raise ArgumentError, "The game has been interrupted" if cancelled?(session)
 
@@ -159,7 +159,15 @@ class GameRepository
     raise ArgumentError, "The game participant list is incomplete" if players.empty?
     event_actor = actor.to_s
     raise ArgumentError, "A game event requires an actor" if event_actor.empty?
-    if GameRoomParticipants.bot?(event_actor)
+    event_authority = authority.to_s
+    raise ArgumentError, "Unknown game action authority" if !event_authority.empty? && event_authority != "table_master"
+    if event_authority == "table_master"
+      raise ArgumentError, "Table-master actions require LiveSessions" if !native_live_sessions?
+      owner = current_table_owner(session)
+      if owner.empty? || owner.casecmp(Session.name.to_s) != 0 || event_actor.casecmp(owner) != 0
+        raise ArgumentError, "Only the current table master may perform this action"
+      end
+    elsif GameRoomParticipants.bot?(event_actor)
       owner = current_table_owner(session)
       raise ArgumentError, "Only the table owner may move a computer" if owner.casecmp(Session.name.to_s) != 0
       raise ArgumentError, "The computer is not a player in this game" if !includes_user?(players, event_actor)
@@ -185,7 +193,8 @@ class GameRepository
         session: current,
         sequence: sequence,
         events: commands,
-        actor: event_actor
+        actor: event_actor,
+        authority: event_authority
       )
     end
 

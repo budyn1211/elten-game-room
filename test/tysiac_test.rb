@@ -41,8 +41,10 @@ def assert(condition, message)
   raise message if !condition
 end
 
-def event(id, actor, action, value = "")
-  { "id" => id, "actor" => actor, "action" => action, "value" => value.to_s }
+def event(id, actor, action, value = "", authority: nil)
+  result = { "id" => id, "actor" => actor, "action" => action, "value" => value.to_s }
+  result["__authority"] = authority.to_s if authority != nil
+  result
 end
 
 players = %w[Alice Bob Carol]
@@ -61,6 +63,26 @@ assert(replay.current_player == "Bob", "the player after the dealer did not open
 assert(replay.state[:hands].values.all? { |hand| hand.length == 7 }, "the deal did not give seven cards to every player")
 assert(replay.state[:talon].length == 3, "the talon does not contain three cards")
 assert(replay.state[:hands].values.flatten.uniq.length + replay.state[:talon].uniq.length == 24, "the deal duplicated cards")
+
+migrated_context = GameRoomGames::ActionContext.new(
+  session_id: 1,
+  table_id: 1,
+  random_source: GameRoomRandom::SequenceSource.new((1..16).to_a),
+  now: 1,
+  table_owner: "Bob"
+)
+migrated_empty = game.replay(session, [], repository)
+assert(game.automatic_action(migrated_empty, "Alice", context: migrated_context) == nil, "the former Tysiac master could still deal")
+migrated_action = game.automatic_action(migrated_empty, "Bob", context: migrated_context)
+status, migrated_plan = game.action_for(migrated_action, migrated_empty, "Bob", context: migrated_context)
+assert(status == :ok && migrated_plan.authority == :table_master, "the new Tysiac master could not prepare a deal")
+migrated_deal = migrated_plan.events.first
+migrated_replay = game.replay(
+  session,
+  [event(100, "Bob", migrated_deal.action, migrated_deal.value, authority: :table_master)],
+  repository
+)
+assert(migrated_replay.state[:phase] == :bidding, "a Tysiac deal by the migrated table master was rejected")
 
 bid_shortcut = game.game_shortcuts(replay, "Bob").find { |shortcut| shortcut.key == "b" }
 assert(bid_shortcut.kind == :announcement, "B should read auction information during bidding")

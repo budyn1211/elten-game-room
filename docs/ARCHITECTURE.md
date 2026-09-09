@@ -139,7 +139,17 @@ Rola mastera pokoju jest niezależna od roli gracza. Ręczne przekazanie albo
 do następcy, kopiuje do niej uporządkowany stan pokoju i partii, przełącza
 uczestników, a dopiero po ich potwierdzeniu zamyka starą sesję. Identyfikator
 logicznego stołu pozostaje ten sam. Nowy master przejmuje także wykonywanie
-ruchów botów.
+ruchów botów. W grach z automatycznym rozdaniem lub przejściem fazy akcje te
+mają osobne, sprawdzane przez LiveSessions uprawnienie mastera. Nie wynikają z
+pierwszego miejsca na liście graczy, nie zmieniają rozdającego ani miejsc i
+pozostają odtwarzalne po następnej migracji sesji.
+
+ELTEN 3.0.3 może po zdarzeniu `participant_left` nadal zwracać tę osobę w
+`session.participants`. Magazyn zapamiętuje więc lokalnie identyfikatory
+uczestników, którzy odeszli z konkretnej natywnej sesji, i pomija ich w
+widocznym składzie aż do odpowiadającego `participant_joined`. Stan jest
+lokalny i zdarzeniowy: nie tworzy tabeli, odpytywania ani dodatkowych żądań i
+jest usuwany razem z zamykaną lub zastępowaną sesją.
 
 Wyjście człowieka będącego nadal aktywnym zawodnikiem zapisuje przerwanie
 partii i przywraca fazę oczekiwania. Gra może przez `active_competitor?`

@@ -561,7 +561,7 @@ module GameRoomGames
     def automatic_action(replay, actor, context: nil)
       state = replay.state
       return nil if state == nil || state[:winner] != nil
-      return nil if !same_user?(actor, replay.players.first)
+      return nil if !table_master_action?(replay.players, actor, context)
       return nil if ![:awaiting_deal, :round_complete].include?(state[:phase])
 
       { "kind" => "command", "action" => "deal" }
@@ -595,7 +595,7 @@ module GameRoomGames
       return [:finished, nil] if replay.finished?
 
       if selection["kind"].to_s == "command" && selection["action"].to_s == "deal"
-        return [:not_your_turn, nil] if !same_user?(actor, replay.players.first)
+        return [:not_your_turn, nil] if !table_master_action?(replay.players, actor, context)
         return [:invalid, nil] if ![:awaiting_deal, :round_complete].include?(state[:phase])
         return [:invalid, nil] if context == nil || context.random_source == nil
 
@@ -606,7 +606,7 @@ module GameRoomGames
         else
           (state[:dealer_index].to_i + 1) % replay.players.length
         end
-        return [:ok, event_plan("deal", [round, dealer, seed].join("|"))]
+        return [:ok, event_plan("deal", [round, dealer, seed].join("|"), authority: :table_master)]
       end
 
       return [:not_your_turn, nil] if !same_user?(state[:current_player], actor)
@@ -2311,7 +2311,7 @@ module GameRoomGames
     end
 
     def apply_deal(state, event, actor, repository, history)
-      return false if !same_user?(actor, state[:players].first)
+      return false if !table_master_event?(event, state[:players], actor)
       return false if ![:awaiting_deal, :round_complete].include?(state[:phase])
 
       round, dealer, seed = parse_deal(event["value"])

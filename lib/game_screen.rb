@@ -256,7 +256,7 @@ class GameScreen
     bot_token = bot_lease == nil ? nil : EltenAPI::Tasks::CancellationToken.new
     history_items = combined_history_items(replay)
     user_items = room_user_items(replay)
-    view_spec = @game.game_view_spec(replay, Session.name)
+    view_spec = @game.game_view_spec(replay, Session.name, context: action_context)
     phase = replay.finished? ? :finished : :active
     phase_changed = @layout != nil && (@layout.phase != phase || @focus_new_game == true)
     if @layout == nil
@@ -1024,7 +1024,8 @@ class GameScreen
         sequence: @repository.next_sequence(@session, replay.accepted_events),
         events: plan.events,
         recipients: recipients,
-        actor: Session.name
+        actor: Session.name,
+        authority: plan.authority
       )
     end
     return false if inserted == nil
@@ -1052,7 +1053,8 @@ class GameScreen
         sequence: @repository.next_sequence(@session, replay.accepted_events),
         events: plan.events,
         recipients: game_recipients,
-        actor: Session.name
+        actor: Session.name,
+        authority: plan.authority
       )
     end
     return nil if inserted == nil
@@ -1325,7 +1327,8 @@ class GameScreen
           sequence: @repository.next_sequence(@session, replay.accepted_events),
           events: plan.events,
           recipients: game_recipients,
-          actor: decision.actor
+          actor: decision.actor,
+          authority: plan.authority
         )
       end
     rescue Exception
@@ -1389,7 +1392,8 @@ class GameScreen
         sequence: @repository.next_sequence(@session, replay.accepted_events),
         events: plan.events,
         recipients: game_recipients,
-        actor: Session.name
+        actor: Session.name,
+        authority: plan.authority
       )
     end
     return false if inserted == nil
@@ -1417,7 +1421,8 @@ class GameScreen
       table_id: table_id,
       hidden_submissions: @hidden_submissions,
       random_source: @random_source,
-      now: Time.now.to_i
+      now: Time.now.to_i,
+      table_owner: @table_owner
     )
   end
 

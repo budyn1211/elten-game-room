@@ -1,5 +1,16 @@
 # Historia zmian
 
+## 1.1.4 — build 199
+
+- po przekazaniu mastera nowy master wykonuje rozdania, rozpoczyna następne
+  rundy i obsługuje przejścia czasowe, bez zmiany miejsc graczy ani kolejności
+  rozdającego; dotyczy to Ninety-Nine, Spades, Tysiąca i Państw-Miast;
+- automatyczne czynności mastera są zapisywane z weryfikowanym uprawnieniem,
+  dlatego pozostają poprawnie odtwarzane także po kolejnych migracjach stołu;
+- uczestnik, który opuścił LiveSession, znika lokalnie z listy użytkowników
+  nawet wtedy, gdy ELTEN pozostawił go w wewnętrznej liście sesji; ponowne
+  dołączenie przywraca go bez dodatkowych zapytań ani odświeżania okresowego.
+
 ## 1.1.4 — build 198
 
 - master stołu może przekazać swoją rolę innemu człowiekowi wskazanemu na

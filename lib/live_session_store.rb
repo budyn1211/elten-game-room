@@ -37,6 +37,7 @@ class GameRoomLiveSessionStore
     @invitation_endpoint = nil
     @sessions = {}
     @native_session_ids = {}
+    @departed_participants = Hash.new { |hash, key| hash[key] = {} }
     @records = Hash.new { |hash, key| hash[key] = [] }
     @record_keys = Hash.new { |hash, key| hash[key] = {} }
     @stack_cursors = Hash.new(0)
@@ -288,7 +289,9 @@ class GameRoomLiveSessionStore
 
     session = @mutex.synchronize do
       @native_session_ids.delete_if { |_native_id, id| id == table_id }
-      @sessions.delete(table_id)
+      removed = @sessions.delete(table_id)
+      @departed_participants.delete(native_session_key(removed)) if removed != nil
+      removed
     end
     return false if session == nil
 
@@ -301,7 +304,14 @@ class GameRoomLiveSessionStore
     session = table_id == nil ? nil : active_session(table_id)
     return [] if session == nil
 
-    unique_users(session.participants.to_a.map { |participant| participant.user.to_s })
+    departed = departed_participants_for(session)
+    unique_users(
+      session.participants.to_a.filter_map do |participant|
+        next if departed.key?(participant_identifier(participant))
+
+        participant.user.to_s
+      end
+    )
   rescue StandardError
     []
   end
@@ -368,7 +378,7 @@ class GameRoomLiveSessionStore
     game_sessions(table).find { |row| row["__id"].to_i == wanted }
   end
 
-  def append_game_action(session:, sequence:, events:, actor:)
+  def append_game_action(session:, sequence:, events:, actor:, authority: nil)
     table_id = positive_identifier(session["table_id"])
     session_id = positive_identifier(session["__id"] || session["id"])
     raise ArgumentError, "Invalid game" if table_id == nil || session_id == nil
@@ -380,11 +390,13 @@ class GameRoomLiveSessionStore
         "move_id" => SecureRandom.uuid
       }
     end
-    record = append_record(table_id, "game_action", {
+    data = {
       "session_id" => session_id,
       "sequence" => sequence.to_i,
       "events" => commands
-    }, actor: actor)
+    }
+    data["authority"] = authority.to_s if !authority.to_s.empty?
+    record = append_record(table_id, "game_action", data, actor: actor)
     expand_game_action(record)
   end
 
@@ -627,10 +639,16 @@ class GameRoomLiveSessionStore
       end
     end
     if session.respond_to?(:on_participant_joined)
-      session.on_participant_joined { |_participant| emit_session_change(table_id, session, :table) }
+      session.on_participant_joined do |participant|
+        remember_participant_joined(session, participant)
+        emit_session_change(table_id, session, :table)
+      end
     end
     if session.respond_to?(:on_participant_left)
-      session.on_participant_left { |_participant, _reason = nil| emit_session_change(table_id, session, :table) }
+      session.on_participant_left do |participant, _reason = nil|
+        remember_participant_left(session, participant)
+        emit_session_change(table_id, session, :table)
+      end
     end
     if session.respond_to?(:on_closed)
       session.on_closed do |_reason|
@@ -638,6 +656,7 @@ class GameRoomLiveSessionStore
           current = @sessions[table_id].equal?(session)
           @sessions.delete(table_id) if @sessions[table_id].equal?(session)
           @native_session_ids.delete(session.id.to_s) if session.respond_to?(:id)
+          @departed_participants.delete(native_session_key(session))
           @superseded_sessions[table_id].delete(session)
           current
         end
@@ -656,6 +675,7 @@ class GameRoomLiveSessionStore
     @mutex.synchronize do
       @sessions.delete(table_id) if @sessions[table_id].equal?(session)
       @native_session_ids.delete(session.id.to_s) if session.respond_to?(:id)
+      @departed_participants.delete(native_session_key(session))
     end
   end
 
@@ -1060,7 +1080,10 @@ class GameRoomLiveSessionStore
   end
 
   def release_superseded_session(table_id, session)
-    @mutex.synchronize { @superseded_sessions[table_id].delete(session) }
+    @mutex.synchronize do
+      @superseded_sessions[table_id].delete(session)
+      @departed_participants.delete(native_session_key(session)) if session != nil
+    end
     return if session == nil || session.closed?
 
     session.owner? ? session.close : session.leave
@@ -1239,6 +1262,7 @@ class GameRoomLiveSessionStore
         "sequence" => data["sequence"].to_i + offset,
         "move_id" => command["move_id"].to_s,
         "actor" => actor,
+        "__authority" => data["authority"].to_s,
         "action" => command["action"].to_s,
         "value" => command["value"].to_s,
         "created_at" => record.created_at.to_i
@@ -1329,7 +1353,11 @@ class GameRoomLiveSessionStore
     return false if game == nil
 
     players = game.packet.dig("data", "players").to_a.map(&:to_s)
-    if GameRoomParticipants.bot?(actor)
+    authority = data["authority"].to_s
+    return false if !authority.empty? && authority != "table_master"
+    if authority == "table_master"
+      same_user?(sender, owner) && same_user?(actor, owner)
+    elsif GameRoomParticipants.bot?(actor)
       same_user?(sender, owner) && players.any? { |player| same_user?(player, actor) }
     else
       same_user?(sender, actor) && players.any? { |player| same_user?(player, actor) }
@@ -1392,6 +1420,7 @@ class GameRoomLiveSessionStore
       session = @sessions[table_id]
       if session != nil && session.respond_to?(:closed?) && session.closed?
         @sessions.delete(table_id)
+        @departed_participants.delete(native_session_key(session))
         session = nil
       end
       session
@@ -1411,6 +1440,40 @@ class GameRoomLiveSessionStore
 
   def participant_metadata(table_id)
     { "table_id" => table_id.to_i, "client" => "elten_game_room" }
+  end
+
+  def native_session_key(session)
+    return "" if session == nil
+
+    session.respond_to?(:id) ? session.id.to_s : session.object_id.to_s
+  end
+
+  def participant_identifier(participant)
+    return "" if participant == nil
+
+    id = participant.respond_to?(:id) ? participant.id.to_s : ""
+    return "id:#{id}" if !id.empty?
+
+    user = participant.respond_to?(:user) ? participant.user.to_s.downcase : ""
+    user.empty? ? "" : "user:#{user}"
+  end
+
+  def departed_participants_for(session)
+    @mutex.synchronize { @departed_participants[native_session_key(session)].dup }
+  end
+
+  def remember_participant_left(session, participant)
+    identifier = participant_identifier(participant)
+    return if identifier.empty?
+
+    @mutex.synchronize { @departed_participants[native_session_key(session)][identifier] = true }
+  end
+
+  def remember_participant_joined(session, participant)
+    identifier = participant_identifier(participant)
+    return if identifier.empty?
+
+    @mutex.synchronize { @departed_participants[native_session_key(session)].delete(identifier) }
   end
 
   def table_identifier(value)

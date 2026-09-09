@@ -44,8 +44,10 @@ def assert(condition, message)
   raise message if !condition
 end
 
-def ninety_event(id, actor, action, value = "")
-  { "id" => id, "actor" => actor, "action" => action, "value" => value.to_s }
+def ninety_event(id, actor, action, value = "", authority: nil)
+  event = { "id" => id, "actor" => actor, "action" => action, "value" => value.to_s }
+  event["__authority"] = authority.to_s if authority != nil
+  event
 end
 
 players = ["Alice", "Bob", "Carol"]
@@ -95,6 +97,26 @@ assert(played.current_player != "Bob", "automatic drawing did not pass the turn"
 assert(played.state[:hands]["Bob"].length == 3, "automatic drawing did not restore a three-card hand")
 assert(!played.history.any? { |entry| entry.kind == :draw }, "an automatic replacement draw was announced")
 assert(played.history.any? { |entry| entry.kind == :play && entry.text.include?("Pile:") }, "a play did not use the concise pile announcement")
+
+migrated_context = GameRoomGames::ActionContext.new(
+  session_id: 1,
+  table_id: 1,
+  random_source: GameRoomRandom::SequenceSource.new((1..16).to_a),
+  now: 1,
+  table_owner: "Bob"
+)
+migrated_empty = game.replay(session, [], repository)
+assert(game.automatic_action(migrated_empty, "Alice", context: migrated_context) == nil, "the former master could still deal")
+migrated_action = game.automatic_action(migrated_empty, "Bob", context: migrated_context)
+status, migrated_plan = game.action_for(migrated_action, migrated_empty, "Bob", context: migrated_context)
+assert(status == :ok && migrated_plan.authority == :table_master, "the new master could not prepare a deal")
+migrated_deal = migrated_plan.events.first
+migrated_replay = game.replay(
+  session,
+  [ninety_event(100, "Bob", migrated_deal.action, migrated_deal.value, authority: :table_master)],
+  repository
+)
+assert(migrated_replay.state[:phase] == :playing, "a deal by the migrated table master was rejected")
 
 terminal_state = game.send(:initial_state, players, game.default_options)
 terminal_state[:phase] = :playing

@@ -372,6 +372,19 @@ end
   $game_room_test_user = "Alice"
   alice_snapshot = lobbies.fetch("Alice").snapshot_for(table)
   assert(alice_snapshot.members.sort == %w[Alice Bob], "room membership did not synchronize")
+  stale_core = broker.cores.values.first
+  stale_alice_view = stale_core.views.find { |view| view.local_user == "Alice" }
+  stale_bob = stale_core.participants.fetch("bob")
+  stale_alice_view.participant_left(stale_bob)
+  assert(
+    lobbies.fetch("Alice").snapshot_for(table).members == ["Alice"],
+    "a participant left behind by ELTEN remained visible in the room"
+  )
+  stale_alice_view.participant_joined(stale_bob)
+  assert(
+    lobbies.fetch("Alice").snapshot_for(table).members.sort == %w[Alice Bob],
+    "a participant rejoining with the same identity remained filtered"
+  )
   bot_result = lobbies.fetch("Alice").add_bot(table, snapshot: alice_snapshot)
   assert(bot_result.updated? && bot_result.snapshot.participants.length == 3, "bot room state did not synchronize")
 
@@ -487,6 +500,31 @@ end
   $game_room_test_user = "Bob"
   bob_table = lobbies.fetch("Bob").current_table_for("Bob")
   bob_game = games.fetch("Bob").session_for_table(bob_table)
+  master_action = games.fetch("Bob").append_events(
+    session: bob_game,
+    sequence: games.fetch("Bob").next_sequence(bob_game, games.fetch("Bob").snapshot_for(bob_game).events),
+    events: [GameRoomGames::EventCommand.new(action: "master_transition", value: "")],
+    actor: "Bob",
+    authority: :table_master
+  )
+  assert(master_action.first["__authority"] == "table_master", "the migrated master action lost its authority marker")
+  $game_room_test_user = "Alice"
+  unauthorized = begin
+    alice_table = lobbies.fetch("Alice").current_table_for("Alice")
+    alice_game = games.fetch("Alice").session_for_table(alice_table)
+    games.fetch("Alice").append_events(
+      session: alice_game,
+      sequence: games.fetch("Alice").next_sequence(alice_game, games.fetch("Alice").snapshot_for(alice_game).events),
+      events: [GameRoomGames::EventCommand.new(action: "master_transition", value: "")],
+      actor: "Alice",
+      authority: :table_master
+    )
+    false
+  rescue ArgumentError
+    true
+  end
+  assert(unauthorized, "the former master could append a table-master action")
+  $game_room_test_user = "Bob"
   bot = games.fetch("Bob").players_for(bob_game).find { |player| GameRoomParticipants.bot?(player) }
   bot_events = games.fetch("Bob").snapshot_for(bob_game).events
   games.fetch("Bob").append_events(
