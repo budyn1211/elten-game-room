@@ -19,6 +19,10 @@ class LobbyRepository
     def participants
       GameRoomParticipants.unique(members.to_a + bots.to_a)
     end
+
+    def participant_count
+      [participants.length, table.to_h["player_count"].to_i].max
+    end
   end
 
   BotUpdateResult = Struct.new(:status, :snapshot, :activity, keyword_init: true) do
@@ -48,6 +52,8 @@ class LobbyRepository
   end
 
   def open_tables(game: nil)
+    return @transport.discover_rooms(game: game) if native_live_sessions?
+
     rows = tables_table.select(order: [["updated_at", "desc"]], limit: TABLE_LIMIT)
     rows = rows.to_a.select { |row| available?(row) }
     rows = rows.select { |row| row["game"].to_s == game.to_s } if game != nil
@@ -55,6 +61,13 @@ class LobbyRepository
   end
 
   def open_table_snapshots(game: nil)
+    if native_live_sessions?
+      return open_tables(game: game).map do |row|
+        snapshot = @transport.room_snapshot(row)
+        snapshot == nil ? TableSnapshot.new(table: row, members: [owner_of(row)], bots: bots_for(row)) : native_snapshot(snapshot)
+      end
+    end
+
     tables = open_tables(game: game)
     members = active_member_rows
     tables.map do |row|
@@ -67,6 +80,11 @@ class LobbyRepository
   end
 
   def snapshot_for(row)
+    if native_live_sessions?
+      snapshot = @transport.room_snapshot(row)
+      return snapshot == nil ? nil : native_snapshot(snapshot)
+    end
+
     tables = open_tables
     current = open_table(table_id(row), tables)
     return nil if current == nil
@@ -82,6 +100,21 @@ class LobbyRepository
   def create_table(name:, game:, owner:, game_options: "{}")
     clean_name = normalized_name(name)
     raise ArgumentError, "Invalid table name" if !valid_table_name?(clean_name)
+
+    if native_live_sessions?
+      existing = current_table_for(owner)
+      return CreateResult.new(table: existing, created: false) if existing != nil
+
+      table = @transport.create_room(
+        name: clean_name,
+        game: game,
+        owner: owner,
+        game_options: game_options,
+        capacity: DEFAULT_ROOM_CAPACITY
+      )
+      append_activity(table, "created", actor: owner, table_users: [owner])
+      return CreateResult.new(table: table, created: true)
+    end
 
     tables = open_tables
     members = active_member_rows
@@ -114,6 +147,28 @@ class LobbyRepository
   end
 
   def join_table(row, user, announce: true)
+    if native_live_sessions?
+      current = current_table_for(user)
+      if current != nil && table_id(current) != table_id(row)
+        snapshot = snapshot_for(current)
+        return JoinResult.new(table: current, status: :already_at_another_table, members: snapshot&.members.to_a)
+      end
+
+      newly_joined = @transport.respond_to?(:consume_new_join) && @transport.consume_new_join(table_id(row), user)
+      status = if newly_joined
+        :joined
+      elsif current != nil && table_id(current) == table_id(row)
+        :already_here
+      else
+        @transport.join_room(row, user)
+      end
+      snapshot = snapshot_for(row)
+      return JoinResult.new(table: row, status: :closed, members: []) if snapshot == nil
+
+      append_activity(snapshot.table, "joined", actor: user, table_users: snapshot.members) if status == :joined
+      return JoinResult.new(table: snapshot.table, status: status, members: snapshot.members)
+    end
+
     tables = open_tables
     members = active_member_rows
     target = open_table(table_id(row), tables)
@@ -163,6 +218,19 @@ class LobbyRepository
   end
 
   def leave_table(row, user)
+    if native_live_sessions?
+      snapshot = snapshot_for(row)
+      return :closed if snapshot == nil
+
+      if owner_of(snapshot.table).casecmp(user.to_s) == 0
+        @transport.deactivate_table(table_id: table_id(snapshot.table))
+        return :closed
+      end
+      append_activity(snapshot.table, "left", actor: user, table_users: snapshot.members)
+      @transport.deactivate_table(table_id: table_id(snapshot.table))
+      return :left
+    end
+
     tables = open_tables
     members = active_member_rows
     target = open_table(table_id(row), tables)
@@ -186,6 +254,8 @@ class LobbyRepository
   end
 
   def current_table_for(user, tables: nil, members: nil)
+    return @transport.current_room(user) if native_live_sessions?
+
     tables ||= open_tables
     members ||= active_member_rows
     owned = reconcile_owned_tables(user, tables, members)
@@ -213,12 +283,24 @@ class LobbyRepository
   end
 
   def single_open_table_for(owner)
+    if native_live_sessions?
+      return open_tables.find { |row| owner_of(row).casecmp(owner.to_s) == 0 }
+    end
+
     tables = open_tables
     members = active_member_rows
     reconcile_owned_tables(owner, tables, members)
   end
 
   def close_table(row)
+    if native_live_sessions?
+      current = snapshot_for(row)&.table
+      return false if current == nil
+      raise ArgumentError, "Only the table owner may close it" if owner_of(current).casecmp(Session.name.to_s) != 0
+
+      return @transport.deactivate_table(table_id: table_id(current))
+    end
+
     tables = open_tables
     members = active_member_rows
     current = open_table(table_id(row), tables)
@@ -282,6 +364,21 @@ class LobbyRepository
     id = table_id(row)
     raise ArgumentError, "Invalid table row" if id <= 0
 
+    if native_live_sessions?
+      current_snapshot = snapshot.is_a?(TableSnapshot) ? snapshot : snapshot_for(row)
+      return nil if current_snapshot == nil
+      current = current_snapshot.table
+      raise ArgumentError, "Only the table owner may update it" if owner_of(current).casecmp(Session.name.to_s) != 0
+
+      status = active ? "playing" : "waiting"
+      return current if current["status"].to_s == status
+
+      updated = @transport.update_room(current, { "status" => status }, actor: Session.name)
+      row.replace(updated) if row.is_a?(Hash)
+      current_snapshot.table.replace(updated)
+      return updated
+    end
+
     cached = snapshot.is_a?(TableSnapshot) && table_id(snapshot.table) == id
     current = cached ? snapshot.table.dup : open_table(id)
     return nil if current == nil
@@ -301,6 +398,18 @@ class LobbyRepository
   end
 
   private
+
+  def native_live_sessions?
+    @transport.respond_to?(:live_store?) && @transport.live_store?
+  end
+
+  def native_snapshot(value)
+    TableSnapshot.new(
+      table: value.fetch(:table),
+      members: value.fetch(:members).to_a,
+      bots: value.fetch(:bots).to_a
+    )
+  end
 
   def tables_table
     @tables_table ||= @server_tables.fetch("tables")
@@ -445,6 +554,28 @@ class LobbyRepository
     id = table_id(row)
     raise ArgumentError, "Invalid table row" if id <= 0
     raise ArgumentError, "Only the table owner may manage computers" if owner_of(row).casecmp(Session.name.to_s) != 0
+
+    if native_live_sessions?
+      current_snapshot = snapshot.is_a?(TableSnapshot) ? snapshot : snapshot_for(row)
+      return bot_update_result(:closed, snapshot) if current_snapshot == nil
+      current = current_snapshot.table
+      current_count = bot_count(current)
+      requested = current_count + difference.to_i
+      return bot_update_result(:none, current_snapshot) if requested < 0
+      return bot_update_result(:full, current_snapshot) if current_snapshot.members.length + requested > capacity_of(current)
+
+      updated = @transport.update_room(current, { "bot_count" => requested }, actor: Session.name)
+      row.replace(updated) if row.is_a?(Hash)
+      current_snapshot.table.replace(updated)
+      current_snapshot.bots = bots_for(updated)
+      activity = append_activity(
+        updated,
+        difference.to_i > 0 ? "bot_added" : "bot_removed",
+        actor: Session.name,
+        table_users: current_snapshot.members
+      )
+      return bot_update_result(:updated, current_snapshot, activity: activity)
+    end
 
     cached = snapshot.is_a?(TableSnapshot) && table_id(snapshot.table) == id
     if cached

@@ -20,9 +20,9 @@ ważna jak poprawność reguł gry.
   zdarzeniowy mechanizm aktualizacji.
 - Nie omijaj `GameRepository`, walidacji gry ani `GameRoomTransport` przy
   zapisywaniu ruchu.
-- Po ustanowieniu członkostwa stan stołu i partii jest synchronizowany przez
-  LiveSessions. Signal służy wyłącznie do rozpoczęcia ręcznego dołączania do
-  publicznego stołu.
+- Publiczne stoły wyszukuj przez discovery LiveSessions, a ich stan zapisuj w
+  stosie sesji. Nie dodawaj pomocniczych tabel ani Signals do dołączania,
+  synchronizacji pokoju lub ruchów.
 - Komunikaty powinny być krótkie, jednoznaczne i możliwe do przejrzenia w
   historii. Unikaj niepotrzebnego odbudowywania formularza i przesuwania fokusu.
 - Nie zmieniaj numeru wersji ani buildu w zwykłym pull requeście. Robi to autor

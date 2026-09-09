@@ -16,8 +16,9 @@ osobnego zgłoszenia i przeglądu.
 - Nie przenoś reguł gry do `GameScreen` ani szczegółów interfejsu do transportu.
 - Nie omijaj `action_for`, `GameRepository` i odtwarzania zdarzeń.
 - Bot wybiera akcję, ale wykonuje ją przez standardową ścieżkę gry.
-- Stan stołu i partii po dołączeniu synchronizuje LiveSessions. Signal jest
-  dozwolony tylko jako bootstrap ręcznego wejścia do publicznego stołu.
+- Stan stołu i partii synchronizuje stos LiveSessions. Publiczne stoły wyszukuj
+  przez discovery i dołączaj do nich bezpośrednio; nie przywracaj bootstrapu
+  ani synchronizacji przez Signals.
 - Unikaj okresowego odpytywania i pełnej odbudowy formularza. Aktualizacja nie
   może przesuwać fokusu ani powodować zbędnych komunikatów czy dźwięków.
 

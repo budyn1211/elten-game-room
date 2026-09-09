@@ -3,9 +3,9 @@
   "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
-  "version": "1.1.2",
-  "build_id": "190",
-  "EltenAPIVersion": "3.0.2",
+  "version": "1.1.3",
+  "build_id": "191",
+  "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
   "localized_descriptions": {
@@ -75,9 +75,9 @@ require_relative "games/categories"
 require_relative "games/registry"
 
 class EltenGameRoom < Program
-  GAME_ROOM_VERSION = "1.1.1".freeze
-  GAME_ROOM_BUILD_ID = 184
-  GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions"].freeze
+  GAME_ROOM_VERSION = "1.1.3".freeze
+  GAME_ROOM_BUILD_ID = 191
+  GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
 
   SERVER_TABLES = {
@@ -94,38 +94,6 @@ class EltenGameRoom < Program
       "indexes" => [["username"], ["registered_at"]],
       "limits" => { "max_select_limit" => 1_000 }
     },
-    "tables" => {
-      "visibility" => "public",
-      "columns" => {
-        "name" => "string:64",
-        "game" => "string:32",
-        "owner" => "string:64",
-        "status" => "string:16",
-        "max_players" => "integer",
-        "bot_count" => "integer",
-        "game_options" => "string:256",
-        "player_count" => "integer",
-        "created_at" => "integer",
-        "updated_at" => "integer"
-      },
-      "permissions" => ["select", "insert", "update"],
-      "indexes" => [["updated_at"], ["status", "updated_at"]],
-      "limits" => { "max_select_limit" => 100 }
-    },
-    "table_members" => {
-      "visibility" => "public",
-      "columns" => {
-        "table_id" => "integer",
-        "username" => "string:64",
-        "role" => "string:16",
-        "status" => "string:16",
-        "joined_at" => "integer",
-        "updated_at" => "integer"
-      },
-      "permissions" => ["select", "insert", "update"],
-      "indexes" => [["table_id", "status"], ["username", "status"], ["updated_at"]],
-      "limits" => { "max_select_limit" => 500 }
-    },
     "table_activity" => {
       "visibility" => "public",
       "columns" => {
@@ -140,67 +108,6 @@ class EltenGameRoom < Program
       "permissions" => ["select", "insert"],
       "indexes" => [["table_id", "created_at"], ["created_at"]],
       "limits" => { "max_select_limit" => 2_000 }
-    },
-    "game_sessions" => {
-      "visibility" => "public",
-      "columns" => {
-        "table_id" => "integer",
-        "game" => "string:32",
-        "player_one" => "string:64",
-        "player_two" => "string:64",
-        "players_json" => "string:1024",
-        "status" => "string:16",
-        "options" => "string:256",
-        "created_at" => "integer",
-        "updated_at" => "integer"
-      },
-      "permissions" => ["select", "insert"],
-      "indexes" => [["table_id", "created_at"], ["status", "updated_at"]],
-      "limits" => { "max_select_limit" => 500 }
-    },
-    "game_events" => {
-      "visibility" => "public",
-      "columns" => {
-        "session_id" => "integer",
-        "table_id" => "integer",
-        "sequence" => "integer",
-        "move_id" => "string:64",
-        "actor" => "string:64",
-        "action" => "string:32",
-        "value" => "string:64",
-        "created_at" => "integer"
-      },
-      "permissions" => ["select", "insert"],
-      "indexes" => [["session_id", "sequence"], ["table_id", "created_at"]],
-      "limits" => { "max_select_limit" => 2_000 }
-    },
-    "invitations" => {
-      "visibility" => "public",
-      "columns" => {
-        "table_id" => "integer",
-        "sender" => "string:64",
-        "recipient" => "string:64",
-        "status" => "string:16",
-        "created_at" => "integer",
-        "expires_at" => "integer",
-        "updated_at" => "integer"
-      },
-      "permissions" => ["select", "insert", "update"],
-      "indexes" => [["recipient", "status", "expires_at"], ["table_id", "status"], ["updated_at"]],
-      "limits" => { "max_select_limit" => 500 }
-    },
-    "invitation_responses" => {
-      "visibility" => "public",
-      "columns" => {
-        "invitation_id" => "integer",
-        "table_id" => "integer",
-        "recipient" => "string:64",
-        "response" => "string:16",
-        "created_at" => "integer"
-      },
-      "permissions" => ["select", "insert"],
-      "indexes" => [["recipient", "invitation_id"], ["table_id", "created_at"]],
-      "limits" => { "max_select_limit" => 1_000 }
     }
   }.freeze
 
@@ -317,7 +224,7 @@ class EltenGameRoom < Program
     @transport ||= GameRoomTransport.new(self)
     @server_tables ||= GameRoomServerTables.new(self)
     @game_room_users ||= GameRoomUserRegistry.new(server_tables: @server_tables)
-    @table_activity ||= TableActivityRepository.new(server_tables: @server_tables)
+    @table_activity ||= TableActivityRepository.new(server_tables: @server_tables, transport: @transport)
     @lobby ||= LobbyRepository.new(
       self,
       transport: @transport,
@@ -325,7 +232,7 @@ class EltenGameRoom < Program
       activity_repository: @table_activity
     )
     @games ||= GameRepository.new(self, transport: @transport, server_tables: @server_tables)
-    @invitations ||= InvitationRepository.new(server_tables: @server_tables)
+    @invitations ||= InvitationRepository.new(transport: @transport)
     @invitation_notifications ||= InvitationNotifications.new(
       client: EltenLink::Client.new,
       app_uuid: self.class.server_app_uuid
@@ -1246,7 +1153,7 @@ class EltenGameRoom < Program
       )
       pending.filter_map do |invitation|
         snapshot = by_id[invitation.table_id]
-        if snapshot == nil || snapshot.participants.length >= @lobby.capacity_of(snapshot.table)
+        if snapshot == nil || snapshot.participant_count >= @lobby.capacity_of(snapshot.table)
           @invitations.respond(invitation, recipient: Session.name, response: "expired")
           next nil
         end
@@ -1288,7 +1195,7 @@ class EltenGameRoom < Program
       game: game_name(snapshot.table["game"]),
       table: snapshot.table["name"].to_s,
       sender: invitation.sender,
-      count: snapshot.participants.length,
+      count: snapshot.participant_count,
       maximum: @lobby.capacity_of(snapshot.table)
     }
   end
@@ -1308,7 +1215,7 @@ class EltenGameRoom < Program
     return nil if payload == nil
 
     current_invitation, snapshot, current = payload
-    if current_invitation == nil || snapshot == nil || snapshot.participants.length >= @lobby.capacity_of(snapshot.table)
+    if current_invitation == nil || snapshot == nil || snapshot.participant_count >= @lobby.capacity_of(snapshot.table)
       revoke_invitation_notification(invitation.id, notification_id: notification_id)
       alert(_("This invitation is no longer available."))
       return nil
@@ -1557,6 +1464,7 @@ class EltenGameRoom < Program
       user: Session.name,
       invitation_id: invitation_id,
       bootstrap: bootstrap,
+      table: row,
       timeout: 10.0
     )
   end
@@ -1593,7 +1501,7 @@ class EltenGameRoom < Program
       name: row["name"].to_s,
       owner: @lobby.owner_of(row),
       users: snapshot.participants.map { |participant| GameRoomParticipants.display_name(participant) }.join(", "),
-      count: snapshot.participants.length,
+      count: snapshot.participant_count,
       maximum: @lobby.capacity_of(row)
     }
     summary = game_options_summary(row)
@@ -1607,7 +1515,7 @@ class EltenGameRoom < Program
       name: row["name"].to_s,
       game: game_name(row["game"]),
       owner: @lobby.owner_of(row),
-      count: snapshot.participants.length,
+      count: snapshot.participant_count,
       maximum: @lobby.capacity_of(row)
     }
     summary = game_options_summary(row)

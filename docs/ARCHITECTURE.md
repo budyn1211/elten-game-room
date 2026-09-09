@@ -2,8 +2,10 @@
 
 ## Przepływ danych
 
-ELTEN uruchamia `EltenGameRoom` z pliku `__app.rb`. Program tworzy dostęp do
-tabel serwerowych, repozytoria stołów i partii oraz transport LiveSessions.
+ELTEN uruchamia `EltenGameRoom` z pliku `__app.rb`. Program tworzy repozytoria
+stołów i partii nad jednym magazynem LiveSessions. Każdy widoczny stół jest
+publiczną sesją, a jej stos jest autorytatywną, uporządkowaną historią pokoju,
+czatu, rozpoczętych partii i ruchów.
 Stan partii nie jest przechowywany jako jeden mutowany obiekt. Serwer zawiera
 uporządkowane zdarzenia, a klasa danej gry odtwarza z nich `Replay`.
 
@@ -11,8 +13,8 @@ Typowy ruch przechodzi następującą drogę:
 
 1. wspólna powierzchnia gry tworzy opis akcji;
 2. gra waliduje akcję w `action_for` i zwraca `ActionPlan`;
-3. `GameRepository` dopisuje zdarzenia;
-4. transport powiadamia pozostałych uczestników przez LiveSessions;
+3. `GameRepository` dopisuje cały plan ruchu jako jeden atomowy wpis stosu;
+4. LiveSessions dostarcza ten sam wpis pozostałym uczestnikom;
 5. każdy klient odtwarza stan i aktualizuje formularz dopiero po rzeczywistej
    zmianie.
 
@@ -23,9 +25,10 @@ interpretuje ruchów.
 
 ### Manifest i składanie programu
 
-`__app.rb` zawiera metadane ELTEN-a, deklarację ośmiu tabel serwerowych, rejestr
-gier i główną klasę programu. To miejsce składa zależności, ale reguły gier
-powinny pozostać w `games/`.
+`__app.rb` zawiera metadane ELTEN-a, deklarację dwóch trwałych tabel pomocniczych,
+rejestr gier i główną klasę programu. Tabele służą wyłącznie rejestracji
+użytkowników Game Roomu i krótkim ogłoszeniom globalnego lobby; nie przechowują
+stołów, członkostwa, zaproszeń, partii ani ruchów.
 
 ### Modele gier
 
@@ -54,15 +57,21 @@ formularza, przechwytywać systemowych klawiszy ani ręcznie sterować pętlą U
 repozytoria lobby i aktywności obsługują tworzenie stołu, dołączanie, boty,
 rozpoczęcie, zakończenie i następną partię.
 
-Skład rozpoczętej partii jest utrwalany w `game_sessions.players_json`, dzięki
-czemu miejsca graczy są stabilne przez całą partię.
+Skład rozpoczętej partii jest utrwalany w zdarzeniu `game_started` na stosie
+sesji, dzięki czemu miejsca graczy są stabilne przez całą partię.
 
 ### Transport
 
-`GameRoomTransport` używa natywnego API LiveSessions. Signal pozostał jedynie
-jako bootstrap ręcznego dołączania do publicznego stołu: właściciel otrzymuje
-prośbę i wysyła natywne zaproszenie do LiveSession. Zmiany stołu, start partii i
-ruchy nie powinny wracać do transportu opartego na Signals.
+`GameRoomLiveSessionStore` używa natywnego API ELTEN-a 3.0.3. Publiczne
+wyszukiwanie sesji zastępuje tabelę stołów, bezpośrednie dołączenie do odkrytej
+sesji zastępuje bootstrap przez Signals, a natywne zaproszenia zastępują własne
+tabele zaproszeń. Zmiany pokoju, czat, start partii i ruchy trafiają do jednego
+stosu i mają wspólną kolejność. Zamknięcie sesji usuwa stół z listy bez osobnego
+sprzątania rekordu.
+
+Widoczna historia nadal jest dzielona na `Wszystko`, `Gra`, `Czat` i
+`Zdarzenia pokoju`. Podział jest wyłącznie filtrem prezentacji nad jednym
+chronologicznym strumieniem i nie rozdziela ponownie danych na osobne magazyny.
 
 `GameRoomSync::Controller` zbiera powiadomienia i uruchamia kontrolowane
 odzyskanie stanu po błędzie lub luce. Nie należy zastępować tego częstym,
@@ -84,7 +93,7 @@ są dostarczane w `locale/PL.mo`.
 
 ## Niezmienniki, których trzeba pilnować
 
-- serwerowe zdarzenia są źródłem prawdy;
+- stos LiveSessions jest źródłem prawdy dla pokoju i partii;
 - każdy ruch jest ponownie walidowany przy odtwarzaniu;
 - klient nie zapisuje uczestnika przed potwierdzeniem LiveSessions;
 - formularz odświeża się tylko po rzeczywistej zmianie stanu;

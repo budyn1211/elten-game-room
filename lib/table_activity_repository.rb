@@ -21,8 +21,9 @@ class TableActivityRepository
   GLOBAL_LIMIT = 200
   MESSAGE_MAX_LENGTH = 400
 
-  def initialize(server_tables:)
+  def initialize(server_tables:, transport: nil)
     @server_tables = server_tables
+    @transport = transport
   end
 
   def append(table:, kind:, message: nil, actor: Session.name)
@@ -41,6 +42,17 @@ class TableActivityRepository
     clean_message = normalized_kind == "chat" ? normalize_message(message) : ""
     raise ArgumentError, "A chat message cannot be empty" if normalized_kind == "chat" && clean_message.empty?
 
+    if native_live_sessions?
+      inserted = @transport.append_activity(
+        table: table,
+        kind: normalized_kind,
+        actor: author,
+        message: clean_message
+      )
+      persist_global_activity(table, normalized_kind, author) if GLOBAL_KINDS.include?(normalized_kind)
+      return entry_from(inserted, table)
+    end
+
     inserted = activity_table.insert(
       "table_id" => table_id,
       "kind" => normalized_kind,
@@ -55,7 +67,7 @@ class TableActivityRepository
 
   def append_safely(**arguments)
     append(**arguments)
-  rescue EltenLink::Error, ArgumentError => error
+  rescue StandardError => error
     Log.warning("ELTEN Game Room could not save table activity: #{error.class}: #{error.message}") if defined?(Log)
     nil
   end
@@ -63,6 +75,14 @@ class TableActivityRepository
   def entries_for(table, limit: TABLE_LIMIT, viewer: nil)
     table_id = row_id(table)
     return [] if table_id <= 0
+
+    if native_live_sessions?
+      entries = @transport.activity_records(table)
+        .filter_map { |row| entry_from(row, table) }
+        .sort_by { |entry| [entry.created_at, entry.id] }
+        .last([[limit.to_i, 1].max, TABLE_LIMIT].min)
+      return entries_for_current_visit(entries, table, viewer)
+    end
 
     entries = activity_table
       .select(
@@ -74,7 +94,7 @@ class TableActivityRepository
       .filter_map { |row| entry_from(row, table) }
       .sort_by { |entry| [entry.created_at, entry.id] }
     entries_for_current_visit(entries, table, viewer)
-  rescue EltenLink::Error => error
+  rescue StandardError => error
     Log.warning("ELTEN Game Room could not load table activity: #{error.class}: #{error.message}") if defined?(Log)
     []
   end
@@ -168,18 +188,37 @@ class TableActivityRepository
     end
     records = game_entries.to_a.each_with_index.map do |entry, index|
       item = GameRoomHistory::Entry.new(text: entry.text.to_s, category: :game)
-      [event_times.fetch(entry.event_id.to_i, 0), 0, entry.event_id.to_i, index, item]
+      [event_times.fetch(entry.event_id.to_i, 0), entry.event_id.to_i, 0, index, item]
     end
     activity_entries.to_a.each_with_index do |entry, index|
       text = text_for(entry, game_name: game_name, global: false)
       category = entry.kind == "chat" ? :chat : :room
       item = GameRoomHistory::Entry.new(text: text.to_s, category: category)
-      records << [entry.created_at.to_i, 1, entry.id.to_i, index, item] if !text.to_s.empty?
+      records << [entry.created_at.to_i, entry.id.to_i, 1, index, item] if !text.to_s.empty?
     end
     records.sort_by { |record| record[0, 4] }.map(&:last)
   end
 
   private
+
+  def native_live_sessions?
+    @transport.respond_to?(:live_store?) && @transport.live_store?
+  end
+
+  def persist_global_activity(table, kind, actor)
+    activity_table.insert(
+      "table_id" => row_id(table),
+      "kind" => kind.to_s,
+      "actor" => actor.to_s,
+      "table_owner" => table_owner(table),
+      "game" => table["game"].to_s,
+      "message" => "",
+      "created_at" => Time.now.to_i
+    )
+  rescue StandardError => error
+    Log.warning("ELTEN Game Room could not save lobby activity: #{error.class}: #{error.message}") if defined?(Log)
+    nil
+  end
 
   def entries_for_current_visit(entries, table, viewer)
     username = viewer.to_s.strip

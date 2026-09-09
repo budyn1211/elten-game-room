@@ -39,6 +39,12 @@ class GameRepository
     table_id = row_id(table)
     return nil if table_id <= 0
 
+    if native_live_sessions?
+      return @transport.game_sessions(table)
+        .sort_by { |row| -row["__stack_sequence"].to_i }
+        .find { |row| valid_session_for_table?(row, table, players: players_for(row)) }
+    end
+
     session_rows(table_id: table_id)
       .sort_by { |row| -session_id(row) }
       .each do |row|
@@ -52,12 +58,25 @@ class GameRepository
     table_id = row_id(table)
     return 0 if table_id <= 0
 
+    if native_live_sessions?
+      latest = @transport.game_sessions(table).max_by { |row| row["__stack_sequence"].to_i }
+      return session_id(latest)
+    end
+
     session_rows(table_id: table_id).map { |row| session_id(row) }.max.to_i
   end
 
   def session_by_id(id, table: nil)
     target_id = id.to_i
     return nil if target_id <= 0
+
+    if native_live_sessions?
+      row = @transport.game_session(target_id, table: table)
+      return nil if row == nil
+      return row if table == nil
+
+      return valid_session_for_table?(row, table, players: players_for(row)) ? row : nil
+    end
 
     table_id = table == nil ? nil : row_id(table)
     row = session_rows(table_id: table_id).find { |candidate| session_id(candidate) == target_id }
@@ -95,6 +114,8 @@ class GameRepository
   end
 
   def event_revision(session, known_revision: nil)
+    return events_revision(events_for(session, force: true)) if native_live_sessions?
+
     return events_revision(events_for(session)) if known_revision == nil
 
     known_count = [known_revision.to_a[0].to_i, 0].max
@@ -115,6 +136,8 @@ class GameRepository
   # Locally appended events are present in the optimistic cache immediately,
   # but only this prefix has been observed again in an ordered server read.
   def confirmed_event_ids(session)
+    return events_for(session, force: true).map { |event| event_id(event) }.select(&:positive?) if native_live_sessions?
+
     entry = event_cache_entry(session_id(session))
     return [] if entry == nil
 
@@ -147,6 +170,22 @@ class GameRepository
     commands = events.to_a
     if commands.empty? || commands.length > MAX_EVENTS_PER_ACTION
       raise ArgumentError, "The game action contains an invalid number of events"
+    end
+
+    if native_live_sessions?
+      commands.each do |command|
+        action = command_value(command, "action").to_s
+        value = command_value(command, "value").to_s
+        raise ArgumentError, "A game event requires an action" if action.empty?
+        raise ArgumentError, "The game event action is too long" if action.length > MAX_ACTION_LENGTH
+        raise ArgumentError, "The game event value is too long" if value.length > MAX_VALUE_LENGTH
+      end
+      return @transport.append_game_action(
+        session: current,
+        sequence: sequence,
+        events: commands,
+        actor: event_actor
+      )
     end
 
     timestamp = Time.now.to_i
@@ -209,6 +248,10 @@ class GameRepository
 
   private
 
+  def native_live_sessions?
+    @transport.respond_to?(:live_store?) && @transport.live_store?
+  end
+
   def start_session_once(table:, game:, players:, options:, recipients:, expected_previous_session_id:)
     current = session_for_table(table)
     if expected_previous_session_id != nil && session_id(current) != expected_previous_session_id.to_i
@@ -223,6 +266,17 @@ class GameRepository
     raise ArgumentError, "A game supports at most #{MAX_PLAYERS} players" if participants.length > MAX_PLAYERS
     raise ArgumentError, "A game participant name is too long" if participants.any? { |participant| participant.length > MAX_PLAYER_LENGTH }
     raise ArgumentError, "The table owner must be the first player" if participants.first.casecmp(owner) != 0
+
+    if native_live_sessions?
+      inserted = @transport.start_game(
+        table: table,
+        game: game,
+        players: participants,
+        options: options,
+        actor: Session.name
+      )
+      return inserted
+    end
 
     timestamp = Time.now.to_i
     inserted = sessions_table.insert(
@@ -265,6 +319,8 @@ class GameRepository
   end
 
   def session_rows(table_id: nil)
+    return @transport.game_sessions(table_id) if native_live_sessions?
+
     where = table_id == nil ? nil : { "table_id" => table_id.to_i }
     sessions_table
       .select(where: where, order: [["created_at", "desc"]], limit: SESSION_LIMIT)
@@ -272,6 +328,8 @@ class GameRepository
   end
 
   def events_for(session, force: false)
+    return @transport.game_events(session) if native_live_sessions?
+
     id = session_id(session)
     return [] if id <= 0
 

@@ -1,4 +1,5 @@
 require_relative "game_participants"
+require_relative "live_session_store"
 require "json"
 require "securerandom"
 
@@ -657,30 +658,144 @@ class GameRoomTransport
 
   def initialize(program, backend: nil)
     @program = program
-    @backend = backend || default_backend(program)
+    @live_store = backend == nil ? GameRoomLiveSessionStore.new(program, changed: method(:live_store_changed)) : nil
+    @backend = backend
     @pending_table_changes = {}
     @pending_game_changes = {}
     @pending_game_starts = {}
     @pending_recoveries = {}
+    @newly_joined = {}
     @seen_packets = {}
     @mutex = Mutex.new
   end
 
   def start
+    return @live_store.start if live_store?
     return true if !@backend.respond_to?(:start)
 
     @backend.start
   end
 
+  def live_store?
+    @live_store != nil
+  end
+
+  def create_room(**arguments)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+
+    @live_store.create_room(**arguments)
+  end
+
+  def discover_rooms(game: nil)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+
+    @live_store.discover_rooms(game: game)
+  end
+
+  def current_room(user)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+
+    @live_store.current_room(user)
+  end
+
+  def room_snapshot(table_or_id)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+
+    @live_store.room_snapshot(table_or_id)
+  end
+
+  def join_room(table, user)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+
+    @live_store.join_room(table, user)
+  end
+
+  def update_room(table_or_id, changes, actor:)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+
+    @live_store.update_room(table_or_id, changes, actor: actor)
+  end
+
+  def append_activity(**arguments)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+
+    @live_store.append_activity(**arguments)
+  end
+
+  def activity_records(table_or_id)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+
+    @live_store.activity_records(table_or_id)
+  end
+
+  def start_game(**arguments)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+
+    @live_store.start_game(**arguments)
+  end
+
+  def game_sessions(table_or_id = nil)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+
+    @live_store.game_sessions(table_or_id)
+  end
+
+  def game_session(session_id, table: nil)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+
+    @live_store.game_session(session_id, table: table)
+  end
+
+  def append_game_action(**arguments)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+
+    @live_store.append_game_action(**arguments)
+  end
+
+  def game_events(session)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+
+    @live_store.game_events(session)
+  end
+
+  def pending_invitations
+    return [] if !live_store?
+
+    @live_store.pending_invitations
+  end
+
   def activate_table(table_id:, owner:, capacity:, user: nil)
+    if live_store?
+      room = @live_store.current_room(user || owner)
+      return room != nil && room["__id"].to_i == table_id.to_i
+    end
     return false if !@backend.respond_to?(:activate_table)
 
     @backend.activate_table(table_id: table_id, owner: owner, capacity: capacity)
   end
 
-  def establish_membership(table_id:, owner:, capacity:, user:, invitation_id: nil, bootstrap: false, timeout: 10.0)
+  def establish_membership(table_id:, owner:, capacity:, user:, invitation_id: nil, bootstrap: false, timeout: 10.0, table: nil)
     current_user = user.to_s
     return false if current_user.empty?
+
+    if live_store?
+      current = @live_store.current_room(current_user)
+      return true if current != nil && current["__id"].to_i == table_id.to_i
+
+      if invitation_id != nil
+        accepted = @live_store.accept_invitation(
+          table_id: table_id,
+          invitation_id: invitation_id,
+          participant_metadata: { "table_id" => table_id.to_i }
+        )
+        @mutex.synchronize { @newly_joined[[table_id.to_i, current_user.downcase]] = true } if accepted
+        return accepted
+      end
+      candidate = table || { "__id" => table_id, "owner" => owner, "max_players" => capacity }
+      status = @live_store.join_room(candidate, current_user)
+      @mutex.synchronize { @newly_joined[[table_id.to_i, current_user.downcase]] = true } if status == :joined
+      return [:joined, :already_here].include?(status)
+    end
 
     activate_table(table_id: table_id, owner: owner, capacity: capacity, user: current_user)
     request_started = if current_user.casecmp(owner.to_s) == 0
@@ -707,6 +822,7 @@ class GameRoomTransport
   end
 
   def request_membership(table_id:, owner:, user:)
+    return false if live_store?
     return false if !@backend.respond_to?(:request_membership)
 
     current_user = user.to_s
@@ -724,30 +840,47 @@ class GameRoomTransport
   end
 
   def wait_for_membership(table_id:, timeout: 10.0)
+    return @live_store.wait_for_room(table_id, timeout: timeout) if live_store?
     return false if !@backend.respond_to?(:wait_for_membership)
 
     @backend.wait_for_membership(table_id: table_id, timeout: timeout)
   end
 
   def deactivate_table(table_id:)
+    return @live_store.deactivate_room(table_id) if live_store?
     return false if !@backend.respond_to?(:deactivate_table)
 
     @backend.deactivate_table(table_id: table_id)
   end
 
   def connected_users(table_id)
+    return @live_store.connected_users(table_id) if live_store?
     return nil if !@backend.respond_to?(:connected_users)
 
     @backend.connected_users(table_id)
   end
 
+  def consume_new_join(table_id, user)
+    return false if !live_store?
+
+    @mutex.synchronize { @newly_joined.delete([table_id.to_i, user.to_s.downcase]) == true }
+  end
+
   def invite_user(table_id:, user:, metadata:)
+    return @live_store.invite_user(table_id: table_id, user: user, metadata: metadata) if live_store?
     return false if !@backend.respond_to?(:invite_user)
 
     @backend.invite_user(table_id: table_id, user: user, metadata: metadata)
   end
 
   def accept_invitation(table_id:, invitation_id:, participant_metadata: {})
+    if live_store?
+      return @live_store.accept_invitation(
+        table_id: table_id,
+        invitation_id: invitation_id,
+        participant_metadata: participant_metadata
+      )
+    end
     return false if !@backend.respond_to?(:accept_invitation)
 
     @backend.accept_invitation(
@@ -758,6 +891,7 @@ class GameRoomTransport
   end
 
   def reject_invitation(table_id:, invitation_id:)
+    return @live_store.reject_invitation(table_id: table_id, invitation_id: invitation_id) if live_store?
     return false if !@backend.respond_to?(:reject_invitation)
 
     @backend.reject_invitation(table_id: table_id, invitation_id: invitation_id)
@@ -795,6 +929,7 @@ class GameRoomTransport
   end
 
   def table_changed(table_id:, users:, actor:)
+    return DeliveryResult.new(status: :sent) if live_store?
     id = table_id.to_i
     return if id <= 0
 
@@ -809,6 +944,7 @@ class GameRoomTransport
   end
 
   def table_joined(table_id:, users:, actor:)
+    return DeliveryResult.new(status: :sent) if live_store?
     id = table_id.to_i
     return if id <= 0
 
@@ -825,6 +961,7 @@ class GameRoomTransport
   end
 
   def game_changed(table_id:, session_id:, users:, change:, actor:)
+    return DeliveryResult.new(status: :sent) if live_store?
     table = table_id.to_i
     session = session_id.to_i
     return if table <= 0 || session <= 0
@@ -863,6 +1000,23 @@ class GameRoomTransport
   end
 
   private
+
+  def live_store_changed(table_id, kind, value)
+    @mutex.synchronize do
+      case kind.to_sym
+      when :game_started
+        @pending_game_starts[table_id.to_i] = value.to_i if value.to_i.positive?
+        @pending_table_changes[table_id.to_i] = true
+      when :game
+        @pending_game_changes[value.to_i] ||= monotonic_time if value.to_i.positive?
+      when :recovery, :closed
+        @pending_recoveries[table_id.to_i] = true
+        @pending_table_changes[table_id.to_i] = true
+      when :table
+        @pending_table_changes[table_id.to_i] = true
+      end
+    end
+  end
 
   def default_backend(program)
     if program == nil || !LiveSessionBackend.supported?

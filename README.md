@@ -29,7 +29,7 @@ osobny interfejs i własną pętlę zdarzeń.
 
 ## Wymagania
 
-- ELTEN z API 3.0.2 lub nowszym;
+- ELTEN 3.0.3 lub nowszy;
 - Ruby 4.0 do uruchamiania lokalnych testów;
 - repozytorium ELTEN-a i jego środowisko budowania tylko wtedy, gdy chcesz
   utworzyć paczkę `.eltsetup`.
@@ -56,11 +56,12 @@ ruby test/ninety_nine_test.rb
 
 Najważniejsze punkty wejścia:
 
-- `__app.rb` — manifest, tabele serwerowe, rejestr gier i główna klasa programu;
+- `__app.rb` — manifest, trwały rejestr użytkowników, rejestr gier i główna klasa programu;
 - `games/` — reguły i modele poszczególnych gier;
 - `lib/game_surfaces/` — wspólne kontrolki dostępnego pola gry;
 - `lib/game_screen.rb` — wspólny ekran partii;
-- `lib/game_room_transport.rb` — komunikacja LiveSessions;
+- `lib/live_session_store.rb` — odkrywanie sesji oraz wspólny stos stanu pokoju i partii;
+- `lib/game_room_transport.rb` — zdarzeniowa fasada komunikacji LiveSessions;
 - `lib/game_repository.rb` — zapis i odtwarzanie zdarzeń partii;
 - `lib/game_bots.rb` oraz pliki `*_strategy.rb` — boty i strategie;
 - `test/` — testy modeli, transportu, interfejsu i regresji.

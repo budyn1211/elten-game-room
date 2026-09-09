@@ -1,3 +1,5 @@
+require "securerandom"
+
 class InvitationRepository
   InvitationResult = Struct.new(:invitation, :created, keyword_init: true) do
     def created?
@@ -36,8 +38,11 @@ class InvitationRepository
   RESPONSE_LIMIT = 500
   RESPONSES = ["accepted", "rejected", "expired"].freeze
 
-  def initialize(server_tables:)
+  def initialize(server_tables: nil, transport: nil)
     @server_tables = server_tables
+    @transport = transport
+    @sent_invitations = {}
+    @responses = {}
   end
 
   def create(table:, sender:, recipient:, now: Time.now.to_i, ttl: DEFAULT_TTL)
@@ -48,6 +53,30 @@ class InvitationRepository
     raise ArgumentError, "Invitation sender is required" if clean_sender.empty?
     raise ArgumentError, "Invitation recipient is required" if clean_recipient.empty?
     raise ArgumentError, "You cannot invite yourself" if same_user?(clean_sender, clean_recipient)
+
+    if native_live_sessions?
+      key = [table_id, clean_sender.downcase, clean_recipient.downcase]
+      existing = @sent_invitations[key]
+      if existing != nil && existing["expires_at"].to_i > now.to_i
+        return InvitationResult.new(invitation: existing, created: false)
+      end
+
+      id = SecureRandom.random_number(2_000_000_000) + 1
+      row = {
+        "__id" => id,
+        "id" => id,
+        "table_id" => table_id,
+        "sender" => clean_sender,
+        "recipient" => clean_recipient,
+        "status" => "pending",
+        "created_at" => now.to_i,
+        "expires_at" => now.to_i + [ttl.to_i, 1].max,
+        "updated_at" => now.to_i,
+        "__insertion_user" => clean_sender
+      }
+      @sent_invitations[key] = row
+      return InvitationResult.new(invitation: row, created: true)
+    end
 
     existing = pending_rows(clean_recipient, now: now).find do |row|
       row["table_id"].to_i == table_id && same_user?(invitation_sender(row), clean_sender)
@@ -73,6 +102,16 @@ class InvitationRepository
       result[id] = table if id > 0 && %w[waiting playing].include?(table["status"].to_s)
     end
 
+    if native_live_sessions?
+      return @transport.pending_invitations.filter_map do |row|
+        next if !same_user?(row["recipient"], recipient)
+        next if row["expires_at"].to_i.positive? && row["expires_at"].to_i <= now.to_i
+
+        table = table_by_id[row["table_id"].to_i]
+        table == nil ? nil : PendingInvitation.new(invitation: row, table: table)
+      end
+    end
+
     pending_rows(recipient, now: now).filter_map do |row|
       table = table_by_id[row["table_id"].to_i]
       table == nil ? nil : PendingInvitation.new(invitation: row, table: table)
@@ -95,6 +134,21 @@ class InvitationRepository
     raise ArgumentError, "Invitation belongs to another user" if !same_user?(row["recipient"], clean_recipient)
     raise ArgumentError, "Invalid invitation response" if !RESPONSES.include?(clean_response)
 
+    if native_live_sessions?
+      key = [invitation_id, clean_recipient.downcase]
+      return @responses[key] if @responses.key?(key)
+
+      @responses[key] = {
+        "__id" => invitation_id,
+        "invitation_id" => invitation_id,
+        "table_id" => row["table_id"].to_i,
+        "recipient" => clean_recipient,
+        "response" => clean_response,
+        "created_at" => now.to_i
+      }
+      return @responses[key]
+    end
+
     existing = response_rows(clean_recipient).find do |candidate|
       candidate["invitation_id"].to_i == invitation_id
     end
@@ -110,6 +164,10 @@ class InvitationRepository
   end
 
   private
+
+  def native_live_sessions?
+    @transport.respond_to?(:live_store?) && @transport.live_store?
+  end
 
   def invitations_table
     @invitations_table ||= @server_tables.fetch("invitations")

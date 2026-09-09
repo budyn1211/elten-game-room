@@ -72,9 +72,11 @@ events = [event.call(1, "Alice", "deal", "1|0|000102030405060708090a0b0c0d0e0f")
   replay = tysiac.replay(session, events, repository)
   label = tysiac.send(:card_label, card)
   entry = replay.history.find { |item| item.event_id == 5 + i && item.kind == :pass_card }
-  assert(entry.text.include?(label) && entry.text.include?(recipient), "passed card is missing from public history")
+  assert(!entry.text.include?(label) && entry.text.include?(recipient), "public history reveals a passed card")
   players.each do |viewer|
-    assert(tysiac.describe_event(events.last, repository, replay, viewer).join.include?(label), "#{viewer} does not hear the passed card")
+    description = tysiac.describe_event(events.last, repository, replay, viewer).join
+    sees_card = viewer == "Bob" || viewer == recipient
+    assert(description.include?(label) == sees_card, "passed-card privacy is wrong for #{viewer}")
   end
 end
 replay = tysiac.replay(session, events, repository)

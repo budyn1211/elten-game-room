@@ -1,5 +1,20 @@
 # Historia zmian
 
+## 1.1.3 — build 191
+
+- stoły są publicznymi sesjami LiveSessions i znikają z lobby wraz z
+  zamknięciem sesji, bez pozostawiania osieroconych rekordów;
+- wyszukiwanie oraz ręczne dołączanie korzystają z natywnego discovery ELTEN-a
+  3.0.3, bez pomocniczego Signal;
+- skład pokoju pochodzi bezpośrednio z uczestników LiveSession, a stan pokoju,
+  czat, rozpoczęcie gry i ruchy tworzą jeden uporządkowany stos;
+- cały ruch, także akcja złożona z kilku poleceń, jest zapisywany atomowo w
+  jednym wpisie stosu;
+- zaproszenia korzystają z natywnego API LiveSessions zamiast własnych tabel;
+- zachowano oddzielne widoki historii: Wszystko, Gra, Czat i Zdarzenia pokoju;
+- tabele aplikacji nie przechowują już aktywnych stołów, członkostwa, sesji gry,
+  ruchów ani zaproszeń; pozostał trwały rejestr użytkowników i ogłoszenia lobby.
+
 ## 1.1.1 — build 184
 
 - bieżący komunikat głosowy ruchu w Warcabach używa wybranego sposobu
