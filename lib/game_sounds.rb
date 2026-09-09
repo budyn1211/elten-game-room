@@ -4,6 +4,7 @@ module GameRoomSounds
   ASSET_NAMES = %w[
     connect
     disconnect
+    chatmsg
     ding
     shuffle
     draw

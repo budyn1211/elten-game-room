@@ -258,6 +258,10 @@ activity_repository.define_singleton_method(:text_for) do |_entry, game_name:, g
   "Alice: hello"
 end
 sent_chat = nil
+played_chat_sounds = []
+sound_program = Object.new
+sound_program.define_singleton_method(:play_sound_from_asset) { |name| played_chat_sounds << name }
+screen.instance_variable_set(:@program, sound_program)
 screen.instance_variable_set(:@table, { "__id" => 7 })
 screen.instance_variable_set(:@room_snapshot, Struct.new(:members).new(["Alice", "Bob"]))
 screen.instance_variable_set(:@activity_entries, [])
@@ -276,6 +280,29 @@ assert(screen.instance_variable_get(:@chat_text).empty?, "a sent chat draft was 
 assert(screen.instance_variable_get(:@chat_index) == 0 && screen.instance_variable_get(:@chat_check) == 0, "a sent chat message retained its old selection")
 assert(screen.instance_variable_get(:@activity_entries) == [activity], "the sent chat was not added to local history")
 assert($spoken_messages.last == "Alice: hello", "the sender's own chat message was not spoken")
+assert(played_chat_sounds == ["chatmsg"], "a successfully sent chat message did not play its sound")
+
+remote_chat = Struct.new(:id, :kind, :actor).new(9, "chat", "Bob")
+screen.instance_variable_set(:@activity_entries, [remote_chat])
+screen.instance_variable_set(:@last_seen_activity_id, 8)
+screen.instance_variable_set(:@history_follows_tail, false)
+screen.send(:process_new_table_activity, Object.new)
+assert(played_chat_sounds == ["chatmsg", "chatmsg"], "an incoming chat message did not play its sound")
+
+participant_repository = Object.new
+participant_repository.define_singleton_method(:players_for) { |_session| ["Alice", "Bob"] }
+participant_game = Object.new
+participant_game.define_singleton_method(:active_competitor?) { |_replay, participant| participant != "Carol" }
+active_replay = Object.new
+active_replay.define_singleton_method(:finished?) { false }
+screen.instance_variable_set(:@repository, participant_repository)
+screen.instance_variable_set(:@game, participant_game)
+screen.instance_variable_set(:@session, { "__id" => 4 })
+screen.instance_variable_set(:@table_owner, "Alice")
+screen.instance_variable_set(:@room_snapshot, Struct.new(:members).new(["Alice"]))
+assert(screen.send(:departed_active_competitor, active_replay) == "Bob", "the active screen did not detect a departed competitor")
+participant_game.define_singleton_method(:active_competitor?) { |_replay, participant| participant != "Bob" }
+assert(screen.send(:departed_active_competitor, active_replay) == nil, "a formally eliminated participant was treated as a departure")
 
 speech_stopped = false
 screen.define_singleton_method(:speech_stop) { speech_stopped = true }

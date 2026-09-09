@@ -1,5 +1,21 @@
 # Historia zmian
 
+## 1.1.4 — build 198
+
+- master stołu może przekazać swoją rolę innemu człowiekowi wskazanemu na
+  liście użytkowników za pomocą `Ctrl+M`;
+- przekazanie mastera przenosi cały pokój do nowej LiveSession należącej do
+  nowego mastera, zachowując uczestników, boty, czat, historię oraz stan
+  rozpoczętej partii;
+- gdy master opuszcza pokój, rola przechodzi automatycznie na kolejnego
+  człowieka według kolejności uczestników, a boty przechodzą pod jego kontrolę;
+- wyjście aktywnego gracza przerywa bieżącą partię i ponownie otwiera pokój;
+  wyeliminowany gracz pozostaje obserwatorem, więc jego późniejsze wyjście nie
+  przerywa rozgrywki;
+- dodano nowe dźwięki wejścia do pokoju, wyjścia z pokoju oraz wiadomości
+  czatu; dźwięk czatu działa dla własnej wysłanej wiadomości i wiadomości
+  otrzymanych od innych osób.
+
 ## 1.1.3 — build 197
 
 - komunikat o dołączeniu do pokoju nie jest już ucinany przez następującą po

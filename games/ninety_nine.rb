@@ -122,6 +122,17 @@ module GameRoomGames
       }
     end
 
+    def active_competitor?(replay, participant)
+      player = player_key(replay.state, participant)
+      player != nil && replay.state[:eliminated][player] != true
+    end
+
+    def participant_status(replay, participant, connected: true)
+      return _("eliminated") if !active_competitor?(replay, participant)
+
+      super
+    end
+
     def bot_action_score(replay, actor, action, context: nil)
       state = replay.state
       case action["action"].to_s

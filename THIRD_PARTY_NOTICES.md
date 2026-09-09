@@ -10,8 +10,9 @@ Odpowiednie informacje licencyjne znajdują się w nagłówkach tych plików ora
 
 ## Dźwięki
 
-Pliki w katalogu `Audio/` są częścią opublikowanego buildu 176 i zostały
-zachowane w bazie repozytorium na życzenie autora. Repozytorium nie zawiera
-jeszcze osobnego dokumentu potwierdzającego ich pierwotne źródło i licencję.
-Przed nadaniem całemu repozytorium publicznej licencji należy uzupełnić tę
-informację albo zastąpić pliki zasobami o jednoznacznej licencji.
+Większość plików w katalogu `Audio/` pochodzi z opublikowanego buildu 176.
+Dźwięki `connect.ogg` i `disconnect.ogg` zostały później zastąpione, a
+`chatmsg.ogg` dodany z dostarczonego przez autora zestawu dźwięków. Repozytorium
+nie zawiera osobnego dokumentu potwierdzającego pierwotne źródło i licencję
+tych plików. Przed objęciem zasobów jednolitą licencją należy uzupełnić tę
+informację albo zastąpić je dźwiękami o jednoznacznej licencji.

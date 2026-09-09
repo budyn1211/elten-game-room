@@ -17,6 +17,7 @@ class GameRoomLiveSessionStore
   EVENT_ID_MULTIPLIER = 100
   DISCOVERY_LIMIT = 100
   INVITATION_TTL = 10 * 60
+  MASTER_TRANSFER_TIMEOUT = 20.0
 
   Record = Struct.new(
     :table_id,
@@ -42,6 +43,9 @@ class GameRoomLiveSessionStore
     @discovered = {}
     @pending_invitations = {}
     @resolved_invitations = {}
+    @superseded_sessions = Hash.new { |hash, key| hash[key] = [] }
+    @migration_failures = {}
+    @handled_migrations = {}
     @mutex = Mutex.new
   end
 
@@ -193,6 +197,91 @@ class GameRoomLiveSessionStore
     table_for(table_id)
   end
 
+  def transfer_master(table_or_id, new_owner:, actor:)
+    table_id = table_identifier(table_or_id)
+    raise ArgumentError, "Invalid room" if table_id == nil
+    current = table_for(table_id)
+    candidate = new_owner.to_s
+    raise ArgumentError, "Only the table owner may transfer it" if current == nil || !same_user?(current["owner"], actor)
+    raise ArgumentError, "Select another user" if candidate.empty? || same_user?(candidate, actor)
+    raise ArgumentError, "A computer cannot be the table master" if GameRoomParticipants.bot?(candidate)
+    raise ArgumentError, "This user is no longer at the table" if !connected_users(table_id).any? { |user| same_user?(user, candidate) }
+
+    source = active_session(table_id)
+    raise ArgumentError, "The room is no longer active" if source == nil || !source.owner?
+
+    migration_id = SecureRandom.uuid
+    @mutex.synchronize { @migration_failures.delete(migration_id) }
+    append_record(table_id, "room_transfer_requested", {
+      "migration_id" => migration_id,
+      "new_owner" => candidate,
+      "source_session_id" => source.id.to_s,
+      "members" => connected_users(table_id),
+      "requested_at" => Time.now.to_i
+    }, actor: actor)
+
+    deadline = monotonic + MASTER_TRANSFER_TIMEOUT
+    loop do
+      migrated = active_session(table_id)
+      metadata = migrated&.metadata.to_h
+      if migrated != nil && migrated.id.to_s != source.id.to_s &&
+          same_user?(metadata["owner"], candidate) && metadata["migration_id"].to_s == migration_id &&
+          migration_ready?(table_id, migration_id)
+        release_superseded_session(table_id, source)
+        return table_for(table_id)
+      end
+      failure = @mutex.synchronize { @migration_failures[migration_id] }
+      raise RuntimeError, failure if !failure.to_s.empty?
+      raise RuntimeError, "The new table master did not confirm the transfer" if monotonic >= deadline
+
+      ensure_current(table_id, force: true) if active_session(table_id).equal?(source)
+      sleep 0.05
+    end
+  end
+
+  def leave_room(table_or_id, user:)
+    table_id = table_identifier(table_or_id)
+    return false if table_id == nil
+
+    session = active_session(table_id)
+    return false if session == nil
+
+    detach_session(table_id, session)
+    session.owner? ? session.close : session.leave
+    true
+  end
+
+  def close_room(table_or_id, actor:)
+    table_id = table_identifier(table_or_id)
+    return false if table_id == nil || active_session(table_id) == nil
+
+    append_record(table_id, "room_closed", { "closed_at" => Time.now.to_i }, actor: actor)
+    close_native_session_if_owner(table_id)
+    true
+  end
+
+  def cancel_game(session:, actor:, departed: nil)
+    table_id = positive_identifier(session["table_id"])
+    session_id = positive_identifier(session["__id"] || session["id"])
+    raise ArgumentError, "Invalid game" if table_id == nil || session_id == nil
+
+    record = append_record(table_id, "game_cancelled", {
+      "session_id" => session_id,
+      "departed" => departed.to_s,
+      "cancelled_at" => Time.now.to_i
+    }, actor: actor)
+    record != nil
+  end
+
+  def game_cancelled?(session)
+    table_id = positive_identifier(session.to_h["table_id"])
+    session_id = positive_identifier(session.to_h["__id"] || session.to_h["id"])
+    return false if table_id == nil || session_id == nil
+
+    ensure_current(table_id)
+    cancelled_game_ids(table_id).key?(session_id)
+  end
+
   def deactivate_room(table_or_id)
     table_id = table_identifier(table_or_id)
     return false if table_id == nil
@@ -261,8 +350,13 @@ class GameRoomLiveSessionStore
     ids = table_id == nil ? active_table_ids : [table_id]
     ids.compact.flat_map do |id|
       ensure_current(id)
+      cancelled = cancelled_game_ids(id)
       records_for(id).filter_map do |record|
-        game_session_from(record) if record.packet["kind"].to_s == "game_started"
+        next if record.packet["kind"].to_s != "game_started"
+
+        row = game_session_from(record)
+        row["status"] = "cancelled" if row != nil && cancelled.key?(row["__id"].to_i)
+        row
       end
     end.sort_by { |row| row["__id"].to_i }
   end
@@ -510,10 +604,16 @@ class GameRoomLiveSessionStore
     existing = @mutex.synchronize { @sessions[table_id] }
     return existing if existing.equal?(session)
 
+    if existing != nil
+      @mutex.synchronize { @superseded_sessions[table_id] << existing if !@superseded_sessions[table_id].include?(existing) }
+      reset_record_cache(table_id)
+    end
+
     if session.respond_to?(:on_stack_message)
       session.on_stack_message(with_metadata: true) do |sender, packet, info|
-        ingest_record(
+        receive_session_record(
           table_id,
+          session,
           sequence: info.sequence,
           message_id: info.id,
           sender: sender.user,
@@ -526,15 +626,22 @@ class GameRoomLiveSessionStore
         emit_change(table_id, :recovery, nil)
       end
     end
-    session.on_participant_joined { |_participant| emit_change(table_id, :table, nil) } if session.respond_to?(:on_participant_joined)
-    session.on_participant_left { |_participant, _reason = nil| emit_change(table_id, :table, nil) } if session.respond_to?(:on_participant_left)
+    if session.respond_to?(:on_participant_joined)
+      session.on_participant_joined { |_participant| emit_session_change(table_id, session, :table) }
+    end
+    if session.respond_to?(:on_participant_left)
+      session.on_participant_left { |_participant, _reason = nil| emit_session_change(table_id, session, :table) }
+    end
     if session.respond_to?(:on_closed)
       session.on_closed do |_reason|
-        @mutex.synchronize do
+        active_closed = @mutex.synchronize do
+          current = @sessions[table_id].equal?(session)
           @sessions.delete(table_id) if @sessions[table_id].equal?(session)
           @native_session_ids.delete(session.id.to_s) if session.respond_to?(:id)
+          @superseded_sessions[table_id].delete(session)
+          current
         end
-        emit_change(table_id, :closed, nil)
+        emit_change(table_id, :closed, nil) if active_closed
       end
     end
     @mutex.synchronize do
@@ -543,6 +650,13 @@ class GameRoomLiveSessionStore
     end
     ensure_current(table_id, force: true) if session.respond_to?(:stack_read)
     session
+  end
+
+  def detach_session(table_id, session)
+    @mutex.synchronize do
+      @sessions.delete(table_id) if @sessions[table_id].equal?(session)
+      @native_session_ids.delete(session.id.to_s) if session.respond_to?(:id)
+    end
   end
 
   def ensure_current(table_id, force: false)
@@ -563,8 +677,9 @@ class GameRoomLiveSessionStore
         else
           ""
         end
-        ingest_record(
+        receive_session_record(
           table_id,
+          session,
           sequence: entry["seq"],
           message_id: entry["message_id"],
           sender: sender,
@@ -607,7 +722,27 @@ class GameRoomLiveSessionStore
       packet: packet,
       created_at: Time.now.to_i
     )
+    process_migration_record(table_id, session, record) if record != nil
     record || records_for(table_id).find { |entry| entry.message_id == message_id }
+  end
+
+  def receive_session_record(table_id, session, sequence:, message_id:, sender:, packet:, created_at:)
+    active = active_session(table_id)
+    if !active.equal?(session)
+      process_stale_migration_record(table_id, session, sender, packet)
+      return nil
+    end
+
+    record = ingest_record(
+      table_id,
+      sequence: sequence,
+      message_id: message_id,
+      sender: sender,
+      packet: packet,
+      created_at: created_at
+    )
+    process_migration_record(table_id, session, record) if record != nil
+    record
   end
 
   def extract_push_sequence(result, session)
@@ -629,6 +764,8 @@ class GameRoomLiveSessionStore
     return nil if seq <= 0 || identity.empty? || !packet.is_a?(Hash)
     return nil if packet["version"].to_i != PROTOCOL
     return nil if !valid_record?(table_id, sender, packet)
+
+    sender, packet, created_at = imported_record_values(sender, packet, created_at)
 
     record = Record.new(
       table_id: table_id,
@@ -660,10 +797,300 @@ class GameRoomLiveSessionStore
     case kind
     when "game_started"
       emit_change(table_id, :game_started, data["session_id"].to_i)
-    when "game_action"
+    when "game_action", "game_cancelled"
       emit_change(table_id, :game, data["session_id"].to_i)
     else
       emit_change(table_id, :table, nil)
+    end
+    close_native_session_if_owner(table_id) if kind == "room_closed"
+  end
+
+  def process_migration_record(table_id, session, record)
+    return if record == nil
+
+    data = record.packet["data"].to_h
+    case record.packet["kind"].to_s
+    when "room_transfer_requested"
+      return if !same_user?(data["new_owner"], endpoint.user)
+
+      migration_id = data["migration_id"].to_s
+      start = @mutex.synchronize do
+        next false if @handled_migrations.key?(migration_id)
+
+        @handled_migrations[migration_id] = true
+        true
+      end
+      migrate_table_as_new_owner(table_id, session, record) if start
+    when "room_migration"
+      return if migration_failed?(data["migration_id"])
+
+      switch_to_migrated_session(table_id, session, data)
+    when "room_migration_failed"
+      remember_migration_failure(data)
+      restore_superseded_session(table_id, data["source_session_id"])
+    end
+  rescue StandardError => error
+    log_warning("master transfer", table_id, error)
+  end
+
+  def process_stale_migration_record(table_id, session, sender, packet)
+    return if !packet.is_a?(Hash) || packet["version"].to_i != PROTOCOL
+
+    data = packet["data"].to_h
+    migration_id = data["migration_id"].to_s
+    active_metadata = active_session(table_id)&.metadata.to_h
+    return if migration_id.empty? || active_metadata.to_h["migration_id"].to_s != migration_id
+    return if !same_user?(sender, active_metadata["owner"])
+
+    case packet["kind"].to_s
+    when "room_migration_complete"
+      release_superseded_session(table_id, session)
+    when "room_migration_failed"
+      remember_migration_failure(data)
+      restore_superseded_session(table_id, data["source_session_id"])
+    end
+  rescue StandardError => error
+    log_warning("old master session cleanup", table_id, error)
+  end
+
+  def migrate_table_as_new_owner(table_id, source_session, request)
+    data = request.packet["data"].to_h
+    migration_id = data["migration_id"].to_s
+    candidate = data["new_owner"].to_s
+    return if migration_id.empty? || !same_user?(candidate, endpoint.user)
+
+    source_table = table_for(table_id)
+    source_records = records_for(table_id)
+    expected_users = unique_users(data["members"].to_a)
+    expected_users << candidate if !expected_users.any? { |user| same_user?(user, candidate) }
+    created_at = source_table["created_at"].to_i
+    metadata = {
+      "kind" => KIND,
+      "protocol" => PROTOCOL,
+      "table_id" => table_id,
+      "owner" => candidate,
+      "name" => source_table["name"].to_s,
+      "game" => source_table["game"].to_s,
+      "game_options" => source_table["game_options"].to_s,
+      "created_at" => created_at,
+      "migration_id" => migration_id,
+      "migrated_from" => source_session.id.to_s
+    }
+    migrated = endpoint.create(
+      metadata: metadata,
+      participant_metadata: participant_metadata(table_id),
+      capacity: bounded_capacity(source_table["max_players"]),
+      visibility: :public,
+      discovery_metadata: metadata.dup,
+      stack_entry_bytes: STACK_ENTRY_BYTES,
+      stack_entries: STACK_ENTRIES,
+      pool_count: 1,
+      private_messages: true
+    )
+    attach_session(table_id, migrated)
+    source_records.each do |source_record|
+      packet = importable_packet(source_record, new_owner: candidate)
+      append_import_record(table_id, source_record, packet, migration_id) if packet != nil
+    end
+
+    push_control_record(source_session, "room_migration", {
+      "migration_id" => migration_id,
+      "new_owner" => candidate,
+      "source_session_id" => source_session.id.to_s,
+      "new_session_id" => migrated.id.to_s,
+      "members" => expected_users
+    }, actor: candidate)
+
+    wait_for_migrated_members(migrated, expected_users, timeout: MASTER_TRANSFER_TIMEOUT)
+    append_record(table_id, "room_migration_ready", {
+      "migration_id" => migration_id,
+      "source_session_id" => source_session.id.to_s,
+      "new_session_id" => migrated.id.to_s
+    }, actor: candidate)
+    push_control_record(source_session, "room_migration_complete", {
+      "migration_id" => migration_id,
+      "source_session_id" => source_session.id.to_s,
+      "new_session_id" => migrated.id.to_s
+    }, actor: candidate)
+    release_superseded_session(table_id, source_session)
+  rescue StandardError => error
+    begin
+      push_control_record(source_session, "room_migration_failed", {
+        "migration_id" => migration_id.to_s,
+        "source_session_id" => source_session&.id.to_s,
+        "reason" => error.message.to_s
+      }, actor: candidate.to_s)
+    rescue StandardError
+      nil
+    end
+    restore_superseded_session(table_id, source_session&.id)
+    raise
+  end
+
+  def switch_to_migrated_session(table_id, source_session, data)
+    migration_id = data["migration_id"].to_s
+    target_id = data["new_session_id"].to_s
+    candidate = data["new_owner"].to_s
+    return if migration_id.empty? || target_id.empty? || candidate.empty?
+    return if active_session(table_id)&.id.to_s == target_id
+
+    deadline = monotonic + MASTER_TRANSFER_TIMEOUT
+    discovered = nil
+    loop do
+      discovered = discover_pages.find do |item|
+        metadata = item.discovery_metadata.to_h
+        item.id.to_s == target_id && supported_metadata?(metadata) &&
+          metadata["table_id"].to_i == table_id && metadata["migration_id"].to_s == migration_id &&
+          same_user?(metadata["owner"], candidate)
+      end
+      break if discovered != nil
+      raise RuntimeError, "The replacement table session was not found" if monotonic >= deadline
+
+      sleep 0.05
+    end
+    migrated = if same_user?(endpoint.user, candidate)
+      endpoint.sessions.to_a.find { |item| item.id.to_s == target_id }
+    else
+      discovered.join(participant_metadata: participant_metadata(table_id))
+    end
+    raise RuntimeError, "The replacement table session could not be joined" if migrated == nil
+
+    attach_session(table_id, migrated)
+    @mutex.synchronize { @discovered[table_id] = discovered }
+  rescue StandardError => error
+    remember_migration_failure(
+      "migration_id" => migration_id,
+      "source_session_id" => source_session&.id.to_s,
+      "reason" => error.message.to_s
+    )
+    raise
+  end
+
+  def importable_packet(record, new_owner:)
+    kind = record.packet["kind"].to_s
+    return nil if !%w[room_created room_state room_activity game_started game_action game_cancelled].include?(kind)
+
+    packet = JSON.parse(JSON.generate(record.packet))
+    if kind == "room_created"
+      packet["actor"] = new_owner.to_s
+      packet["data"]["owner"] = new_owner.to_s
+    end
+    packet
+  end
+
+  def append_import_record(table_id, source_record, packet, migration_id)
+    wrapper = {
+      "version" => PROTOCOL,
+      "kind" => "room_import",
+      "actor" => endpoint.user.to_s,
+      "data" => {
+        "migration_id" => migration_id.to_s,
+        "source_sender" => packet["kind"].to_s == "room_created" ? endpoint.user.to_s : source_record.sender.to_s,
+        "source_created_at" => source_record.created_at.to_i,
+        "packet" => packet
+      }
+    }
+    session = active_session(table_id)
+    message_id = SecureRandom.uuid
+    result = session.stack_push(wrapper, message_id: message_id)
+    record = ingest_record(
+      table_id,
+      sequence: extract_push_sequence(result, session),
+      message_id: message_id,
+      sender: endpoint.user.to_s,
+      packet: wrapper,
+      created_at: Time.now.to_i
+    )
+    record
+  end
+
+  def imported_record_values(sender, packet, created_at)
+    return [sender, packet, created_at] if packet["kind"].to_s != "room_import"
+
+    data = packet["data"].to_h
+    [data["source_sender"].to_s, data["packet"].to_h, data["source_created_at"]]
+  end
+
+  def push_control_record(session, kind, data, actor:)
+    packet = {
+      "version" => PROTOCOL,
+      "kind" => kind.to_s,
+      "actor" => actor.to_s,
+      "data" => JSON.parse(JSON.generate(data))
+    }
+    session.stack_push(packet, message_id: SecureRandom.uuid)
+  end
+
+  def wait_for_migrated_members(session, users, timeout:)
+    deadline = monotonic + timeout.to_f
+    users.each do |user|
+      next if session.participants.to_a.any? { |participant| same_user?(participant.user, user) }
+
+      remaining = deadline - monotonic
+      raise RuntimeError, "Not every player joined the replacement table session" if remaining <= 0
+      if session.respond_to?(:wait_for_participant)
+        session.wait_for_participant(user, timeout: remaining)
+      else
+        sleep 0.01 until session.participants.to_a.any? { |participant| same_user?(participant.user, user) } || monotonic >= deadline
+      end
+      raise RuntimeError, "Not every player joined the replacement table session" if !session.participants.to_a.any? { |participant| same_user?(participant.user, user) }
+    end
+    true
+  end
+
+  def migration_ready?(table_id, migration_id)
+    records_for(table_id).any? do |record|
+      record.packet["kind"].to_s == "room_migration_ready" &&
+        record.packet.dig("data", "migration_id").to_s == migration_id.to_s
+    end
+  end
+
+  def remember_migration_failure(data)
+    migration_id = data.to_h["migration_id"].to_s
+    return if migration_id.empty?
+
+    reason = data.to_h["reason"].to_s
+    reason = "The table master transfer failed" if reason.empty?
+    @mutex.synchronize { @migration_failures[migration_id] = reason }
+  end
+
+  def migration_failed?(migration_id)
+    key = migration_id.to_s
+    !key.empty? && @mutex.synchronize { @migration_failures.key?(key) }
+  end
+
+  def release_superseded_session(table_id, session)
+    @mutex.synchronize { @superseded_sessions[table_id].delete(session) }
+    return if session == nil || session.closed?
+
+    session.owner? ? session.close : session.leave
+  end
+
+  def restore_superseded_session(table_id, source_session_id)
+    source = @mutex.synchronize do
+      @superseded_sessions[table_id].find { |session| session.id.to_s == source_session_id.to_s }
+    end
+    return false if source == nil || source.closed?
+
+    current = active_session(table_id)
+    @mutex.synchronize do
+      @sessions[table_id] = source
+      @native_session_ids[source.id.to_s] = table_id
+      @superseded_sessions[table_id].delete(source)
+    end
+    reset_record_cache(table_id)
+    ensure_current(table_id, force: true)
+    if current != nil && !current.equal?(source) && !current.closed?
+      current.owner? ? current.close : current.leave
+    end
+    true
+  end
+
+  def reset_record_cache(table_id)
+    @mutex.synchronize do
+      @records.delete(table_id)
+      @record_keys.delete(table_id)
+      @stack_cursors.delete(table_id)
     end
   end
 
@@ -671,6 +1098,10 @@ class GameRoomLiveSessionStore
     @changed&.call(table_id.to_i, kind.to_sym, value)
   rescue StandardError => error
     log_warning("change callback", table_id, error)
+  end
+
+  def emit_session_change(table_id, session, kind, value = nil)
+    emit_change(table_id, kind, value) if active_session(table_id).equal?(session)
   end
 
   def records_for(table_id)
@@ -691,6 +1122,10 @@ class GameRoomLiveSessionStore
         row.merge!(data)
       when "room_state"
         row.merge!(record.packet["data"].to_h)
+      when "game_cancelled"
+        row["status"] = "waiting"
+      when "room_closed"
+        row["status"] = "closed"
       end
       row["updated_at"] = [row["updated_at"].to_i, record.created_at.to_i].max
     end
@@ -832,8 +1267,10 @@ class GameRoomLiveSessionStore
       same_user?(sender, owner) && same_user?(actor, owner) && same_user?(data["owner"], owner)
     when "room_state"
       same_user?(sender, owner) && same_user?(actor, owner)
+    when "room_closed"
+      same_user?(sender, owner) && same_user?(actor, owner)
     when "room_activity"
-      %w[created joined left bot_added bot_removed chat].include?(data["activity_kind"].to_s) &&
+      %w[created joined left bot_added bot_removed chat master_changed game_interrupted].include?(data["activity_kind"].to_s) &&
         same_user?(sender, actor)
     when "game_started"
       players = data["players"].to_a.map(&:to_s)
@@ -842,9 +1279,38 @@ class GameRoomLiveSessionStore
         players.none?(&:empty?) && unique_users(players).length == players.length
     when "game_action"
       valid_game_action_record?(table_id, sender, actor, data, owner)
+    when "game_cancelled"
+      valid_game_cancellation_record?(table_id, sender, actor, data, owner)
+    when "room_transfer_requested"
+      candidate = data["new_owner"].to_s
+      migration_id = data["migration_id"].to_s
+      same_user?(sender, owner) && same_user?(actor, owner) && !migration_id.empty? &&
+        GameRoomParticipants.human?(candidate) && !same_user?(candidate, owner) &&
+        connected_users(table_id).any? { |user| same_user?(user, candidate) }
+    when "room_migration", "room_migration_complete", "room_migration_failed"
+      valid_migration_control_record?(table_id, sender, actor, data)
+    when "room_migration_ready"
+      same_user?(sender, owner) && same_user?(actor, owner) &&
+        data["migration_id"].to_s == active_session(table_id)&.metadata.to_h["migration_id"].to_s
+    when "room_import"
+      valid_import_record?(table_id, sender, actor, data, owner)
     else
       false
     end
+  end
+
+  def valid_game_cancellation_record?(table_id, sender, actor, data, owner)
+    session_id = positive_identifier(data["session_id"])
+    return false if session_id == nil || !same_user?(sender, actor)
+
+    game = records_for(table_id).reverse.find do |record|
+      record.packet["kind"].to_s == "game_started" &&
+        record.packet.dig("data", "session_id").to_i == session_id
+    end
+    return false if game == nil || cancelled_game_ids(table_id).key?(session_id)
+
+    players = game.packet.dig("data", "players").to_a.map(&:to_s)
+    same_user?(actor, owner) || players.any? { |player| same_user?(player, actor) }
   end
 
   def valid_game_action_record?(table_id, sender, actor, data, owner)
@@ -870,12 +1336,55 @@ class GameRoomLiveSessionStore
     end
   end
 
+  def valid_migration_control_record?(table_id, sender, actor, data)
+    migration_id = data["migration_id"].to_s
+    return false if migration_id.empty? || !same_user?(sender, actor)
+
+    request = records_for(table_id).reverse.find do |record|
+      record.packet["kind"].to_s == "room_transfer_requested" &&
+        record.packet.dig("data", "migration_id").to_s == migration_id
+    end
+    request != nil && same_user?(actor, request.packet.dig("data", "new_owner")) &&
+      data["source_session_id"].to_s == request.packet.dig("data", "source_session_id").to_s
+  end
+
+  def valid_import_record?(table_id, sender, actor, data, owner)
+    metadata = active_session(table_id)&.metadata.to_h
+    inner = data["packet"]
+    same_user?(sender, owner) && same_user?(actor, owner) &&
+      !metadata.to_h["migration_id"].to_s.empty? &&
+      data["migration_id"].to_s == metadata["migration_id"].to_s &&
+      inner.is_a?(Hash) && inner["version"].to_i == PROTOCOL &&
+      %w[room_created room_state room_activity game_started game_action game_cancelled].include?(inner["kind"].to_s)
+  end
+
   def owner_for(table_id)
     session = active_session(table_id)
     session_owner = session&.respond_to?(:owner) ? session.owner&.user.to_s : ""
     return session_owner if !session_owner.empty?
 
     session&.metadata.to_h["owner"].to_s
+  end
+
+  def cancelled_game_ids(table_id)
+    records_for(table_id).each_with_object({}) do |record, result|
+      next if record.packet["kind"].to_s != "game_cancelled"
+
+      id = positive_identifier(record.packet.dig("data", "session_id"))
+      result[id] = true if id != nil
+    end
+  end
+
+  def close_native_session_if_owner(table_id)
+    session = active_session(table_id)
+    return false if session == nil || !session.owner?
+
+    detach_session(table_id, session)
+    session.close
+    true
+  rescue StandardError => error
+    log_warning("room close", table_id, error)
+    false
   end
 
   def active_session(table_id)

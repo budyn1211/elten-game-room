@@ -153,13 +153,14 @@ class GameRepository
 
   def append_events(session:, sequence:, events:, recipients: nil, actor: Session.name)
     raise ArgumentError, "The game no longer exists" if session_id(session) <= 0 || session["table_id"].to_i <= 0
+    raise ArgumentError, "The game has been interrupted" if cancelled?(session)
 
     players = players_for(session)
     raise ArgumentError, "The game participant list is incomplete" if players.empty?
     event_actor = actor.to_s
     raise ArgumentError, "A game event requires an actor" if event_actor.empty?
     if GameRoomParticipants.bot?(event_actor)
-      owner = insertion_user(session, "player_one")
+      owner = current_table_owner(session)
       raise ArgumentError, "Only the table owner may move a computer" if owner.casecmp(Session.name.to_s) != 0
       raise ArgumentError, "The computer is not a player in this game" if !includes_user?(players, event_actor)
     else
@@ -231,11 +232,27 @@ class GameRepository
     return "" if session == nil
 
     players = players_for(session)
-    owner = insertion_user(session, "player_one")
     return "" if !includes_user?(players, claimed)
+    return claimed if native_live_sessions?
+
+    owner = insertion_user(session, "player_one")
     return "" if author.casecmp(owner) != 0
 
     claimed
+  end
+
+  def cancel_session(session, departed: nil, actor: Session.name)
+    raise ArgumentError, "The game no longer exists" if session_id(session) <= 0
+    return false if cancelled?(session)
+    raise ArgumentError, "Game interruption requires LiveSessions" if !native_live_sessions?
+
+    @transport.cancel_game(session: session, actor: actor, departed: departed)
+  end
+
+  def cancelled?(session)
+    return false if session == nil || !native_live_sessions?
+
+    session["status"].to_s == "cancelled" || @transport.game_cancelled?(session)
   end
 
   def session_id(row)
@@ -518,6 +535,11 @@ class GameRepository
   end
 
   def valid_session_for_table?(session, table, players: persisted_players_for(session))
+    if native_live_sessions?
+      return session["table_id"].to_i == row_id(table) &&
+        session["game"].to_s == table["game"].to_s && !players.empty?
+    end
+
     owner = insertion_user(table, "owner")
     creator = insertion_user(session, "player_one")
     session["table_id"].to_i == row_id(table) &&
@@ -526,6 +548,15 @@ class GameRepository
       session["player_one"].to_s.casecmp(owner) == 0 &&
       !players.empty? &&
       players.first.to_s.casecmp(owner) == 0
+  end
+
+  def current_table_owner(session)
+    return insertion_user(session, "player_one") if @transport == nil || !@transport.respond_to?(:room_snapshot)
+
+    snapshot = @transport.room_snapshot(session["table_id"])
+    table = snapshot.is_a?(Hash) ? snapshot[:table] || snapshot["table"] : nil
+    owner = table.to_h["owner"].to_s
+    owner.empty? ? insertion_user(session, "player_one") : owner
   end
 
   def unique_users(users)

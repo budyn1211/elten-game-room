@@ -208,6 +208,9 @@ state = controlled_state(game, players)
 state[:tokens]["Bob"] = 0
 game.send(:charge_player, state, "Bob", 1, 20, [], "test")
 assert(state[:eliminated]["Bob"], "a player unable to pay was not eliminated")
+eliminated_replay = GameRoomGames::Replay.new(current_player: "Alice", winner: nil, draw: false, state: state)
+assert(!game.active_competitor?(eliminated_replay, "Bob"), "an eliminated Ninety-nine player remained a competitor")
+assert(game.participant_status(eliminated_replay, "Bob") == "eliminated", "an eliminated Ninety-nine player was not identified as an observer")
 
 state = controlled_state(game, players)
 state[:phase] = :awaiting_draw

@@ -94,7 +94,7 @@ assert(tracker.observe([viewer, "bot:1:1"]).empty?, "a computer was announced as
 program = Object.new
 played = []
 program.define_singleton_method(:play_sound_from_asset) { |name| played << name }
-GameRoomSounds.play_all(program, ["welcome", "connect", "not_registered"])
-assert(played == ["connect"], "the sound player accepted a removed or unknown asset")
+GameRoomSounds.play_all(program, ["welcome", "connect", "chatmsg", "not_registered"])
+assert(played == ["connect", "chatmsg"], "the sound player rejected a chat asset or accepted an unknown asset")
 
 puts "Game sound tests passed"

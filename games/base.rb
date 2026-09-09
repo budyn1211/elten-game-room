@@ -381,6 +381,13 @@ module GameRoomGames
       connected ? nil : _("disconnected")
     end
 
+    # A participant remains a competitor unless a game explicitly records a
+    # formal elimination. Being unable to move at this exact moment is not an
+    # elimination and must never silently turn a player into an observer.
+    def active_competitor?(replay, participant)
+      replay != nil && replay.players.to_a.any? { |player| same_user?(player, participant) }
+    end
+
     def active_actors(replay)
       replay.current_player == nil ? [] : [replay.current_player]
     end

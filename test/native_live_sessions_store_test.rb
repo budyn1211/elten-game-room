@@ -219,7 +219,12 @@ class NativeLiveSessionsBroker
       @core.entries << entry
       sender = @core.participants.fetch(@endpoint.user.downcase)
       info = Info.new(sequence: sequence, id: message_id, created_at: created_at)
-      @core.views.each { |view| view.stack_message(sender, packet, info) }
+      views = @core.views.dup
+      if packet["kind"].to_s == "room_transfer_requested"
+        new_owner = packet.dig("data", "new_owner").to_s
+        views.sort_by! { |view| view.local_user.casecmp(new_owner) == 0 ? 1 : 0 }
+      end
+      views.each { |view| view.stack_message(sender, packet, info) }
       { "entry" => { "seq" => sequence }, "stack" => stack_state }
     end
 
@@ -244,6 +249,10 @@ class NativeLiveSessionsBroker
 
     def participant_joined(participant)
       @join_callbacks.each { |callback| callback.call(participant) }
+    end
+
+    def local_user
+      @endpoint.user
     end
 
     def invite(user, metadata: {})
@@ -451,13 +460,65 @@ end
     "separate game, chat and room history categories were lost"
   )
 
+  original_core = broker.cores.values.find { |candidate| candidate.metadata["table_id"].to_i == table["__id"].to_i }
   $game_room_test_user = "Alice"
-  assert(lobbies.fetch("Alice").close_table(table), "owner could not close native room")
+  transferred = lobbies.fetch("Alice").transfer_master(
+    table,
+    "Bob",
+    snapshot: lobbies.fetch("Alice").snapshot_for(table)
+  )
+  assert(transferred && transferred.table["owner"] == "Bob", "manual master transfer did not change the logical owner")
+  assert(original_core.closed, "the old owner session remained active after migration")
+  users.each do |user|
+    $game_room_test_user = user
+    migrated_table = lobbies.fetch(user).current_table_for(user)
+    migrated_snapshot = lobbies.fetch(user).snapshot_for(migrated_table)
+    assert(migrated_snapshot.table["owner"] == "Bob", "#{user} did not switch to the replacement session")
+    assert(migrated_snapshot.members.sort == users.sort, "#{user} lost a human participant during migration")
+    migrated_game = games.fetch(user).session_for_table(migrated_table)
+    assert(migrated_game != nil, "#{user} lost the active game during migration")
+    assert(games.fetch(user).snapshot_for(migrated_game).events.length == 3, "#{user} lost game events during migration")
+    assert(
+      activities.fetch(user).entries_for(migrated_table).any? { |entry| entry.kind == "chat" && entry.message == "Hello" },
+      "#{user} lost room chat during migration"
+    )
+  end
+
   $game_room_test_user = "Bob"
-  assert(lobbies.fetch("Bob").open_tables.empty?, "closed LiveSession remained discoverable")
+  bob_table = lobbies.fetch("Bob").current_table_for("Bob")
+  bob_game = games.fetch("Bob").session_for_table(bob_table)
+  bot = games.fetch("Bob").players_for(bob_game).find { |player| GameRoomParticipants.bot?(player) }
+  bot_events = games.fetch("Bob").snapshot_for(bob_game).events
+  games.fetch("Bob").append_events(
+    session: bob_game,
+    sequence: games.fetch("Bob").next_sequence(bob_game, bot_events),
+    events: [GameRoomGames::EventCommand.new(action: "drop", value: "2")],
+    actor: bot
+  )
+  assert(games.fetch("Bob").snapshot_for(bob_game, force_events: true).events.last["actor"] == bot, "the new master did not take control of computers")
+
+  assert(games.fetch("Bob").cancel_session(bob_game, departed: "Bob", actor: "Bob"), "an active player's departure did not interrupt the game")
+  activities.fetch("Bob").append(table: bob_table, kind: "game_interrupted", message: "Bob", actor: "Bob")
+  assert(lobbies.fetch("Bob").leave_table(bob_table, "Bob", successor: "Carol") == :transferred, "leaving master did not transfer the room")
+  users.reject { |user| user == "Bob" }.each do |user|
+    $game_room_test_user = user
+    next_table = lobbies.fetch(user).current_table_for(user)
+    next_snapshot = lobbies.fetch(user).snapshot_for(next_table)
+    assert(next_snapshot.table["owner"] == "Carol", "#{user} did not receive automatic master transfer")
+    assert(next_snapshot.table["status"] == "waiting", "#{user} did not see the interrupted game return to waiting")
+    assert(!GameRoomParticipants.includes?(next_snapshot.members, "Bob"), "the departed master remained in the replacement session")
+    interrupted = activities.fetch(user).entries_for(next_table).find { |entry| entry.kind == "game_interrupted" }
+    assert(interrupted && interrupted.message == "Bob", "#{user} lost the interrupted-game reason")
+  end
+
+  $game_room_test_user = "Carol"
+  final_table = lobbies.fetch("Carol").current_table_for("Carol")
+  assert(lobbies.fetch("Carol").close_table(final_table), "new owner could not close native room")
+  $game_room_test_user = "Alice"
+  assert(lobbies.fetch("Alice").open_tables.empty?, "closed replacement LiveSession remained discoverable")
 
   assert(activity_table.calls == Array.new(users.length, :select), "Table requests continued after the four startup denials") if denied
 
 end
 
-puts "Native LiveSessions store tests passed: discovery, membership, invitations, room state, game stack, chat and cleanup, with and without table access"
+puts "Native LiveSessions store tests passed: discovery, membership, invitations, master migration, interruption, game stack, chat and cleanup, with and without table access"

@@ -20,6 +20,7 @@ module GameRoomLifecycle
     def phase
       return :waiting if @game_snapshot == nil
       return :unavailable if @game == nil || @replay == nil
+      return :waiting if cancelled?
 
       @replay.finished? ? :finished : :active
     end
@@ -56,14 +57,24 @@ module GameRoomLifecycle
       @players.any? { |player| GameRoomParticipants.same?(player, user) }
     end
 
+    def active_competitor?(user)
+      return false if !active? || !player?(user)
+
+      !@game.respond_to?(:active_competitor?) || @game.active_competitor?(@replay, user)
+    end
+
     def role_for(user)
-      return player?(user) ? :player : :observer if active?
+      return active_competitor?(user) ? :player : :observer if active?
 
       :waiting
     end
 
     def startable_by?(user, owner:)
       available? && !active? && GameRoomParticipants.same?(user, owner)
+    end
+
+    def cancelled?
+      @game_snapshot != nil && @game_snapshot.session.to_h["status"].to_s == "cancelled"
     end
   end
 end

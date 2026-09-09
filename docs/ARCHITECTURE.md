@@ -91,7 +91,8 @@ bez mnożenia natywnych handlerów, a timery usuwane przy opuszczeniu widoku.
 `GameRoomParticipantMenu` wiąże jedno menu kontekstowe wspólnego formularza:
 zasady gry przez Ctrl+F1, zapraszanie użytkownika online przez Ctrl+I,
 zapraszanie z kontaktów przez Ctrl+Shift+I oraz dodawanie komputera przez
-Ctrl+O. Menu i skróty działają z każdego pola stołu, także podczas partii i po
+Ctrl+O. Na liście użytkowników master może przekazać swoją rolę innemu
+człowiekowi przez Ctrl+M. Menu i skróty działają z każdego pola stołu, także podczas partii i po
 jej zakończeniu. Delete pozostaje lokalną akcją listy użytkowników i usuwa
 wyłącznie wskazany komputer. Wszystkie operacje sprawdzają aktualny stan i
 uprawnienia także po otwarciu menu. Powrót z zasad zachowuje wcześniejszy fokus
@@ -133,6 +134,20 @@ klientów.
 Skład rozpoczętej partii jest utrwalany w zdarzeniu `game_started` na stosie
 sesji, dzięki czemu miejsca graczy są stabilne przez całą partię.
 
+Rola mastera pokoju jest niezależna od roli gracza. Ręczne przekazanie albo
+łagodne wyjście dotychczasowego mastera tworzy zastępczą LiveSession należącą
+do następcy, kopiuje do niej uporządkowany stan pokoju i partii, przełącza
+uczestników, a dopiero po ich potwierdzeniu zamyka starą sesję. Identyfikator
+logicznego stołu pozostaje ten sam. Nowy master przejmuje także wykonywanie
+ruchów botów.
+
+Wyjście człowieka będącego nadal aktywnym zawodnikiem zapisuje przerwanie
+partii i przywraca fazę oczekiwania. Gra może przez `active_competitor?`
+oznaczyć formalnie wyeliminowaną osobę jako obserwatora; wtedy jej odejście nie
+przerywa partii. Obecnie z mechanizmu eliminacji korzysta Ninety-Nine.
+Nieoczekiwana utrata całego procesu właściciela, po której natywna sesja już
+nie istnieje, nie może zostać zmigrowana przez klientów.
+
 ### Transport
 
 `GameRoomLiveSessionStore` używa natywnego API ELTEN-a 3.0.3. Publiczne
@@ -141,6 +156,10 @@ sesji zastępuje bootstrap przez Signals, a natywne zaproszenia zastępują wła
 tabele zaproszeń. Zmiany pokoju, czat, start partii i ruchy trafiają do jednego
 stosu i mają wspólną kolejność. Zamknięcie sesji usuwa stół z listy bez osobnego
 sprzątania rekordu.
+
+Przekazanie mastera wykorzystuje kontrolowany protokół migracji między dwiema
+sesjami. Klienci przełączają bieżące połączenie na nową sesję, a stara jest
+zwalniana po potwierdzeniu obecności wszystkich uczestników.
 
 Widoczna historia nadal jest dzielona na `Wszystko`, `Gra`, `Czat` i
 `Zdarzenia pokoju`. Podział jest wyłącznie filtrem prezentacji nad jednym
