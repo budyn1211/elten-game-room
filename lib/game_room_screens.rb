@@ -1,5 +1,3 @@
-require_relative "invitation_shortcuts"
-
 module GameRoomScreens
   MenuResult = Struct.new(:action, :index, keyword_init: true)
 
@@ -43,26 +41,23 @@ module GameRoomScreens
         action = :exit
         form.resume
       end
-      GameRoomInvitationShortcuts.bind(
-        form,
-        [options, history],
-        invite_online: (@invitations ? -> do
-          action = :invite_online
-          form.resume
-        end : nil),
-        invite_contacts: (@invitations ? -> do
-          action = :invite_contacts
-          form.resume
-        end : nil),
-        accept: (@invitations ? -> do
-          action = :invitations
-          form.resume
-        end : nil),
-        reject: (@invitations ? -> do
-          action = :reject_invitation
-          form.resume
-        end : nil)
-      )
+      if @invitations
+        options.disable_contextinglobal
+        options.bind_context do |menu|
+          [
+            [:invitations, _("Accept invitation"), "j"],
+            [:reject_invitation, _("Reject invitation"), "J"]
+          ].each do |requested, label, key|
+            menu.option(label, nil, key) do
+              next if action != nil
+
+              @index = options.index.to_i
+              action = requested
+              form.resume
+            end
+          end
+        end
+      end
       if @refresh != nil
         form.add_timer(FormTimer.new(0.5, repeat: true) do
           changed = if @refresh.arity == 0

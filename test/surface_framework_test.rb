@@ -1,189 +1,4 @@
-def _(text)
-  text
-end
-
-$spoken_messages = []
-
-def speak(text, **_options)
-  $spoken_messages << text.to_s
-end
-
-class FakeControl
-  def initialize
-    @handlers = {}
-  end
-
-  def on(event, &handler)
-    @handlers[event] = handler
-  end
-
-  def trigger(event, payload = nil)
-    @handlers[event]&.call(payload)
-  end
-
-  def update
-    nil
-  end
-
-  def key_processed(_key)
-    true
-  end
-end
-
-class GridBox < FakeControl
-  attr_accessor :x, :y
-  attr_reader :cells, :last_focus_spoken
-
-  def initialize(width, height, header:, x:, y:, quiet:)
-    super()
-    @width = width
-    @height = height
-    @x = x
-    @y = y
-  end
-
-  def set_cells(cells)
-    @cells = cells
-  end
-
-  def move_by(dx, dy)
-    @x = [[@x + dx.to_i, 0].max, @width - 1].min
-    @y = [[@y + dy.to_i, 0].max, @height - 1].min
-  end
-
-  def focus(_index = nil, _count = nil, spk = true, include_header: true)
-    @last_focus_spoken = spk
-    true
-  end
-end
-
-class ListBox < FakeControl
-  attr_accessor :index, :header, :next_character, :options
-  attr_reader :last_focus_spoken
-
-  module Flags
-    MultiSelection = 1
-  end
-
-  def initialize(options, header:, index: 0, flags: 0, quiet: true, empty_label: nil)
-    super()
-    @options = options
-    @header = header
-    @index = index
-    @flags = flags
-    @selected = Array.new(options.length, false)
-  end
-
-  def select_multiselection_indices(indices)
-    indices.each { |index| @selected[index] = true if index.between?(0, @selected.length - 1) }
-  end
-
-  def multiselections
-    @selected.each_index.select { |index| @selected[index] }
-  end
-
-  def focus(_index = nil, _count = nil, _header = @header, spk = true)
-    @last_focus_spoken = spk
-  end
-
-  private
-
-  def getkeychar(*_arguments)
-    @next_character.to_s
-  end
-end
-
-class Button < FakeControl
-  attr_reader :label
-
-  def initialize(label)
-    super()
-    @label = label
-  end
-end
-
-class Form < FakeControl
-  attr_accessor :index, :cancel_button, :held_modifiers
-  attr_reader :fields, :hidden_controls, :wait_entry_state
-
-  def initialize(fields, index:, quiet: true)
-    super()
-    @fields = fields
-    @index = index
-    @quiet = quiet
-    @updated = false
-    @hidden_controls = []
-  end
-
-  def controls
-    @fields
-  end
-
-  def wait
-    @wait_entry_state = [@updated, @quiet]
-    @fields[@index.to_i]&.focus if @updated == true || @quiet == true
-    @updated = true
-  end
-
-  def hide(control)
-    @hidden_controls << control
-  end
-
-  def modifier_held?(modifier)
-    @held_modifiers.to_a.include?(modifier)
-  end
-
-  def raw_key_held?(key)
-    key == :key_shift && @held_modifiers.to_a.include?(:shift)
-  end
-end
-
-class EditBox < FakeControl
-  attr_accessor :text, :index, :check, :flags
-  attr_reader :header, :last_focus_spoken
-
-  module Flags
-    ReadOnly = 1
-    MultiLine = 2
-  end
-
-  def initialize(header, type: 0, text: "", quiet: true, max_length: -1)
-    super()
-    @header = header
-    @type = type
-    @flags = type
-    @text = text
-    @index = @check = 0
-    @max_length = max_length
-  end
-
-  def focus(_index = nil, _count = nil, spk = true)
-    @last_focus_spoken = spk
-  end
-
-  def context(menu, _submenu = false)
-    menu.submenu("Edit") do |edit_menu|
-      edit_menu.option("Quick translation", nil, "t") {}
-      edit_menu.option("Translate", nil, "T") {}
-    end
-  end
-end
-
-class FakeMenu
-  attr_reader :options
-
-  def initialize
-    @options = []
-  end
-
-  def option(label, value = nil, shortcut = "", &handler)
-    @options << [label, value, shortcut, handler]
-  end
-
-  def submenu(_label)
-    yield(self)
-  end
-end
+require_relative "support/ui"
 
 require_relative "../lib/game_surfaces"
 require_relative "../lib/game_layout"
@@ -209,16 +24,17 @@ layout = GameRoomLayout::Screen.new(
   user_items: ["Alice", "Bob"],
   history_index: 99,
   users_index: 99,
-  form_index: 99,
   users_header: "Users at the table (2)"
 )
-assert(layout_spec.sections == [:game, :history, :chat, :users], "the shared game layout has the wrong section order")
-assert(layout.shortcut_fields.length == 3, "the shared game layout did not expose all content fields")
+assert(layout_spec.sections == [:game, :users, :primary, :restart, :chat, :history, :rules], "the shared game layout has the wrong section order")
+assert(layout.shortcut_fields.length == 4, "the shared game layout did not expose all content fields")
 assert(layout.form.controls[0] == layout.surface.fields[0], "the game field is not first in the shared layout")
-assert(layout.form.controls[1] == layout.history, "history is not second in the shared layout")
+assert(layout.form.controls[1] == layout.users, "users are not second in the shared layout")
 assert(layout.form.controls[2] == layout.chat, "chat is not third in the shared layout")
-assert(layout.form.controls[3] == layout.users, "users are not fourth in the shared layout")
+assert(layout.form.controls[3] == layout.history, "history is not fourth in the shared layout")
 assert(layout.form.hidden_controls == [layout.back_button], "the back action became a visible tab stop")
+assert(layout.rules_button.is_a?(Button) && layout.rules_button.label == "Game rules", "rules are not a native button")
+assert(layout.form.controls[-2] == layout.rules_button, "rules button is not the final visible field")
 layout.form.instance_variable_set(:@updated, true)
 layout.wait_without_announcement
 assert(
@@ -284,7 +100,7 @@ assert(layout_snapshot.form_index == 2, "the shared layout did not bound the act
 assert(layout_snapshot.focus_location == [:chat, 0], "the shared layout did not remember the active section semantically")
 assert(layout_snapshot.chat_text == "", "the shared layout did not preserve the chat draft")
 layout.history.index = 0
-layout.form.index = 1
+layout.form.index = 3
 browsing_history_snapshot = layout.snapshot
 assert(browsing_history_snapshot.history_index == 0, "browsing old history was forced back to the newest item")
 assert(!browsing_history_snapshot.history_follows_tail, "old history unexpectedly followed the tail while it was focused")
@@ -303,7 +119,6 @@ restored_chat_layout = GameRoomLayout::Screen.new(
   user_items: [],
   history_index: 0,
   users_index: 0,
-  form_index: 2,
   users_header: "Users at the table (2)",
   chat_text: chat_snapshot.chat_text,
   chat_index: chat_snapshot.chat_index,
@@ -323,7 +138,6 @@ persistent_chat_layout = GameRoomLayout::Screen.new(
   user_items: ["Alice", "Bob"],
   history_index: 0,
   users_index: 0,
-  form_index: 2,
   users_header: "Users at the table (2)",
   chat_text: "stale copy",
   chat_index: 0,
@@ -353,7 +167,6 @@ waiting_layout = GameRoomLayout::Screen.new(
   user_items: ["Alice", "Bob"],
   history_index: 1,
   users_index: 1,
-  form_index: 2,
   focus_location: [:game, 7],
   users_header: "Users at the table (2)"
 )
@@ -379,7 +192,6 @@ answer_layout = GameRoomLayout::Screen.new(
   user_items: ["Alice", "Bob"],
   history_index: 0,
   users_index: 0,
-  form_index: 2,
   focus_location: [:game, 7],
   previous_surface_identity: "GameSurfaces::ReviewSpec:round_1",
   users_header: "Users at the table (2)"
@@ -949,3 +761,98 @@ assert(piece_composite.cancel_pending_action!, "composite surface did not cancel
 assert(!piece_composite.cancel_pending_action?, "composite surface kept a cancelled child selection")
 
 puts "Game surface framework tests passed"
+
+# A room without a game has no artificial board or action list.
+require_relative "../lib/room_presentation"
+room_rows = ["Alice", "bot:7:1", "bot:7:2", "bot:7:3"].map do |id|
+  RoomPresentation::User.new(participant: id, label: id)
+end
+empty_view = GameRoomLayout::ViewSpec.new
+room_layout = GameRoomLayout::Screen.new(
+  view_spec: empty_view, user_items: room_rows, phase: :waiting, own_table: true
+)
+assert(room_layout.form.fields == [room_layout.users, room_layout.primary_button, room_layout.chat, room_layout.history, room_layout.rules_button, room_layout.back_button], "waiting room order or optional board is wrong")
+assert(room_layout.form.fields[room_layout.form.index] == room_layout.users, "entering a room did not focus users")
+room_layout.users.index = 2
+room_layout.chat.text = "unfinished message"
+room_layout.chat.index = 7
+room_layout.chat.check = 3
+original_controls = [room_layout.form, room_layout.users, room_layout.chat, room_layout.history]
+room_layout.update_users([room_rows[0], room_rows[2], room_rows[3]])
+assert(room_layout.selected_participant == "bot:7:2" && room_layout.users.index == 1, "removing an earlier row moved the selected identity")
+room_layout.form.index = room_layout.form.fields.index(room_layout.chat)
+room_layout.update(view_spec: layout_spec, history_items: ["started"], user_items: room_rows, users_header: "Players", phase: :active)
+assert(room_layout.focus_location == [:game, 0], "starting a game did not focus its board")
+room_layout.form.index = room_layout.form.fields.index(room_layout.chat)
+room_layout.update(view_spec: layout_spec, history_items: ["started", "move"], user_items: room_rows, users_header: "Players", phase: :active)
+assert(room_layout.focus_location == [:chat, 0], "an ordinary game update moved focus away from chat")
+assert(original_controls == [room_layout.form, room_layout.users, room_layout.chat, room_layout.history], "a game update rebuilt the room controls")
+assert([room_layout.chat.text, room_layout.chat.index, room_layout.chat.check] == ["unfinished message", 7, 3], "starting a game lost the chat draft or caret")
+assert(!room_layout.form.fields.include?(room_layout.primary_button) && !room_layout.form.fields.include?(room_layout.restart_button), "active game exposed start/restart")
+room_layout.update(view_spec: layout_spec, history_items: ["finished"], user_items: room_rows, users_header: "Players", phase: :finished, own_table: true)
+assert(room_layout.form.fields == [room_layout.surface.fields.first, room_layout.users, room_layout.restart_button, room_layout.chat, room_layout.history, room_layout.rules_button, room_layout.back_button], "finished game order is wrong")
+assert(room_layout.focus_location == [:users, 0], "ending a game did not focus users")
+room_layout.form.index -= 1
+assert(room_layout.focus_location == [:game, 0], "Shift+Tab from users does not reach the final board")
+room_layout.update(view_spec: layout_spec, history_items: ["finished", "chat"], user_items: room_rows, users_header: "Players", phase: :finished, own_table: true)
+assert(room_layout.focus_location == [:game, 0], "a finished-game update interrupted board inspection")
+room_layout.form.index = room_layout.form.fields.index(room_layout.restart_button)
+room_layout.update(view_spec: layout_spec, history_items: [], user_items: room_rows, users_header: "Players", phase: :active)
+assert(room_layout.focus_location == [:game, 0], "restarting a finished game did not focus its board")
+room_layout.update(view_spec: empty_view, history_items: [], user_items: room_rows, users_header: "Players", phase: :waiting, own_table: false)
+assert(!room_layout.form.fields.include?(room_layout.primary_button), "a guest can start the game")
+room_layout.update(view_spec: layout_spec, history_items: [], user_items: room_rows, users_header: "Players", phase: :finished, own_table: false)
+assert(!room_layout.form.fields.include?(room_layout.primary_button) && !room_layout.form.fields.include?(room_layout.restart_button), "guest final-position controls are wrong")
+
+calls = []
+rules_calls = []
+3.times do |iteration|
+  room_layout.begin_bindings
+  room_layout.primary_button.on(:press) { calls << iteration }
+  room_layout.rules_button.on(:press) { rules_calls << iteration }
+  room_layout.form.add_timer(Object.new)
+end
+room_layout.primary_button.trigger(:press)
+room_layout.rules_button.trigger(:press)
+assert(rules_calls == [2], "rules button accumulated obsolete handlers")
+assert(calls == [2], "persistent controls accumulated obsolete handlers")
+assert(room_layout.form.instance_variable_get(:@timers).length == 1, "persistent form accumulated refresh timers")
+room_layout.begin_bindings
+assert(room_layout.form.instance_variable_get(:@timers).empty?, "leaving a screen left its timer running")
+
+require_relative "../lib/participant_menu"
+menu_calls = []
+allowed = [:invite_online, :invite_contacts, :accept_invitation, :reject_invitation, :add_bot, :remove_bot, :rules]
+room_layout.users.index = 2
+GameRoomParticipantMenu.bind(room_layout, available: -> { allowed }) { |action, id| menu_calls << [action, id] }
+menu = FakeMenu.new
+room_layout.users.context(menu, false)
+assert(menu.options.none? { |option| ["Accept a game invitation", "Reject a game invitation"].include?(option[0]) }, "participant menu exposes accepting or rejecting invitations")
+assert(["Invite an online Elten user", "Invite someone from your contacts"].all? { |label| menu.options.any? { |option| option[0] == label } }, "participant menu lost outgoing invitations")
+assert_invitation_menu_scope(room_layout.form, list: room_layout.users, keys: %w[i I])
+assert(menu.options.none? { |option| option[0] == "Game rules" }, "rules still appear in the participant menu")
+add = menu.options.find { |option| option[0] == "Add a computer" }
+assert(add != nil && add[2] == "o", "adding a computer has no native Ctrl+O shortcut")
+remove = menu.options.find { |option| option[2] == :del }
+assert(remove != nil, "computer context menu has no native Delete action")
+room_layout.users.index = 3
+remove[3].call
+assert(menu_calls == [[:remove_bot, "bot:7:2"]], "context action lost the original row used to validate computer removal")
+allowed.delete(:remove_bot)
+remove[3].call
+assert(menu_calls.length == 1, "stale context menu bypassed updated permissions")
+allowed << :remove_bot
+room_layout.users.index = 0
+menu = FakeMenu.new
+room_layout.users.context(menu, false)
+assert(menu.options.none? { |option| option[2] == :del }, "human participant exposed computer deletion")
+assert(room_layout.users.instance_variable_get(:@context_disabled_globally), "Delete can leak into other fields through the global menu")
+puts "Room layout and participant menu tests passed"
+
+room_layout.update(view_spec: empty_view, history_items: [], user_items: room_rows, users_header: "Users", phase: :waiting)
+room_layout.form.index = room_layout.form.fields.index(room_layout.chat)
+room_layout.update(view_spec: empty_view, history_items: [], user_items: room_rows, users_header: "Users", phase: :active)
+assert(room_layout.focus_location == [:users, 0], "game without a surface focused a missing board")
+room_layout.update(view_spec: empty_view, history_items: [], user_items: room_rows, users_header: "Users", phase: :waiting)
+room_layout.update(view_spec: answer_layout_spec, history_items: [], user_items: room_rows, users_header: "Users", phase: :active)
+assert(room_layout.form.fields[room_layout.form.index] == room_layout.surface.fields.first, "starting a game with several surface fields did not focus the first one")

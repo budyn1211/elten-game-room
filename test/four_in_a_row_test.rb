@@ -103,7 +103,7 @@ empty_surface = game.surface_spec(empty, "Alice")
 assert(empty_surface.cells.flatten.all?(&:empty?), "an empty Connect Four field says empty")
 view = game.game_view_spec(empty, "Alice")
 assert(view.is_a?(GameRoomLayout::ViewSpec), "four in a row bypasses the shared game layout")
-assert(view.sections == [:game, :history, :chat, :users], "four in a row changed the shared field order")
+assert(view.sections == [:game, :users, :primary, :restart, :chat, :history, :rules], "four in a row changed the shared field order")
 assert(view.surface.header == "Four in a row", "the board header still repeats the turn status")
 turn_shortcut = game.game_shortcuts(empty, "Alice").find { |shortcut| shortcut.key == "t" }
 assert(turn_shortcut != nil, "four in a row does not expose the shared turn shortcut")

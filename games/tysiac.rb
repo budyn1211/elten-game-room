@@ -381,6 +381,10 @@ module GameRoomGames
       )
     end
 
+    def participant_scores(replay)
+      replay.state[:scores].dup
+    end
+
     def shortcut_features
       super + [:hand, :table_cards, :table_cards_list, :led_suit, :scores, :statistics, :bidding]
     end

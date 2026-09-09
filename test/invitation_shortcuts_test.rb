@@ -1,63 +1,49 @@
-require_relative "../lib/invitation_shortcuts"
+require_relative "support/ui"
+require_relative "../lib/game_room_screens"
 
 def assert(condition, message)
   raise message if !condition
 end
 
-class FakeInvitationShortcutForm
-  def initialize
-    @handlers = {}
-    @pressed = []
+class Form
+  class << self
+    attr_accessor :driver
   end
 
-  def on(event, &block)
-    @handlers[event] = block
+  def wait
+    Form.driver.call(self)
   end
 
-  def press(key)
-    @pressed = [key]
-    send(:keyevents)
-  ensure
-    @pressed = []
-  end
-
-  def trigger(event, parameters)
-    @handlers.fetch(event).call(parameters)
-  end
-
-  private
-
-  def keyevents
-    []
-  end
-
-  def key_first_pressed?(key)
-    @pressed.include?(key)
-  end
+  def resume; end
 end
 
-form = FakeInvitationShortcutForm.new
-actions = []
-GameRoomInvitationShortcuts.bind(
-  form,
-  [],
-  invite_online: -> { actions << :online },
-  invite_contacts: -> { actions << :contacts },
-  accept: -> { actions << :accept },
-  reject: -> { actions << :reject }
-)
+# Accept/reject shortcuts belong to the main options list, not its history
+# or the whole form. Native menu keys also advertise the shortcuts.
+[["j", :invitations], ["J", :reject_invitation]].each do |key, expected|
+  Form.driver = lambda do |form|
+    options = form.fields.first
+    options.index = 2
+    assert_invitation_menu_scope(form, list: options, keys: %w[j J])
+    menu = FakeMenu.new
+    options.context(menu, false)
+    menu.options.find { |option| option[2] == key }[3].call
+  end
+  result = GameRoomScreens::MainMenu.new(options: %w[Create Join Invitations], invitations: true).wait
+  assert(result.action == expected && result.index == 2, "main-menu invitation action or list position was lost")
+end
 
-i_events = form.press(GameRoomInvitationShortcuts::CTRL_I_KEY)
-j_events = form.press(GameRoomInvitationShortcuts::CTRL_J_KEY)
-assert(i_events == [[:game_room_invitation_i, :game_room_invitation_i]], "Ctrl+I event was filtered as a list letter")
-assert(j_events == [[:game_room_invitation_j, :game_room_invitation_j]], "Ctrl+J event was filtered as a list letter")
+# The visible Invitations item keeps the ordinary Open path.
+Form.driver = lambda do |form|
+  form.fields.first.index = 2
+  form.accept_button.trigger(:press)
+end
+result = GameRoomScreens::MainMenu.new(options: %w[Create Join Invitations], invitations: true).wait
+assert(result.action == :open && result.index == 2, "the Invitations item no longer opens normally")
 
-form.trigger(:game_room_invitation_i, [false, true, false])
-form.trigger(:game_room_invitation_i, [true, true, false])
-form.trigger(:game_room_invitation_j, [false, true, false])
-form.trigger(:game_room_invitation_j, [true, true, false])
-form.trigger(:game_room_invitation_i, [false, false, false])
-form.trigger(:game_room_invitation_j, [false, false, false])
-assert(actions == [:online, :contacts, :accept, :reject], "invitation shortcuts accepted invalid modifiers or lost a valid action")
-
-puts "Invitation shortcut tests passed"
+Form.driver = lambda do |form|
+  assert_invitation_menu_scope(form, list: form.fields.first, keys: [])
+  form.cancel_button.trigger(:press)
+end
+assert(GameRoomScreens::MainMenu.new(options: ["Exit"]).wait.action == :exit, "disabled invitations retained their shortcuts")
+Form.driver = nil
+puts "Native invitation menu shortcut tests passed"

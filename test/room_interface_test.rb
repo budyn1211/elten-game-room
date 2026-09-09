@@ -1,0 +1,453 @@
+require_relative "support/ui"
+
+class Program
+  def self.server_app(**_options); end
+end
+
+module Session
+  def self.name
+    "Alice"
+  end
+end
+
+class FormTimer
+  def initialize(_interval, repeat:, &callback)
+    @callback = callback
+  end
+
+  def fire
+    @callback.call
+  end
+end
+
+class Form
+  class << self
+    attr_accessor :driver
+  end
+
+  alias wait_with_native_entry wait
+
+  def wait
+    raise "unexpected form wait" if Form.driver == nil
+    wait_with_native_entry
+    Form.driver.call(self)
+  end
+
+  def resume; end
+
+  def focus
+    fields[index].focus
+  end
+
+  def keyboard_idle_frame?
+    true
+  end
+end
+
+require_relative "../__app"
+
+def assert(condition, message)
+  raise message unless condition
+end
+
+class InterfaceGameRepository
+  def players_for(_session)
+    ["Alice", "Bob"]
+  end
+
+  def actor_of(event, _session = nil)
+    event["actor"]
+  end
+
+  def event_id(event)
+    event["id"]
+  end
+
+  def session_id(session)
+    session.to_h["__id"].to_i
+  end
+end
+
+row = { "__id" => 7, "owner" => "Alice", "game" => "four_in_a_row", "status" => "waiting", "max_players" => 8, "name" => "Test room", "game_options" => "{}" }
+room = LobbyRepository::TableSnapshot.new(table: row, members: ["Alice", "Bob"], bots: [])
+game = GameRoomGames::FourInARow.new
+repository = InterfaceGameRepository.new
+session = { "__id" => 1, "options" => "{}" }
+replay = game.replay(session, [], repository)
+waiting = GameRoomLifecycle::State.new(room: room, game_snapshot: nil, game: game, replay: nil)
+finished_replay = game.replay(session, [], repository)
+finished_replay.winner = "Alice"
+finished = GameRoomLifecycle::State.new(room: room, game_snapshot: Struct.new(:session).new(session), game: game, replay: finished_replay, players: %w[Alice Bob])
+app = EltenGameRoom.allocate
+lobby = LobbyRepository.allocate
+app.instance_variable_set(:@lobby, lobby)
+app.instance_variable_set(:@games, repository)
+app.instance_variable_set(:@transport, Object.new)
+tracker = Object.new
+tracker.define_singleton_method(:observe) { |_members| [] }
+app.define_singleton_method(:room_membership_tracker) { |_table| tracker }
+app.define_singleton_method(:play_game_sounds) { |_sounds| }
+app.define_singleton_method(:announce_new_table_activity) { |_entries, after_id:| after_id }
+app.define_singleton_method(:room_history_items) { |_state, _entries| ["history"] }
+app.define_singleton_method(:table_header) { |_snapshot| "Users" }
+state = waiting
+app.define_singleton_method(:load_room_state) { |_row, **_options| state }
+starts = 0
+visits = 0
+original = nil
+app.define_singleton_method(:start_new_game) do |_row, **_options|
+  starts += 1
+  state = finished
+  session
+end
+app.define_singleton_method(:run_game_screen) do |_session, _game, table:|
+  layout = @table_layouts.fetch(7)
+  assert(original == [layout.form, layout.users, layout.chat, layout.history], "table lifecycle rebuilt shared controls")
+  assert(layout.phase == :finished, "finished table did not open its game screen")
+  assert(!layout.form.fields.include?(layout.primary_button), "finished table exposes a review button")
+  assert(layout.chat.text == "preserved draft", "ending a game lost chat")
+  assert(starts == visits + 1, "restart bypassed the standard start operation")
+  visits += 1
+  visits < 3 ? :restart : :back
+end
+app.define_singleton_method(:leave_table_from_screen) { |_row| true }
+Form.driver = lambda do |form|
+  raise "unexpected waiting-room form" if original != nil
+  layout = app.instance_variable_get(:@table_layouts).fetch(7)
+  original = [form, layout.users, layout.chat, layout.history]
+  assert(layout.focus_location == [:users, 0], "table entry focus is not on users")
+  assert(layout.surface == nil, "waiting room has a synthetic board")
+  assert_invitation_menu_scope(form, list: layout.users, keys: %w[i I])
+  layout.chat.text = "preserved draft"
+  layout.chat.index = 5
+  layout.chat.check = 2
+  layout.primary_button.trigger(:press)
+end
+app.send(:show_table_screen, row)
+assert(starts == 3 && visits == 3, "room did not finish its start/restart/restart/leave flow")
+assert(original.first.instance_variable_get(:@timers).empty?, "room cleanup left a timer running")
+
+# Both outgoing shortcuts use the waiting room's existing invite flow.
+state = waiting
+sent_invitations = []
+opened_rules = []
+app.define_singleton_method(:show_game_rules) { |selected_game, options:| opened_rules << [selected_game.id, options] }
+app.define_singleton_method(:show_invite_users) { |_table, source:| sent_invitations << source }
+waiting_step = 0
+Form.driver = lambda do |form|
+  current = app.instance_variable_get(:@table_layouts).fetch(7)
+  assert_invitation_menu_scope(form, list: current.users, keys: %w[i I])
+  if waiting_step < 2
+    menu = FakeMenu.new
+    current.users.context(menu, false)
+    key = %w[i I][waiting_step]
+    menu.options.find { |option| option[2] == key }[3].call
+  elsif waiting_step == 2
+    form.index = form.fields.index(current.rules_button)
+    current.rules_button.trigger(:press)
+  else
+    assert(current.focus_location == [:rules, 0], "returning from table rules lost the button focus")
+    current.back_button.trigger(:press)
+  end
+  waiting_step += 1
+end
+app.send(:show_table_screen, row)
+assert(waiting_step == 4 && sent_invitations == [:online, :contacts], "waiting-room invitation menus lost their invite source")
+assert(opened_rules == [[game.id, {}]], "waiting-room rules button did not open the current game rules")
+
+# Drive the real active-game form twice, checking focus, menu dispatch and
+# preservation of the shell across a game refresh.
+screen = GameScreen.allocate
+controller = Object.new
+controller.define_singleton_method(:cancel) { |_lease| }
+{
+  game: game, repository: repository, session: session, table: row,
+  table_owner: "Alice", room_snapshot: room, surface_state: {},
+  history_navigator: GameRoomHistory::Navigator.new,
+  bot_turn_controller: controller, invite_online: ->(_table) {}, invite_contacts: ->(_table) {},
+  turn_history_entries: {}, activity_entries: []
+}.each { |key, value| screen.instance_variable_set("@#{key}", value) }
+original_game_controls = nil
+Form.driver = lambda do |form|
+  layout = screen.instance_variable_get(:@layout)
+  original_game_controls = [form, layout.users, layout.chat, layout.history]
+  assert(layout.focus_location == [:game, 0], "new game did not focus its board")
+  assert(form.fields.first == layout.surface.fields.first, "active board is not first")
+  assert_invitation_menu_scope(form, list: layout.users, keys: %w[i I])
+  menu = FakeMenu.new
+  layout.users.context(menu, false)
+  assert(menu.options.none? { |item| item[2] == :del }, "active game permits computer deletion")
+  menu.options.find { |item| item[2] == "i" }[3].call
+end
+assert(screen.send(:wait_for_action, replay, [0, 0]) == :invite_online, "active user menu did not dispatch invitation")
+layout = screen.instance_variable_get(:@layout)
+layout.chat.text = "live draft"
+layout.chat.index = 4
+layout.chat.check = 1
+layout.form.index = layout.form.fields.index(layout.chat)
+Form.driver = lambda do |form|
+  assert(original_game_controls == [form, layout.users, layout.chat, layout.history], "game refresh replaced the shell")
+  assert(layout.focus_location == [:chat, 0], "game refresh moved chat focus")
+  assert([layout.chat.text, layout.chat.index, layout.chat.check] == ["live draft", 4, 1], "game refresh lost chat selection")
+  layout.back_button.trigger(:press)
+end
+assert(screen.send(:wait_for_action, replay, [0, 0]) == :back, "game back action was lost")
+
+Form.driver = lambda do |form|
+  form.index = form.fields.index(layout.rules_button)
+  layout.rules_button.trigger(:press)
+end
+assert(screen.send(:wait_for_action, replay, [0, 0]) == :rules, "active-game rules button did not dispatch rules")
+assert(screen.instance_variable_get(:@focus_location) == [:rules, 0], "opening rules did not remember the focused button")
+layout.form.index = layout.form.fields.index(layout.chat)
+
+# A remotely started session may replace an active game while chat is focused.
+# Focus its board once, then preserve the user's field on ordinary updates.
+next_session = session.merge("__id" => 2)
+repository.define_singleton_method(:session_by_id) { |_id, table:| next_session }
+controller.define_singleton_method(:switch_session) { |_id| }
+new_session_sync = Object.new
+new_session_sync.define_singleton_method(:update_session) { |_id, **_options| self }
+new_session_sync.define_singleton_method(:synchronized!) { self }
+screen.instance_variable_set(:@synchronizer, new_session_sync)
+screen.instance_variable_set(:@new_session_id, 2)
+screen.define_singleton_method(:network_task) { |_title, **_options, &operation| operation.call }
+screen.send(:switch_to_new_session)
+Form.driver = lambda do |form|
+  assert(screen.instance_variable_get(:@session) == next_session, "new session was not opened")
+  assert(layout.focus_location == [:game, 0], "remote game start left focus in chat")
+  assert([layout.chat.text, layout.chat.index, layout.chat.check] == ["live draft", 4, 1], "remote game start lost the chat draft")
+  form.index = form.fields.index(layout.chat)
+  layout.back_button.trigger(:press)
+end
+assert(screen.send(:wait_for_action, replay, [0, 0]) == :back, "new-session view did not return")
+Form.driver = lambda do |_form|
+  assert(layout.focus_location == [:chat, 0], "a later game refresh focused the board again")
+  layout.back_button.trigger(:press)
+end
+screen.send(:wait_for_action, replay, [0, 0])
+
+# The table and game share their announcement cursor: returning from a game
+# must not speak the same room activity a second time.
+activity = Struct.new(:id, :kind, :actor).new(10, "joined", "Carol")
+activity_provider = Object.new
+activity_provider.define_singleton_method(:text_for) { |entry, **_options| "activity #{entry.id}" }
+screen.instance_variable_set(:@activity_repository, activity_provider)
+screen.instance_variable_set(:@activity_entries, [activity])
+screen.instance_variable_set(:@history_follows_tail, false)
+screen.instance_variable_set(:@last_seen_activity_id, nil)
+layout.activity_cursor = 10
+spoken_before = $spoken_messages.length
+screen.send(:process_new_table_activity, replay)
+assert($spoken_messages.length == spoken_before, "game repeated an event already announced by its table")
+activity.id = 11
+screen.send(:process_new_table_activity, replay)
+assert(layout.activity_cursor == 11 && $spoken_messages.last == "activity 11", "game did not share its newest announcement cursor")
+screen.instance_variable_set(:@last_seen_activity_id, nil)
+screen.send(:process_new_table_activity, replay)
+assert($spoken_messages.length == spoken_before + 1, "reopening the game repeated its latest announcement")
+
+# The finished board stays in the same screen. Ending focuses users once;
+# Shift+Tab reaches the board and rejected actions retain the game's message.
+screen.instance_variable_set(:@activity_repository, nil)
+screen.instance_variable_set(:@activity_entries, [])
+alerts = []
+screen.define_singleton_method(:alert) { |message| alerts << message }
+screen.define_singleton_method(:getkeychar) { "" }
+repository.define_singleton_method(:append_events) { |**_options| raise "finished game wrote an event" }
+Form.driver = lambda do |form|
+  assert(layout.focus_location == [:users, 0], "ending a game did not focus users")
+  assert(!form.fields.include?(layout.primary_button), "finished game exposes a review button")
+  assert_invitation_menu_scope(form, list: layout.users, keys: %w[i I])
+  form.index -= 1
+  assert(layout.focus_location == [:game, 0], "Shift+Tab did not reach the finished board")
+  layout.surface.fields.first.trigger(:select, [0, 0])
+end
+assert(screen.send(:wait_for_action, finished_replay, [0, 0]) == :game_action, "finished board swallowed an action")
+assert(screen.send(:submit_action, finished_replay) == false, "finished game accepted a move")
+assert(alerts == ["The game has already ended."], "finished game lost its validation message")
+# Action shortcuts use the same validation as native surface selection.
+game.define_singleton_method(:game_shortcuts) do |_replay, _viewer|
+  [GameRoomGames::GameShortcut.new(key: "x", label: "drop a piece", kind: :action,
+    action_kind: "grid", action_name: "select", payload: { "x" => 0, "y" => 0 })]
+end
+Form.driver = lambda do |form|
+  assert(layout.focus_location == [:game, 0], "finished-game refresh interrupted board inspection")
+  form.trigger(:key_x, {})
+end
+assert(screen.send(:wait_for_action, finished_replay, [0, 0]) == :game_action, "finished game swallowed an action shortcut")
+assert(screen.send(:submit_action, finished_replay) == false, "finished game accepted a shortcut move")
+assert(alerts == ["The game has already ended."] * 2, "action shortcut lost the finished-game message")
+game.singleton_class.remove_method(:game_shortcuts)
+Form.driver = lambda do |_form|
+  assert(layout.focus_location == [:game, 0], "finished-game refresh moved focus back to users")
+  layout.restart_button.trigger(:press)
+end
+assert(screen.send(:wait_for_action, finished_replay, [0, 0]) == :restart, "restart did not return to the room controller")
+# The same outgoing menu remains usable after the game finishes.
+Form.driver = lambda do |form|
+  form.index = form.fields.index(layout.users)
+  menu = FakeMenu.new
+  layout.users.context(menu, false)
+  menu.options.find { |option| option[2] == "I" }[3].call
+end
+assert(screen.send(:wait_for_action, finished_replay, [0, 0]) == :invite_contacts, "finished game lost invitations from contacts")
+
+# Reopening an active room after cancelling Leave preserves the board cursor
+# too; starting a new game from the finished room clears the old selection.
+layout.update(view_spec: game.game_view_spec(replay, "Alice"), history_items: [], user_items: [], users_header: "Users", phase: :active)
+layout.session_id = repository.session_id(session)
+layout.surface.fields.first.x = 2
+layout.form.index = layout.form.fields.index(layout.chat)
+repository.define_singleton_method(:bot_turn_controller) { |_id| controller }
+arguments = {
+  program: app, repository: repository, game: game, session: session,
+  table: row, table_owner: "Alice", room_snapshot_provider: -> { room },
+  synchronizer: Object.new, layout: layout
+}
+reopened = GameScreen.new(**arguments)
+assert(reopened.instance_variable_get(:@surface_state) == layout.surface.state, "reopening an active table reset its board cursor")
+assert(reopened.instance_variable_get(:@chat_control).equal?(layout.chat), "reopening an active table detached its chat editor")
+assert(reopened.instance_variable_get(:@focus_location) == [:chat, 0], "reopening an active table lost its input focus")
+layout.update(view_spec: game.game_view_spec(finished_replay, "Alice"), history_items: [], user_items: [], users_header: "Users", phase: :finished)
+finished_reopened = GameScreen.new(**arguments)
+assert(finished_reopened.instance_variable_get(:@surface_state) == layout.surface.state, "reopening a finished table reset its board cursor")
+next_game = GameScreen.new(**arguments.merge(session: next_session))
+assert(next_game.instance_variable_get(:@surface_state).empty?, "new game inherited the old board selection")
+# Run the actual screen through a winning move, an attempt on the final board
+# and restart. Only the winning move may reach repository storage.
+match_repository = InterfaceGameRepository.new
+match_events = [1, 7, 2, 7, 3, 6].each_with_index.map do |column, index|
+  { "id" => index + 1, "actor" => %w[Alice Bob][index % 2], "action" => "drop", "value" => column.to_s }
+end
+match_controller = GameRoomBots::TurnController.new
+match_repository.define_singleton_method(:bot_turn_controller) { |_id| match_controller }
+match_repository.define_singleton_method(:snapshot_for) do |current, **_options|
+  GameRepository::GameSnapshot.new(session: current, events: match_events.dup)
+end
+match_repository.define_singleton_method(:confirmed_event_ids) { |_current| match_events.map { |event| event["id"] } }
+match_repository.define_singleton_method(:events_revision) { |events| [events.length, events.last.to_h["id"].to_i] }
+match_repository.define_singleton_method(:next_sequence) { |_current, events| events.length + 1 }
+writes = 0
+match_repository.define_singleton_method(:append_events) do |session:, sequence:, events:, recipients:, actor:|
+  writes += 1
+  inserted = events.map.with_index do |event, index|
+    { "id" => sequence + index, "actor" => actor, "action" => event.action, "value" => event.value }
+  end
+  match_events.concat(inserted)
+  inserted
+end
+match_sync = Object.new
+match_sync.define_singleton_method(:synchronize) { |&operation| operation.call }
+app.define_singleton_method(:play_sound_from_asset) { |_name| }
+match_screen = GameScreen.new(**arguments.merge(repository: match_repository, synchronizer: match_sync, layout: nil))
+match_screen.define_singleton_method(:network_task) { |_title, **_options, &operation| operation.call }
+match_alerts = []
+match_screen.define_singleton_method(:alert) { |message| match_alerts << message }
+match_step = 0
+match_controls = nil
+match_rules_opened = 0
+Form.driver = lambda do |form|
+  current = match_screen.instance_variable_get(:@layout)
+  if !form.equal?(current.form)
+    expected_sections = game.rule_book(options: {}).sections.map(&:title)
+    assert(form.fields.first.options == expected_sections, "rules button opened an unrelated dialog")
+    match_rules_opened += 1
+    form.cancel_button.trigger(:press)
+    next
+  end
+  match_controls ||= [form, current.users, current.chat, current.history]
+  assert(match_controls == [form, current.users, current.chat, current.history], "finishing rebuilt the game shell")
+  case match_step
+  when 0
+    assert(current.phase == :active && current.focus_location == [:game, 0], "match did not open on the board")
+    current.chat.text = "endgame draft"
+    current.surface.fields.first.trigger(:select, [3, 0])
+  when 1
+    assert(current.phase == :finished && current.focus_location == [:users, 0], "winning move did not focus users")
+    assert(form.wait_entry_state.last == true && current.users.last_focus_spoken == true, "ending did not announce the newly focused users")
+    assert(current.chat.text == "endgame draft", "winning move lost the chat draft")
+    form.index -= 1
+    current.surface.fields.first.trigger(:select, [4, 0])
+  when 2
+    assert(current.focus_location == [:game, 0], "rejected action interrupted board inspection")
+    assert(form.wait_entry_state == [false, false], "finished-game update repeated the form announcement")
+    form.index = form.fields.index(current.rules_button)
+    current.rules_button.trigger(:press)
+  when 3
+    assert(current.focus_location == [:rules, 0], "returning from finished-game rules lost the button focus")
+    assert(current.chat.text == "endgame draft", "reading rules lost the chat draft")
+    current.restart_button.trigger(:press)
+  else
+    raise "finished game did not handle restart"
+  end
+  match_step += 1
+end
+assert(match_screen.run == :restart && match_step == 4, "game exited immediately after the winning move")
+assert(match_rules_opened == 1, "rules button opened its dialog more than once")
+assert(writes == 1 && match_events.length == 7, "a finished-game action wrote extra events")
+assert(match_alerts == ["The game has already ended."], "finished-game action did not announce its rejection")
+assert(match_controls.first.instance_variable_get(:@timers).empty?, "finished game left a timer running")
+
+# Delete on a middle computer uses the unchanged repository operation and
+# count-only wire data. The UI keeps a valid row as the numbering contracts.
+bot_table = row.merge("game" => "farkle", "bot_count" => 3)
+bot_updates = []
+bot_transport = Object.new
+bot_transport.define_singleton_method(:live_store?) { true }
+bot_transport.define_singleton_method(:room_snapshot) do |_table|
+  { table: bot_table.dup, members: ["Alice"], bots: GameRoomParticipants.bots_for(7, bot_table["bot_count"]) }
+end
+bot_transport.define_singleton_method(:update_room) do |_table, changes, actor:|
+  assert(actor == "Alice", "computer update lost its owner")
+  bot_updates << changes
+  bot_table.merge(changes)
+end
+bot_lobby = LobbyRepository.new(nil, transport: bot_transport, server_tables: {})
+bot_manager = EltenGameRoom.allocate
+bot_manager.instance_variable_set(:@lobby, bot_lobby)
+bot_game = GameRoomGames::Farkle.new
+bot_game_active = false
+bot_manager.define_singleton_method(:load_room_state) do |_table, **_options|
+  GameRoomLifecycle::State.new(
+    room: bot_lobby.snapshot_for(bot_table), game: bot_game,
+    game_snapshot: bot_game_active ? Struct.new(:session).new(session) : nil,
+    replay: bot_game_active ? replay : nil
+  )
+end
+bot_manager.define_singleton_method(:run_network_task) { |_title, &operation| operation.call }
+rows_for_bots = lambda do
+  bot_manager.send(:room_user_rows, bot_manager.send(:load_room_state, bot_table))
+end
+bot_layout = GameRoomLayout::Screen.new(view_spec: GameRoomLayout::ViewSpec.new, user_items: rows_for_bots.call, phase: :waiting, own_table: true)
+bot_layout.users.index = 2
+GameRoomParticipantMenu.bind(bot_layout, available: -> { [:add_bot, :remove_bot] }) do |action, participant|
+  bot_manager.send(:change_room_computer, bot_table, action, participant)
+end
+bot_menu = FakeMenu.new
+bot_layout.users.context(bot_menu, false)
+bot_menu.options.find { |option| option[2] == :del }[3].call
+assert(bot_updates == [{ "bot_count" => 2 }], "Delete changed the protocol instead of decrementing the bot count")
+bot_layout.update_users(rows_for_bots.call)
+assert(bot_layout.users.index == 2 && bot_layout.selected_participant == "bot:7:2", "middle-computer Delete moved the list position")
+bot_manager.send(:change_room_computer, bot_table, :remove_bot, "bot:7:2")
+bot_layout.update_users(rows_for_bots.call)
+assert(bot_table["bot_count"] == 1 && bot_layout.selected_participant == "bot:7:1", "last-computer Delete left an invalid list selection")
+bot_menu.options.find { |option| option[2] == "o" }[3].call
+assert(bot_table["bot_count"] == 2, "UI could not add a computer using the original repository API")
+write_count = bot_updates.length
+bot_manager.send(:change_room_computer, bot_table, :remove_bot, "Alice")
+bot_manager.send(:change_room_computer, bot_table, :remove_bot, "bot:7:99")
+bot_game_active = true
+bot_manager.send(:change_room_computer, bot_table, :remove_bot, "bot:7:1")
+bot_menu.options.find { |option| option[2] == "o" }[3].call
+bot_game_active = false
+bot_table["bot_count"] = 7
+bot_menu.options.find { |option| option[2] == "o" }[3].call
+bot_table["bot_count"] = 2
+bot_table["owner"] = "Bob"
+bot_manager.send(:change_room_computer, bot_table, :remove_bot, "bot:7:1")
+bot_menu.options.find { |option| option[2] == "o" }[3].call
+assert(bot_updates.length == write_count, "UI bypassed current participant, phase, capacity or owner checks")
+Form.driver = nil
+puts "Room interface lifecycle tests passed"

@@ -344,6 +344,10 @@ module GameRoomGames
       )
     end
 
+    def participant_scores(replay)
+      replay.state[:scores].dup
+    end
+
     def shortcut_features
       super + [:scores, :current_total, :last_roll]
     end

@@ -1,9 +1,19 @@
 require_relative "game_participants"
 
 module RoomPresentation
+  User = Struct.new(:participant, :label, keyword_init: true) do
+    def to_s
+      label
+    end
+  end
+
   module_function
 
-  def user_labels(members, bots: [], owner:, players:, active:, team_assignment: nil, statuses: {})
+  def user_labels(members, **options)
+    user_rows(members, **options).map(&:label)
+  end
+
+  def user_rows(members, bots: [], owner:, players:, active:, team_assignment: nil, statuses: {}, scores: nil)
     participants = GameRoomParticipants.unique(members.to_a + bots.to_a + players.to_a)
     participants.map do |participant|
       roles = []
@@ -18,11 +28,33 @@ module RoomPresentation
       roles << _("team %{team}") % { team: team } if team != nil
       status = participant_status(statuses, participant)
       roles << status if !status.to_s.empty?
-      _("%{user}, %{roles}") % {
+      score = scores&.find { |player, _points| same_user?(player, participant) }
+      roles << (_("%{points} points") % { points: score[1] }) if score != nil && score[1] != nil
+      User.new(participant: participant, label: _("%{user}, %{roles}") % {
         user: GameRoomParticipants.display_name(participant),
         roles: roles.join(", ")
-      }
+      })
     end
+  end
+
+  def game_users(room:, game:, replay:, players:, owner:, options: {})
+    players = players.to_a
+    active = replay != nil && !replay.finished?
+    # Finished results annotate people still at the table. Departed players
+    # remain in the game's replay, but are not manageable room members.
+    listed_players = active ? players : []
+    statuses = listed_players.each_with_object({}) do |participant, result|
+      result[participant] = game.participant_status(
+        replay, participant,
+        connected: GameRoomParticipants.bot?(participant) || includes_user?(room.members, participant)
+      )
+    end
+    user_rows(
+      room.members, bots: room.bots.to_a, owner: owner,
+      players: listed_players, active: active,
+      team_assignment: replay == nil ? nil : game.team_assignment(options, players: players),
+      statuses: statuses, scores: replay == nil ? nil : game.participant_scores(replay)
+    )
   end
 
   def includes_user?(users, user)
