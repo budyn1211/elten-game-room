@@ -1,5 +1,11 @@
 # Historia zmian
 
+## 1.1.3 — build 197
+
+- komunikat o dołączeniu do pokoju nie jest już ucinany przez następującą po
+  nim informację o oczekiwaniu na rozpoczęcie gry; dotyczy to zarówno
+  dołączenia ręcznego, jak i przyjęcia zaproszenia.
+
 ## 1.1.3 — build 196
 
 - po zakończeniu partii końcowe komunikaty nie są przerywane, a następnie

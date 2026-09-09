@@ -4,7 +4,7 @@
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
   "version": "1.1.3",
-  "build_id": "196",
+  "build_id": "197",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -75,7 +75,7 @@ require_relative "games/registry"
 
 class EltenGameRoom < Program
   GAME_ROOM_VERSION = "1.1.3".freeze
-  GAME_ROOM_BUILD_ID = 196
+  GAME_ROOM_BUILD_ID = 197
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
 
@@ -579,12 +579,7 @@ class EltenGameRoom < Program
 
       case result.status
       when :joined, :already_here
-        play_game_sound("connect") if result.status == :joined
-        if result.status == :joined
-          speak(_("You joined %{player}'s room.") % {
-            player: GameRoomParticipants.display_name(@lobby.owner_of(result.table))
-          })
-        end
+        announce_joined_room(result.table) if result.status == :joined
         show_table_screen(result.table)
         return true
       when :already_at_another_table
@@ -1216,12 +1211,7 @@ class EltenGameRoom < Program
 
     case result.status
     when :joined, :already_here
-      play_game_sound("connect") if result.status == :joined
-      if result.status == :joined
-        speak(_("You joined %{player}'s room.") % {
-          player: GameRoomParticipants.display_name(@lobby.owner_of(result.table))
-        })
-      end
+      announce_joined_room(result.table) if result.status == :joined
       result.table
     when :full
       alert(_("This table is full."))
@@ -1312,6 +1302,16 @@ class EltenGameRoom < Program
   def switch_to_invited_table
     row = show_pending_invitations
     throw(:game_room_table_switch, row) if row != nil
+  end
+
+  def announce_joined_room(row)
+    play_game_sound("connect")
+    speak(_("You joined %{player}'s room.") % {
+      player: GameRoomParticipants.display_name(@lobby.owner_of(row))
+    })
+    # The waiting status is the first focused field for a guest. Queue it
+    # after the room confirmation instead of letting it cut that message off.
+    speech_wait
   end
 
   def invitation_metadata(row, invitation_id)
