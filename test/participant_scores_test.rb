@@ -61,6 +61,21 @@ room = LobbyRepository::TableSnapshot.new(
 rows = RoomPresentation.game_users(room: room, game: spades, replay: replay, players: players, owner: "Alice", options: options)
 assert(rows.find { |row| row.participant == "Alice" }.label.include?("-20 points"), "user list omitted the current score")
 assert(!rows.find { |row| row.participant == "Observer" }.label.include?("points"), "observer received a fabricated score")
+interrupted_room = LobbyRepository::TableSnapshot.new(
+  table: { "__id" => 7, "max_players" => 8 }, members: ["Alice", "Observer"], bots: []
+)
+interrupted_rows = RoomPresentation.game_users(
+  room: interrupted_room, game: spades, replay: replay, players: players,
+  owner: "Alice", options: options, active: false
+)
+assert(
+  interrupted_rows.none? { |row| row.participant == "Bob" },
+  "an interrupted game's departed player remained on the current room list"
+)
+assert(
+  replay.players.include?("Bob"),
+  "hiding a departed player altered the interrupted game's saved roster"
+)
 replay.winner = "Alice"
 finished_rows = RoomPresentation.game_users(room: room, game: spades, replay: replay, players: players, owner: "Alice", options: options)
 assert(finished_rows.find { |row| row.participant == "Alice" }.label.include?("-20 points"), "finished game lost its final scores")

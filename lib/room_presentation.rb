@@ -37,9 +37,9 @@ module RoomPresentation
     end
   end
 
-  def game_users(room:, game:, replay:, players:, owner:, options: {})
+  def game_users(room:, game:, replay:, players:, owner:, options: {}, active: nil)
     players = players.to_a
-    active = replay != nil && !replay.finished?
+    active = replay != nil && !replay.finished? if active == nil
     # Finished results annotate people still at the table. Departed players
     # remain in the game's replay, but are not manageable room members.
     listed_players = if active

@@ -4,7 +4,7 @@
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
   "version": "1.1.4",
-  "build_id": "199",
+  "build_id": "200",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -75,7 +75,7 @@ require_relative "games/registry"
 
 class EltenGameRoom < Program
   GAME_ROOM_VERSION = "1.1.4".freeze
-  GAME_ROOM_BUILD_ID = 199
+  GAME_ROOM_BUILD_ID = 200
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
 
@@ -1592,7 +1592,8 @@ class EltenGameRoom < Program
     options = state.session == nil ? {} : state.game&.options_from_json(state.session["options"])
     RoomPresentation.game_users(
       room: state.room, game: state.game, replay: state.replay,
-      players: state.players, owner: @lobby.owner_of(state.room.table), options: options
+      players: state.players, owner: @lobby.owner_of(state.room.table), options: options,
+      active: state.active?
     )
   end
 

@@ -1,5 +1,11 @@
 # Historia zmian
 
+## 1.1.4 — build 200
+
+- po przerwaniu partii lista użytkowników jest oparta na rzeczywistym składzie
+  pokoju, dlatego rozłączony gracz nie pozostaje na niej jako zawodnik;
+- pełny skład przerwanej partii nadal pozostaje w jej zapisie i historii.
+
 ## 1.1.4 — build 199
 
 - po przekazaniu mastera nowy master wykonuje rozdania, rozpoczyna następne
