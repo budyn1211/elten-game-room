@@ -115,9 +115,10 @@ Form.driver = lambda do |form|
   raise "unexpected waiting-room form" if original != nil
   layout = app.instance_variable_get(:@table_layouts).fetch(7)
   original = [form, layout.users, layout.chat, layout.history]
-  assert(layout.focus_location == [:users, 0], "table entry focus is not on users")
+  assert(layout.focus_location == [:status, 0], "table entry focus is not on Start game")
+  assert(form.fields.first == layout.primary_button, "Start game is not the first room field")
   assert(layout.surface == nil, "waiting room has a synthetic board")
-  assert_invitation_menu_scope(form, list: layout.users, keys: %w[i I])
+  assert_global_invitation_menu(form, keys: %w[i I])
   layout.chat.text = "preserved draft"
   layout.chat.index = 5
   layout.chat.check = 2
@@ -136,17 +137,19 @@ app.define_singleton_method(:show_invite_users) { |_table, source:| sent_invitat
 waiting_step = 0
 Form.driver = lambda do |form|
   current = app.instance_variable_get(:@table_layouts).fetch(7)
-  assert_invitation_menu_scope(form, list: current.users, keys: %w[i I])
+  assert_global_invitation_menu(form, keys: %w[i I])
   if waiting_step < 2
     menu = FakeMenu.new
-    current.users.context(menu, false)
+    form.context(menu, false)
     key = %w[i I][waiting_step]
     menu.options.find { |option| option[2] == key }[3].call
   elsif waiting_step == 2
-    form.index = form.fields.index(current.rules_button)
-    current.rules_button.trigger(:press)
+    form.index = form.fields.index(current.chat)
+    menu = FakeMenu.new
+    form.context(menu, false)
+    menu.options.find { |option| option[0] == "Game rules" }[3].call
   else
-    assert(current.focus_location == [:rules, 0], "returning from table rules lost the button focus")
+    assert(current.focus_location == [:chat, 0], "returning from table rules lost the originating field")
     current.back_button.trigger(:press)
   end
   waiting_step += 1
@@ -173,10 +176,9 @@ Form.driver = lambda do |form|
   original_game_controls = [form, layout.users, layout.chat, layout.history]
   assert(layout.focus_location == [:game, 0], "new game did not focus its board")
   assert(form.fields.first == layout.surface.fields.first, "active board is not first")
-  assert_invitation_menu_scope(form, list: layout.users, keys: %w[i I])
+  assert_global_invitation_menu(form, keys: %w[i I])
   menu = FakeMenu.new
-  layout.users.context(menu, false)
-  assert(menu.options.none? { |item| item[2] == :del }, "active game permits computer deletion")
+  form.context(menu, false)
   menu.options.find { |item| item[2] == "i" }[3].call
 end
 assert(screen.send(:wait_for_action, replay, [0, 0]) == :invite_online, "active user menu did not dispatch invitation")
@@ -194,11 +196,12 @@ end
 assert(screen.send(:wait_for_action, replay, [0, 0]) == :back, "game back action was lost")
 
 Form.driver = lambda do |form|
-  form.index = form.fields.index(layout.rules_button)
-  layout.rules_button.trigger(:press)
+  menu = FakeMenu.new
+  form.context(menu, false)
+  menu.options.find { |option| option[0] == "Game rules" }[3].call
 end
-assert(screen.send(:wait_for_action, replay, [0, 0]) == :rules, "active-game rules button did not dispatch rules")
-assert(screen.instance_variable_get(:@focus_location) == [:rules, 0], "opening rules did not remember the focused button")
+assert(screen.send(:wait_for_action, replay, [0, 0]) == :rules, "active-game global menu did not dispatch rules")
+assert(screen.instance_variable_get(:@focus_location) == [:chat, 0], "opening rules did not remember the originating field")
 layout.form.index = layout.form.fields.index(layout.chat)
 
 # A remotely started session may replace an active game while chat is focused.
@@ -247,8 +250,8 @@ screen.instance_variable_set(:@last_seen_activity_id, nil)
 screen.send(:process_new_table_activity, replay)
 assert($spoken_messages.length == spoken_before + 1, "reopening the game repeated its latest announcement")
 
-# The finished board stays in the same screen. Ending focuses users once;
-# Shift+Tab reaches the board and rejected actions retain the game's message.
+# The finished board stays in the same screen. Ending focuses Restart once;
+# Tab reaches the board and rejected actions retain the game's message.
 screen.instance_variable_set(:@activity_repository, nil)
 screen.instance_variable_set(:@activity_entries, [])
 alerts = []
@@ -256,11 +259,12 @@ screen.define_singleton_method(:alert) { |message| alerts << message }
 screen.define_singleton_method(:getkeychar) { "" }
 repository.define_singleton_method(:append_events) { |**_options| raise "finished game wrote an event" }
 Form.driver = lambda do |form|
-  assert(layout.focus_location == [:users, 0], "ending a game did not focus users")
+  assert(layout.focus_location == [:status, 0], "ending a game did not focus Restart game")
   assert(!form.fields.include?(layout.primary_button), "finished game exposes a review button")
-  assert_invitation_menu_scope(form, list: layout.users, keys: %w[i I])
-  form.index -= 1
-  assert(layout.focus_location == [:game, 0], "Shift+Tab did not reach the finished board")
+  assert(form.fields.first == layout.restart_button, "Restart game is not the first finished-game field")
+  assert_global_invitation_menu(form, keys: %w[i I])
+  form.index += 1
+  assert(layout.focus_location == [:game, 0], "Tab did not reach the finished board")
   layout.surface.fields.first.trigger(:select, [0, 0])
 end
 assert(screen.send(:wait_for_action, finished_replay, [0, 0]) == :game_action, "finished board swallowed an action")
@@ -286,9 +290,8 @@ end
 assert(screen.send(:wait_for_action, finished_replay, [0, 0]) == :restart, "restart did not return to the room controller")
 # The same outgoing menu remains usable after the game finishes.
 Form.driver = lambda do |form|
-  form.index = form.fields.index(layout.users)
   menu = FakeMenu.new
-  layout.users.context(menu, false)
+  form.context(menu, false)
   menu.options.find { |option| option[2] == "I" }[3].call
 end
 assert(screen.send(:wait_for_action, finished_replay, [0, 0]) == :invite_contacts, "finished game lost invitations from contacts")
@@ -364,18 +367,19 @@ Form.driver = lambda do |form|
     current.chat.text = "endgame draft"
     current.surface.fields.first.trigger(:select, [3, 0])
   when 1
-    assert(current.phase == :finished && current.focus_location == [:users, 0], "winning move did not focus users")
-    assert(form.wait_entry_state.last == true && current.users.last_focus_spoken == true, "ending did not announce the newly focused users")
+    assert(current.phase == :finished && current.focus_location == [:status, 0], "winning move did not focus Restart game")
+    assert(form.wait_entry_state == [false, false] && current.restart_button.last_focus_spoken != true, "ending interrupted final announcements with the restart field")
     assert(current.chat.text == "endgame draft", "winning move lost the chat draft")
-    form.index -= 1
+    form.index += 1
     current.surface.fields.first.trigger(:select, [4, 0])
   when 2
     assert(current.focus_location == [:game, 0], "rejected action interrupted board inspection")
     assert(form.wait_entry_state == [false, false], "finished-game update repeated the form announcement")
-    form.index = form.fields.index(current.rules_button)
-    current.rules_button.trigger(:press)
+    menu = FakeMenu.new
+    form.context(menu, false)
+    menu.options.find { |option| option[0] == "Game rules" }[3].call
   when 3
-    assert(current.focus_location == [:rules, 0], "returning from finished-game rules lost the button focus")
+    assert(current.focus_location == [:game, 0], "returning from finished-game rules lost the board focus")
     assert(current.chat.text == "endgame draft", "reading rules lost the chat draft")
     current.restart_button.trigger(:press)
   else
@@ -384,7 +388,7 @@ Form.driver = lambda do |form|
   match_step += 1
 end
 assert(match_screen.run == :restart && match_step == 4, "game exited immediately after the winning move")
-assert(match_rules_opened == 1, "rules button opened its dialog more than once")
+assert(match_rules_opened == 1, "the global rules action opened its dialog more than once")
 assert(writes == 1 && match_events.length == 7, "a finished-game action wrote extra events")
 assert(match_alerts == ["The game has already ended."], "finished-game action did not announce its rejection")
 assert(match_controls.first.instance_variable_get(:@timers).empty?, "finished game left a timer running")
@@ -424,30 +428,32 @@ bot_layout.users.index = 2
 GameRoomParticipantMenu.bind(bot_layout, available: -> { [:add_bot, :remove_bot] }) do |action, participant|
   bot_manager.send(:change_room_computer, bot_table, action, participant)
 end
-bot_menu = FakeMenu.new
-bot_layout.users.context(bot_menu, false)
-bot_menu.options.find { |option| option[2] == :del }[3].call
+bot_delete_menu = FakeMenu.new
+bot_layout.users.context(bot_delete_menu, false)
+bot_global_menu = FakeMenu.new
+bot_layout.form.context(bot_global_menu, false)
+bot_delete_menu.options.find { |option| option[2] == :del }[3].call
 assert(bot_updates == [{ "bot_count" => 2 }], "Delete changed the protocol instead of decrementing the bot count")
 bot_layout.update_users(rows_for_bots.call)
 assert(bot_layout.users.index == 2 && bot_layout.selected_participant == "bot:7:2", "middle-computer Delete moved the list position")
 bot_manager.send(:change_room_computer, bot_table, :remove_bot, "bot:7:2")
 bot_layout.update_users(rows_for_bots.call)
 assert(bot_table["bot_count"] == 1 && bot_layout.selected_participant == "bot:7:1", "last-computer Delete left an invalid list selection")
-bot_menu.options.find { |option| option[2] == "o" }[3].call
+bot_global_menu.options.find { |option| option[2] == "o" }[3].call
 assert(bot_table["bot_count"] == 2, "UI could not add a computer using the original repository API")
 write_count = bot_updates.length
 bot_manager.send(:change_room_computer, bot_table, :remove_bot, "Alice")
 bot_manager.send(:change_room_computer, bot_table, :remove_bot, "bot:7:99")
 bot_game_active = true
 bot_manager.send(:change_room_computer, bot_table, :remove_bot, "bot:7:1")
-bot_menu.options.find { |option| option[2] == "o" }[3].call
+bot_global_menu.options.find { |option| option[2] == "o" }[3].call
 bot_game_active = false
 bot_table["bot_count"] = 7
-bot_menu.options.find { |option| option[2] == "o" }[3].call
+bot_global_menu.options.find { |option| option[2] == "o" }[3].call
 bot_table["bot_count"] = 2
 bot_table["owner"] = "Bob"
 bot_manager.send(:change_room_computer, bot_table, :remove_bot, "bot:7:1")
-bot_menu.options.find { |option| option[2] == "o" }[3].call
+bot_global_menu.options.find { |option| option[2] == "o" }[3].call
 assert(bot_updates.length == write_count, "UI bypassed current participant, phase, capacity or owner checks")
 Form.driver = nil
 puts "Room interface lifecycle tests passed"

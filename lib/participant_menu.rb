@@ -1,6 +1,8 @@
 require_relative "game_participants"
+require_relative "game_rules"
 
-# One native menu for the waiting room, active game and final-position view.
+# One native global menu for the waiting room, active game and final-position
+# view. Only Delete remains local to the selected row in the users list.
 module GameRoomParticipantMenu
   module_function
 
@@ -15,29 +17,38 @@ module GameRoomParticipantMenu
   end
 
   def bind(layout, available:, &dispatch)
-    # Keep invitation and computer shortcuts local to the users list,
-    # including when another field contributes to the global menu.
-    layout.users.disable_contextinglobal
-    layout.users.bind_context do |menu|
+    layout.form.bind_context do |menu|
       actions = available.call
-      participant = layout.selected_participant
       entries = [
         [:invite_online, _("Invite an online Elten user"), "i"],
         [:invite_contacts, _("Invite someone from your contacts"), "I"],
         [:add_bot, _("Add a computer"), "o"],
-        [:remove_bot, _("Remove computer"), :del],
+        [:rules, _("Game rules"), ""],
         [:leave, _("Leave"), ""]
       ]
       entries.each do |action, label, key|
         next if !actions.include?(action)
-        next if action == :remove_bot && !GameRoomParticipants.bot?(participant)
 
         menu.option(label, nil, key) do
-          # Keep the original row for the UI's permission/type check, even
-          # if a remote update moves the selection. The repository removes
-          # one numbered computer slot using its unchanged count operation.
-          dispatch.call(action, participant) if available.call.include?(action)
+          dispatch.call(action, nil) if available.call.include?(action)
         end
+      end
+    end
+
+    GameRoomRules.bind_ctrl_f1(layout.form, layout.shortcut_fields) do
+      dispatch.call(:rules, nil) if available.call.include?(:rules)
+    end
+
+    layout.users.bind_context do |menu|
+      actions = available.call
+      participant = layout.selected_participant
+      next if !actions.include?(:remove_bot) || !GameRoomParticipants.bot?(participant)
+
+      menu.option(_("Remove computer"), nil, :del) do
+        # Keep the original row for the UI's permission/type check, even if a
+        # remote update moves the selection. The repository removes one
+        # numbered computer slot using its unchanged count operation.
+        dispatch.call(:remove_bot, participant) if available.call.include?(:remove_bot)
       end
     end
   end

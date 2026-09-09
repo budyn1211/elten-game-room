@@ -256,7 +256,10 @@ class GameScreen
     layout.back_button.label = _("Leave")
     layout.activity_cursor = @last_seen_activity_id
     @chat_control = layout.chat
-    silent_entry = @suppress_surface_focus && !phase_changed
+    # Moving to Restart/Waiting after the final event must not focus the new
+    # field aloud and interrupt the result announcements already in the speech
+    # queue. The field is still selected and speaks on the user's next action.
+    silent_entry = @suppress_surface_focus || (phase_changed && phase == :finished)
     @suppress_surface_focus = false
     surface = layout.surface
     surface.sound_player = ->(name) { GameRoomSounds.play(@program, name) } if surface.respond_to?(:sound_player=)
@@ -317,18 +320,8 @@ class GameScreen
       end
       speak(message.to_s) if !message.to_s.empty?
     end
-    show_rules = lambda do
-      next if action != nil
-
-      remember_position.call
-      action = :rules
-      cancel_bot_decision(bot_token, :rules)
-      form.resume
-    end
-    layout.rules_button.on(:press) { show_rules.call }
-    GameRoomRules.bind_ctrl_f1(form, layout.shortcut_fields, &show_rules)
     GameRoomParticipantMenu.bind(layout, available: -> do
-      actions = [:leave]
+      actions = [:rules, :leave]
       actions << :invite_online if @invite_online != nil
       actions << :invite_contacts if @invite_contacts != nil
       if @manage_computer != nil

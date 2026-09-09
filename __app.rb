@@ -4,7 +4,7 @@
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
   "version": "1.1.3",
-  "build_id": "192",
+  "build_id": "193",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -75,7 +75,7 @@ require_relative "games/registry"
 
 class EltenGameRoom < Program
   GAME_ROOM_VERSION = "1.1.3".freeze
-  GAME_ROOM_BUILD_ID = 191
+  GAME_ROOM_BUILD_ID = 193
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
 
@@ -828,7 +828,6 @@ class EltenGameRoom < Program
         form.resume
       end
       layout.primary_button.on(:press) { dispatch.call(:start_game) }
-      layout.rules_button.on(:press) { dispatch.call(:rules) }
       layout.back_button.on(:press) { dispatch.call(:leave) }
       layout.chat.on_submit do
         if layout.chat.text.to_s.strip.empty?
@@ -838,12 +837,11 @@ class EltenGameRoom < Program
         end
       end
       GameRoomParticipantMenu.bind(layout, available: -> do
-        [:invite_online, :invite_contacts, :leave] +
+        [:invite_online, :invite_contacts, :rules, :leave] +
           GameRoomParticipantMenu.management_actions(
             room: snapshot, game: state.game, active: state.active?, viewer: Session.name, owner: owner
           )
       end, &dispatch)
-      GameRoomRules.bind_ctrl_f1(form, layout.shortcut_fields) { dispatch.call(:rules) }
       form.add_timer(FormTimer.new(GameScreen::TIMER_INTERVAL, repeat: true) do
         next if action != nil
 

@@ -65,17 +65,20 @@ dostępny formularz partii. Powierzchnie obejmują między innymi planszę z
 figurami, tor pionków, rękę kart, tacę kości, panel poleceń, arkusz odpowiedzi i
 widok oceniania.
 
-Formularz stołu i partii ma wspólną kolejność: opcjonalna powierzchnia gry,
-użytkownicy, rozpoczęcie partii, restart, czat, zdarzenia i przycisk zasad gry.
-Przyciski zależą od fazy i uprawnień: rozpoczęcie jest dostępne przed pierwszą
-partią, restart po jej zakończeniu, oba tylko dla właściciela. Nową sesję tworzy
-standardowe repozytorium, a kontroler stołu otwiera jej ekran.
-Wejście do oczekującego stołu ustawia fokus na użytkownikach. Rozpoczęcie
-lub restart partii przenosi go na pierwsze pole powierzchni gry, również
-po otrzymaniu nowej sesji od innego klienta. Gdy powierzchni nie ma, fokus
-pozostaje na użytkownikach. Zakończenie partii przenosi fokus na użytkowników,
-pozostawiając planszę dostępną przez Shift+Tab. Nie ma osobnego przycisku ani
-trybu podglądu. Próby wykonania akcji nadal przechodzą przez `action_for`, które
+Formularz stołu i partii ma wspólną kolejność: rozpoczęcie, restart albo
+informacja o oczekiwaniu, opcjonalna powierzchnia gry, czat, historia i
+użytkownicy. Rozpoczęcie jest dostępne przed pierwszą partią, a restart po jej
+zakończeniu, oba tylko dla właściciela. Pozostali uczestnicy widzą w tym samym
+miejscu nieaktywną informację o oczekiwaniu. Nową sesję tworzy standardowe
+repozytorium, a kontroler stołu otwiera jej ekran.
+Wejście do własnego oczekującego stołu ustawia fokus na rozpoczęciu gry, a u
+pozostałych osób na informacji o oczekiwaniu. Rozpoczęcie lub restart partii
+przenosi go na pierwsze pole powierzchni gry, również po otrzymaniu nowej sesji
+od innego klienta. Gdy powierzchni nie ma, fokus przechodzi na pierwszy
+dostępny element. Zakończenie partii przenosi fokus na restart albo oczekiwanie,
+pozostawiając planszę dostępną przez Tab. Przejście jest ciche, aby nie przerwać
+końcowych komunikatów. Nie ma osobnego przycisku ani trybu podglądu. Próby
+wykonania akcji nadal przechodzą przez `action_for`, które
 odrzuca je z komunikatem zakończonej gry. Zwykłe aktualizacje tej samej partii zachowują
 aktywną sekcję, tożsamość zaznaczonej osoby, szkic i zaznaczenie czatu oraz
 przeglądaną pozycję historii.
@@ -85,14 +88,14 @@ zmienia jedynie potrzebną powierzchnię gry. Identyfikator sesji pozwala zachow
 zaznaczenie planszy po ponownym wejściu i wyczyścić je dla nowej partii.
 Powiązania zdarzeń są wymieniane
 bez mnożenia natywnych handlerów, a timery usuwane przy opuszczeniu widoku.
-Zasady gry otwiera przycisk na końcu formularza lub Ctrl+F1; nie występują
-w menu użytkowników. Powrót z zasad zachowuje fokus i szkic czatu.
-`GameRoomParticipantMenu` wiąże natywne menu listy użytkowników: zapraszanie
-użytkownika online przez Ctrl+I, zapraszanie z kontaktów przez Ctrl+Shift+I,
-dodawanie komputera przez Ctrl+O i Delete na wskazanym komputerze. Skróty działają
-wyłącznie na tej liście, także podczas partii i po jej zakończeniu. Menu i skróty
-wywołują te same operacje. Zmiana składu sprawdza aktualny stan i uprawnienia
-również po otwarciu menu.
+`GameRoomParticipantMenu` wiąże jedno menu kontekstowe wspólnego formularza:
+zasady gry przez Ctrl+F1, zapraszanie użytkownika online przez Ctrl+I,
+zapraszanie z kontaktów przez Ctrl+Shift+I oraz dodawanie komputera przez
+Ctrl+O. Menu i skróty działają z każdego pola stołu, także podczas partii i po
+jej zakończeniu. Delete pozostaje lokalną akcją listy użytkowników i usuwa
+wyłącznie wskazany komputer. Wszystkie operacje sprawdzają aktualny stan i
+uprawnienia także po otwarciu menu. Powrót z zasad zachowuje wcześniejszy fokus
+i szkic czatu.
 
 Przyjmowanie i odrzucanie zaproszeń jest dostępne w menu kontekstowym listy
 menu głównego, przez Ctrl+J i Ctrl+Shift+J. Pozycja „Zaproszenia” nadal otwiera

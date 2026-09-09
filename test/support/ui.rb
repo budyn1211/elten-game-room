@@ -221,8 +221,26 @@ class FakeMenu
 end
 
 
-# Match ELTEN's distinction between the focused field's native menu and
-# field contexts contributed to the form-wide menu.
+# Match ELTEN's distinction between the active form-wide menu and the focused
+# field's own context. Invitation shortcuts belong to the form so they remain
+# available from every field.
+def assert_global_invitation_menu(form, keys:)
+  invitation_keys = %w[i I j J]
+  global_menu = FakeMenu.new
+  ([form] + form.fields).each do |control|
+    control.context(global_menu, true)
+    local_menu = FakeMenu.new
+    control.context(local_menu, false)
+    actual = local_menu.options.map { |option| option[2] } & invitation_keys
+    expected = control.equal?(form) ? keys : []
+    assert(actual.sort == expected.sort, "invitation shortcuts are attached to the wrong field")
+  end
+  actual_global = global_menu.options.map { |option| option[2] } & invitation_keys
+  assert(actual_global.sort == keys.sort, "the global menu lost invitation shortcuts")
+  events = form.instance_variable_get(:@handlers).keys
+  assert(events.none? { |event| event.to_s.start_with?("game_room_invitation_") }, "form still intercepts invitation keys globally")
+end
+
 def assert_invitation_menu_scope(form, list:, keys:)
   invitation_keys = %w[i I j J]
   global_menu = FakeMenu.new

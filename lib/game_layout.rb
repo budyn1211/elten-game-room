@@ -1,5 +1,5 @@
 module GameRoomLayout
-  STANDARD_SECTIONS = [:game, :users, :primary, :restart, :chat, :history, :rules].freeze
+  STANDARD_SECTIONS = [:status, :game, :chat, :history, :users].freeze
 
   class ViewSpec
     attr_reader :surface, :sections, :history_header, :history_empty_label
@@ -133,12 +133,12 @@ module GameRoomLayout
   class Screen
     attr_accessor :activity_cursor, :session_id
     attr_reader :surface, :history, :users, :chat, :back_button, :form,
-      :primary_button, :restart_button, :rules_button, :phase
+      :primary_button, :restart_button, :waiting_status, :phase
 
     def initialize(
       view_spec:, surface_state: {}, history_items: [], user_items: [],
       history_index: nil, users_index: 0,
-      focus_location: [:users, 0], previous_surface_identity: nil,
+      focus_location: nil, previous_surface_identity: nil,
       users_header: "", chat_text: "", chat_index: 0, chat_check: 0,
       chat_control: nil, phase: :active, own_table: false
     )
@@ -153,7 +153,7 @@ module GameRoomLayout
       @chat.restore_selection(index: chat_index, check: chat_check) if chat_control == nil
       @primary_button = Button.new(_("Start game"))
       @restart_button = Button.new(_("Restart game"))
-      @rules_button = Button.new(_("Game rules"))
+      @waiting_status = GameSurfaces::RefreshAwareListBox.new([], header: "", quiet: true)
       @back_button = Button.new(_("Leave"))
       @form = GameSurfaces::RefreshAwareForm.new([], index: 0, quiet: true)
       @form.extend(ShortcutFormBehavior)
@@ -205,14 +205,16 @@ module GameRoomLayout
       history_index: nil, users_index: nil, reset_surface: false, new_game: false)
       raise ArgumentError, "a game screen requires a view specification" if !view_spec.is_a?(ViewSpec)
 
-      # Phase transitions focus the board at start and users at the end.
+      # Phase transitions focus the first meaningful field: the start/restart
+      # status before and after a game, and the game surface while it is active.
       # Ordinary updates preserve the user's field, including board inspection.
-      location = if phase == :active && (@phase != :active || new_game)
+      phase_transition = @phase == nil || @phase != phase || new_game
+      location = if phase_transition && phase == :active
         [:game, 0]
-      elsif phase == :finished && (@phase != :finished || new_game)
-        [:users, 0]
+      elsif phase_transition
+        [:status, 0]
       else
-        focus_location || self.focus_location || [:users, 0]
+        focus_location || self.focus_location || [:status, 0]
       end
       old_identity = @surface_identity
       state = surface_state || @surface&.state || {}
@@ -228,12 +230,21 @@ module GameRoomLayout
       @history.index = bounded_index(history_index, @history_items) if history_index != nil
       @users.index = bounded_index(users_index, @user_items) if users_index != nil
       @phase = phase
+      waiting_text = phase == :finished ? _("Waiting for a new game to start") : _("Waiting for the game to start")
+      @waiting_status.options = [waiting_text] if @waiting_status.options != [waiting_text]
+      @waiting_status.index = 0
+      status_fields = if phase == :waiting
+        own_table ? [@primary_button] : [@waiting_status]
+      elsif phase == :finished
+        own_table ? [@restart_button] : [@waiting_status]
+      else
+        []
+      end
       section_fields = {
+        status: status_fields,
         game: @surface == nil ? [] : @surface.fields,
         users: [@users],
-        primary: phase == :waiting && own_table ? [@primary_button] : [],
-        restart: phase == :finished && own_table ? [@restart_button] : [],
-        chat: [@chat], history: [@history], rules: [@rules_button]
+        chat: [@chat], history: [@history]
       }
       @content_fields = []
       @field_locations = []
@@ -292,7 +303,7 @@ module GameRoomLayout
     private
 
     def binding_controls
-      [@form, @users, @history, @primary_button, @restart_button, @rules_button, @back_button]
+      [@form, @users, @history, @primary_button, @restart_button, @waiting_status, @back_button]
     end
 
     def bounded_index(index, items)
@@ -303,7 +314,11 @@ module GameRoomLayout
 
     def form_index_for_location(location)
       matches = @field_locations.each_index.select { |index| @field_locations[index][0] == location.to_a[0] }
-      return @field_locations.index([:users, 0]) || 0 if matches.empty?
+      if matches.empty?
+        return @field_locations.index([:status, 0]) ||
+          @field_locations.index([:game, 0]) ||
+          @field_locations.index([:users, 0]) || 0
+      end
 
       matches[[[location.to_a[1].to_i, 0].max, matches.length - 1].min]
     end

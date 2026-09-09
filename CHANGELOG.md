@@ -1,5 +1,21 @@
 # Historia zmian
 
+## 1.1.3 — build 193
+
+- wspólne menu kontekstowe jest dostępne z każdego pola stołu i partii;
+  zawiera zaproszenia, dodawanie komputera, zasady gry i wyjście, a związane z
+  nim skróty działają globalnie;
+- zasady gry nie zajmują już osobnego pola pod Tabem; Ctrl+F1 pozostał bez
+  zmian, natomiast Delete nadal usuwa wyłącznie komputer wskazany na liście
+  użytkowników;
+- wspólna kolejność pól to rozpoczęcie, restart albo oczekiwanie, następnie
+  pole gry, czat, historia i na końcu użytkownicy;
+- gracz niebędący właścicielem widzi przed partią informację o oczekiwaniu na
+  jej rozpoczęcie, a po partii — o oczekiwaniu na nową grę;
+- po zakończeniu fokus przechodzi cicho na restart albo oczekiwanie, więc
+  końcowe wyniki pozostają w kolejce mowy, a zakończoną planszę nadal można
+  otworzyć Tabem.
+
 ## 1.1.3 — build 192
 
 - aplikacja pomija operacje na trwałych tabelach, gdy ELTEN nie przyznał do
