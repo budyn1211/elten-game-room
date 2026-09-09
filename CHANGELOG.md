@@ -1,5 +1,13 @@
 # Historia zmian
 
+## 1.1.3 — build 194
+
+- potwierdzenie utworzenia stołu podaje nazwę gry i nie jest przerywane przez
+  odczyt pola „Rozpocznij grę”;
+- menu kontekstowe pokazuje `Ctrl+F1` przy zasadach gry;
+- pomoc pod `F1` korzysta z tej samej listy skrótów co globalne menu
+  kontekstowe, bez dodawania drugiej obsługi `Ctrl+F1`.
+
 ## 1.1.3 — build 193
 
 - wspólne menu kontekstowe jest dostępne z każdego pola stołu i partii;
