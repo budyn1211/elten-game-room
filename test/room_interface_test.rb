@@ -1,4 +1,5 @@
 require_relative "support/ui"
+require_relative "support/log"
 
 class Program
   def self.server_app(**_options); end
@@ -212,6 +213,7 @@ controller.define_singleton_method(:switch_session) { |_id| }
 new_session_sync = Object.new
 new_session_sync.define_singleton_method(:update_session) { |_id, **_options| self }
 new_session_sync.define_singleton_method(:synchronized!) { self }
+new_session_sync.define_singleton_method(:synchronize) { |**_options, &operation| operation.call }
 screen.instance_variable_set(:@synchronizer, new_session_sync)
 screen.instance_variable_set(:@new_session_id, 2)
 screen.define_singleton_method(:network_task) { |_title, **_options, &operation| operation.call }
@@ -341,7 +343,7 @@ match_repository.define_singleton_method(:append_events) do |session:, sequence:
   inserted
 end
 match_sync = Object.new
-match_sync.define_singleton_method(:synchronize) { |&operation| operation.call }
+match_sync.define_singleton_method(:synchronize) { |**_options, &operation| operation.call }
 app.define_singleton_method(:play_sound_from_asset) { |_name| }
 match_screen = GameScreen.new(**arguments.merge(repository: match_repository, synchronizer: match_sync, layout: nil))
 match_screen.define_singleton_method(:network_task) { |_title, **_options, &operation| operation.call }
@@ -350,6 +352,7 @@ match_screen.define_singleton_method(:alert) { |message| match_alerts << message
 match_step = 0
 match_controls = nil
 match_rules_opened = 0
+match_speech_waits = $speech_wait_calls
 Form.driver = lambda do |form|
   current = match_screen.instance_variable_get(:@layout)
   if !form.equal?(current.form)
@@ -368,7 +371,12 @@ Form.driver = lambda do |form|
     current.surface.fields.first.trigger(:select, [3, 0])
   when 1
     assert(current.phase == :finished && current.focus_location == [:status, 0], "winning move did not focus Restart game")
-    assert(form.wait_entry_state == [false, false] && current.restart_button.last_focus_spoken != true, "ending interrupted final announcements with the restart field")
+    assert(
+      $speech_wait_calls == match_speech_waits + 1 &&
+        form.wait_entry_state == [true, true] &&
+        current.restart_button.last_focus_spoken == true,
+      "ending did not queue the Restart game focus after final announcements"
+    )
     assert(current.chat.text == "endgame draft", "winning move lost the chat draft")
     form.index += 1
     current.surface.fields.first.trigger(:select, [4, 0])
@@ -455,5 +463,23 @@ bot_table["owner"] = "Bob"
 bot_manager.send(:change_room_computer, bot_table, :remove_bot, "bot:7:1")
 bot_global_menu.options.find { |option| option[2] == "o" }[3].call
 assert(bot_updates.length == write_count, "UI bypassed current participant, phase, capacity or owner checks")
+# Remote closure is not Escape: neither active nor finished games may open
+# the voluntary-leave confirmation, or loop back into the closed room.
+match_screen.define_singleton_method(:fetch_room_snapshot) { [:closed, nil, []] }
+match_screen.define_singleton_method(:remote_game_update) { |_revision, **_options| [nil, nil] }
+completed_events = match_events.dup
+[:table_changed, :recovery].product([:active, :finished]).each do |kind, phase|
+  match_events.replace(phase == :active ? completed_events.first(6) : completed_events)
+  match_sync.define_singleton_method(:next_event) { |**_options| GameRoomSync::Event.new(kind: kind) }
+  Form.driver = ->(form) { form.instance_variable_get(:@timers).each(&:fire) }
+  assert(match_screen.run == :room_closed, "#{kind}/#{phase} mapped remote closure to a voluntary leave")
+end
+state = finished
+forgotten = false
+app.define_singleton_method(:run_game_screen) { |*_args, **_options| :room_closed }
+app.define_singleton_method(:leave_table_from_screen) { |_table| raise "remote closure asked to leave again" }
+app.define_singleton_method(:forget_room_membership) { |_table| forgotten = true }
+app.send(:show_table_screen, row)
+assert(forgotten && app.instance_variable_get(:@table_layouts).empty?, "remote closure retained the room UI")
 Form.driver = nil
 puts "Room interface lifecycle tests passed"

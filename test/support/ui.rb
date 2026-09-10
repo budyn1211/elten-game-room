@@ -3,9 +3,14 @@ def _(text)
 end
 
 $spoken_messages = []
+$speech_wait_calls = 0
 
 def speak(text, **_options)
   $spoken_messages << text.to_s
+end
+
+def speech_wait
+  $speech_wait_calls += 1
 end
 
 class FakeControl

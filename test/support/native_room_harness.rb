@@ -1,0 +1,96 @@
+require_relative "native_live_sessions"
+require_relative "../../lib/game_sync"
+require_relative "../../lib/game_random"
+require_relative "../../lib/hidden_submissions"
+
+def n_(singular, plural, count); count == 1 ? singular : plural; end
+
+class NativeRoomHarness
+  attr_reader :broker, :users, :table, :transports, :repositories, :session, :game
+
+  def initialize(game: nil, users: %w[Alice Bob Carol Dave], options: nil, bots: 0)
+    @broker = NativeLiveSessionsBroker.new
+    @users = users
+    @game = game
+    @options = options || game&.default_options || {}
+    @transports = {}
+    @repositories = {}
+    users.each { |user| add_client(user) }
+    @table = as(users.first) do
+      @transports.fetch(users.first).create_room(
+        name: "Native test room", game: game&.id || "test", owner: users.first,
+        game_options: JSON.generate(@options), capacity: 8
+      )
+    end
+    users.drop(1).each do |user|
+      assert(join(user), "#{user} could not join the native room")
+    end
+    @transports.fetch(users.first).update_room(table, { "bot_count" => bots }, actor: users.first) if bots > 0
+  end
+
+  def as(user)
+    previous = Thread.current[:game_room_test_user]
+    Thread.current[:game_room_test_user] = user
+    yield
+  ensure
+    Thread.current[:game_room_test_user] = previous
+  end
+
+  def add_client(user)
+    program = ProgramDouble.new(broker.endpoint(user))
+    @transports[user] = GameRoomTransport.new(program)
+    @repositories[user] = GameRepository.new(program, transport: @transports[user], server_tables: Object.new)
+    @transports[user].start
+  end
+
+  def join(user)
+    transport = transports.fetch(user)
+    discovered = transport.discover_rooms.find { |room| room["__id"] == table["__id"] }
+    return false if discovered == nil
+    as(user) do
+      transport.establish_membership(table_id: table["__id"], owner: users.first,
+        capacity: 8, user: user, table: discovered)
+    end
+  end
+
+  def start
+    @session = as(users.first) do
+      repositories.fetch(users.first).start_session(table: table, game: game&.id || "test",
+        players: users + transports.fetch(users.first).room_snapshot(table)[:bots], options: JSON.generate(@options))
+    end
+  end
+
+  def view(user); broker.endpoint(user).sessions.find { |view| view.id == table["__live_session_id"] }; end
+  def core; broker.cores.fetch(table["__live_session_id"]); end
+  def events(user); repositories.fetch(user).snapshot_for(session).events; end
+  def replay(user); game.replay(session, events(user), repositories.fetch(user)); end
+
+  def write(user, commands, sequence: nil)
+    as(user) do
+      repository = repositories.fetch(user)
+      repository.append_events(session: session, sequence: sequence || repository.next_sequence(session, events(user)),
+        events: commands, actor: user)
+    end
+  end
+
+  def submit(user, selection = nil, context: nil, replay: nil)
+    current = replay || self.replay(user)
+    context ||= GameRoomGames::ActionContext.new(session_id: session["__id"], table_id: table["__id"], now: 1_000)
+    selection ||= game.automatic_action(current, user, context: context)
+    status, plan = game.action_for(selection, current, user, context: context)
+    assert(status == :ok, "#{game.id}: #{user}'s action failed: #{status}, #{selection.inspect}")
+    write(user, plan.events)
+  end
+
+  def assert_converged(stage, expected_count: nil)
+    all = users.map { |user| events(user) }
+    assert(all.uniq.length == 1, "#{stage}: clients disagree about the ordered stack")
+    ids = all.first.map { |event| event["__id"] }
+    assert(ids == ids.sort && ids == ids.uniq, "#{stage}: unordered or duplicated events")
+    assert(ids.length == expected_count, "#{stage}: #{ids.length} events instead of #{expected_count}") if expected_count
+    if game
+      states = users.map { |user| Marshal.dump(replay(user).state) }
+      assert(states.uniq.length == 1, "#{stage}: game states diverged")
+    end
+  end
+end

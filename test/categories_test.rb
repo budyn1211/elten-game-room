@@ -420,4 +420,22 @@ cycle_replay = play_unique_round(
 )
 assert(cycle_replay.draw && cycle_replay.state[:winners].length == 2, "a configured shared victory was not preserved")
 
+# The last unused letter is a deterministic choice, not a one-sided die.
+GameRoomGames::Categories::LANGUAGE_LETTERS.each do |language, letters|
+  last_session = { "options" => JSON.generate(options.merge("answer_language" => language)) }
+  last_replay = game.replay(last_session, [], repository)
+  last_replay.state[:used_letters] = letters[0...-1]
+  last_context = context.dup
+  last_context.random_source = GameRoomRandom::SequenceSource.new([])
+  action = game.automatic_action(last_replay, "Alice", context: last_context)
+  status, plan = game.action_for(action, last_replay, "Alice", context: last_context)
+  assert(status == :ok && plan.events.first.value.split(",")[3] == letters.last,
+    "the last unused #{language} letter could not start a round")
+  last_replay.state[:used_letters] = letters.dup
+  last_context.random_source = GameRoomRandom::SequenceSource.new([1])
+  status, plan = game.action_for(action, last_replay, "Alice", context: last_context)
+  assert(status == :ok && plan.events.first.value.split(",")[3] == letters.first,
+    "the exhausted #{language} alphabet did not reset")
+end
+
 puts "Categories tests passed"

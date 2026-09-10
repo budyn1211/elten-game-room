@@ -233,9 +233,16 @@ capture_board[2][1] = "0m"
 capture_board[2][5] = "0m"
 capture_board[3][2] = "1m"
 capture_state = checkers_start.state.merge(board: capture_board, current_player: "Alice", forced_from: nil)
-capture_replay = checkers_start.dup
-capture_replay.state = capture_state
-capture_replay.board = capture_board
+capture_replay = GameRoomGames::Replay.new(
+  board: capture_board,
+  players: checkers_start.players,
+  current_player: "Alice",
+  winner: nil,
+  draw: false,
+  accepted_events: [],
+  history: checkers_start.history,
+  state: capture_state
+)
 capture_actions = checkers.legal_actions(capture_replay, "Alice")
 assert(capture_actions.length == 1, "Mandatory capture did not suppress ordinary checkers moves")
 assert(capture_actions.first["to_x"] == 3 && capture_actions.first["to_y"] == 4, "Checkers generated the wrong capture")

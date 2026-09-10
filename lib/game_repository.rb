@@ -35,12 +35,12 @@ class GameRepository
     end
   end
 
-  def session_for_table(table)
+  def session_for_table(table, force: false)
     table_id = row_id(table)
     return nil if table_id <= 0
 
     if native_live_sessions?
-      return @transport.game_sessions(table)
+      return @transport.game_sessions(table, force: force)
         .sort_by { |row| -row["__stack_sequence"].to_i }
         .find { |row| valid_session_for_table?(row, table, players: players_for(row)) }
     end
@@ -113,8 +113,8 @@ class GameRepository
     GameSnapshot.new(session: current, events: events)
   end
 
-  def event_revision(session, known_revision: nil)
-    return events_revision(events_for(session, force: true)) if native_live_sessions?
+  def event_revision(session, known_revision: nil, force: false)
+    return events_revision(events_for(session, force: force)) if native_live_sessions?
 
     return events_revision(events_for(session)) if known_revision == nil
 
@@ -136,7 +136,10 @@ class GameRepository
   # Locally appended events are present in the optimistic cache immediately,
   # but only this prefix has been observed again in an ordered server read.
   def confirmed_event_ids(session)
-    return events_for(session, force: true).map { |event| event_id(event) }.select(&:positive?) if native_live_sessions?
+    # Native entries arrive only through a persisted push acknowledgement,
+    # notification or read. An uncertain write is verified by a forced snapshot
+    # before observing the gate; do not repeat that read for its identifiers.
+    return events_for(session).map { |event| event_id(event) }.select(&:positive?) if native_live_sessions?
 
     entry = event_cache_entry(session_id(session))
     return [] if entry == nil
@@ -328,7 +331,7 @@ class GameRepository
   end
 
   def events_for(session, force: false)
-    return @transport.game_events(session) if native_live_sessions?
+    return @transport.game_events(session, force: force) if native_live_sessions?
 
     id = session_id(session)
     return [] if id <= 0

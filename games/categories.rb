@@ -509,7 +509,8 @@ module GameRoomGames
           envelope = context&.hidden_submissions&.reveal(
             session_id: context.session_id,
             round_id: round_id(state),
-            user: actor
+            user: actor,
+            commitment: player_hash_value(state[:commitments], actor)
           )
           return surface_action("automatic", "reveal", "envelope" => envelope) if envelope != nil
         end
@@ -889,14 +890,14 @@ module GameRoomGames
       when "start_round"
         return [:not_your_turn, nil] if !owner?(state[:players], actor) || ![:setup, :round_complete].include?(state[:phase])
         available = available_letters(state[:options], state[:used_letters])
-        roll = context.random_source.roll(count: 1, sides: available.length)
-        letter = available[roll.values.first - 1]
+        draw = available.length == 1 ? 1 : context.random_source.roll(count: 1, sides: available.length).values.first
+        letter = available[draw - 1]
         round = state[:completed_rounds] + 1
         attempt = state[:attempt] + 1
         judge = judge_index(state[:options], state[:players], round, state)
         duration = state[:options]["round_time"].to_i
         deadline = duration > 0 ? context.now.to_i + duration : 0
-        categories = draw_categories(state[:options], roll.values.first, round)
+        categories = draw_categories(state[:options], draw, round)
         value = [attempt, round, judge, letter, deadline, encode_round_categories(categories)].join(",")
         [:ok, event_plan("category_round", value)]
       when "close_answers"

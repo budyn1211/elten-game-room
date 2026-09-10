@@ -3,8 +3,8 @@
   "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
-  "version": "1.1.4",
-  "build_id": "202",
+  "version": "1.1.5",
+  "build_id": "203",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -74,8 +74,8 @@ require_relative "games/categories"
 require_relative "games/registry"
 
 class EltenGameRoom < Program
-  GAME_ROOM_VERSION = "1.1.4".freeze
-  GAME_ROOM_BUILD_ID = 202
+  GAME_ROOM_VERSION = "1.1.5".freeze
+  GAME_ROOM_BUILD_ID = 203
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
 
@@ -809,6 +809,10 @@ class EltenGameRoom < Program
       layout.activity_cursor = activity_cursor
       if state.active? || state.finished?
         result = run_game_screen(state.session, state.game, table: row)
+        if result == :room_closed
+          forget_room_membership(row)
+          return
+        end
         start_new_game(row) if result == :restart
         return if result == :back && leave_table_from_screen(row)
 
@@ -977,20 +981,22 @@ class EltenGameRoom < Program
       next :not_at_table if !current.participants.any? { |participant| participant.to_s.casecmp(Session.name.to_s) == 0 }
       next :already_here if current.participants.any? { |participant| participant.to_s.casecmp(selected.to_s) == 0 }
 
-      created = @invitations.create(
+      created = @invitations.deliver(
         table: current.table,
         sender: Session.name,
         recipient: selected
-      )
+      ) do |invitation|
+        @transport.invite_user(
+          table_id: @lobby.table_id(current.table),
+          user: selected,
+          metadata: invitation_metadata(current.table, invitation_row_id(invitation))
+        )
+      end
+      next :failed if created == nil
       next :duplicate if !created.created?
 
       invitation_id = invitation_row_id(created.invitation)
       metadata = invitation_metadata(current.table, invitation_id)
-      @transport.invite_user(
-        table_id: @lobby.table_id(current.table),
-        user: selected,
-        metadata: metadata
-      )
       begin
         send_notification(
           selected,
@@ -1007,6 +1013,8 @@ class EltenGameRoom < Program
     case result
     when :sent
       alert(_("Invitation sent."))
+    when :failed
+      alert(_("The operation could not be completed. Please try again."))
     when :duplicate
       alert(_("An invitation to this table is already pending for this user."))
     when :already_here
@@ -1355,7 +1363,9 @@ class EltenGameRoom < Program
     result
   rescue EltenAPI::Tasks::Cancelled
     nil
-  rescue EltenLink::Error => error
+  rescue StandardError => error
+    raise if !GameRoomNetworkErrors.expected?(error)
+
     Log.warning("ELTEN Game Room network operation failed: #{error.class}: #{error.message}")
     if @server_tables&.last_error.equal?(error)
       announce_server_table_access

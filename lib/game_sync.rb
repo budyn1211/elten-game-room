@@ -70,10 +70,12 @@ module GameRoomSync
       Event.new(kind: :recovery, session_id: @session_id)
     end
 
-    def synchronize
+    def synchronize(complete: true)
       @reconnect&.call
       result = yield
-      synchronized!
+      # A successful chat/users refresh does not prove that a previously
+      # failed game read or game switch has recovered.
+      synchronized! if complete
       result
     rescue StandardError => error
       failed!(error)

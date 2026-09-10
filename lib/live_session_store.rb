@@ -39,6 +39,7 @@ class GameRoomLiveSessionStore
     @records = Hash.new { |hash, key| hash[key] = [] }
     @record_keys = Hash.new { |hash, key| hash[key] = {} }
     @stack_cursors = Hash.new(0)
+    @received_sequences = Hash.new { |hash, key| hash[key] = {} }
     @discovered = {}
     @pending_invitations = {}
     @resolved_invitations = {}
@@ -168,15 +169,7 @@ class GameRoomLiveSessionStore
     return :full if discovered.respond_to?(:can_join?) && !discovered.can_join? && discovered.join_reason.to_s == "full"
 
     session = discovered.join(participant_metadata: participant_metadata(table_id))
-    attach_session(table_id, session)
-    snapshot = room_snapshot(table_id)
-    return :closed if snapshot == nil
-
-    if snapshot[:members].length + snapshot[:bots].length > snapshot[:table]["max_players"].to_i
-      deactivate_room(table_id)
-      return :full
-    end
-    :joined
+    admit_joined_session(table_id, session)
   end
 
   def update_room(table_or_id, changes, actor:)
@@ -245,6 +238,13 @@ class GameRoomLiveSessionStore
     raise ArgumentError, "Invalid room" if table_id == nil
 
     game_session_id = unused_game_identifier(table_id)
+    # Keep one complete room-state record before the new game. The immutable
+    # room identity remains in native session metadata. No current-game replay
+    # is truncated, and chat already received by this client stays local.
+    state = table_for(table_id)
+    checkpoint = append_record(table_id, "room_state", state.slice(
+      "status", "bot_count", "game_options", "updated_at"
+    ), actor: actor)
     payload = {
       "session_id" => game_session_id,
       "game" => game.to_s,
@@ -253,14 +253,15 @@ class GameRoomLiveSessionStore
       "created_at" => Time.now.to_i
     }
     record = append_record(table_id, "game_started", payload, actor: actor)
+    trim_previous_games(table_id, checkpoint.sequence - 1) if record != nil && checkpoint != nil
     game_session_from(record)
   end
 
-  def game_sessions(table_or_id = nil)
+  def game_sessions(table_or_id = nil, force: false)
     table_id = table_or_id == nil ? nil : table_identifier(table_or_id)
     ids = table_id == nil ? active_table_ids : [table_id]
     ids.compact.flat_map do |id|
-      ensure_current(id)
+      ensure_current(id, force: force)
       records_for(id).filter_map do |record|
         game_session_from(record) if record.packet["kind"].to_s == "game_started"
       end
@@ -294,12 +295,12 @@ class GameRoomLiveSessionStore
     expand_game_action(record)
   end
 
-  def game_events(session)
+  def game_events(session, force: false)
     table_id = positive_identifier(session["table_id"])
     session_id = positive_identifier(session["__id"] || session["id"])
     return [] if table_id == nil || session_id == nil
 
-    ensure_current(table_id)
+    ensure_current(table_id, force: force)
     records_for(table_id).flat_map do |record|
       next [] if record.packet["kind"].to_s != "game_action"
       next [] if record.packet.dig("data", "session_id").to_i != session_id
@@ -310,10 +311,12 @@ class GameRoomLiveSessionStore
 
   def invite_user(table_id:, user:, metadata:)
     session = active_session(table_identifier(table_id))
-    return false if session == nil || !session.owner?
+    return false if session == nil
 
-    session.invite(user.to_s, metadata: metadata.to_h.merge("purpose" => "game_invitation"))
-    true
+    # The current API accepts a participant identity for invitations, not just
+    # the room owner's identity. Let it validate the actual membership.
+    result = session.invite(user.to_s, metadata: metadata.to_h.merge("purpose" => "game_invitation"))
+    result != false
   end
 
   def pending_invitations
@@ -343,11 +346,11 @@ class GameRoomLiveSessionStore
     return false if stored == nil
 
     session = stored[:invitation].accept(participant_metadata: participant_metadata(table_id).merge(participant_metadata.to_h))
-    attach_session(stored[:table_id], session)
+    status = admit_joined_session(stored[:table_id], session)
     resolve_invitation(stored[:id])
-    true
+    status == :joined
   rescue StandardError
-    restore_invitation(stored) if stored
+    restore_invitation(stored) if stored && stored[:invitation].pending?
     raise
   end
 
@@ -377,6 +380,43 @@ class GameRoomLiveSessionStore
   end
 
   private
+
+  def trim_previous_games(table_id, through)
+    return if through <= 0
+
+    session = active_session(table_id)
+    return if session == nil || !session.owner?
+
+    session.stack_trim(through: through)
+  rescue StandardError => error
+    # The game is already committed. A failed/uncertain trim must not make the
+    # caller retry starting it, or remove any additional records speculatively.
+    log_warning("previous game cleanup", table_id, error)
+  end
+
+  # Discovery and invitation acceptance must apply the same human + bot limit.
+  # The native capacity alone only counts connected humans.
+  def admit_joined_session(table_id, session)
+    attach_session(table_id, session)
+    snapshot = room_snapshot(table_id)
+    status = if snapshot == nil
+      :closed
+    elsif snapshot[:members].length + snapshot[:bots].length > snapshot[:table]["max_players"].to_i
+      :full
+    else
+      :joined
+    end
+    deactivate_room(table_id) if status != :joined
+    status
+  rescue StandardError
+    begin
+      deactivate_room(table_id)
+      session.leave if !session.closed?
+    rescue StandardError => error
+      log_warning("rejected membership cleanup", table_id, error)
+    end
+    raise
+  end
 
   def endpoint
     current = @endpoint_provider.call
@@ -522,7 +562,8 @@ class GameRoomLiveSessionStore
         )
       end
       session.on_stack_gap do |_gap|
-        ensure_current(table_id, force: true)
+        # Wake the normal synchronizer; do not run a blocking read inside a
+        # native callback. A read failure must retain the recovery wake-up.
         emit_change(table_id, :recovery, nil)
       end
     end
@@ -573,7 +614,10 @@ class GameRoomLiveSessionStore
         )
       end
       next_cursor = page["cursor"].to_i
-      @mutex.synchronize { @stack_cursors[table_id] = [@stack_cursors[table_id].to_i, next_cursor].max }
+      @mutex.synchronize do
+        @stack_cursors[table_id] = [@stack_cursors[table_id].to_i, next_cursor].max
+        @received_sequences[table_id].delete_if { |seq, _| seq <= @stack_cursors[table_id] }
+      end
       break if next_cursor <= cursor || page["has_more"] != true
 
       cursor = next_cursor
@@ -581,9 +625,9 @@ class GameRoomLiveSessionStore
     true
   rescue StandardError => error
     log_warning("stack read", table_id, error)
-    raise if force
-
-    false
+    # Do not present a partial local prefix as a successful server snapshot.
+    # The UI's network boundary handles the error and its synchronizer retries.
+    raise
   end
 
   def append_record(table_id, kind, data, actor:)
@@ -627,8 +671,11 @@ class GameRoomLiveSessionStore
     seq = sequence.to_i
     identity = message_id.to_s
     return nil if seq <= 0 || identity.empty? || !packet.is_a?(Hash)
-    return nil if packet["version"].to_i != PROTOCOL
-    return nil if !valid_record?(table_id, sender, packet)
+    if packet["version"] != PROTOCOL || !valid_record?(table_id, sender, packet)
+      # Do not print packet contents (they may contain private game data).
+      Log.warning("ELTEN Game Room discarded invalid stack entry for table #{table_id}, sequence #{seq}") if defined?(Log)
+      return nil
+    end
 
     record = Record.new(
       table_id: table_id,
@@ -645,7 +692,12 @@ class GameRoomLiveSessionStore
       @record_keys[table_id][key] = true
       @records[table_id] << record
       @records[table_id].sort_by!(&:sequence)
-      @stack_cursors[table_id] = [@stack_cursors[table_id].to_i, seq].max
+      # A local push acknowledgement can overtake messages not delivered yet.
+      # Only a contiguous prefix is safe as the cursor of subsequent reads.
+      cursor = @stack_cursors[table_id]
+      @received_sequences[table_id][seq] = true if seq > cursor
+      cursor += 1 while @received_sequences[table_id].delete(cursor + 1)
+      @stack_cursors[table_id] = cursor
       true
     end
     emit_record_change(table_id, record) if inserted
@@ -821,25 +873,36 @@ class GameRoomLiveSessionStore
   end
 
   def valid_record?(table_id, sender, packet)
-    kind = packet["kind"].to_s
-    actor = packet["actor"].to_s
+    kind = packet["kind"]
+    actor = packet["actor"]
     data = packet["data"]
-    return false if sender.to_s.empty? || actor.empty? || !data.is_a?(Hash)
+    return false if sender.to_s.empty? || !kind.is_a?(String) || !nonempty_text?(actor) || !data.is_a?(Hash)
 
     owner = owner_for(table_id)
     case kind
     when "room_created"
-      same_user?(sender, owner) && same_user?(actor, owner) && same_user?(data["owner"], owner)
+      return false if !same_user?(sender, owner) || !same_user?(actor, owner)
+
+      same_user?(data["owner"], owner) && nonempty_text?(data["owner"]) &&
+        nonempty_text?(data["name"]) && nonempty_text?(data["game"]) &&
+        room_fields_valid?(data) && integer_between?(data["max_players"], 2, MAX_CAPACITY)
     when "room_state"
-      same_user?(sender, owner) && same_user?(actor, owner)
+      return false if !same_user?(sender, owner) || !same_user?(actor, owner)
+
+      (data.keys - %w[status bot_count game_options updated_at]).empty? && room_fields_valid?(data)
     when "room_activity"
-      %w[created joined left bot_added bot_removed chat].include?(data["activity_kind"].to_s) &&
-        same_user?(sender, actor)
+      same_user?(sender, actor) &&
+        %w[created joined left bot_added bot_removed chat].include?(data["activity_kind"]) &&
+        %w[message owner game].all? { |key| data[key].is_a?(String) }
     when "game_started"
-      players = data["players"].to_a.map(&:to_s)
-      same_user?(sender, owner) && same_user?(actor, owner) &&
+      return false if !same_user?(sender, owner) || !same_user?(actor, owner)
+
+      players = data["players"]
+      players.is_a?(Array) && players.all? { |player| nonempty_text?(player) } &&
         players.length.between?(1, MAX_CAPACITY) && same_user?(players.first, owner) &&
-        players.none?(&:empty?) && unique_users(players).length == players.length
+        unique_users(players).length == players.length && positive_integer?(data["session_id"]) &&
+        nonempty_text?(data["game"]) && json_object_text?(data["options"]) &&
+        positive_integer?(data["created_at"])
     when "game_action"
       valid_game_action_record?(table_id, sender, actor, data, owner)
     else
@@ -848,12 +911,15 @@ class GameRoomLiveSessionStore
   end
 
   def valid_game_action_record?(table_id, sender, actor, data, owner)
-    session_id = positive_identifier(data["session_id"])
-    commands = data["events"].to_a
-    return false if session_id == nil || commands.empty? || commands.length > 50
+    return false if GameRoomParticipants.bot?(actor) ? !same_user?(sender, owner) : !same_user?(sender, actor)
+
+    session_id = data["session_id"]
+    commands = data["events"]
+    return false if !positive_integer?(session_id) || !data["sequence"].is_a?(Integer) || data["sequence"] < 0
+    return false if !commands.is_a?(Array) || commands.empty? || commands.length > 50
     return false if commands.any? do |command|
-      !command.is_a?(Hash) || command["action"].to_s.empty? || command["action"].to_s.length > 32 ||
-        command["value"].to_s.length > 64 || command["move_id"].to_s.empty?
+      !command.is_a?(Hash) || !nonempty_text?(command["action"]) || command["action"].length > 32 ||
+        !command["value"].is_a?(String) || command["value"].length > 64 || !nonempty_text?(command["move_id"])
     end
 
     game = records_for(table_id).reverse.find do |record|
@@ -868,6 +934,32 @@ class GameRoomLiveSessionStore
     else
       same_user?(sender, actor) && players.any? { |player| same_user?(player, actor) }
     end
+  end
+
+  def nonempty_text?(value)
+    value.is_a?(String) && !value.empty?
+  end
+
+  def positive_integer?(value)
+    value.is_a?(Integer) && value.positive?
+  end
+
+  def integer_between?(value, minimum, maximum)
+    value.is_a?(Integer) && value.between?(minimum, maximum)
+  end
+
+  def json_object_text?(value)
+    value.is_a?(String) && JSON.parse(value).is_a?(Hash)
+  rescue JSON::ParserError
+    false
+  end
+
+  def room_fields_valid?(data)
+    return false if data.key?("status") && !%w[waiting playing closed].include?(data["status"])
+    return false if data.key?("bot_count") && !integer_between?(data["bot_count"], 0, MAX_CAPACITY)
+    return false if data.key?("game_options") && !json_object_text?(data["game_options"])
+
+    %w[created_at updated_at].all? { |key| !data.key?(key) || positive_integer?(data[key]) }
   end
 
   def owner_for(table_id)

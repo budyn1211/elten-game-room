@@ -107,6 +107,13 @@ module HiddenSubmissions
     end
 
     def prepare(session_id:, round_id:, user:, payload:, nonce: nil)
+      # A lost acknowledgement must not destroy the envelope whose commitment
+      # may already be on the server. Reuse identical submissions and retain
+      # older versions if the user edited an answer before retrying.
+      previous = reveal(session_id: session_id, round_id: round_id, user: user)
+      normalized_payload = Commitment.normalize(payload)
+      return previous if previous != nil && previous.payload == normalized_payload
+
       digest, actual_nonce, normalized = Commitment.create(
         payload,
         nonce: nonce || SecureRandom.hex(32)
@@ -121,13 +128,20 @@ module HiddenSubmissions
       )
       @storage.update do |state|
         state["entries"] ||= {}
-        state["entries"][entry_key(envelope.session_id, envelope.round_id, envelope.user)] = serialize(envelope)
+        key = entry_key(envelope.session_id, envelope.round_id, envelope.user)
+        old = state["entries"][key]
+        versions = old == nil ? {} : old.fetch("versions", {}).dup
+        versions[old["commitment"]] = old.reject { |name, _| name == "versions" } if old != nil
+        state["entries"][key] = serialize(envelope).merge("versions" => versions)
       end
       envelope
     end
 
-    def reveal(session_id:, round_id:, user:)
+    def reveal(session_id:, round_id:, user:, commitment: nil)
       data = @storage.read.fetch("entries", {})[entry_key(session_id, round_id, user)]
+      if data != nil && commitment != nil && data["commitment"] != commitment
+        data = data.fetch("versions", {})[commitment]
+      end
       data == nil ? nil : deserialize(data)
     end
 

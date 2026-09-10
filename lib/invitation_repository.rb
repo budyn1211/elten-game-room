@@ -45,6 +45,24 @@ class InvitationRepository
     @responses = {}
   end
 
+  # Reserve a duplicate key only for an invitation that was actually sent.
+  # Notification delivery is separate and must not turn a failed native
+  # invitation into a success message or a ten-minute local lockout.
+  def deliver(table:, sender:, recipient:)
+    result = create(table: table, sender: sender, recipient: recipient)
+    return result if !result.created?
+
+    delivered = false
+    begin
+      delivered = yield(result.invitation)
+      delivered ? result : nil
+    ensure
+      if !delivered && native_live_sessions?
+        @sent_invitations.delete_if { |_key, row| row.equal?(result.invitation) }
+      end
+    end
+  end
+
   def create(table:, sender:, recipient:, now: Time.now.to_i, ttl: DEFAULT_TTL)
     table_id = row_id(table)
     clean_sender = sender.to_s.strip

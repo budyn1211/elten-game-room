@@ -1,0 +1,417 @@
+require "securerandom"
+require "thread"
+
+module EltenAPI
+  module LiveSessions
+    class Error < StandardError; end
+    class TimeoutError < Error; end
+    class SessionClosed < Error; end
+    class NotOwner < Error; end
+    class StackFull < Error; end
+    class StackPacketTooLarge < Error; end
+  end
+end
+
+def _(text)
+  text
+end
+
+def assert(value, message)
+  raise message unless value
+end
+
+module Session
+  def self.name
+    (Thread.current[:game_room_test_user] || $game_room_test_user).to_s
+  end
+end
+
+require_relative "../../lib/game_room_transport"
+require_relative "../../lib/lobby_repository"
+require_relative "../../lib/game_repository"
+require_relative "../../lib/table_activity_repository"
+require_relative "../../lib/invitation_repository"
+require_relative "../../games/base"
+
+class NativeLiveSessionsBroker
+  Participant = Struct.new(:id, :user, keyword_init: true)
+  Info = Struct.new(:sequence, :id, :created_at, keyword_init: true)
+
+  Core = Struct.new(
+    :id, :metadata, :discovery_metadata, :capacity, :owner, :participants,
+    :entries, :views, :closed, :last_seq, :trimmed_through, :stack_entries,
+    :stack_entry_bytes, :mutex, :dedup,
+    keyword_init: true
+  )
+
+  Page = Struct.new(:items, :next_cursor, keyword_init: true) do
+    def to_a
+      items
+    end
+  end
+
+  attr_reader :cores
+  attr_accessor :automatic_delivery
+
+  def initialize
+    @cores = {}
+    @endpoints = {}
+    @automatic_delivery = true
+  end
+
+  # Delivery is separate from storage/acknowledgement. Tests can stop one
+  # reader, advance others and then catch up by ordered pages or a gap.
+  def deliver(user: nil, limit: nil, duplicate: false)
+    @cores.values.each do |core|
+      core.views.each do |view|
+        view.deliver(limit: limit, duplicate: duplicate) if user == nil || view.user == user
+      end
+    end
+  end
+
+  def endpoint(user)
+    @endpoints[user] ||= Endpoint.new(self, user)
+  end
+
+  class Endpoint
+    attr_reader :user
+
+    def initialize(broker, user)
+      @broker = broker
+      @user = user
+      @sessions = []
+      @invitations = []
+      @invitation_callbacks = []
+    end
+
+    def create(metadata:, participant_metadata:, capacity:, visibility:, discovery_metadata:, **options)
+      id = SecureRandom.uuid
+      core = Core.new(
+        id: id,
+        metadata: metadata,
+        discovery_metadata: discovery_metadata,
+        capacity: capacity,
+        owner: @user,
+        participants: {},
+        entries: [],
+        views: [],
+        closed: false, last_seq: 0, trimmed_through: 0,
+        stack_entries: options.fetch(:stack_entries),
+        stack_entry_bytes: options.fetch(:stack_entry_bytes),
+        mutex: Mutex.new, dedup: {}
+      )
+      @broker.cores[id] = core
+      add_view(core)
+    end
+
+    def discover_sessions(**_options)
+      items = @broker.cores.values.reject(&:closed).map { |core| Discovery.new(self, core) }
+      Page.new(items: items, next_cursor: nil)
+    end
+
+    def sessions
+      @sessions.reject(&:closed?)
+    end
+
+    def on_invitation(&block)
+      @invitation_callbacks << block
+    end
+
+    def next_invitation(timeout: nil)
+      @invitations.shift
+    end
+
+    def deliver_invitation(invitation)
+      @invitations << invitation
+      @invitation_callbacks.each { |callback| callback.call(invitation) }
+    end
+
+    def add_view(core)
+      raise EltenAPI::LiveSessions::SessionClosed if core.closed
+      raise EltenLink::Error.new("full") if core.participants.length >= core.capacity
+
+      view = View.new(self, core)
+      @sessions << view
+      core.views << view
+      participant = Participant.new(id: SecureRandom.uuid, user: @user)
+      core.participants[@user.downcase] = participant
+      core.views.each { |candidate| candidate.participant_joined(participant) unless candidate.equal?(view) }
+      view
+    end
+
+    def broker
+      @broker
+    end
+  end
+
+  class Discovery
+    attr_reader :id, :discovery_metadata, :capacity, :participant_count, :join_reason
+
+    def initialize(endpoint, core)
+      @endpoint = endpoint
+      @core = core
+      @id = core.id
+      @discovery_metadata = core.discovery_metadata
+      @capacity = core.capacity
+      @participant_count = core.participants.length
+      @join_reason = @participant_count >= @capacity ? :full : nil
+    end
+
+    def can_join?
+      @join_reason == nil
+    end
+
+    def join(participant_metadata: {})
+      raise "full" if !can_join?
+
+      @endpoint.add_view(@core)
+    end
+  end
+
+  class Invitation
+    attr_reader :metadata, :invitation_metadata, :inviter, :expires_at
+
+    def initialize(target, core, inviter, metadata)
+      @target = target
+      @core = core
+      @metadata = core.metadata
+      @invitation_metadata = metadata
+      @inviter = Participant.new(id: "inviter", user: inviter)
+      @expires_at = Time.now.to_i + 600
+      @pending = true
+    end
+
+    def pending?
+      @pending
+    end
+
+    def accept(participant_metadata: {})
+      @pending = false
+      @target.add_view(@core)
+    end
+
+    def reject
+      @pending = false
+      true
+    end
+  end
+
+  class View
+    attr_reader :id, :metadata, :capacity
+    attr_accessor :fail_next_push, :fail_next_read, :fail_next_trim
+    attr_reader :calls
+
+    def initialize(endpoint, core)
+      @endpoint = endpoint
+      @core = core
+      @id = core.id
+      @metadata = core.metadata
+      @capacity = core.capacity
+      @stack_callbacks = []
+      @join_callbacks = []
+      @left_callbacks = []
+      @closed_callbacks = []
+      @closed = false
+      @gap_callbacks = []
+      @delivery_cursor = 0
+      @calls = Hash.new(0)
+    end
+
+    def user; @endpoint.user; end
+
+    def participants
+      @core.participants.values
+    end
+
+    def participant(id)
+      participants.find { |participant| participant.id.to_s == id.to_s }
+    end
+
+    def owner
+      participants.find { |participant| participant.user.casecmp(@core.owner) == 0 }
+    end
+
+    def owner?
+      @endpoint.user.casecmp(@core.owner) == 0
+    end
+
+    def closed?
+      @closed || @core.closed
+    end
+
+    def stack_state
+      { "last_seq" => @core.last_seq, "count" => @core.entries.length, "trimmed_through" => @core.trimmed_through }
+    end
+
+    def stack_push(packet, message_id:)
+      @calls[:push] += 1
+      raise EltenAPI::LiveSessions::SessionClosed if closed?
+      fault, @fail_next_push = @fail_next_push, nil
+      raise EltenAPI::LiveSessions::TimeoutError, "before push" if fault == :before
+      raise fault if fault.is_a?(Exception)
+      key = [user, message_id]
+      previous = @core.dedup[key]
+      return { "entry" => { "seq" => previous }, "stack" => stack_state } if previous
+
+      @core.mutex.synchronize do
+      raise EltenAPI::LiveSessions::StackFull if @core.entries.length >= @core.stack_entries
+      raise EltenAPI::LiveSessions::StackPacketTooLarge if JSON.generate(packet).bytesize > @core.stack_entry_bytes
+      sequence = @core.last_seq + 1
+      created_at = Time.now.to_i
+      entry = {
+        "seq" => sequence,
+        "message_id" => message_id,
+        "sender" => { "user" => @endpoint.user },
+        "sender_id" => @core.participants.fetch(@endpoint.user.downcase).id,
+        "packet" => packet,
+        "created_at" => created_at
+      }
+      @core.entries << entry
+      @core.last_seq = sequence
+      @core.dedup[key] = sequence
+      end
+      @endpoint.broker.deliver if @endpoint.broker.automatic_delivery
+      raise EltenAPI::LiveSessions::TimeoutError, "after push" if fault == :after
+      { "entry" => { "seq" => @core.dedup.fetch(key) }, "stack" => stack_state }
+    end
+
+    def stack_read(after:, limit:)
+      @calls[:read] += 1
+      raise EltenAPI::LiveSessions::SessionClosed if closed?
+      fault, @fail_next_read = @fail_next_read, nil
+      raise fault if fault
+      gap = { "from" => after + 1, "to" => @core.trimmed_through } if after < @core.trimmed_through
+      after = [after, @core.trimmed_through].max
+      entries = @core.entries.select { |entry| entry["seq"] > after.to_i }.first(limit)
+      cursor = entries.empty? ? after.to_i : entries.last["seq"]
+      { "entries" => entries, "cursor" => cursor, "has_more" => @core.entries.any? { |entry| entry["seq"] > cursor }, "gap" => gap, "through" => @core.last_seq }
+    end
+
+    def stack_trim(through:)
+      @calls[:trim] += 1
+      raise EltenAPI::LiveSessions::NotOwner if !owner?
+      raise EltenAPI::LiveSessions::SessionClosed if closed?
+      fault, @fail_next_trim = @fail_next_trim, nil
+      raise EltenAPI::LiveSessions::TimeoutError, "before trim" if fault == :before
+      @core.mutex.synchronize do
+        @core.entries.reject! { |entry| entry["seq"] <= through }
+        @core.trimmed_through = [@core.trimmed_through, through].max
+      end
+      raise EltenAPI::LiveSessions::TimeoutError, "after trim" if fault == :after
+      stack_state
+    end
+
+    def deliver(limit: nil, duplicate: false)
+      return if closed?
+      if @delivery_cursor < @core.trimmed_through
+        gap = { "from" => @delivery_cursor + 1, "to" => @core.trimmed_through }
+        @delivery_cursor = gap["to"]
+        @gap_callbacks.each { |callback| callback.call(gap) }
+      end
+      entries = @core.entries.select { |entry| entry["seq"] > @delivery_cursor }
+      entries = entries.first(limit) if limit
+      entries.each do |entry|
+        @delivery_cursor = entry["seq"]
+        sender = Participant.new(user: entry.dig("sender", "user"))
+        info = Info.new(sequence: entry["seq"], id: entry["message_id"], created_at: entry["created_at"])
+        (duplicate ? 2 : 1).times { stack_message(sender, entry["packet"], info) }
+      end
+    end
+
+    def on_stack_message(with_metadata: false, &block)
+      @stack_callbacks << block
+    end
+
+    def on_stack_gap(&block); @gap_callbacks << block; end
+    def on_participant_joined(&block); @join_callbacks << block; end
+    def on_participant_left(&block); @left_callbacks << block; end
+    def on_closed(&block); @closed_callbacks << block; end
+
+    def stack_message(sender, packet, info)
+      @stack_callbacks.each { |callback| callback.call(sender, packet, info) }
+    end
+
+    def participant_joined(participant)
+      @join_callbacks.each { |callback| callback.call(participant) }
+    end
+
+    def invite(user, metadata: {})
+      raise EltenAPI::LiveSessions::SessionClosed if closed?
+      target = @endpoint.broker.endpoint(user)
+      invitation = Invitation.new(target, @core, @endpoint.user, metadata)
+      target.deliver_invitation(invitation)
+      true
+    end
+
+    def leave
+      return true if closed?
+      participant = @core.participants.delete(@endpoint.user.downcase)
+      @closed = true
+      @core.views.each { |view| view.participant_left(participant) unless view.equal?(self) }
+      true
+    end
+
+    def participant_left(participant)
+      @left_callbacks.each { |callback| callback.call(participant, :left) }
+    end
+
+    def close
+      raise EltenAPI::LiveSessions::NotOwner if !owner?
+      @core.closed = true
+      @core.views.each do |view|
+        view.instance_variable_set(:@closed, true)
+        view.instance_variable_get(:@closed_callbacks).each { |callback| callback.call(:closed) }
+      end
+      true
+    end
+  end
+end
+
+module EltenLink
+  class Error < StandardError
+    attr_reader :code
+
+    def initialize(code)
+      @code = code
+      super(code)
+    end
+  end
+
+  module Apps
+    def self.table(client, _uuid, name)
+      assert(%w[game_room_users table_activity].include?(name), "Room or game state requested a legacy table")
+      client
+    end
+  end
+end
+
+ProgramDouble = Struct.new(:live_sessions)
+
+class ActivityTableDouble
+  attr_reader :calls
+
+  def initialize(denied: false)
+    @rows = []
+    @calls = []
+    @denied = denied
+  end
+
+  def record_request(operation)
+    @calls << operation
+    raise EltenLink::Error.new("apps.tables.stamp_required") if @denied
+  end
+
+  def insert(values)
+    record_request(:insert)
+    row = values.merge("__id" => @rows.length + 1, "__insertion_user" => values["actor"])
+    @rows << row
+    row
+  end
+
+  def select(where: nil, order: nil, limit: nil, **_options)
+    record_request(:select)
+    rows = @rows.dup
+    rows = rows.select { |row| where.all? { |key, value| row[key] == value } } if where
+    rows.last(limit || rows.length)
+  end
+end

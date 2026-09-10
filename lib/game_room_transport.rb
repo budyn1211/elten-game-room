@@ -734,10 +734,10 @@ class GameRoomTransport
     @live_store.start_game(**arguments)
   end
 
-  def game_sessions(table_or_id = nil)
+  def game_sessions(table_or_id = nil, force: false)
     raise "The native LiveSessions store is unavailable" if !live_store?
 
-    @live_store.game_sessions(table_or_id)
+    @live_store.game_sessions(table_or_id, force: force)
   end
 
   def game_session(session_id, table: nil)
@@ -752,10 +752,10 @@ class GameRoomTransport
     @live_store.append_game_action(**arguments)
   end
 
-  def game_events(session)
+  def game_events(session, force: false)
     raise "The native LiveSessions store is unavailable" if !live_store?
 
-    @live_store.game_events(session)
+    @live_store.game_events(session, force: force)
   end
 
   def pending_invitations

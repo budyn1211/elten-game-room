@@ -1,5 +1,28 @@
 # Historia zmian
 
+## 1.1.5 — build 203
+
+- poprawiono odzyskiwanie synchronizacji po nieudanych lub anulowanych akcjach
+  automatycznych, w tym przejściach między etapami rundy; przed kolejną próbą
+  program sprawdza rzeczywisty stan partii;
+- naprawiono weryfikowanie niepewnych zapisów w LiveSessions oraz ponowne
+  otwieranie nowej partii po chwilowym błędzie połączenia;
+- w Państwach-Miastach poprawiono ponowne wysyłanie i ujawnianie odpowiedzi,
+  także po zmianie odpowiedzi podczas niepewnego wysyłania;
+- usunięto błąd losowania ostatniej dostępnej litery w Państwach-Miastach;
+- rozszerzono obsługę błędów połączenia i odrzucanie nieprawidłowych danych,
+  aby wadliwe wpisy nie blokowały późniejszych prawidłowych zdarzeń;
+- poprawiono wychodzenie z ekranu po zamknięciu stołu przez właściciela,
+  bez ponawiania pytania o opuszczenie już zamkniętego pokoju;
+- nieudane wysłanie zaproszenia nie daje fałszywego potwierdzenia ani nie
+  blokuje kolejnej próby; uprawnienie do zapraszania sprawdza API ELTEN-a;
+- ujednolicono kontrolę liczby ludzi i botów przy dołączaniu do stołu oraz
+  przyjmowaniu zaproszeń;
+- rozpoczęcie nowej partii porządkuje zapis poprzednich zdarzeń na serwerze,
+  zachowując bieżący stan pokoju i już odebraną lokalną historię pokoju i czatu;
+- zaktualizowano testy do obecnego transportu LiveSessions oraz rozszerzono
+  scenariusze wielu klientów, równoczesnych odpowiedzi i błędów sieciowych.
+
 ## 1.1.4 — build 202
 
 - wycofano lokalne ukrywanie uczestników po zdarzeniu odejścia z LiveSession;

@@ -9,6 +9,7 @@ require_relative "game_chat_commands"
 require_relative "game_history_navigation"
 require_relative "room_presentation"
 require_relative "participant_menu"
+require_relative "network_errors"
 
 class GameScreen
   TIMER_INTERVAL = 0.05
@@ -62,6 +63,7 @@ class GameScreen
     @pending_event_ids = []
     @history_follows_tail = true
     @new_session_id = nil
+    @automatic_recovery_pending = false
     @focus_new_game = false
     @pending_signal_received_at = nil
     @suppress_surface_focus = false
@@ -110,14 +112,16 @@ class GameScreen
       payload = network_task(
         _("Updating game"),
         ui: refresh_input_ui,
-        silent: confirmation_pending
+        silent: confirmation_pending || @automatic_recovery_pending || @new_session_id != nil
       ) do
-        @synchronizer.synchronize do
+        @synchronizer.synchronize(complete: @new_session_id == nil) do
           room_snapshot = @room_snapshot || @room_snapshot_provider.call
           [
             @repository.snapshot_for(
               @session,
-              force_events: signal_received_at != nil || verification_forced
+              # Native notifications already carry persisted events. Only a
+              # failed/uncertain operation needs to bypass local stack metadata.
+              force_events: @automatic_recovery_pending || verification_forced
             ),
             room_snapshot,
             @activity_entries || activity_entries_for(room_snapshot)
@@ -130,7 +134,8 @@ class GameScreen
         stage_started_at: snapshot_started_at
       )
       if payload == nil || payload[0] == nil || payload[1] == nil
-        return if !confirmation_pending || @last_game_payload == nil
+        repair_pending = confirmation_pending || @automatic_recovery_pending || @new_session_id != nil
+        return if !repair_pending || @last_game_payload == nil
 
         @bot_turn_controller.defer_verification
         verification_forced = false
@@ -138,6 +143,7 @@ class GameScreen
         using_cached_payload = true
       else
         @last_game_payload = payload
+        @automatic_recovery_pending = false
       end
 
       snapshot, next_room_snapshot, next_activity_entries = payload
@@ -213,9 +219,9 @@ class GameScreen
       when :chat
         submit_chat
         @suppress_surface_focus = true
-      when :back
+      when :back, :room_closed
         stop_pending_speech
-        return :back
+        return action
       when :refresh
         @suppress_surface_focus = true
         next
@@ -562,7 +568,7 @@ class GameScreen
         when :check_signal
           remote_action, remote_session_id = synchronized_network_task(
             _("Checking for game updates"),
-            ui: refresh_input_ui
+            ui: refresh_input_ui, complete: false
           ) do
             remote_game_update(revision)
           end || [nil, nil]
@@ -578,12 +584,12 @@ class GameScreen
         when :room_refresh
           room_status, snapshot, activity_entries = synchronized_network_task(
             _("Updating table"),
-            ui: refresh_input_ui
+            ui: refresh_input_ui, complete: false
           ) do
             fetch_room_snapshot
           end || [:failed, nil, []]
           if room_status == :closed
-            action = :back
+            action = :room_closed
             break
           elsif room_status == :updated
             apply_room_snapshot(users, history, replay, snapshot, activity_entries)
@@ -591,9 +597,7 @@ class GameScreen
         when :recovery_refresh
           recovery_started_at = monotonic_time
           payload = synchronized_network_task(_("Updating game"), ui: refresh_input_ui) do
-            room_status, snapshot, activity_entries = fetch_room_snapshot
-            remote_action, remote_session_id = remote_game_update(revision)
-            [room_status, snapshot, activity_entries, remote_action, remote_session_id]
+            recover_game_update(revision)
           end
           room_status, snapshot, activity_entries, remote_action, remote_session_id = payload || [:failed, nil, [], nil, nil]
           Log.debug(
@@ -603,7 +607,7 @@ class GameScreen
             "room_status=#{room_status} remote_action=#{remote_action || 'none'}"
           )
           if room_status == :closed
-            action = :back
+            action = :room_closed
             break
           end
           apply_room_snapshot(users, history, replay, snapshot, activity_entries) if room_status == :updated
@@ -711,6 +715,8 @@ class GameScreen
   # Recovery waits until no automatic action or bot calculation is active, so
   # reconnecting cannot interrupt a valid move and strand the current turn.
   def recovery_allowed?(automatic_due, bot_actor)
+    return true if @automatic_recovery_pending || @new_session_id != nil
+
     !automatic_due && bot_actor == nil
   end
 
@@ -1025,13 +1031,17 @@ class GameScreen
 
   def switch_to_new_session
     requested_id = @new_session_id
-    @new_session_id = nil
-    session = network_task(_("Opening the new game")) do
+    session = synchronized_network_task(_("Opening the new game"), complete: false) do
       @repository.session_by_id(requested_id, table: @table)
     end
-    return if session == nil
+    if session == nil
+      @synchronizer.request_recovery!(delay: GameRoomSync::ERROR_BACKOFF) if @synchronizer.next_reconcile_at.infinite?
+      return
+    end
 
     @session = session
+    @new_session_id = nil
+    @automatic_recovery_pending = false
     @focus_new_game = true
     @bot_turn_controller.switch_session(@repository.session_id(session))
     @synchronizer.update_session(@repository.session_id(session), discard_pending: true).synchronized!
@@ -1074,14 +1084,30 @@ class GameScreen
     @history_index = history.index.to_i
   end
 
-  def remote_game_update(revision)
-    latest = @repository.session_for_table(@table)
+  def remote_game_update(revision, force: false)
+    latest = if force
+      @repository.session_for_table(@table, force: true)
+    else
+      @repository.session_for_table(@table)
+    end
     latest_id = @repository.session_id(latest)
     current_id = @repository.session_id(@session)
     return [:new_session, latest_id] if latest_id > 0 && latest_id != current_id
     return [:refresh, nil] if @repository.event_revision(@session, known_revision: revision) != revision
 
     [nil, nil]
+  end
+
+  def recover_game_update(revision)
+    room_status, snapshot, activity_entries = fetch_room_snapshot
+    return [room_status, snapshot, activity_entries, nil, nil] if room_status == :closed
+
+    # This reads the native stack even when its locally advertised last_seq is
+    # stale. It also finds a newer game if a prior opening attempt failed.
+    remote_action, remote_session_id = remote_game_update(revision, force: true)
+    remote_action = :refresh if remote_action == nil && @automatic_recovery_pending
+    @automatic_recovery_pending = false
+    [room_status, snapshot, activity_entries, remote_action, remote_session_id]
   end
 
   def room_user_items(replay)
@@ -1160,7 +1186,7 @@ class GameScreen
     return if message.empty? || @send_chat == nil
 
     entry = network_task(_("Sending chat message"), ui: :none) do
-      @synchronizer.synchronize do
+      @synchronizer.synchronize(complete: false) do
         @send_chat.call(@table, message, @room_snapshot&.members.to_a)
       end
     end
@@ -1211,6 +1237,7 @@ class GameScreen
   end
 
   def pending_bot_actor(replay)
+    return nil if @automatic_recovery_pending || @new_session_id != nil
     return nil if !same_user?(@table_owner, Session.name)
 
     @bot_coordinator.pending_bot(@game, replay)
@@ -1304,6 +1331,7 @@ class GameScreen
   end
 
   def perform_automatic_action(replay)
+    return false if @automatic_recovery_pending || @new_session_id != nil
     return false if !@game.automatic_action_allowed?(
       replay,
       Session.name,
@@ -1327,21 +1355,38 @@ class GameScreen
     validate_action_plan!(plan)
 
     inserted = network_task(_("Preparing the next round")) do
-      @repository.append_events(
-        session: @session,
-        sequence: @repository.next_sequence(@session, replay.accepted_events),
-        events: plan.events,
-        recipients: game_recipients,
-        actor: Session.name
-      )
+      begin
+        @repository.append_events(
+          session: @session,
+          sequence: @repository.next_sequence(@session, replay.accepted_events),
+          events: plan.events,
+          recipients: game_recipients,
+          actor: Session.name
+        )
+      rescue StandardError => error
+        # A timeout may mean the action was committed but its acknowledgement
+        # was lost. Reconcile first; never blindly resend this plan.
+        @automatic_recovery_pending = true
+        @synchronizer.failed!(error)
+        raise
+      end
     end
-    return false if inserted == nil
+    if inserted == nil
+      # Cancellation may happen before Tasks.run enters the operation block.
+      # It must not strand an automatic transition either.
+      if !@automatic_recovery_pending
+        @automatic_recovery_pending = true
+        @synchronizer.request_recovery!(delay: GameRoomSync::ERROR_BACKOFF)
+      end
+      return false
+    end
 
     @pending_event_ids = inserted.map { |event| @repository.event_id(event) }
     true
   end
 
   def automatic_action_due?(replay)
+    return false if @automatic_recovery_pending || @new_session_id != nil
     return false if !@game.automatic_action_allowed?(
       replay,
       Session.name,
@@ -1565,15 +1610,17 @@ class GameScreen
     end
   rescue EltenAPI::Tasks::Cancelled
     nil
-  rescue EltenLink::Error => error
+  rescue StandardError => error
+    raise if !GameRoomNetworkErrors.expected?(error)
+
     Log.warning("ELTEN Game Room network operation failed: #{error.class}: #{error.message}")
     alert(_("The operation could not be completed. Please try again.")) if !silent
     nil
   end
 
-  def synchronized_network_task(title, ui: :none, &operation)
+  def synchronized_network_task(title, ui: :none, complete: true, &operation)
     network_task(title, ui: ui, silent: true) do
-      @synchronizer.synchronize(&operation)
+      @synchronizer.synchronize(complete: complete, &operation)
     end
   end
 
