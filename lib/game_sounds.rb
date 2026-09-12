@@ -137,7 +137,22 @@ module GameRoomSounds
       end
 
       ["move", "move_pawn"].include?(action) ? "play2" : nil
+    when "quiz"
+      quiz_cue(event, after_replay, repository, viewer)
     end
+  end
+
+  def quiz_cue(event, after_replay, repository, viewer)
+    action = event["action"].to_s
+    return "shuffle" if action == "round_draw"
+    return "draw" if action == "round_category"
+    return nil if action != "question_finished"
+
+    answered_correctly = history_for_event(after_replay, event, repository).any? do |entry|
+      entry.kind == :answer_result && entry.field.to_s == "right" &&
+        GameRoomParticipants.same?(entry.actor, viewer)
+    end
+    answered_correctly ? "replay" : nil
   end
 
   def result_cue(game, before_replay, after_replay, viewer)

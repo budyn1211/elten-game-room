@@ -11,6 +11,7 @@ module GameSurfaces
     :read_only,
     :max_length,
     :submit_on_select,
+    :prompt_in_choices,
     keyword_init: true
   )
 
@@ -49,18 +50,38 @@ module GameSurfaces
       end
     end
 
+    def submission_action
+      return nil if @spec.read_only == true || @mode == :information
+
+      answer = answer_value
+      return nil if answer == nil
+
+      GameSurfaces::Action.new(
+        kind: "question",
+        name: "submit",
+        payload: {
+          "question_id" => @spec.id.to_s,
+          "answer" => answer,
+          "required" => @spec.required == true
+        }
+      )
+    end
+
     private
 
     def bind_immediate_choice
       return if @mode != :single_choice || @spec.submit_on_select != true
 
       @answer.on(:select) do
+        answer = answer_value
+        next if answer == nil
+
         emit_action(
           "question",
           "submit",
           {
             "question_id" => @spec.id.to_s,
-            "answer" => answer_value,
+            "answer" => answer,
             "required" => @spec.required == true
           }
         )
@@ -88,9 +109,15 @@ module GameSurfaces
         )
       when :single_choice, :multiple_choice
         flags = @mode == :multiple_choice ? ListBox::Flags::MultiSelection : 0
+        labels = @options.map { |option| option.label.to_s }
+        header = @spec.prompt.to_s
+        if prompt_in_choices?
+          labels.unshift(@spec.prompt.to_s)
+          header = ""
+        end
         list = RefreshAwareListBox.new(
-          @options.map { |option| option.label.to_s },
-          header: @spec.prompt.to_s,
+          labels,
+          header: header,
           index: selected_index(state),
           flags: flags,
           quiet: true
@@ -126,7 +153,11 @@ module GameSurfaces
       when :text
         @answer.text.to_s
       when :single_choice
-        option_value(@options[@answer.index.to_i])
+        index = @answer.index.to_i
+        index -= 1 if prompt_in_choices?
+        return nil if index < 0
+
+        option_value(@options[index])
       when :multiple_choice
         @answer.multiselections.map { |index| option_value(@options[index]) }
       end
@@ -147,7 +178,9 @@ module GameSurfaces
       index = @options.index do |option|
         values.include?(option_value(option).to_s) || values.include?(option.id.to_s)
       end
-      index || 0
+      return 0 if index == nil
+
+      prompt_in_choices? ? index + 1 : index
     end
 
     def selected_option_indices
@@ -160,6 +193,10 @@ module GameSurfaces
     def maximum_length
       configured = @spec.max_length.to_i
       configured > 0 ? configured : 64
+    end
+
+    def prompt_in_choices?
+      @mode == :single_choice && @spec.respond_to?(:prompt_in_choices) && @spec.prompt_in_choices == true
     end
 
     def validate_options!

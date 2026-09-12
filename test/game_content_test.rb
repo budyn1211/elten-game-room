@@ -142,8 +142,8 @@ end.new
 
 definitions = content_game.effective_option_definitions
 assert(
-  definitions.map(&:key) == ["content_set_id", "content_language_id", "timed"],
-  "content set and language selection were not added before game options"
+  definitions.map(&:key) == ["content_language_id", "content_set_id", "timed"],
+  "the language must be offered before the set that depends on it"
 )
 options = content_game.default_options
 assert(options["content_set_id"] == "quiz.general", "the default content set was not selected")
@@ -177,5 +177,43 @@ assert(content_game.validation_error(unknown).include?("set is not installed"), 
 missing_language = content_game.normalize_options("content_set_id" => "quiz.general", "content_language_id" => "de")
 assert(missing_language["content_language_id"] == "de", "an unavailable language silently changed")
 assert(content_game.validation_error(missing_language).include?("language is not available"), "an unavailable language did not block the game")
+
+polish_only = registry.register_pack(
+  GameRoomContent::Pack.new(
+    id: "quiz.witcher.pl",
+    set_id: "quiz.witcher",
+    kind: :quiz,
+    language_id: "pl-PL",
+    version: 1,
+    title: "Witcher",
+    game_ids: ["quiz"],
+    data: {
+      questions: [
+        { id: "geralt", prompt: "Who is the witcher of Rivia", answers: ["Geralt"] }
+      ]
+    }
+  )
+)
+assert(
+  content_game.send(:available_content_sets, "pl-PL").map(&:id).sort == ["quiz.general", "quiz.witcher"],
+  "the Polish language did not offer both of its sets"
+)
+assert(
+  content_game.send(:available_content_sets, "en").map(&:id) == ["quiz.general"],
+  "English offered a set that has no pack in that language"
+)
+switched = content_game.normalize_options(
+  "content_set_id" => "quiz.witcher",
+  "content_language_id" => "en",
+  "timed" => false
+)
+assert(switched["content_set_id"] == "quiz.general", "a set unavailable in the chosen language was not replaced")
+assert(content_game.validation_error(switched) == nil, "the repaired set-language pair was still rejected")
+witcher_options = content_game.normalize_options(
+  "content_set_id" => "quiz.witcher",
+  "content_language_id" => "pl-PL",
+  "timed" => false
+)
+assert(content_game.selected_content_pack(witcher_options).equal?(polish_only), "the Polish-only set was not resolved")
 
 puts "Game content pack tests passed"

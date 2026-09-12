@@ -87,7 +87,8 @@ end
 Kernel.prepend(BinaryRulesLoad::Requires)
 BinaryRulesLoad.load(File.join(BinaryRulesLoad::ROOT, "__app.rb"))
 registry = EltenGameRoom::GAME_REGISTRY
-raise "Lost games during binary loading" unless registry.ids.length == 16
+raise "Lost games during binary loading" unless registry.ids.length == 17
+raise "Quiz Party was not loaded from binary sources" unless registry.ids.include?("quiz")
 registry.ids.each do |id|
   game = registry.build(id)
   documents = game.rule_book(options: game.default_options).documents
@@ -108,4 +109,4 @@ end
 metadata = BinaryRulesLoad.instance_variable_get(:@metadata) || JSON.parse(File.read(File.join(BinaryRulesLoad::ROOT, "manifest.json")))
 raise "Runtime build differs from package manifest" unless EltenGameRoom::GAME_ROOM_BUILD_ID.to_s == metadata.fetch("build_id").to_s
 raise "Runtime version differs from package manifest" unless EltenGameRoom::GAME_ROOM_VERSION == metadata.fetch("version")
-puts "Binary program loading, all 16 rule books and 19 Monopoly boards passed"
+puts "Binary program loading, all 17 rule books and 19 Monopoly boards passed"

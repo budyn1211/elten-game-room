@@ -59,6 +59,10 @@ require_relative "lib/game_screen"
 require_relative "lib/game_content"
 require_relative "content/languages"
 require_relative "content/monopoly_boards"
+require_relative "content/quiz_pl"
+require_relative "content/quiz_general_en"
+require_relative "content/quiz_pl_wikidata"
+require_relative "content/quiz_witcher_pl"
 require_relative "games/base"
 require_relative "games/board_game"
 require_relative "games/card_game"
@@ -78,6 +82,7 @@ require_relative "games/yahtzee"
 require_relative "games/uno"
 require_relative "games/poker"
 require_relative "games/makao"
+require_relative "games/quiz_party"
 require_relative "games/registry"
 
 class EltenGameRoom < Program
@@ -142,7 +147,8 @@ class EltenGameRoom < Program
     GameRoomGames::Yahtzee,
     GameRoomGames::Uno,
     GameRoomGames::Poker,
-    GameRoomGames::Makao
+    GameRoomGames::Makao,
+    GameRoomGames::QuizParty
   ])
 
   DEFAULT_SETTINGS = {
@@ -636,13 +642,15 @@ class EltenGameRoom < Program
   def configure_game_options(game)
     return {} if game == nil
 
-    definitions = game.effective_option_definitions.to_a
+    selected = {}
+    definitions = game.effective_option_definitions(selected).to_a
     return game.default_options if definitions.empty?
+    built_language = game.default_options[GameRoomContent::LANGUAGE_OPTION_KEY].to_s
 
     loop do
       controls = [Static.new(_("Choose game options using Tab and the arrow keys. In lists allowing multiple selections, use Space to select or clear an item."))]
       bindings = []
-      defaults = remembered_game_option_defaults(game, definitions)
+      defaults = remembered_game_option_defaults(game, definitions).merge(selected)
       definitions.each do |definition|
         key = definition.key.to_s
         case definition.kind.to_s
@@ -730,6 +738,13 @@ class EltenGameRoom < Program
 
       raw = game_option_values(bindings)
       options = game.normalize_options(raw)
+      chosen_language = options[GameRoomContent::LANGUAGE_OPTION_KEY].to_s
+      if chosen_language != built_language
+        selected = options
+        built_language = chosen_language
+        definitions = game.effective_option_definitions(selected).to_a
+        next
+      end
       error = game.validation_error(options)
       if error == nil
         remember_multiple_choice_options(game, definitions, options)
