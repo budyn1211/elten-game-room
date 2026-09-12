@@ -12,8 +12,9 @@ module GameRoomGames
     MEN_MOVE_BACKWARD = 32
     PROMOTE_DURING_CAPTURE = 64
     KING_PRIORITY = 128
+    DEFER_CAPTURE_REMOVAL = 256
     CLASSIC_RULES = MEN_CAPTURE_BACKWARD | FLYING_KINGS | MANDATORY_CAPTURE |
-      MAXIMUM_CAPTURE | CONTINUE_CAPTURE
+      MAXIMUM_CAPTURE | CONTINUE_CAPTURE | DEFER_CAPTURE_REMOVAL
     DIAGONALS = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(&:freeze).freeze
     FORWARD_DIRECTIONS = {
       0 => [[-1, 1], [1, 1]].map(&:freeze).freeze,
@@ -63,7 +64,8 @@ module GameRoomGames
             OptionChoice.new(value: CONTINUE_CAPTURE, label: _("A capture sequence must be completed")),
             OptionChoice.new(value: MEN_MOVE_BACKWARD, label: _("Men may move backward without capturing")),
             OptionChoice.new(value: PROMOTE_DURING_CAPTURE, label: _("Promote immediately during a capture sequence")),
-            OptionChoice.new(value: KING_PRIORITY, label: _("Prefer a king when equally long captures are available"))
+            OptionChoice.new(value: KING_PRIORITY, label: _("Prefer a king when equally long captures are available")),
+            OptionChoice.new(value: DEFER_CAPTURE_REMOVAL, label: _("Captured pieces block the board until the capture sequence ends"))
           ]
         )
       ]
@@ -92,12 +94,23 @@ module GameRoomGames
 
     def rule_sections
       [
-        rule_section(:goal, _("Goal"), _("Capture all opposing pieces or leave the opponent with no legal move.")),
-        rule_section(:setup, _("Setup"), _("By default the game uses the classic 8 by 8 board with 12 pieces per player. The first player moves upward from the bottom of the board.")),
-        rule_section(:play, _("How to play"), _("Men move diagonally to an adjacent empty dark field. Captures jump over an opposing piece to an empty field beyond it. Kings move diagonally in both directions."), _("With the classic defaults, captures are mandatory, men capture backward, kings are flying kings, the longest capture is required and a multiple capture must be completed.")),
-        rule_section(:ending, _("Ending the game"), _("A player wins when the opponent has no pieces or no legal move. Three repetitions or 80 moves without a capture or promotion are a draw.")),
-        rule_section(:variants, _("Variants and table options"), _("The table creator may choose an 8, 10 or 12 square board and independently change the capture, king, movement and promotion rules. Leaving every option unchanged starts the classic 8 by 8 game.")),
-        rule_section(:controls, _("Controls"), _("Choose one of your pieces and press Enter, then choose a marked destination and press Enter. During a multiple capture, continue with the same piece. Press V to hear the available moves, K or Shift+K to move between your or the opponent's kings, C to hear the colours, Ctrl+H to change field notation, and Ctrl+Shift+H to rotate the board. Press T for the turn and Ctrl+F1 for these rules."))
+        rule_section(:diagonals, _("Dark fields, men and kings"),
+          _("Two players move on the dark fields of a square board. White starts from the bottom and moves first. A man normally moves one empty field diagonally forward. It captures by jumping over an adjacent opposing piece onto the empty field beyond. On reaching the opposite end it becomes a king."),
+          _("The default board is 8 by 8, with 12 pieces on each side. A 10 by 10 board gives each player 20 pieces; a 12 by 12 board gives 30. The two middle rows start empty. Size changes the space and starting army, not the selected movement rules.")),
+        rule_section(:captures, _("Which captures must be made"),
+          _("Captured pieces block the board until the capture sequence ends is on by default. You cannot cross or capture the same removed piece again during that sequence. Disable it for variants where captured pieces disappear immediately."),
+          _("Capturing is mandatory is on by default: if any piece can capture, an ordinary move is forbidden. Turning it off permits an ordinary move even when a capture exists."),
+          _("The move capturing the most pieces is mandatory is on by default. Compare complete capture paths for all your pieces, not just the first jump, and choose one taking the greatest number. This option requires mandatory capture and completing capture sequences."),
+          _("A capture sequence must be completed is on by default. After a jump, continue capturing with the same piece while a continuation is available. The interface performs the jumps one at a time. With this option off the turn ends after one jump. Prefer a king when equally long captures are available is off by default; when enabled, equally long maximum captures by a king take precedence over those by a man.")),
+        rule_section(:movement, _("Movement and promotion settings"),
+          _("Men may capture backward is on by default. Disable it to restrict men to forward captures. Men may move backward without capturing is separately off by default: enabling backward captures alone does not allow an ordinary backward move."),
+          _("Kings move and capture over any distance is on by default. A flying king travels along a clear diagonal and captures an opposing piece with an empty landing field beyond it; it cannot jump over several occupied fields in one jump. Disable this option for kings that move one field and capture by a short jump. Kings can move and capture in both directions."),
+          _("Promote immediately during a capture sequence is off by default: promotion is evaluated at the end of the move. When enabled, reaching the last row during a capture changes the man into a king immediately, and further captures use king rules. The rule checkboxes describe independent choices except for the stated capture dependencies.")),
+        rule_section(:result, _("Winning and field notation"),
+          _("You win when the opponent has no pieces or no legal move. Three repetitions or 80 individual moves without capture or promotion give a draw. Numbered notation labels only playable fields: 1–32, 1–50 or 1–72 depending on board size. Chess notation labels the full grid. Changing notation or rotating the board is local presentation only; it changes neither the legal moves nor the other player's view.")),
+        rule_section(:controls, _("Board commands"),
+          _("Arrow keys inspect every field. In numbered notation the light, unplayable fields make a sound without a spoken name. Enter selects a piece; another Enter chooses its destination. V reads possible moves. K visits your kings and Shift+K the opponent's kings. C reads colours; T reads the turn."),
+          _("Ctrl+H switches numbered and chess notation, including movement announcements and displayed history. Ctrl+Shift+H rotates the board without renaming fields. In chat use /21 17 or /a3 b4 as appropriate for the chosen fields. A multiple capture is entered one jump at a time, just like Enter on the board."))
       ]
     end
 
@@ -389,26 +402,45 @@ module GameRoomGames
 
     def bot_search_key(replay, actor)
       state = replay.state
-      repetitions = state[:positions].each_with_object([]) do |(position, count), result|
-        next if count.to_i <= 0
-
-        result << [position.to_s.dup.freeze, count.to_i].freeze
-      end.sort_by(&:first).freeze
+      board_key = compact_board_key(state[:board])
+      # Captures only remove pieces. Positions with more pieces can never
+      # recur, so they do not distinguish future draw results. Retain every
+      # still-reachable repetition count, not just the current position.
+      piece_count = board_key.count("mk")
+      @checkers_repetition_sizes ||= {}
+      @checkers_repetition_sizes.clear if @checkers_repetition_sizes.length >= 20_000
+      repetitions = state[:positions].select do |position, _count|
+        count = @checkers_repetition_sizes[position] ||= position.rpartition(":").last.count("mk")
+        count == piece_count
+      end.freeze
       [
         state[:size],
         state[:rules],
         player_index(replay.players, actor),
         player_index(replay.players, replay.current_player),
         state[:forced_from]&.dup&.freeze,
+        state.fetch(:capture_blockers, []).sort,
         state[:captured_this_turn] == true ? 1 : 0,
         state[:promoted_this_turn] == true ? 1 : 0,
         state[:quiet_moves].to_i,
         state[:last_to]&.dup&.freeze,
         state[:winner],
         state[:draw] == true ? 1 : 0,
-        compact_board_key(state[:board]),
+        board_key,
         repetitions
       ].freeze
+    end
+
+    def bot_forced_continuation?(replay)
+      replay.state[:forced_from] != nil
+    end
+
+    def bot_move_order_key(replay, actor)
+      # A remembered MOVE may order another search with a different draw
+      # history. Its SCORE may not: bot_search_key retains that entire history.
+      state = replay.state
+      [state[:size], state[:rules], player_index(replay.players, actor),
+        state[:forced_from]&.dup, state.fetch(:capture_blockers, []).sort, compact_board_key(state[:board])]
     end
 
     # The static evaluation reads only the board, rule set and point of view.
@@ -420,6 +452,7 @@ module GameRoomGames
         state[:size],
         state[:rules],
         player_index(replay.players, actor),
+        state.fetch(:capture_blockers, []).sort,
         compact_board_key(state[:board])
       ].freeze
     end
@@ -483,8 +516,18 @@ module GameRoomGames
           next if code == nil
 
           sign = piece_owner(code) == marker ? 1 : -1
-          base = king?(code) ? 185.0 : 100.0
+          base = king?(code) ? (rule?(state[:rules], FLYING_KINGS) ? 260.0 : 185.0) : 100.0
           advancement = king?(code) ? 0 : (piece_owner(code) == 0 ? y : state[:size] - y - 1) * 3
+          unless king?(code)
+            owner = piece_owner(code)
+            distance = owner == 0 ? state[:size] - y - 1 : y
+            advancement += 24 if distance == 1
+            directions = forward_directions(owner)
+            blocked = directions.all? do |dx, dy|
+              !inside?(state, x + dx, y + dy) || state[:board][y + dy][x + dx] != nil || capture_blocked?(state, x + dx, y + dy)
+            end
+            advancement -= 12 if blocked && !rule?(state[:rules], MEN_MOVE_BACKWARD)
+          end
           center = x.between?(2, state[:size] - 3) && y.between?(2, state[:size] - 3) ? 8 : 0
           edge = [0, state[:size] - 1].include?(x) ? 4 : 0
           value += sign * (base + advancement + center + edge)
@@ -605,7 +648,7 @@ module GameRoomGames
         if king?(code) && rule?(state[:rules], FLYING_KINGS)
           cx = x + dx
           cy = y + dy
-          while inside?(state, cx, cy) && state[:board][cy][cx] == nil
+          while inside?(state, cx, cy) && state[:board][cy][cx] == nil && !capture_blocked?(state, cx, cy)
             moves << BoardMove.new(from: [x, y], to: [cx, cy])
             cx += dx
             cy += dy
@@ -613,7 +656,7 @@ module GameRoomGames
         else
           tx = x + dx
           ty = y + dy
-          moves << BoardMove.new(from: [x, y], to: [tx, ty]) if inside?(state, tx, ty) && state[:board][ty][tx] == nil
+          moves << BoardMove.new(from: [x, y], to: [tx, ty]) if inside?(state, tx, ty) && state[:board][ty][tx] == nil && !capture_blocked?(state, tx, ty)
         end
       end
     end
@@ -632,7 +675,7 @@ module GameRoomGames
           my = y + dy
           tx = x + dx * 2
           ty = y + dy * 2
-          next if !inside?(state, tx, ty)
+          next if !inside?(state, tx, ty) || capture_blocked?(state, tx, ty) || capture_blocked?(state, mx, my)
           victim = state[:board][my][mx]
           next if victim == nil || piece_owner(victim) == marker || state[:board][ty][tx] != nil
 
@@ -644,14 +687,14 @@ module GameRoomGames
     def add_flying_captures(state, moves, x, y, marker, dx, dy)
       cx = x + dx
       cy = y + dy
-      cx, cy = cx + dx, cy + dy while inside?(state, cx, cy) && state[:board][cy][cx] == nil
-      return if !inside?(state, cx, cy)
+      cx, cy = cx + dx, cy + dy while inside?(state, cx, cy) && state[:board][cy][cx] == nil && !capture_blocked?(state, cx, cy)
+      return if !inside?(state, cx, cy) || capture_blocked?(state, cx, cy)
       victim = state[:board][cy][cx]
       return if victim == nil || piece_owner(victim) == marker
 
       tx = cx + dx
       ty = cy + dy
-      while inside?(state, tx, ty) && state[:board][ty][tx] == nil
+      while inside?(state, tx, ty) && state[:board][ty][tx] == nil && !capture_blocked?(state, tx, ty)
         moves << BoardMove.new(from: [x, y], to: [tx, ty], metadata: { "capture" => "#{cx},#{cy}" })
         tx += dx
         ty += dy
@@ -670,7 +713,7 @@ module GameRoomGames
       copy = duplicate_state(state)
       marker = piece_owner(copy[:board][move.from[1]][move.from[0]])
       apply_step_to_board!(copy, move)
-      key = [marker, move.to, compact_board_key(copy[:board])]
+      key = [marker, move.to, compact_board_key(copy[:board]), copy.fetch(:capture_blockers, []).sort]
       remaining = continuation_cache[key]
       if remaining == nil
         continuations = raw_captures(copy, marker, only: move.to)
@@ -720,6 +763,9 @@ module GameRoomGames
       board[move.from[1]][move.from[0]] = nil
       captured = parse_coordinate(move.metadata["capture"])
       board[captured[1]][captured[0]] = nil if captured != nil
+      if captured != nil && rule?(state[:rules], DEFER_CAPTURE_REMOVAL)
+        (state[:capture_blockers] ||= []) << captured
+      end
       board[move.to[1]][move.to[0]] = code
       if !king?(code) && rule?(state[:rules], PROMOTE_DURING_CAPTURE) && promotion_row?(state, piece_owner(code), move.to[1])
         board[move.to[1]][move.to[0]] = "#{piece_owner(code)}k"
@@ -728,6 +774,8 @@ module GameRoomGames
 
     def finish_turn!(state, actor, event_id, history)
       return moves_for_state(state, actor) if state[:forced_from] != nil
+
+      state[:capture_blockers] = []
 
       x, y = state[:last_to]
       code = x == nil ? nil : state[:board][y][x]
@@ -894,7 +942,13 @@ module GameRoomGames
     end
 
     def duplicate_state(state)
-      state.merge(board: state[:board].map(&:dup), positions: state[:positions].dup, forced_from: state[:forced_from]&.dup)
+      state.merge(board: state[:board].map(&:dup), positions: state[:positions].dup,
+        forced_from: state[:forced_from]&.dup, capture_blockers: state.fetch(:capture_blockers, []).map(&:dup))
+    end
+
+    def capture_blocked?(state, x, y)
+      blockers = state[:capture_blockers]
+      blockers != nil && !blockers.empty? && blockers.include?([x, y])
     end
 
     def each_piece(board, marker)
@@ -910,11 +964,11 @@ module GameRoomGames
     end
 
     def piece_owner(code)
-      code.to_s[0].to_i
+      code == "1m" || code == "1k" ? 1 : 0
     end
 
     def king?(code)
-      code.to_s.end_with?("k")
+      code == "0k" || code == "1k"
     end
 
     def piece_at_coordinate(board, value)

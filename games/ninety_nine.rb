@@ -40,43 +40,26 @@ module GameRoomGames
 
     def rule_sections
       [
-        rule_section(
-          :goal,
-          _("Goal"),
-          _("Remain in the game after every other player has been eliminated. Players lose tokens for dangerous totals and are eliminated only when they cannot pay a complete penalty.")
-        ),
-        rule_section(
-          :setup,
-          _("Setup"),
+        rule_section(:tokens, _("Three cards and a changing total"),
           _("Ninety-nine is played by 2 to 8 players. Each active player receives three cards at the start of a round, and the pile total starts at zero. By default everyone starts the game with 9 tokens; the table master may choose another positive number."),
-          _("With 7 or 8 players the game uses two decks. The dealer changes between rounds and the first active player after the dealer begins.")
-        ),
-        rule_section(
-          :play,
-          _("How to play"),
+          _("With 7 or 8 players the game uses two decks. The dealer changes between rounds and the first active player after the dealer begins."),
           _("Play one card from your hand to change the pile total. If the round continues, the program immediately draws a replacement card for you and passes the turn."),
+          _("When the draw pile is exhausted, discards are shuffled for drawing again; players keep their current hands. Reaching a round-ending total starts a fresh deal for the remaining players, resetting the pile total, not their token balances.")),
+        rule_section(:cards, _("How the cards change the total"),
           _("Cards 3 through 8 add their face value, 9 leaves the total unchanged, and queens and kings add 10. A 10 adds or subtracts 10; an ace adds 1 or 11. Enter on a 10 or ace opens its available choices, and subtracting below zero is never offered."),
-          _("A 2 doubles the total, except that an even total above 49 is halved. A jack skips the next player; with two players it therefore gives the same player another turn. A 4 reverses direction when at least three players remain.")
-        ),
-        rule_section(
-          :ending,
-          _("Tokens, rounds and winning"),
+          _("A 2 doubles the total, except that an even total above 49 is halved. A jack skips the next player; with two players it therefore gives the same player another turn. A 4 reverses direction when at least three players remain."),
+          _("A jack does not add points. A four still adds four when it reverses direction. The ace and ten choices are made before playing the card; the program never permits a negative pile.")),
+        rule_section(:thresholds, _("33, 66, 99 and elimination"),
           _("Making the total exactly 33 or 66 by increasing it costs every other active player 1 token. Jumping upward across either of those totals costs the player who played the card 1 token for each crossed threshold."),
           _("Making exactly 99 wins the round and costs every other active player 2 tokens. Exceeding 99 loses the round and costs the player 2 additional tokens, as well as any penalties for crossing 33 or 66 during that play."),
-          _("A player may remain active with zero tokens. Elimination occurs only when the player later owes more tokens than are available. When one active player remains, that player wins the game.")
-        ),
-        rule_section(
-          :variants,
-          _("Variants and table options"),
+          _("A player may remain active with zero tokens. Elimination occurs only when the player later owes more tokens than are available. When one active player remains, that player wins the game."),
+          _("The 33/66 penalty for opponents requires an increase, including doubling 33 to 66. Subtracting from 43 to 33 or from 76 to 66 does not trigger it; neither does leaving the total unchanged with a nine. Exactly paying a penalty can leave you at zero without eliminating you.")),
+        rule_section(:options, _("Starting tokens and computer knowledge"),
           _("The number of starting tokens is configurable and defaults to 9. Omniscient bots is an optional challenge mode in which computers can see every player's current hand while planning; it is deliberately unfair and is off by default. Ordinary bots infer hidden cards from their own hand and public play."),
-          _("Card effects and token penalties remain the same in both bot modes.")
-        ),
-        rule_section(
-          :controls,
-          _("Controls"),
+          _("Card effects and token penalties remain the same in both bot modes.")),
+        rule_section(:controls, _("Cards and information"),
           _("Use the Arrow keys to browse your hand and press Enter to play a card. Enter on an ace or 10 opens its value choices; Escape from that choice returns to the hand. Replacement cards are drawn automatically."),
-          _("Press T for the current turn, H for your hand, C for the pile total and S for every player's tokens. Tab moves between all game fields, history and users. Ctrl+F1 opens these rules. Escape returns to the table.")
-        )
+          _("T reads the turn, H your hand, C the pile total and S everyone's remaining tokens. The automatic replacement draw needs no extra key."))
       ]
     end
 
@@ -301,6 +284,7 @@ module GameRoomGames
             id: "hand",
             header: _("Your hand"),
             cards: cards,
+            hand_order: hand_for(state, viewer).to_a.dup, hand_epoch: [viewer, state[:round]].join(":"),
             empty_label: _("Your hand is empty")
           )
         ]

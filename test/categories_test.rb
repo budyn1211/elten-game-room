@@ -87,7 +87,8 @@ events = []
 
 assert(game.minimum_players == 2 && game.maximum_players == 8, "Categories exposes the wrong player range")
 assert(!game.supports_bots?, "Categories unexpectedly supports bots")
-assert(game.rule_book.sections.map(&:id).include?(:variants), "Categories has an incomplete rule book")
+assert(game.rule_book.sections.map(&:id).include?(:pools), "Categories rules do not describe category pools")
+assert(game.rule_book.sections.map(&:id).include?(:finish), "Categories rules do not describe tie variants")
 assert(game.default_options["judge_mode"] == "rotating", "Categories has the wrong default judge mode")
 assert(game.default_options["answer_language"] == "pl", "Categories has the wrong default answer language")
 assert(game.default_options["category_set"] == "easy", "Categories has the wrong default category pool")

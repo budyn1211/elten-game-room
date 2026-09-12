@@ -19,12 +19,12 @@ module GameRoomGames
 
     def rule_sections
       [
-        rule_section(:goal, _("Goal"), _("Finish with more discs of your colour than your opponent.")),
-        rule_section(:setup, _("Setup"), _("The classic game uses an 8 by 8 board and four discs in the centre. The first player uses black and moves first.")),
-        rule_section(:play, _("How to play"), _("Place a disc so that one or more straight lines of opposing discs are enclosed between the new disc and one of your existing discs. All enclosed discs are turned over."), _("If you have no legal move, your turn is passed automatically. The game ends when neither player can move.")),
-        rule_section(:ending, _("Ending the game"), _("The player with more discs wins. Equal totals are a draw.")),
-        rule_section(:variants, _("Variants and table options"), _("This version uses the classic 8 by 8 rules without additional variants.")),
-        rule_section(:controls, _("Controls"), _("Use the Arrow keys to inspect the board and press Enter on a legal empty field. Press T to hear whose turn it is. Ctrl+F1 opens these rules."))
+        rule_section(:turning, _("Enclosing and turning discs"),
+          _("Two players use an 8 by 8 board with four discs in the centre. The first player is black and starts; the second is white. Place a disc on an empty field so that it encloses a continuous line of one or more opposing discs between the new disc and one of your existing discs."),
+          _("Lines count horizontally, vertically and diagonally. Every opposing disc enclosed by this move changes to your colour, in all qualifying directions at once. An empty space interrupts a line. At least one disc must turn for a move to be legal; you cannot simply place a disc beside your own."),
+          _("If you have no legal move, the game announces and skips your turn automatically. You cannot pass voluntarily when a move exists. When neither player can move, the game counts the discs: more discs wins, equal numbers draw. The board need not be full. There are no optional variants; computers are supported.")),
+        rule_section(:controls, _("Placing a disc"),
+          _("Use the Arrow keys to inspect the board and Enter to place a disc. T reads the turn. Entering /d3 in chat attempts the same move as Enter on D3 and applies the same enclosure rules."))
       ]
     end
 
@@ -37,7 +37,7 @@ module GameRoomGames
     end
 
     def bot_strategy
-      @bot_strategy ||= GameRoomBots::AlphaBetaStrategy.new(max_depth: 6, node_limit: 55_000)
+      @bot_strategy ||= GameRoomBots::AlphaBetaStrategy.new(max_depth: 6, node_limit: 55_000, optimize_transpositions: true)
     end
 
     def replay(session, events, repository)
@@ -143,10 +143,60 @@ module GameRoomGames
       counts = disc_counts(replay.board)
       empty = replay.board.flatten.count(nil)
       disc_weight = empty < 16 ? 5.0 : 0.3
-      (own_moves - other_moves) * 12.0 + corner_score * 250.0 + (counts[marker] - counts[opponent]) * disc_weight
+      stability = reversi_stable_edges(replay.board).sum { |x, y| replay.board[y][x] == marker ? 1 : -1 }
+      frontier = [0, 0]
+      danger = [0, 0]
+      replay.board.each_with_index do |row, y|
+        row.each_with_index do |cell, x|
+          next if cell == nil
+          frontier[cell] += 1 if (-1..1).any? { |dy| (-1..1).any? { |dx| inside?(x + dx, y + dy) && replay.board[y + dy][x + dx] == nil } }
+          danger[cell] += 1 if dangerous_corner_neighbor?(replay.board, x, y)
+        end
+      end
+      parity = if empty <= 12
+        reversi_odd_regions(replay.board) * (same_user?(replay.current_player, actor) ? 2 : -2)
+      else
+        0
+      end
+      (own_moves - other_moves) * 12.0 + corner_score * 250.0 + (counts[marker] - counts[opponent]) * disc_weight +
+        stability * 30 + (frontier[opponent] - frontier[marker]) * 4 + (danger[opponent] - danger[marker]) * 45 + parity
     end
 
     private
+
+    def reversi_stable_edges(board)
+      stable = []
+      [[0, 0, 1, 1], [7, 0, -1, 1], [0, 7, 1, -1], [7, 7, -1, -1]].each do |x, y, dx, dy|
+        next if board[y][x] == nil
+        [[dx, 0], [0, dy]].each do |sx, sy|
+          px, py = x, y
+          while inside?(px, py) && board[py][px] == board[y][x]
+            stable << [px, py]
+            px += sx
+            py += sy
+          end
+        end
+      end
+      stable.uniq
+    end
+
+    def reversi_odd_regions(board)
+      empty = {}
+      board.each_with_index { |row, y| row.each_with_index { |cell, x| empty[[x, y]] = true if cell == nil } }
+      odd = 0
+      until empty.empty?
+        stack = [empty.keys.first]
+        count = 0
+        until stack.empty?
+          x, y = stack.pop
+          next unless empty.delete([x, y])
+          count += 1
+          [[1, 0], [-1, 0], [0, 1], [0, -1]].each { |dx, dy| stack << [x + dx, y + dy] if empty.key?([x + dx, y + dy]) }
+        end
+        odd += 1 if count.odd?
+      end
+      odd
+    end
 
     def apply_events!(state, events, repository, session, accepted, history)
       events.each do |event|
@@ -210,7 +260,11 @@ module GameRoomGames
     def available_fields(board, marker)
       return [] if marker == nil
 
-      (0...SIZE).flat_map do |y|
+      key = [board.flatten.map { |cell| cell == nil ? "-" : cell }.join, marker]
+      @reversi_moves_cache ||= {}
+      return @reversi_moves_cache[key] if @reversi_moves_cache.key?(key)
+      @reversi_moves_cache.clear if @reversi_moves_cache.length >= 8_000
+      @reversi_moves_cache[key] = (0...SIZE).flat_map do |y|
         (0...SIZE).filter_map { |x| [x, y] if !flips_for(board, x, y, marker).empty? }
       end
     end

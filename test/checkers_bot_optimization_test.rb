@@ -110,7 +110,9 @@ end
 
 # These are decisions recorded from build 182 before the optimization. A new
 # move is accepted only if a full-width depth-seven comparison proves that it
-# has at least the same minimax value under the unchanged evaluation function.
+# has at least the same minimax value under the CURRENT evaluation function.
+# After audit 212 this is a guard against regressing old candidate moves,
+# not a claim that the evaluation or the depth-boundary rules never changed.
 quality_cases = [
   {
     name: "classic opening",

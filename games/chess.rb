@@ -33,17 +33,24 @@ module GameRoomGames
     end
 
     def bot_strategy
-      @bot_strategy ||= GameRoomBots::AlphaBetaStrategy.new(max_depth: 3, node_limit: 30_000)
+      @bot_strategy ||= GameRoomBots::AlphaBetaStrategy.new(max_depth: 3, node_limit: 30_000, optimize_transpositions: true)
     end
 
     def rule_sections
       [
-        rule_section(:goal, _("Goal"), _("Checkmate the opposing king: attack it so that no legal reply removes the attack.")),
-        rule_section(:setup, _("Setup"), _("The game uses the standard 8 by 8 chessboard and the orthodox initial position. White moves first.")),
-        rule_section(:play, _("How to play"), _("Each piece follows the standard chess movement rules. A move that leaves your own king in check is illegal. Castling, en passant and pawn promotion are supported.")),
-        rule_section(:ending, _("Ending the game"), _("Checkmate wins. Stalemate, insufficient material, three repetitions or 50 moves by each side without a pawn move or capture produce a draw.")),
-        rule_section(:variants, _("Variants and table options"), _("This version uses classic chess without optional variants.")),
-        rule_section(:controls, _("Controls"), _("Choose one of your pieces and press Enter, then choose a marked destination and press Enter. When a pawn promotes, choose the new piece from the list. Press V for the available moves of the current piece, E for pieces threatening the current field, C for the colours, and K, D, R, B, N or P to move between your pieces of that type. Ctrl+Shift+H rotates the board. Press T for the turn and Ctrl+F1 for these rules."))
+        rule_section(:position, _("The board and the king"),
+          _("Two players begin from the standard chess position on an 8 by 8 board. White moves first. Each side has a king, queen, two rooks, two bishops, two knights and eight pawns. Capture an opposing piece by moving to its field. You cannot capture your own piece or make a move that leaves your king attacked.")),
+        rule_section(:pieces, _("How each piece moves"),
+          _("The king moves one field in any direction. The queen moves any distance along a row, column or diagonal. A rook moves along rows and columns; a bishop along diagonals. These pieces cannot jump over occupied fields. A knight jumps in an L: two fields along one axis and one along the other, regardless of intervening pieces."),
+          _("A pawn moves one empty field forward, toward the opponent's starting side. From its starting rank it may move two fields if both are empty. It captures one field diagonally forward, never straight ahead. On reaching the last rank it must become a queen, rook, bishop or knight, chosen from a list.")),
+        rule_section(:special, _("Castling and en passant"),
+          _("To castle, move the king two fields toward its rook. The rook moves to the field the king passed. Neither piece may have moved before, the fields between them must be empty, and the king must not be in check, pass through check or finish in check. Both short and long castling are supported."),
+          _("En passant is available only immediately after an opposing pawn advances two fields and finishes beside your pawn. Move your pawn diagonally to the field that opposing pawn passed; that pawn is captured even though the destination was empty.")),
+        rule_section(:mate, _("Check, checkmate and draws"),
+          _("Check means your king is attacked: your next move must remove that attack. Checkmate means there is no legal reply, and loses the game. No legal move while not in check is stalemate, a draw. The program also automatically draws on three repetitions of a position, insufficient mating material, or 50 moves by each side without a pawn move or capture. This implementation has no optional chess variants or chess clock.")),
+        rule_section(:controls, _("Moving and inspecting pieces"),
+          _("Arrow keys browse the board. Enter selects your piece, then Enter on the destination attempts the move. Promotion opens a choice list. V reads legal destinations for the inspected piece; E reads pieces attacking the inspected field, including an empty field; C identifies each player's colour."),
+          _("K, D, R, B, N and P jump between your kings, queens, rooks, bishops, knights and pawns respectively; Shift with the same letter visits the opponent's pieces. Ctrl+Shift+H rotates the view without renaming fields. T reads the turn. In chat, /e2 e4 attempts a move from E2 to E4; castling and promotion use the same rules and choices as board moves."))
       ]
     end
 
@@ -281,7 +288,28 @@ module GameRoomGames
     def bot_search_key(replay, actor)
       state = replay.state
       board = state[:board].flatten.map { |piece| piece || "--" }.join
-      "#{colour_for(state, actor)}:#{colour_for(state, replay.current_player)}:#{state[:castling]}:#{state[:en_passant]}:#{state[:pending_promotion]}:#{board}"
+      [colour_for(state, actor), colour_for(state, replay.current_player), state[:castling],
+       state[:en_passant], state[:pending_promotion], board, state[:halfmove],
+       state[:positions].sort]
+    end
+
+    def bot_forced_continuation?(replay)
+      replay.state[:pending_promotion] != nil
+    end
+
+    def bot_tactical_actions(replay)
+      state = replay.state
+      actor = state[:current_player]
+      checked = in_check?(state, colour_for(state, actor))
+      return { actions: legal_actions(replay, actor), forced: true } if checked || state[:pending_promotion]
+      # Only immediate recaptures, not another full search of quiet moves.
+      event = replay.accepted_events.last
+      previous = event && event["action"] == board_event_action ? parse_board_move(event["value"]) : nil
+      return { actions: [], forced: false } unless previous && state[:halfmove].zero?
+      actions = available_board_moves(replay, actor).select do |move|
+        move.to == previous.to && state[:board][move.to[1]][move.to[0]] != nil
+      end.map(&:action)
+      { actions: actions, forced: false }
     end
 
     def bot_action_score(replay, actor, action, context: nil)
@@ -307,21 +335,60 @@ module GameRoomGames
       colour = colour_for(state, actor)
       opponent = colour == "w" ? "b" : "w"
       value = 0.0
+      pieces = state[:board].flatten.compact
+      phase = [pieces.sum { |code| { "N" => 1, "B" => 1, "R" => 2, "Q" => 4 }.fetch(code[1], 0) } / 24.0, 1.0].min
+      pawns = { "w" => [], "b" => [] }
+      state[:board].each_with_index { |row, y| row.each_with_index { |code, x| pawns[code[0]] << [x, y] if code && code[1] == "P" } }
       state[:board].each_with_index do |row, y|
         row.each_with_index do |code, x|
           next if code == nil
           sign = code[0] == colour ? 1 : -1
           center = (x.between?(2, 5) && y.between?(2, 5)) ? 12 : 0
           advancement = code[1] == "P" ? (code[0] == "w" ? y : 7 - y) * 4 : 0
+          if code[1] == "K"
+            edge_distance = [x, 7 - x].min + [y, 7 - y].min
+            home_row = code[0] == "w" ? 0 : 7
+            shield = pawns[code[0]].count { |px, py| (px - x).abs <= 1 && (py - y) == (code[0] == "w" ? 1 : -1) }
+            center = (1 - phase) * edge_distance * 10 + phase * (shield * 12 - (y - home_row).abs * 12 - edge_distance * 6)
+          elsif code[1] == "P"
+            friendly = pawns[code[0]]
+            enemies = pawns[code[0] == "w" ? "b" : "w"]
+            advancement -= 12 if friendly.count { |px, _| px == x } > 1
+            advancement -= 10 unless friendly.any? { |px, _| (px - x).abs == 1 }
+            passed = enemies.none? { |px, py| (px - x).abs <= 1 && (code[0] == "w" ? py > y : py < y) }
+            distance = code[0] == "w" ? 7 - y : y
+            advancement += (7 - distance)**2 * (1.5 - phase) if passed
+          end
           value += sign * (PIECE_VALUES[code[1]] + center + advancement)
         end
       end
       own_moves = pseudo_moves(state, colour).length
       other_moves = pseudo_moves(state, opponent).length
-      value + (own_moves - other_moves) * 2.0 - (in_check?(state, colour) ? 45 : 0)
+      value + (own_moves - other_moves) * 2.0 - (in_check?(state, colour) ? 45 : 0) + (in_check?(state, opponent) ? 45 : 0)
+    end
+
+    def describe_event(event, repository, replay, _viewer)
+      replay.history.filter_map do |entry|
+        entry.text if entry.event_id.to_i == repository.event_id(event).to_i && [:move, :promotion, :check].include?(entry.kind)
+      end
+    end
+
+    def result_text(replay)
+      return chess_draw_text(replay.state[:draw_reason]) if replay.draw && replay.state[:draw_reason]
+      super
     end
 
     private
+
+    def chess_draw_text(reason)
+      case reason
+      when :stalemate then _("Draw by stalemate.")
+      when :repetition then _("Draw by threefold repetition.")
+      when :fifty_moves then _("Draw after fifty moves without a pawn move or capture.")
+      when :material then _("Draw because neither side has sufficient mating material.")
+      else _("The game ended in a draw.")
+      end
+    end
 
     def chess_castling_error(state, colour, origin, destination)
       row = colour == "w" ? 0 : 7
@@ -419,9 +486,13 @@ module GameRoomGames
 
     def legal_moves(state, actor)
       colour = colour_for(state, actor)
+      key = [colour, state[:board], state[:castling], state[:en_passant], state[:pending_promotion]].inspect
+      @chess_moves_cache ||= {}
+      return @chess_moves_cache[key] if @chess_moves_cache.key?(key)
+      @chess_moves_cache.clear if @chess_moves_cache.length >= 8_000
       return [] if colour == nil
 
-      pseudo_moves(state, colour).select do |move|
+      @chess_moves_cache[key] = pseudo_moves(state, colour).select do |move|
         copy = duplicate_state(state)
         apply_chess_move!(copy, move, actor, simulation: true)
         !in_check?(copy, colour)
@@ -556,7 +627,10 @@ module GameRoomGames
           history << result_history(event_id: event_id, winner: actor)
         else
           state[:draw] = true
-          history << result_history(event_id: event_id, draw: true)
+          state[:draw_reason] = :stalemate
+          entry = result_history(event_id: event_id, draw: true)
+          entry.text = chess_draw_text(:stalemate)
+          history << entry
         end
         return
       end
@@ -565,7 +639,12 @@ module GameRoomGames
       if state[:halfmove] >= 100 || state[:positions][key] >= 3 || insufficient_material?(state[:board])
         state[:draw] = true
         state[:current_player] = nil
-        history << result_history(event_id: event_id, draw: true)
+        state[:draw_reason] = state[:halfmove] >= 100 ? :fifty_moves : state[:positions][key] >= 3 ? :repetition : :material
+        entry = result_history(event_id: event_id, draw: true)
+        entry.text = chess_draw_text(state[:draw_reason])
+        history << entry
+      elsif in_check?(state, colour)
+        history << HistoryEntry.new(key: "check:#{event_id}", text: _("Check."), event_id: event_id, actor: actor, kind: :check)
       end
     end
 
@@ -816,7 +895,13 @@ module GameRoomGames
     end
 
     def position_key(state)
-      [state[:board].flatten.map { |piece| piece || "--" }.join, colour_for(state, state[:current_player]), state[:castling], state[:en_passant]].join(":")
+      ep = state[:en_passant]
+      if ep != nil
+        # A nominal target changes repetition rights only if a legal capture
+        # exists. In particular a pinned pawn must not distinguish positions.
+        ep = nil unless legal_moves(state, state[:current_player]).any? { |move| move.metadata["en_passant"] == "1" }
+      end
+      [state[:board].flatten.map { |piece| piece || "--" }.join, colour_for(state, state[:current_player]), state[:castling], ep].join(":")
     end
   end
 end

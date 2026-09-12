@@ -78,11 +78,86 @@ layout.form.held_modifiers = []
 layout.form.game_shortcut_keys = ["s", "space"]
 assert(layout.form.key_processed(:s) == false, "an active list can block a shared letter shortcut")
 assert(layout.form.key_processed(:space) == false, "the active control can block a shared Space shortcut")
+
+yahtzee_spec = GameSurfaces::RollAndScoreSpec.new(
+  id: "yahtzee",
+  header: "Yahtzee",
+  dice: [1, 1, 3, 4, 5].each_with_index.map do |value, index|
+    GameSurfaces::Die.new(id: "d#{index}", value: value, sides: 6, held: true, enabled: true)
+  end,
+  categories: [GameSurfaces::ScoreChoice.new(id: "chance", label: "Chance: 15", value: "chance")],
+  can_roll: true,
+  force_categories: false,
+  empty_label: "No categories",
+  roll_number: 1
+)
+yahtzee_surface = GameSurfaces::RollAndScoreSurface.new(yahtzee_spec)
+assert(yahtzee_surface.fields.first.options == ["Roll the dice"],
+  "the Yahtzee surface still exposes dice as separate interface items")
+assert(yahtzee_surface.handle_command("select_die", "value" => 1),
+  "the Yahtzee surface did not select a die by value")
+assert(yahtzee_surface.state["selected_ids"] == ["d0"],
+  "the wrong first matching Yahtzee die was selected")
+assert($spoken_messages.last == "You keep 1 3 4 5 and reroll 1.", "the Yahtzee selection summary is incorrect")
+assert(yahtzee_surface.handle_command("select_die", "value" => 1),
+  "the Yahtzee surface did not select the next matching die")
+assert(yahtzee_surface.state["selected_ids"] == ["d0", "d1"],
+  "repeated value selection did not advance to the next matching die")
+assert(yahtzee_surface.handle_command("unselect_die", "value" => 1),
+  "the Yahtzee surface did not keep one selected matching die")
+assert(yahtzee_surface.state["selected_ids"] == ["d0"],
+  "keeping by value did not remove exactly one selected die")
+assert($spoken_messages.last == "You keep 1 3 4 5 and reroll 1.", "the Yahtzee keep summary is incorrect")
+$spoken_messages.clear
+assert(yahtzee_surface.handle_command("announce_dice"), "the Yahtzee dice status shortcut was rejected")
+assert($spoken_messages.last == "You keep 1 3 4 5 and reroll 1.",
+  "the Yahtzee dice status did not include the selection state")
+yahtzee_action = nil
+yahtzee_surface.on_action { |action| yahtzee_action = action }
+yahtzee_surface.fields.first.trigger(:select)
+assert(yahtzee_action&.name == "roll" && yahtzee_action.payload["die_ids"] == "d0",
+  "Enter did not reroll only the selected Yahtzee die")
+
+next_roll_spec = yahtzee_spec.dup
+next_roll_spec.roll_number = 2
+next_roll_surface = GameSurfaces::RollAndScoreSurface.new(next_roll_spec, state: yahtzee_surface.state)
+assert(next_roll_surface.state["selected_ids"].empty?,
+  "Yahtzee preserved selected dice after a completed roll")
+next_roll_surface.fields.first.trigger(:select)
+assert(next_roll_surface.fields.first.options == ["Chance: 15"],
+  "Enter did not open Yahtzee scoring categories when no die was selected")
 layout.history.game_shortcut_keys = ["s", "space"]
 layout.history.next_character = "s"
 assert(layout.history.send(:getkeychar) == "", "a shared shortcut leaked into list quick search")
 layout.history.next_character = "a"
 assert(layout.history.send(:getkeychar) == "a", "a normal list quick-search character was suppressed")
+layout.history.game_shortcut_signatures = [["1", []], ["1", [:shift]]]
+layout.history.next_character = "!"
+assert(layout.history.send(:getkeychar) == "", "a shifted digit shortcut leaked into list quick search")
+
+sortable_cards = [
+  GameSurfaces::Card.new(id: "b2", label: "blue 2", value: "b2", sort_keys: {
+    "colour" => [1, 1], "number" => [1, 1], "none" => [0]
+  }),
+  GameSurfaces::Card.new(id: "r1", label: "red 1", value: "r1", sort_keys: {
+    "colour" => [0, 0], "number" => [0, 0], "none" => [1]
+  }),
+  GameSurfaces::Card.new(id: "b1", label: "blue 1", value: "b1", sort_keys: {
+    "colour" => [1, 0], "number" => [0, 1], "none" => [2]
+  })
+]
+sortable_spec = GameSurfaces::CardTableSpec.new(zones: [
+  GameSurfaces::CardZoneSpec.new(id: "hand", header: "Hand", cards: sortable_cards, empty_label: "Empty")
+])
+sortable_surface = GameSurfaces::CardTable.new(sortable_spec)
+assert(sortable_surface.handle_command("sort_cards", "mode" => "number", "message" => "Sorted by value."),
+  "the shared card surface rejected a local sort command")
+assert(sortable_surface.fields.first.options == ["red 1", "blue 1", "blue 2"],
+  "the shared card surface did not sort cards by the requested key")
+assert(sortable_surface.state["card_sort_mode"] == "number", "the selected card sort mode was not preserved")
+restored_sortable_surface = GameSurfaces::CardTable.new(sortable_spec, state: sortable_surface.state)
+assert(restored_sortable_surface.fields.first.options == ["red 1", "blue 1", "blue 2"],
+  "the selected card sort mode was lost during a refresh")
 answer_field = GameSurfaces::RefreshAwareEditBox.new("Country", text: "")
 answer_field.game_shortcut_signatures = [["t", [:control]]]
 context_menu = FakeMenu.new

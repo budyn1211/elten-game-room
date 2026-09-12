@@ -95,6 +95,33 @@ module GameRoomSounds
       ninety_nine_cue(event, before_replay, after_replay, viewer)
     when "farkle"
       farkle_cue(event, before_replay, after_replay, repository)
+    when "uno"
+      return nil if history_for_event(after_replay, event, repository).any? { |entry| entry.key.to_s.start_with?("too_late:") }
+      round_result = history_for_event(after_replay, event, repository).find { |entry| entry.kind == :round_result }
+      if round_result && GameRoomParticipants.includes?(after_replay.players, viewer)
+        return GameRoomParticipants.same?(round_result.actor, viewer) ? "win1" : "lose1"
+      end
+      return "shuffle" if action == "deal"
+      return "draw" if %w[draw turn_timeout catch challenge].include?(action)
+      if action == "play"
+        type = event["value"].to_s[1]
+        return "reverse" if %w[V R L].include?(type)
+        return "play"
+      end
+    when "makao"
+      return "shuffle" if action == "deal"
+      return "play" if action == "play"
+      return "draw" if %w[draw catch].include?(action)
+    when "poker"
+      return "shuffle" if action == "deal"
+      return "draw" if action == "exchange" && !event["value"].to_s.empty?
+      return "play" if action == "bet" && event["value"].to_s !~ /\A(?:check|fold)\|/
+    when "yahtzee"
+      return "roll" if action == "roll"
+      return "play" if action == "score"
+    when "monopoly"
+      return "roll" if action == "roll"
+      return "play2" if %w[buy build sell mortgage unmortgage trade_accept auction_bid].include?(action)
     when "four_in_a_row"
       action == "drop" ? "play2" : nil
     when "tic_tac_toe"

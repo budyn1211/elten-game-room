@@ -5,14 +5,14 @@ module GameSurfaces
   class CompositeSurface
     include ActionEmitter
 
-    def initialize(spec, state: {})
+    def initialize(spec, state: {}, previous: nil)
       @spec = spec
       @parts = @spec.parts.to_a
       validate_parts!
       remembered = state_value(state, "parts", {})
       @surfaces = @parts.map do |part|
         child_state = remembered_value(remembered, part.id)
-        surface = GameSurfaces.build(part.surface, state: child_state)
+        surface = GameSurfaces.reconcile(part.surface, previous: previous, state: child_state)
         surface.on_action do |action|
           @action_handler&.call(action.with_source(part.id))
         end
@@ -31,6 +31,23 @@ module GameSurfaces
         values[part.id.to_s] = @surfaces[index].state
       end
       { "parts" => values }
+    end
+
+    def reuse_candidates
+      @surfaces.flat_map { |surface| surface.respond_to?(:reuse_candidates) ? surface.reuse_candidates : [surface] }
+    end
+
+    def take_cursor_announcement(field_index = nil)
+      offset = 0
+      message = nil
+      @surfaces.each do |surface|
+        count = surface.fields.length
+        selected = field_index != nil && field_index >= offset && field_index < offset + count
+        value = surface.take_cursor_announcement(selected ? field_index - offset : nil)
+        message = value if selected
+        offset += count
+      end
+      message
     end
 
     def submission_action
@@ -68,6 +85,12 @@ module GameSurfaces
       return false if surface == nil
 
       surface.cancel_pending_action!
+    end
+
+    def handle_command(command, payload = {})
+      @surfaces.any? do |surface|
+        surface.respond_to?(:handle_command) && surface.handle_command(command, payload)
+      end
     end
 
     private

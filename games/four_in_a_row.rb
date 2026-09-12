@@ -19,38 +19,11 @@ module GameRoomGames
 
     def rule_sections
       [
-        rule_section(
-          :goal,
-          _("Goal"),
-          _("Be the first player to place four of your pieces in one continuous horizontal, vertical or diagonal line.")
-        ),
-        rule_section(
-          :setup,
-          _("Setup"),
-          _("Two players use a board with 7 columns and 6 rows. The first player listed at the table makes the first move, and the players then alternate turns.")
-        ),
-        rule_section(
-          :play,
-          _("How to play"),
-          _("Choose a column and press Enter. Your piece falls to the lowest empty field in that column, regardless of which row you were inspecting."),
-          _("A full column cannot be selected. After a valid move, the turn passes to the other player.")
-        ),
-        rule_section(
-          :ending,
-          _("Ending the game"),
-          _("The game ends immediately when a move completes a line of four pieces. If all 42 fields are occupied and nobody has four in a row, the game ends in a draw.")
-        ),
-        rule_section(
-          :variants,
-          _("Variants and table options"),
-          _("This version has no rule variants. A table may contain two human players, one human and one computer, or two computers.")
-        ),
-        rule_section(
-          :controls,
-          _("Controls"),
-          _("Use the Left and Right Arrow keys to change columns and the Up and Down Arrow keys to inspect rows. Press Enter to drop a piece in the current column."),
-          _("Press T to hear whose turn it is. Tab moves between the board, game history and users. Ctrl+F1 opens these rules. Escape returns to the table.")
-        )
+        rule_section(:falling, _("Falling pieces and lines of four"),
+          _("Two players alternate on a board with seven columns and six rows. The first listed player begins. Choose a column: the piece always falls to its lowest empty field. Choosing a higher row does not make the piece stay there. A full column cannot accept another piece."),
+          _("An uninterrupted line of at least four of your pieces horizontally, vertically or diagonally wins immediately. Filling all 42 fields without a winning line is a draw. This game has no configurable rule variants or board sizes. Both people and computers can play.")),
+        rule_section(:controls, _("Choosing a column"),
+          _("Left and Right change the column; Up and Down inspect its fields. Enter drops a piece in the current column. T reads the turn. A chat command such as /c1 or /c4 drops a piece in column C, exactly like Enter; the row does not override gravity."))
       ]
     end
 
@@ -89,6 +62,7 @@ module GameRoomGames
       value = board.sum do |row|
         row[center] == marker ? 8.0 : (row[center] == opponent ? -8.0 : 0.0)
       end
+      immediate = [[], []]
       four_windows.each do |window|
         cells = window.map { |row, column| board[row][column] }
         own = cells.count(marker)
@@ -104,10 +78,18 @@ module GameRoomGames
         if other == 0
           value += 18.0 if own == 2
           value += playable ? 520.0 : 150.0 if own == 3
+          immediate[marker] << window[empty_index] if own == 3 && playable
         elsif own == 0
           value -= 22.0 if other == 2
           value -= playable ? 620.0 : 180.0 if other == 3
+          immediate[opponent] << window[empty_index] if other == 3 && playable
         end
+      end
+      moving = player_index(replay.players, replay.current_player)
+      if moving != nil
+        return moving == marker ? 900_000.0 : -900_000.0 unless immediate[moving].empty?
+        rival = 1 - moving
+        return rival == marker ? 850_000.0 : -850_000.0 if immediate[rival].uniq.length >= 2
       end
       value
     end

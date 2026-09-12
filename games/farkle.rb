@@ -16,43 +16,24 @@ module GameRoomGames
 
     def rule_sections
       [
-        rule_section(
-          :goal,
-          _("Goal"),
-          _("Be the first player to bank at least the score limit selected for the table. The default limit is 1000 points.")
-        ),
-        rule_section(
-          :setup,
-          _("Setup"),
+        rule_section(:risk, _("Keep points or risk another roll"),
           _("Farkle is played by 2 to 8 players with six dice. Everyone starts with zero banked points. The table master may configure the winning score, the minimum score for an ordinary bank and the minimum required for a player's first bank."),
-          _("The default values are 1000 points to win, 30 points to bank a turn and 50 points for the first bank.")
-        ),
-        rule_section(
-          :play,
-          _("How to play"),
+          _("The default values are 1000 points to win, 30 points to bank a turn and 50 points for the first bank."),
           _("Start your turn by rolling all six dice. Use the Arrow keys to choose one of the complete scoring combinations offered from that roll and press Enter. Its dice are kept and its points are added to the current turn."),
           _("After keeping a combination, choose either Roll N dice or, once the required minimum has been reached, Bank X points. Rolling continues the same turn with the remaining dice; banking makes the turn points permanent and passes play to the next player."),
-          _("Kept dice from separate rolls cannot be combined into a new scoring set. If all six dice score, you have hot dice and may roll all six again while keeping the accumulated turn points. A roll with no scoring combination is a Farkle: the entire unbanked turn score is lost and the turn ends.")
-        ),
-        rule_section(
-          :ending,
-          _("Scoring and ending the game"),
-          _("A single 5 scores 5 points and a single 1 scores 10. Three 1s score 75; three of any other face score ten times that face. Four of a kind score 110 to 160, five of a kind 320 to 420, and six of a kind 625 to 750."),
-          _("A small straight scores 100, a large straight 200, three pairs 150, and a full house or two sets of three of a kind score 250. The program lists every legal scoring interpretation and automatically uses the points belonging to the selected combination."),
-          _("The first player whose banked total reaches or exceeds the selected score limit wins immediately.")
-        ),
-        rule_section(
-          :variants,
-          _("Variants and table options"),
+          _("Kept dice from separate rolls cannot be combined into a new scoring set. If all six dice score, you have hot dice and may roll all six again while keeping the accumulated turn points. A roll with no scoring combination is a Farkle: the entire unbanked turn score is lost and the turn ends.")),
+        rule_section(:scoring, _("Scoring combinations in this implementation"),
+          _("A single one scores 10 and a single five scores 5. Three ones score 75; triples of 2, 3, 4, 5 and 6 score 20, 30, 40, 50 and 60 respectively. Four equal dice score 100 plus ten times their face (110–160). Five equal dice score 300 plus twenty times their face (320–420). Six equal dice score 600 plus twenty-five times their face (625–750)."),
+          _("Five consecutive values, 1–5 or 2–6, score 100. All six different values score 200. Three pairs of different values score 150. Four of one value plus two of another, or two different triples, score 250. The four-plus-two combination is not the five-dice full house from Yahtzee."),
+          _("A selection must use every chosen die in a scoring group; stray twos, threes, fours or sixes cannot be attached for free. Several scoring groups from the same roll can be combined. When more than one interpretation uses the selected dice, the program awards the highest valid score. Previously kept dice do not help form a group in a later roll.")),
+        rule_section(:banking, _("Banking thresholds and the winning score"),
           _("Score limit changes the winning total. Minimum score to bank a turn controls later banks. Minimum score to enter the game applies while a player's banked score is still zero. All three values are entered when the table is created."),
-          _("The scoring combinations themselves do not change between table configurations.")
-        ),
-        rule_section(
-          :controls,
-          _("Controls"),
+          _("The scoring combinations themselves do not change between table configurations."),
+          _("The first player whose banked total reaches or exceeds the selected score limit wins immediately."),
+          _("Reaching the target with unbanked turn points is not enough: you must bank them. A Farkle loses only the current turn's unbanked points, not points saved in earlier turns. The first-bank minimum applies while your saved score is zero; after a successful first bank the ordinary minimum applies.")),
+        rule_section(:controls, _("Selecting combinations, rolling and banking"),
           _("Use the Up and Down Arrow keys to browse available scoring combinations, Roll and Bank. Press Enter to choose the current item. Roll and Bank appear next to each other in the same list rather than as separate Tab fields."),
-          _("Press T for the current turn, S for all scores, C for the current turn score and required minimum, and D for the last roll. Tab moves between the game field, history and users. Ctrl+F1 opens these rules. Escape returns to the table.")
-        )
+          _("T reads the turn, S all scores, C the current turn total and required minimum, and D the last roll. Outside your own turn the game field is informational; the other player's dice are not choices for you to play."))
       ]
     end
 

@@ -356,7 +356,7 @@ match_speech_waits = $speech_wait_calls
 Form.driver = lambda do |form|
   current = match_screen.instance_variable_get(:@layout)
   if !form.equal?(current.form)
-    expected_sections = game.rule_book(options: {}).sections.map(&:title)
+    expected_sections = game.rule_book(options: {}).documents.map(&:title)
     assert(form.fields.first.options == expected_sections, "rules button opened an unrelated dialog")
     match_rules_opened += 1
     form.cancel_button.trigger(:press)

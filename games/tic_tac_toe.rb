@@ -18,37 +18,11 @@ module GameRoomGames
 
     def rule_sections
       [
-        rule_section(
-          :goal,
-          _("Goal"),
-          _("Place three of your marks in one horizontal, vertical or diagonal line before your opponent does.")
-        ),
-        rule_section(
-          :setup,
-          _("Setup"),
-          _("Two players use a 3 by 3 board. The first player listed at the table uses X and moves first; the second player uses O.")
-        ),
-        rule_section(
-          :play,
-          _("How to play"),
-          _("On your turn, move to any empty field and press Enter to place your mark. An occupied field cannot be selected. The turn then passes to the other player.")
-        ),
-        rule_section(
-          :ending,
-          _("Ending the game"),
-          _("The game ends as soon as one player completes a row, column or diagonal of three marks. If all nine fields are occupied without such a line, the game ends in a draw.")
-        ),
-        rule_section(
-          :variants,
-          _("Variants and table options"),
-          _("This version has no rule variants. A table may contain two human players, one human and one computer, or two computers.")
-        ),
-        rule_section(
-          :controls,
-          _("Controls"),
-          _("Use all four Arrow keys to move around the board and press Enter to mark the current field."),
-          _("Press T to hear whose turn it is. Tab moves between the board, game history and users. Ctrl+F1 opens these rules. Escape returns to the table.")
-        )
+        rule_section(:line, _("Three marks in a line"),
+          _("Two players take turns on a 3 by 3 board. The first listed player places X and starts; the other places O. On each turn place exactly one mark on an empty field. Marks already placed cannot be moved or removed."),
+          _("Three of your marks in an unbroken row, column or diagonal win immediately. If all nine fields are filled without a winning line, the result is a draw. There are no optional board sizes or rule variants. Either seat may be occupied by a computer.")),
+        rule_section(:controls, _("Playing on the board"),
+          _("Arrow keys inspect fields; Enter places your mark on the selected empty field during your turn. T announces the turn. You can also enter /a1 in chat to play on A1; this is a move command, not a chat message."))
       ]
     end
 

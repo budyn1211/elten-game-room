@@ -153,7 +153,7 @@ module GameRoomBots
         alpha = [alpha, best_value].max
       end
       if @optimize_transpositions && best_action != nil
-        move_order[ordering_key(environment.replay, root_actor, root_actor, game)] = game.bot_action_key(best_action)
+        move_order[move_ordering_key(environment.replay, root_actor, root_actor, game)] = game.bot_action_key(best_action)
       end
       best_action
     end
@@ -163,19 +163,24 @@ module GameRoomBots
       if replay.finished?
         budget.visit!
         reward = game.bot_reward(replay, root_actor).to_f
-        return reward * 1_000_000.0 + reward * depth.to_i
+        return reward * 1_000_000.0 + reward * [depth.to_i, 0].max
       end
 
       moving_actor = environment.active_actor
+      # Finish a move at the horizon, without making every capture/promotion
+      # throughout the entire tree a free extra ply. This preserves the old
+      # depth/cost contract while avoiding evaluation of an unfinished move.
+      forced_continuation = continuation?(game, replay)
+      depth = 0 if depth < 0 && forced_continuation
       state_ordering_key = nil
-      key = if depth <= 0 && game.respond_to?(:bot_evaluation_key)
+      key = if depth <= 0 && !forced_continuation && game.respond_to?(:bot_evaluation_key)
         [[:evaluation, game.bot_evaluation_key(replay, root_actor)], 0]
       else
         state_ordering_key = ordering_key(replay, root_actor, moving_actor, game)
         [state_ordering_key, depth]
       end
 
-      if @optimize_transpositions
+      if cache.key?(key)
         cached = cache[key]
         if cached != nil
           @search_cache_hits += 1
@@ -192,17 +197,15 @@ module GameRoomBots
             return cached.value
           end
         end
-      elsif cache.key?(key)
-        @search_cache_hits += 1
-        return cache[key]
       end
 
       budget.visit!
-      if depth <= 0
-        value = game.bot_position_value(replay, root_actor).to_f
-        if @optimize_transpositions
-          cache[key] = TranspositionEntry.new(value: value, bound: :exact, best_action_key: nil)
+      if depth <= 0 && !forced_continuation
+        if game.respond_to?(:bot_tactical_actions)
+          return tactical_search(environment, root_actor, game, context, budget, alpha, beta, 2)
         end
+        value = game.bot_position_value(replay, root_actor).to_f
+        cache[key] = TranspositionEntry.new(value: value, bound: :exact, best_action_key: nil)
         return value
       end
 
@@ -214,8 +217,10 @@ module GameRoomBots
       original_alpha = alpha
       original_beta = beta
       preferred_action_key = nil
+      state_move_ordering_key = nil
       if @optimize_transpositions
-        preferred_action_key = move_order[state_ordering_key]
+        state_move_ordering_key = game.respond_to?(:bot_move_order_key) ? move_ordering_key(replay, root_actor, moving_actor, game) : state_ordering_key
+        preferred_action_key = move_order[state_move_ordering_key]
         if cache[key] != nil && cache[key].best_action_key != nil
           preferred_action_key = cache[key].best_action_key
         end
@@ -262,25 +267,48 @@ module GameRoomBots
       end
       value = game.bot_position_value(replay, root_actor).to_f if !value.finite?
       if @optimize_transpositions && best_action_key != nil
-        move_order[state_ordering_key] = best_action_key
+        move_order[state_move_ordering_key] = best_action_key
       end
-      if @optimize_transpositions
-        bound = if value <= original_alpha
-          :upper
-        elsif value >= original_beta
-          :lower
-        else
-          :exact
-        end
-        cache[key] = TranspositionEntry.new(
-          value: value,
-          bound: bound,
-          best_action_key: best_action_key
-        )
-      elsif beta > alpha
-        cache[key] = value
+      bound = if value <= original_alpha
+        :upper
+      elsif value >= original_beta
+        :lower
+      else
+        :exact
       end
+      cache[key] = TranspositionEntry.new(
+        value: value,
+        bound: bound,
+        best_action_key: best_action_key
+      )
       value
+    end
+
+    def tactical_search(environment, root_actor, game, context, budget, alpha, beta, remaining)
+      replay = environment.replay
+      return game.bot_reward(replay, root_actor).to_f * 1_000_000 if replay.finished?
+      standing = game.bot_position_value(replay, root_actor).to_f
+      return standing if remaining <= 0
+      tactical = game.bot_tactical_actions(replay)
+      actions = tactical[:actions]
+      return standing if actions.empty?
+      actor = environment.active_actor
+      maximizing = game.bot_allied?(replay, root_actor, actor)
+      value = tactical[:forced] ? (maximizing ? -Float::INFINITY : Float::INFINITY) : standing
+      if !tactical[:forced]
+        maximizing ? alpha = [alpha, value].max : beta = [beta, value].min
+        return value if beta <= alpha
+      end
+      ordered_actions(actions, replay, actor, game, context).each do |action|
+        budget.visit!
+        branch = search_branch(environment, action, actor)
+        next unless branch
+        child = tactical_search(branch, root_actor, game, context, budget, alpha, beta, remaining - 1)
+        value = maximizing ? [value, child].max : [value, child].min
+        maximizing ? alpha = [alpha, value].max : beta = [beta, value].min
+        break if beta <= alpha
+      end
+      value.finite? ? value : standing
     end
 
     def ordered_actions(actions, replay, actor, game, context)
@@ -290,6 +318,10 @@ module GameRoomBots
           game.bot_action_key(action)
         ]
       end
+    end
+
+    def continuation?(game, replay)
+      game.respond_to?(:bot_forced_continuation?) && game.bot_forced_continuation?(replay)
     end
 
     def prefer_action(actions, preferred_action_key, game)
@@ -304,6 +336,11 @@ module GameRoomBots
 
     def ordering_key(replay, root_actor, moving_actor, game)
       [game.bot_search_key(replay, root_actor), moving_actor.to_s.downcase]
+    end
+
+    def move_ordering_key(replay, root_actor, moving_actor, game)
+      return ordering_key(replay, root_actor, moving_actor, game) unless game.respond_to?(:bot_move_order_key)
+      [game.bot_move_order_key(replay, root_actor), moving_actor.to_s.downcase]
     end
 
     def search_branch(environment, action, actor)

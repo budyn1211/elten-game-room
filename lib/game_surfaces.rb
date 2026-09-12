@@ -1,4 +1,11 @@
+require_relative "game_surfaces/card_hand_cursor"
+
 module GameSurfaces
+  SHIFTED_DIGIT_CHARACTERS = {
+    "1" => "!", "2" => "@", "3" => "#", "4" => "$", "5" => "%",
+    "6" => "^", "7" => "&", "8" => "*", "9" => "(", "0" => ")"
+  }.freeze
+
   MovementCommandResult = Struct.new(:action, :message, keyword_init: true)
 
   Action = Struct.new(:kind, :name, :payload, :source, keyword_init: true) do
@@ -60,6 +67,10 @@ module GameSurfaces
       false
     end
 
+    def take_cursor_announcement(_field_index = nil)
+      nil
+    end
+
     private
 
     def emit_action(kind, name, payload = {}, source: nil)
@@ -106,8 +117,8 @@ module GameSurfaces
   )
 
   CardChoice = Struct.new(:id, :label, :value, keyword_init: true)
-  Card = Struct.new(:id, :label, :value, :choices, :shift_choice, :choice_header, keyword_init: true)
-  CardZoneSpec = Struct.new(:id, :header, :cards, :empty_label, keyword_init: true)
+  Card = Struct.new(:id, :label, :value, :choices, :shift_choice, :choice_header, :sort_keys, keyword_init: true)
+  CardZoneSpec = Struct.new(:id, :header, :cards, :empty_label, :hand_order, :hand_epoch, keyword_init: true)
   CardTableSpec = Struct.new(:zones, keyword_init: true)
 
   class OrientedGridBox < GridBox
@@ -294,6 +305,18 @@ module GameSurfaces
 
   class RefreshAwareListBox < ListBox
     attr_reader :last_focus_spoken
+
+    def game_shortcut_signatures=(signatures)
+      keys = signatures.to_a.map do |key, modifiers|
+        normalized = key.to_s.downcase
+        if modifiers.to_a.map(&:to_sym).include?(:shift)
+          SHIFTED_DIGIT_CHARACTERS.fetch(normalized, normalized)
+        else
+          normalized
+        end
+      end
+      self.game_shortcut_keys = keys
+    end
 
     def game_shortcut_keys=(keys)
       @game_shortcut_character_keys = keys.to_a.each_with_object([]) do |key, result|
@@ -553,16 +576,29 @@ module GameSurfaces
 
       remembered = state.respond_to?(:[]) ? (state["zones"] || state[:zones] || {}) : {}
       remembered_choices = state.respond_to?(:[]) ? (state["card_choices"] || state[:card_choices] || {}) : {}
+      @card_sort_mode = state.respond_to?(:[]) ? (state["card_sort_mode"] || state[:card_sort_mode]).to_s : ""
+      @card_sort_direction = state.respond_to?(:[]) && (state["card_sort_direction"] || state[:card_sort_direction]).to_s == "descending" ? "descending" : "ascending"
       @controls = []
       @cards = {}
       @pending_choices = {}
+      @cursor_announcements = {}
       @zones.each do |zone|
-        cards = zone.cards.to_a
+        changed = false
+        same_epoch = true
+        cards = sorted_cards(zone.cards.to_a, @card_sort_mode)
         validate_card_choices!(cards)
         zone_id = zone.id.to_s
         @cards[zone_id] = cards
         index = remembered_index(remembered, zone.id)
-        pending = remembered_choice(remembered_choices, zone_id, cards)
+        if zone.hand_order != nil
+          cursors = state["hand_cursors"] || {}
+          same_epoch = cursors.fetch(zone_id, {}).fetch("epoch", nil) == zone.hand_epoch.to_s
+          cards, index, changed = CardHandCursor.resolve(cards, zone.hand_order, zone.hand_epoch,
+            cursors[zone_id], index, sorted: sorted_hand?)
+          @cards[zone_id] = cards
+          @cursor_announcements[zone_id] = card_label(cards[index]) if changed
+        end
+        pending = changed || !same_epoch ? nil : remembered_choice(remembered_choices, zone_id, cards)
         labels = cards.map { |card| card_label(card) }
         header = zone.header.to_s
         if pending != nil
@@ -579,6 +615,8 @@ module GameSurfaces
           empty_label: zone.empty_label.to_s
         )
         control.on(:select) do |params|
+          zone = @zones.find { |item| item.id.to_s == zone_id }
+          cards = @cards.fetch(zone_id)
           selected_index = params.to_a[0].to_i
           pending = @pending_choices[zone_id]
           if pending != nil
@@ -671,6 +709,7 @@ module GameSurfaces
     def state
       indices = {}
       choices = {}
+      cursors = {}
       @zones.each_with_index do |zone, index|
         zone_id = zone.id.to_s
         pending = @pending_choices[zone_id]
@@ -684,10 +723,86 @@ module GameSurfaces
             "choice_index" => @controls[index].index.to_i
           }
         end
+        if zone.hand_order != nil
+          cursors[zone_id] = CardHandCursor.snapshot(@cards.fetch(zone_id), zone.hand_order,
+            zone.hand_epoch, indices[zone_id])
+        end
       end
       result = { "zones" => indices }
+      result["hand_cursors"] = cursors unless cursors.empty?
       result["card_choices"] = choices if !choices.empty?
+      result["card_sort_mode"] = @card_sort_mode if !@card_sort_mode.empty?
+      result["card_sort_direction"] = @card_sort_direction if !@card_sort_mode.empty?
       result
+    end
+
+    def reusable_for?(spec)
+      spec.is_a?(CardTableSpec) && @zones.map { |zone| zone.id.to_s } == spec.zones.map { |zone| zone.id.to_s } &&
+        @zones.all? { |zone| zone.hand_order != nil } && spec.zones.all? { |zone| zone.hand_order != nil }
+    end
+
+    def update_spec(spec)
+      remembered = state
+      @spec = spec
+      @zones = spec.zones.to_a
+      @cursor_announcements.clear
+      @zones.each_with_index do |zone, field_index|
+        zone_id = zone.id.to_s
+        next_cards = sorted_cards(zone.cards.to_a, @card_sort_mode)
+        validate_card_choices!(next_cards)
+        next_cards, index, changed = CardHandCursor.resolve(next_cards, zone.hand_order, zone.hand_epoch,
+          remembered.fetch("hand_cursors", {})[zone_id], remembered["zones"][zone_id], sorted: sorted_hand?)
+        @cards[zone_id] = next_cards
+        same_epoch = remembered.fetch("hand_cursors", {}).fetch(zone_id, {})["epoch"] == zone.hand_epoch.to_s
+        pending = changed || !same_epoch ? nil : remembered_choice(remembered["card_choices"] || {}, zone_id, next_cards)
+        @pending_choices.delete(zone_id)
+        @pending_choices[zone_id] = pending if pending
+        control = @controls[field_index]
+        labels = pending ? card_choices(pending[:card]).map { |choice| choice_label(choice) } : next_cards.map { |card| card_label(card) }
+        control.options = labels if control.options != labels
+        control.header = pending ? choice_header(pending[:card]) : zone.header.to_s
+        control.empty_label = zone.empty_label.to_s if control.respond_to?(:empty_label=)
+        control.index = pending ? pending[:choice_index] : index
+        @cursor_announcements[zone_id] = card_label(next_cards[index]) if changed && !pending
+      end
+      self
+    end
+
+    def take_cursor_announcement(field_index = nil)
+      zone = field_index == nil ? nil : @zones[field_index.to_i]
+      message = zone == nil ? nil : @cursor_announcements[zone.id.to_s]
+      @cursor_announcements.clear
+      message
+    end
+
+    def handle_command(command, payload = {})
+      return false if command.to_s != "sort_cards" || !@pending_choices.empty?
+
+      mode = (payload["mode"] || payload[:mode]).to_s
+      return false if mode.empty?
+
+      toggle = payload["toggle"] || payload[:toggle]
+      direction = toggle && @card_sort_mode == mode && @card_sort_direction == "ascending" ? "descending" : "ascending"
+      sorted_any = false
+      @zones.each_with_index do |zone, index|
+        cards = @cards.fetch(zone.id.to_s)
+        next if cards.none? { |card| card_sort_keys(card).key?(mode) }
+
+        control = @controls[index]
+        selected = cards[control.index.to_i]
+        cards.replace(sorted_cards(cards, mode, direction))
+        control.options = cards.map { |card| card_label(card) }
+        selected_index = cards.index { |card| card_id(card) == card_id(selected) }
+        control.index = selected_index || 0
+        sorted_any = true
+      end
+      return false if !sorted_any
+
+      @card_sort_mode = mode
+      @card_sort_direction = direction
+      message = payload["#{direction}_message"] || payload["message"] || payload[:message]
+      speak(message.to_s) if !message.to_s.empty?
+      true
     end
 
     def cancel_pending_action?
@@ -703,6 +818,29 @@ module GameSurfaces
     end
 
     private
+
+    def sorted_hand?
+      !@card_sort_mode.empty? && @card_sort_mode != "none"
+    end
+
+    def sorted_cards(cards, mode, direction = @card_sort_direction)
+      return cards if mode.to_s.empty?
+
+      sorted = cards.each_with_index.sort_by do |card, index|
+        key = card_sort_keys(card)[mode.to_s]
+        key == nil ? [1, index] : [0, *key.to_a, card_id(card)]
+      end.map(&:first)
+      direction == "descending" ? sorted.reverse : sorted
+    end
+
+    def card_sort_keys(card)
+      value = if card.respond_to?(:sort_keys)
+        card.sort_keys
+      elsif card.respond_to?(:key?)
+        card["sort_keys"] || card[:sort_keys]
+      end
+      value.respond_to?(:key?) ? value : {}
+    end
 
     def shifted_choice(card, choices)
       id = shift_choice_id(card)
@@ -865,10 +1003,35 @@ module GameSurfaces
   require_relative "game_surfaces/pawn_track"
   require_relative "game_surfaces/piece_board"
   require_relative "game_surfaces/dice_tray"
+  require_relative "game_surfaces/roll_and_score"
+  require_relative "game_surfaces/packet_cards"
   require_relative "game_surfaces/question_surface"
   require_relative "game_surfaces/answer_sheet"
   require_relative "game_surfaces/review_surface"
   require_relative "game_surfaces/composite_surface"
+
+  def self.hand_surface?(spec)
+    case spec
+    when CardTableSpec
+      spec.zones.any? { |zone| zone.hand_order != nil }
+    when PacketCardSpec
+      spec.hand_order != nil
+    when CompositeSpec
+      spec.parts.any? { |part| hand_surface?(part.surface) }
+    else
+      false
+    end
+  end
+
+  def self.reconcile(spec, previous: nil, state: {})
+    candidates = previous.to_a if previous.is_a?(Array)
+    candidates ||= previous.respond_to?(:reuse_candidates) ? previous.reuse_candidates : [previous].compact
+    if spec.is_a?(CompositeSpec)
+      return CompositeSurface.new(spec, state: state, previous: candidates)
+    end
+    match = candidates.find { |surface| surface.respond_to?(:reusable_for?) && surface.reusable_for?(spec) }
+    match ? match.update_spec(spec) : build(spec, state: state)
+  end
 
   def self.build(spec, state: {})
     case spec
@@ -884,6 +1047,10 @@ module GameSurfaces
       PieceBoard.new(spec, state: state)
     when DiceTraySpec
       DiceTray.new(spec, state: state)
+    when RollAndScoreSpec
+      RollAndScoreSurface.new(spec, state: state)
+    when PacketCardSpec
+      PacketCardSurface.new(spec, state: state)
     when QuestionSpec
       QuestionSurface.new(spec, state: state)
     when AnswerSheetSpec

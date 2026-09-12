@@ -158,7 +158,11 @@ class Form < FakeControl
   end
 
   def hide(control)
-    @hidden_controls << control
+    @hidden_controls << control if !@hidden_controls.include?(control)
+  end
+
+  def show(control)
+    @hidden_controls.delete(control)
   end
 
   def add_timer(timer, *_arguments)

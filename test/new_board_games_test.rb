@@ -20,7 +20,7 @@ module GameSurfaces
   )
   GridSpec = Struct.new(:width, :height, :header, :cells, :row_origin, keyword_init: true)
   Card = Struct.new(:id, :label, :value, :choices, :shift_choice, :choice_header, keyword_init: true)
-  CardZoneSpec = Struct.new(:id, :header, :cards, :empty_label, keyword_init: true)
+  CardZoneSpec = Struct.new(:id, :header, :cards, :empty_label, :hand_order, :hand_epoch, keyword_init: true)
   CardTableSpec = Struct.new(:zones, keyword_init: true)
   Command = Struct.new(:id, :label, :enabled, :payload, keyword_init: true)
   CommandPanelSpec = Struct.new(:commands, keyword_init: true)
@@ -482,7 +482,7 @@ assert(
 
 ludo_rules = ludo.rule_book.sections.flat_map(&:paragraphs).join(" ")
 assert(ludo_rules.include?("1, 14, 27 and 40"), "Ludo rules do not explain the different shared-track starting fields")
-assert(ludo_rules.include?("After field 52 comes field 1"), "Ludo rules do not explain shared-track wrapping")
+assert(ludo_rules.include?("wraps from 52 to 1"), "Ludo rules do not explain shared-track wrapping")
 
 [reversi, checkers, chess, ludo].each do |game|
   assert(!game.rule_book.sections.empty?, "#{game.id} has no rules")

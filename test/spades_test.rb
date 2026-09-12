@@ -5,7 +5,7 @@ end
 module GameSurfaces
   CardChoice = Struct.new(:id, :label, :value, keyword_init: true)
   Card = Struct.new(:id, :label, :value, :choices, keyword_init: true)
-  CardZoneSpec = Struct.new(:id, :header, :cards, :empty_label, keyword_init: true)
+  CardZoneSpec = Struct.new(:id, :header, :cards, :empty_label, :hand_order, :hand_epoch, keyword_init: true)
   CardTableSpec = Struct.new(:zones, keyword_init: true)
   Command = Struct.new(:id, :label, :enabled, :payload, keyword_init: true)
   CommandPanelSpec = Struct.new(:commands, keyword_init: true)

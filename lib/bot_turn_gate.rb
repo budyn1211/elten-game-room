@@ -28,6 +28,8 @@ module GameRoomBots
       @attempt = nil
       @ready_at = 0.0
       @session_id = nil
+      @decision_key = nil
+      @decision_ready_at = 0.0
     end
 
     def state
@@ -48,7 +50,20 @@ module GameRoomBots
       @mutex.synchronize do
         prepare_session(session_id)
         advance_cooldown
-        @state == :idle && @lease == nil && !actor.to_s.empty?
+        @state == :idle && @lease == nil && !actor.to_s.empty? && @clock.call >= @decision_ready_at
+      end
+    end
+
+    # Called once per observed position. Reopening a form or receiving chat
+    # must not restart the timer for the same pending decision.
+    def schedule_decision(session_id:, actor:, revision:, delay:)
+      @mutex.synchronize do
+        prepare_session(session_id)
+        key = [session_id.to_i, actor.to_s, normalize_revision(revision)]
+        if key != @decision_key
+          @decision_key = key
+          @decision_ready_at = @clock.call + [delay.to_f, 0.0].max
+        end
       end
     end
 
@@ -57,6 +72,7 @@ module GameRoomBots
         prepare_session(session_id)
         advance_cooldown
         return nil if @state != :idle || @lease != nil || actor.to_s.empty?
+        return nil if @clock.call < @decision_ready_at
 
         @lease = Object.new
         @state = :thinking
@@ -176,7 +192,11 @@ module GameRoomBots
 
     def prepare_session(session_id)
       id = session_id.to_i
-      reset_to_idle if @session_id != nil && @session_id != id
+      if @session_id != nil && @session_id != id
+        reset_to_idle
+        @decision_key = nil
+        @decision_ready_at = 0.0
+      end
 
       @session_id = id
     end

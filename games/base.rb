@@ -17,6 +17,7 @@ module GameRoomGames
     :kind,
     :default,
     :choices,
+    :visible_if,
     keyword_init: true
   )
 
@@ -50,9 +51,10 @@ module GameRoomGames
     :invalid_message,
     :payload,
     :choices,
+    :fields,
     keyword_init: true
   ) do
-    KINDS = [:announcement, :browse, :number_input, :choice, :action, :surface].freeze
+    KINDS = [:announcement, :browse, :number_input, :choice, :form, :action, :surface].freeze
     NAMED_KEYS = ["space"].freeze
 
     def initialize(
@@ -69,7 +71,8 @@ module GameRoomGames
       default_value: nil,
       invalid_message: nil,
       payload: nil,
-      choices: nil
+      choices: nil,
+      fields: nil
     )
       normalized_key = key.to_s.downcase
       normalized_modifiers = modifiers.to_a.map(&:to_sym).uniq.sort
@@ -85,13 +88,21 @@ module GameRoomGames
       raise ArgumentError, "a game shortcut requires a label" if label.to_s.empty?
       if normalized_kind == :announcement
         raise ArgumentError, "an announcement shortcut requires a message" if message.to_s.empty?
+      elsif normalized_kind == :form
+        raise ArgumentError, "a form shortcut requires fields and an action" if fields.to_a.empty? || action_kind.to_s.empty? || action_name.to_s.empty?
+        raise ArgumentError, "invalid form field" if fields.any? { |field| !field.is_a?(OptionDefinition) || ![:integer, :choice, :boolean].include?(field.kind.to_sym) }
       elsif normalized_kind == :number_input
         raise ArgumentError, "a number shortcut requires a prompt" if prompt.to_s.empty?
         raise ArgumentError, "a number shortcut requires an action" if action_kind.to_s.empty? || action_name.to_s.empty?
         raise ArgumentError, "a number shortcut requires a payload key" if value_key.to_s.empty?
-        values = allowed_values.to_a.map(&:to_i).uniq.sort
-        raise ArgumentError, "a number shortcut requires allowed values" if values.empty?
-        allowed_values = values
+        if allowed_values.is_a?(Range)
+          first, last = allowed_values.begin, allowed_values.end
+          raise ArgumentError, "invalid numeric range" if !first.is_a?(Integer) || !last.is_a?(Integer) || allowed_values.exclude_end? || first > last
+        else
+          values = allowed_values.to_a.map(&:to_i).uniq.sort
+          raise ArgumentError, "a number shortcut requires allowed values" if values.empty?
+          allowed_values = values
+        end
       elsif [:browse, :choice].include?(normalized_kind)
         raise ArgumentError, "a choice shortcut requires a prompt" if prompt.to_s.empty?
         if normalized_kind == :choice
@@ -132,7 +143,8 @@ module GameRoomGames
         default_value: default_value,
         invalid_message: invalid_message == nil ? nil : invalid_message.to_s,
         payload: payload == nil ? {} : payload.to_h,
-        choices: choices
+        choices: choices,
+        fields: fields
       )
     end
 
@@ -211,7 +223,7 @@ module GameRoomGames
       )
       return book if options == nil
 
-      book.with_current_options(combined_options_summary(normalize_options(options)))
+      book.with_current_options(rules_options_text(normalize_options(options)))
     end
 
     def minimum_players
@@ -248,6 +260,24 @@ module GameRoomGames
 
     def default_options
       normalize_options({})
+    end
+
+    # Games declare dependencies between options, while the shared table
+    # configuration form owns hiding and showing the corresponding controls.
+    # A hash requires every named option to match. A callable can express a
+    # compound condition without putting game-specific branches in the UI.
+    def option_visible?(definition, values, normalize: true)
+      condition = definition.visible_if
+      return true if condition == nil
+
+      options = normalize ? normalize_options(values) : values
+      return condition.call(options) == true if condition.respond_to?(:call)
+      return false if !condition.respond_to?(:all?)
+
+      condition.all? do |key, expected|
+        actual = options[key.to_s]
+        expected.respond_to?(:call) ? expected.call(actual) == true : Array(expected).include?(actual)
+      end
     end
 
     def normalize_options(values)
@@ -293,6 +323,38 @@ module GameRoomGames
         .map { |part| part.to_s.strip }
         .reject(&:empty?)
       parts.join("; ")
+    end
+
+    def rules_option_visible?(definition, options)
+      option_visible?(definition, options, normalize: false)
+    end
+
+    # Read-only snapshot of the effective settings, not the abbreviated lobby
+    # summary. Disabled and inapplicable additions are intentionally omitted.
+    def rules_options_text(options)
+      lines = effective_option_definitions.filter_map do |definition|
+        next if !rules_option_visible?(definition, options)
+        value = options[definition.key.to_s]
+        case definition.kind.to_sym
+        when :boolean
+          definition.label if value == true
+        when :choice
+          choice = definition.choices.to_a.find { |item| item.value.to_s == value.to_s }
+          "#{definition.label}: #{choice ? choice.label : value}"
+        when :multiple_choice
+          selected = definition.choices.to_a.each_with_index.filter_map do |choice, index|
+            choice.label if (value.to_i & (1 << index)) != 0
+          end
+          "#{definition.label}: #{selected.join(', ')}" if !selected.empty?
+        else
+          "#{definition.label}: #{value}"
+        end
+      end
+      seats = options[GameRoomTeams::OPTION_KEY]
+      if seats.is_a?(Array) && options["team_size"].to_i > 0
+        lines << (_("Teams in seating order: %{teams}") % { teams: seats.map { |team| team.to_i + 1 }.join(", ") })
+      end
+      lines.empty? ? _("This table uses fixed rules with no configurable additions.") : lines.join("\r\n\r\n")
     end
 
     def selected_content_pack(options)
@@ -411,6 +473,23 @@ module GameRoomGames
     # bot_observation. Tree search then falls back to a non-cheating strategy.
     def perfect_information?
       true
+    end
+
+    # Optional local pacing; human actions and network synchronization do not wait.
+    def bot_move_delay(_replay, _actor, context: nil)
+      0.0
+    end
+
+    # This key controls only the local waiting period, never submission or
+    # confirmation. Games may ignore events that leave the pending turn intact.
+    def bot_delay_revision(_replay, revision)
+      revision
+    end
+
+    # Opt in only for games with simultaneous or out-of-turn actions.
+    # Their normal action_for/replay validation still decides legality.
+    def actions_during_bot_turn?
+      false
     end
 
     def bot_action_score(_replay, _actor, _action, context: nil)

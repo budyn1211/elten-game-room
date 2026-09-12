@@ -15,6 +15,11 @@ osobnego zgłoszenia i przeglądu.
   nie kopiuj tej samej obsługi do wielu klas gry.
 - Nie przenoś reguł gry do `GameScreen` ani szczegółów interfejsu do transportu.
 - Nie omijaj `action_for`, `GameRepository` i odtwarzania zdarzeń.
+- Nowe karcianki mają korzystać ze wspólnej obsługi ręki, nie kopiować kursora:
+  stabilne, unikalne ID kart, `hand_order` w faktycznej kolejności dobierania
+  oraz `hand_epoch` identyfikujące właściciela i rozdanie. Szczegóły są w
+  `docs/CARD_HAND_CURSOR_213.md`. Innych list, plansz i kości nie oznaczać jako
+  ręki; ich zachowanie i odczyty nie mogą być zmieniane przez ten mechanizm.
 - Bot wybiera akcję, ale wykonuje ją przez standardową ścieżkę gry.
 - Stan stołu i partii synchronizuje stos LiveSessions. Publiczne stoły wyszukuj
   przez discovery i dołączaj do nich bezpośrednio; nie przywracaj bootstrapu

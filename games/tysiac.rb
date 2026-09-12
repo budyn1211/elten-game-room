@@ -55,46 +55,28 @@ module GameRoomGames
 
     def rule_sections
       [
-        rule_section(
-          :goal,
-          _("Goal"),
-          _("Be the first player to reach the target score, which is 1000 points by default. Win tricks, fulfil the contract you won in the auction and use king-queen marriages to earn their bonuses and establish trump.")
-        ),
-        rule_section(
-          :setup,
-          _("Setup"),
+        rule_section(:auction, _("The auction and talon"),
           _("Tysiac is played by exactly 3 players with 24 cards: 9, jack, queen, king, 10 and ace in every suit. Each player receives 7 cards and 3 cards form the talon."),
-          _("The player after the dealer opens the auction and must bid at least 100. Later bids increase in steps of 5. A player who passes cannot bid again in that deal. The maximum declaration is 120 plus the value of every marriage currently held, up to 400.")
-        ),
-        rule_section(
-          :play,
-          _("How to play"),
-          _("The final bidder takes the publicly revealed talon, then gives one card to each opponent. The bidder may keep the winning contract or raise it, in steps of 5, up to 400. The bidder leads the first trick; every later trick is led by the winner of the previous one."),
+          _("The player after the dealer opens the auction and must bid at least 100. Later bids increase in steps of 5. A player who passes cannot bid again in that deal. The maximum declaration is 120 plus the value of every marriage currently held, up to 400."),
+          _("The target is 1000 by default; it may be any multiple of 5 from 200 upwards. The game always has exactly three seats, occupied by people or computers. There are no teams. The highest bidder takes the three revealed talon cards and gives one card to each opponent in the announced order. Only giver and recipient see the identity of a transferred card; other players see that a card was given."),
+          _("After giving the cards, the taker may raise the contract within the legal limit based on the marriages still in hand. Playing the first card accepts the current contract without another mandatory bidding step.")),
+        rule_section(:tricks, _("Tricks and marriages"),
           _("You must follow the led suit whenever possible. If you cannot follow and a trump suit has been established, you must play a trump if you have one. Otherwise you may discard any card. Cards rank from strongest to weakest: ace, 10, king, queen, jack and 9."),
-          _("There is no trump at the beginning of a deal. When leading a trick after the first trick, a player who still holds the king and queen of one suit may play either card and declare the marriage. That suit immediately becomes trump and the player receives 100 points for hearts, 80 for diamonds, 60 for clubs or 40 for spades.")
-        ),
-        rule_section(
-          :ending,
-          _("Scoring and winning"),
+          _("There is no trump at the beginning of a deal. When leading a trick after the first trick, a player who still holds the king and queen of one suit may play either card and declare the marriage. That suit immediately becomes trump and the player receives 100 points for hearts, 80 for diamonds, 60 for clubs or 40 for spades.")),
+        rule_section(:points, _("Collected points and the actual score"),
           _("Card values are: ace 11, 10 worth 10, king 4, queen 3, jack 2 and 9 worth zero. There are 120 card points in a deal. Marriage bonuses are included before checking the bidder's contract."),
           _("A bidder who collects at least the exact contracted number receives the contract value; otherwise the same value is subtracted. Each defender receives the exact points collected and then rounded to the nearest 5. A rounded result is never used to decide whether the bidder fulfilled the contract."),
+          _("The taker leads first, and the winner of each trick leads the next. A trump beats every non-trump; without a trump the highest card of the led suit wins. Collected round points and the actual score change are different figures, so both are announced.")),
+        rule_section(:barrel, _("The barrel"),
           _("A score from 120 points below the target up to one point below it is placed on the barrel and set to exactly 120 below the target. A player on the barrel must successfully complete a contract of at least 120 within the next 3 deals. Defender points do not count on the barrel. Failing such a contract removes its normal value and leaves the barrel; running out of the 3 deals costs 120 points and also leaves the barrel."),
+          _("If another player takes the contract and surrenders before playing, the barrel player's remaining chances do not decrease. A player already on the barrel cannot surrender. Changing the target score also moves the barrel threshold: it remains 120 below that target.")),
+        rule_section(:penalties, _("Surrenders and zero-point deals"),
           _("After seeing the talon and before giving away a card, the bidder may surrender unless already on the barrel. The bidder receives zero and each defender receives at least 60 points, or half the contract when that is higher, rounded upward to a multiple of 5. The first 2 surrenders are free; every third surrender costs the bidder 120 points."),
-          _("A player who takes exactly zero unrounded points in 3 played deals is penalized 120 points. A result such as 2 points that merely rounds to zero does not count, and zero-point deals do not accumulate while that player is on the barrel.")
-        ),
-        rule_section(
-          :variants,
-          _("Variants and table options"),
-          _("This implementation follows the three-player QC Salon rules. The table master may change the target score; the default is 1000. Computer players may take any empty seats. Team play is not available."),
-          _("The barrel always begins 120 points below the selected target, lasts 3 deals and requires a successful contract of at least 120.")
-        ),
-        rule_section(
-          :controls,
-          _("Controls"),
+          _("A player who takes exactly zero unrounded points in 3 played deals is penalized 120 points. A result such as 2 points that merely rounds to zero does not count, and zero-point deals do not accumulate while that player is on the barrel.")),
+        rule_section(:controls, _("Auction, transfer and play keys"),
           _("During your auction turn, press Enter on your hand to open the bid list, then choose a bid or pass. After taking the talon, use the Arrow keys and Enter to choose one card for each opponent. Press B only if you want to change the final contract; playing the first card accepts the current contract automatically."),
           _("During play use the Arrow keys to browse your hand and Enter to play. Press Shift+Enter to declare a marriage when possible; if no marriage is available, the game reports it and does not play the card. Enter on a king or queen with an available marriage opens its choices. Use the surrender action before giving away the first talon card if you want to abandon the deal."),
-          _("Press T for the current turn, H for your hand, C to read the cards on the table, Ctrl+C to browse them, F for trump, S for scores, Shift+S for zeros, surrenders and barrels, and B for auction information or your final contract. Tab moves between the game, history and users. Ctrl+F1 opens these rules. Escape returns to the table.")
-        )
+          _("T reads the turn, H your hand, C the played cards, Ctrl+C a browsable list of those cards, F trump, S scores and Shift+S zeros, surrenders and barrel chances. B gives auction information or changes your final contract when available."))
       ]
     end
 
@@ -367,6 +349,7 @@ module GameRoomGames
           id: "hand",
           header: hand_header(state, viewer),
           cards: hand_cards,
+          hand_order: hand_for(state, viewer).dup, hand_epoch: [viewer, state[:round]].join(":"),
           empty_label: _("Your hand is empty")
         )
       ])

@@ -3,8 +3,8 @@
   "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
-  "version": "1.1.5",
-  "build_id": "203",
+  "version": "1.1.6",
+  "build_id": "213",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -58,8 +58,10 @@ require_relative "lib/game_training"
 require_relative "lib/game_screen"
 require_relative "lib/game_content"
 require_relative "content/languages"
+require_relative "content/monopoly_boards"
 require_relative "games/base"
 require_relative "games/board_game"
+require_relative "games/card_game"
 require_relative "games/four_in_a_row"
 require_relative "games/tic_tac_toe"
 require_relative "games/chess"
@@ -71,11 +73,16 @@ require_relative "games/farkle"
 require_relative "games/ninety_nine"
 require_relative "games/tysiac"
 require_relative "games/categories"
+require_relative "games/monopoly"
+require_relative "games/yahtzee"
+require_relative "games/uno"
+require_relative "games/poker"
+require_relative "games/makao"
 require_relative "games/registry"
 
 class EltenGameRoom < Program
-  GAME_ROOM_VERSION = "1.1.5".freeze
-  GAME_ROOM_BUILD_ID = 203
+  GAME_ROOM_VERSION = "1.1.6".freeze
+  GAME_ROOM_BUILD_ID = 213
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
 
@@ -130,7 +137,12 @@ class EltenGameRoom < Program
     GameRoomGames::Farkle,
     GameRoomGames::NinetyNine,
     GameRoomGames::Tysiac,
-    GameRoomGames::Categories
+    GameRoomGames::Categories,
+    GameRoomGames::Monopoly,
+    GameRoomGames::Yahtzee,
+    GameRoomGames::Uno,
+    GameRoomGames::Poker,
+    GameRoomGames::Makao
   ])
 
   DEFAULT_SETTINGS = {
@@ -690,6 +702,21 @@ class EltenGameRoom < Program
       form = Form.new(controls + [save_button, cancel_button], quiet: true)
       form.accept_button = save_button
       form.cancel_button = cancel_button
+      refresh_visibility = lambda do
+        values = game.normalize_options(game_option_values(bindings))
+        bindings.each do |definition, control|
+          if game.option_visible?(definition, values)
+            form.show(control)
+          else
+            form.hide(control)
+          end
+        end
+      end
+      bindings.each do |definition, control|
+        event = definition.kind.to_s == "boolean" ? :change : :move
+        control.on(event) { refresh_visibility.call } if ["boolean", "choice"].include?(definition.kind.to_s)
+      end
+      refresh_visibility.call
       save_button.on(:press) do
         action = :save
         form.resume
@@ -701,22 +728,7 @@ class EltenGameRoom < Program
       form.wait
       return nil if action != :save
 
-      raw = {}
-      bindings.each do |definition, control|
-        key = definition.key.to_s
-        raw[key] = if definition.kind.to_s == "boolean"
-          control.checked == true
-        elsif definition.kind.to_s == "integer"
-          control.text.to_s
-        elsif definition.kind.to_s == "multiple_choice"
-          choices = definition.choices.to_a
-          control.multiselections.filter_map { |index| choices[index]&.value }
-        else
-          choices = definition.choices.to_a
-          selected = choices[control.index.to_i]
-          selected == nil ? definition.default : selected.value
-        end
-      end
+      raw = game_option_values(bindings)
       options = game.normalize_options(raw)
       error = game.validation_error(options)
       if error == nil
@@ -728,6 +740,24 @@ class EltenGameRoom < Program
     end
   end
 
+  def game_option_values(bindings)
+    bindings.each_with_object({}) do |(definition, control), raw|
+      key = definition.key.to_s
+      raw[key] = if definition.kind.to_s == "boolean"
+        control.checked == true
+      elsif definition.kind.to_s == "integer"
+        control.text.to_s
+      elsif definition.kind.to_s == "multiple_choice"
+        choices = definition.choices.to_a
+        control.multiselections.filter_map { |index| choices[index]&.value }
+      else
+        choices = definition.choices.to_a
+        selected = choices[control.index.to_i]
+        selected == nil ? definition.default : selected.value
+      end
+    end
+  end
+
   def remembered_game_option_defaults(game, definitions)
     defaults = game.default_options.dup
     preferences = read_json("game_option_preferences.json", default: {})
@@ -735,7 +765,8 @@ class EltenGameRoom < Program
     return defaults if !stored.is_a?(Hash)
 
     definitions.each do |definition|
-      next if definition.kind.to_s != "multiple_choice"
+      next if definition.kind.to_s != "multiple_choice" && game.id.to_s != "makao"
+      next if game.id.to_s == "makao" && definition.key.to_s == "profile"
 
       key = definition.key.to_s
       defaults[key] = stored[key] if stored.key?(key)
@@ -747,7 +778,11 @@ class EltenGameRoom < Program
   end
 
   def remember_multiple_choice_options(game, definitions, options)
-    remembered = definitions.select { |definition| definition.kind.to_s == "multiple_choice" }
+    remembered = if game.id.to_s == "makao" && options["profile"].to_s == "custom"
+      definitions.reject { |definition| definition.key.to_s == "profile" }
+    else
+      definitions.select { |definition| definition.kind.to_s == "multiple_choice" }
+    end
     return if remembered.empty?
 
     update_json("game_option_preferences.json", default: {}) do |root|

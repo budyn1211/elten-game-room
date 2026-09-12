@@ -179,6 +179,13 @@ class GameScreen
       end
       revision = @repository.events_revision(snapshot.events)
       bot_actor = pending_bot_actor(replay)
+      if bot_actor != nil
+        @bot_turn_controller.schedule_decision(
+          session_id: @repository.session_id(@session), actor: bot_actor,
+          revision: @game.bot_delay_revision(replay, revision),
+          delay: @game.bot_move_delay(replay, bot_actor, context: action_context)
+        )
+      end
       bot_lease = if bot_actor == nil
         nil
       else
@@ -268,6 +275,11 @@ class GameScreen
     announce_finished_focus = phase_changed && phase == :finished
     silent_entry = @suppress_surface_focus && !announce_finished_focus
     @suppress_surface_focus = false
+    cursor_message = layout.take_cursor_announcement
+    if !cursor_message.to_s.empty?
+      speak(cursor_message, stop: false, break_sequence: false)
+      silent_entry = true
+    end
     surface = layout.surface
     surface.sound_player = ->(name) { GameRoomSounds.play(@program, name) } if surface.respond_to?(:sound_player=)
     history = layout.history
@@ -291,13 +303,15 @@ class GameScreen
     end
     shortcuts = normalized_game_shortcuts(@game.game_shortcuts(replay, Session.name))
     handle_shortcut = lambda do |shortcut|
-      if bot_actor != nil && ![:announcement, :browse, :surface].include?(shortcut.kind)
+      next if action != nil
+      if bot_actor != nil && !@game.actions_during_bot_turn? && ![:announcement, :browse, :surface].include?(shortcut.kind)
         next
       end
 
       active_shortcut = refreshed_announcement_shortcut(shortcut, replay, Session.name)
       selection = activate_game_shortcut(active_shortcut, surface)
       if selection == :surface_handled
+        layout.focus_game(silent: true) if active_shortcut.payload["focus_surface"] == true
         remember_position.call
         refresh_history_control(history, replay) if @game.history_presentation_depends_on_surface_state?
         next
@@ -307,6 +321,7 @@ class GameScreen
       remember_position.call
       @selected_surface_action = selection
       action = :game_action
+      cancel_bot_decision(bot_token, :human_shortcut)
       form.resume
     end
     bind_game_shortcuts(
@@ -354,7 +369,10 @@ class GameScreen
       form.resume
     end
     surface.on_action do |selection|
-      next if bot_actor != nil
+      next if action != nil
+      next if bot_actor != nil && !@game.actions_during_bot_turn?
+
+      cancel_bot_decision(bot_token, :human_surface_action)
 
       if selection["_stay_open"] == true
         remember_position.call
@@ -744,15 +762,11 @@ class GameScreen
       elsif field.respond_to?(:game_shortcut_keys=)
         field.game_shortcut_keys = shortcut_keys
       end
-      shortcuts.each do |shortcut|
-        field.add_tip(
-          _("Press %{key} for %{action}.") % {
-            key: shortcut_key_label(shortcut),
-            action: shortcut.label
-          }
-        )
-      end
     end
+    tips = shortcuts.map do |shortcut|
+      _("Press %{key} for %{action}.") % { key: shortcut_key_label(shortcut), action: shortcut.label }
+    end
+    GameRoomContextHelp.replace(fields, tips, source: :game)
     if form.respond_to?(:game_shortcut_signatures=)
       form.game_shortcut_signatures = shortcut_signatures
     elsif form.respond_to?(:game_shortcut_keys=)
@@ -819,6 +833,8 @@ class GameScreen
       number_shortcut_action(shortcut)
     when :choice
       choice_shortcut_action(shortcut)
+    when :form
+      form_shortcut_action(shortcut)
     when :action
       GameSurfaces::Action.new(
         kind: shortcut.action_kind,
@@ -845,11 +861,15 @@ class GameScreen
   end
 
   def shortcut_key_label(shortcut)
-    key = shortcut.key.to_s == "space" ? _("Space") : shortcut.key.to_s.upcase
+    modifiers = shortcut.modifiers.to_a
+    shifted_character = if modifiers.include?(:shift)
+      GameSurfaces::SHIFTED_DIGIT_CHARACTERS[shortcut.key.to_s]
+    end
+    key = shifted_character || (shortcut.key.to_s == "space" ? _("Space") : shortcut.key.to_s.upcase)
     prefixes = []
-    prefixes << _("Ctrl") if shortcut.modifiers.to_a.include?(:control)
-    prefixes << _("Alt") if shortcut.modifiers.to_a.include?(:alt)
-    prefixes << _("Shift") if shortcut.modifiers.to_a.include?(:shift)
+    prefixes << _("Ctrl") if modifiers.include?(:control)
+    prefixes << _("Alt") if modifiers.include?(:alt)
+    prefixes << _("Shift") if modifiers.include?(:shift) && shifted_character == nil
     (prefixes + [key]).join("+")
   end
 
@@ -883,7 +903,7 @@ class GameScreen
         return GameSurfaces::Action.new(
           kind: shortcut.action_kind,
           name: shortcut.action_name,
-          payload: { shortcut.value_key => value },
+          payload: shortcut.payload.merge(shortcut.value_key => value),
           source: "shortcut:#{shortcut.key}"
         )
       end
@@ -935,6 +955,60 @@ class GameScreen
     )
   end
 
+  # Reuse the same controls and visibility declarations as table options.
+  # No network action is emitted until the entire proposal is submitted.
+  def form_shortcut_action(shortcut)
+    bindings = shortcut.fields.map do |definition|
+      control = case definition.kind.to_sym
+      when :integer
+        field = EditBox.new(definition.label, type: EditBox::Flags::Numbers, text: definition.default.to_i.to_s, quiet: true)
+        field.select_all
+        field
+      when :boolean
+        CheckBox.new(definition.label, checked: definition.default == true)
+      when :choice
+        ListBox.new(definition.choices.map(&:label), header: definition.label, index: 0, quiet: true)
+      end
+      [definition, control]
+    end
+    submit = Button.new(_("Send proposal"))
+    cancel = Button.new(_("Cancel"))
+    form = Form.new(bindings.map(&:last) + [submit, cancel], quiet: true)
+    form.accept_button = submit
+    form.cancel_button = cancel
+    read_values = lambda do
+      bindings.to_h do |definition, control|
+        value = case definition.kind.to_sym
+        when :integer then control.text.to_s
+        when :boolean then control.checked == true
+        when :choice then definition.choices[control.index.to_i]&.value
+        end
+        [definition.key.to_s, value]
+      end
+    end
+    refresh_visibility = lambda do
+      values = read_values.call
+      bindings.each do |definition, control|
+        @game.option_visible?(definition, values, normalize: false) ? form.show(control) : form.hide(control)
+      end
+    end
+    bindings.each do |definition, control|
+      control.on(definition.kind.to_sym == :boolean ? :change : :move) { refresh_visibility.call } if [:choice, :boolean].include?(definition.kind.to_sym)
+    end
+    refresh_visibility.call
+    result = nil
+    submit.on(:press) do
+      values = read_values.call
+      result = bindings.select { |definition, _control| @game.option_visible?(definition, values, normalize: false) }.to_h { |definition, _control| [definition.key.to_s, values[definition.key.to_s]] }
+      form.resume
+    end
+    cancel.on(:press) { form.resume }
+    form.wait
+    EltenAPI::KeyboardState.clear_current_frame if defined?(EltenAPI::KeyboardState)
+    return nil if result == nil
+    GameSurfaces::Action.new(kind: shortcut.action_kind, name: shortcut.action_name, payload: shortcut.payload.merge(result), source: "shortcut:#{shortcut.key}")
+  end
+
   def browse_shortcut_choices(shortcut)
     choices = shortcut.choices.to_a
     list = ListBox.new(
@@ -953,6 +1027,10 @@ class GameScreen
   end
 
   def allowed_values_text(values)
+    if values.is_a?(Range)
+      return values.begin.to_s if values.begin == values.end
+      return _("%{minimum} to %{maximum}") % { minimum: values.begin, maximum: values.end }
+    end
     normalized = values.to_a.map(&:to_i).uniq.sort
     return normalized.first.to_s if normalized.length == 1
 

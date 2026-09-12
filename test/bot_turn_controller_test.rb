@@ -11,7 +11,7 @@ require_relative "../lib/game_participants"
 
 module GameSurfaces
   Card = Struct.new(:id, :label, :value, :choices, :shift_choice, :choice_header, keyword_init: true)
-  CardZoneSpec = Struct.new(:id, :header, :cards, :empty_label, keyword_init: true)
+  CardZoneSpec = Struct.new(:id, :header, :cards, :empty_label, :hand_order, :hand_epoch, keyword_init: true)
   CardTableSpec = Struct.new(:zones, keyword_init: true)
   Command = Struct.new(:id, :label, :enabled, :payload, keyword_init: true)
   CommandPanelSpec = Struct.new(:commands, keyword_init: true)
@@ -39,6 +39,22 @@ def submit(controller, lease, events, ids: nil, failed: false)
 end
 
 clock = 0.0
+paced_clock = 0.0
+paced = GameRoomBots::TurnController.new(clock: -> { paced_clock })
+paced.schedule_decision(session_id: 90, actor: "bot:7:1", revision: [1, 1], delay: 3)
+assert(!paced.ready?(session_id: 90, actor: "bot:7:1"), "Pacing did not delay the first decision")
+assert(!paced.acquire(session_id: 90, actor: "bot:7:1", revision: [1, 1]), "Acquire bypassed pacing")
+paced_clock = 2
+paced.schedule_decision(session_id: 90, actor: "bot:7:1", revision: [1, 1], delay: 3)
+paced_clock = 3
+assert(paced.ready?(session_id: 90, actor: "bot:7:1"), "An unchanged refresh restarted the countdown")
+paced_lease = paced.acquire(session_id: 90, actor: "bot:7:1", revision: [1, 1])
+paced.cancel(paced_lease)
+assert(paced.ready?(session_id: 90, actor: "bot:7:1"), "Cancellation postponed an already ready bot")
+paced.schedule_decision(session_id: 90, actor: "bot:7:2", revision: [2, 2], delay: 5)
+assert(!paced.ready?(session_id: 90, actor: "bot:7:2"), "Next bot ignored its delay")
+paced.switch_session(91)
+assert(paced.ready?(session_id: 91, actor: "bot:7:2"), "Old session's delay leaked into the next game")
 controller = GameRoomBots::TurnController.new(clock: -> { clock })
 bot_one = "bot:7:1"
 bot_two = "bot:7:2"

@@ -1,0 +1,49 @@
+require "json"
+
+root = File.expand_path("..", __dir__)
+mo = File.binread(File.join(root, "locale/PL.mo"))
+count, originals, translations = mo.byteslice(8, 12).unpack("V3")
+CATALOG = count.times.to_h do |i|
+  size, offset = mo.byteslice(originals + 8 * i, 8).unpack("V2")
+  key = mo.byteslice(offset, size).force_encoding("UTF-8")
+  size, offset = mo.byteslice(translations + 8 * i, 8).unpack("V2")
+  [key, mo.byteslice(offset, size).force_encoding("UTF-8")]
+end
+
+$missing_rules_translations = []
+def _(text)
+  value = CATALOG[text]
+  $missing_rules_translations << text if value == nil || value.empty?
+  value || text
+end
+
+files = %w[tic_tac_toe four_in_a_row spades farkle ninety_nine tysiac categories chess checkers reversi ludo monopoly yahtzee uno poker makao]
+require_relative "../games/base"
+files.each { |file| require_relative "../games/#{file}" }
+types = [GameRoomGames::TicTacToe, GameRoomGames::FourInARow, GameRoomGames::Spades,
+  GameRoomGames::Farkle, GameRoomGames::NinetyNine, GameRoomGames::Tysiac,
+  GameRoomGames::Categories, GameRoomGames::Chess, GameRoomGames::Checkers,
+  GameRoomGames::Reversi, GameRoomGames::Ludo, GameRoomGames::Monopoly,
+  GameRoomGames::Yahtzee, GameRoomGames::Uno, GameRoomGames::Poker, GameRoomGames::Makao]
+types.each do |type|
+  game = type.new
+  documents = game.rule_book(options: game.default_options).documents
+  expected = ["Zasady", "Skróty klawiszowe w grze", "Ustawienia tego stołu"]
+  raise "Wrong Polish document titles for #{game.id}: #{documents.map(&:title).inspect}" unless documents.map(&:title) == expected
+  raise "Empty Polish rules for #{game.id}" if documents.any? { |document| document.text.strip.empty? }
+  # Also cover labels hidden in the default table variant.
+  game.option_definitions
+end
+additions = JSON.parse(File.read(File.join(root, "locale/game-rules-209-pl.json"), encoding: "UTF-8"))
+additions.each do |english, polish|
+  raise "Uncompiled Polish rule" unless CATALOG[english] == polish
+  raise "Lost rule placeholder" unless english.scan(/%\{[^}]+\}/).sort == polish.scan(/%\{[^}]+\}/).sort
+end
+# Street/city deed names intentionally retain the regional proper names.
+# Generic fields, currencies, headings and every rule still require Polish.
+proper_names = GameRoomContent::MonopolyRegionalData::PROFILES.values.flat_map do |profile|
+  profile[:layout].filter_map { |type, name, _group| name if type == :property }
+end
+missing = $missing_rules_translations.uniq - proper_names
+abort "Missing translations:\n#{missing.join("\n")}" unless missing.empty?
+puts "Polish rules and settings translations passed for all 16 games"

@@ -45,18 +45,25 @@ module GameRoomGames
       ]
     end
 
-    def options_summary(_options)
-      _("classic rules; four pawns per player")
+    def options_summary(options)
+      normalize_options(options) == default_options ? _("classic rules; four pawns per player") : _("custom rules; four pawns per player")
     end
 
     def rule_sections
       [
-        rule_section(:goal, _("Goal"), _("Move all four of your pawns from the base, around the shared track, through your private home lane and to the finish before the other players.")),
-        rule_section(:setup, _("Setup"), _("Two to four players each receive four pawns. With the classic defaults, a player must roll a 6 to move a pawn out of the base."), _("The players' starting fields, in seating order, are 1, 14, 27 and 40 on the same shared track."), _("The shared track has 52 numbered fields. After field 52 comes field 1, so every player travels the same distance despite starting at a different number."), _("After completing the shared track, each player enters a private six-field home lane. Reaching its end places the pawn at the finish, where it no longer moves.")),
-        rule_section(:play, _("How to play"), _("Press Enter on Roll the die. If exactly one pawn can move, it moves automatically. If several pawns can move, the list shows only those choices together with their destinations; use the Arrow keys and Enter to choose."), _("Landing on an opposing pawn outside a safe start field sends it back to its base. Two pawns of one player form a blockade."), _("A 6 gives another roll. Three consecutive sixes end the turn. The finish must be reached by an exact roll.")),
-        rule_section(:ending, _("Ending the game"), _("The first player to place all four pawns at the finish wins.")),
-        rule_section(:variants, _("Variants and table options"), _("The default settings are the classic rules. The table creator may change entry, extra-roll, exact-finish, three-sixes and blockade rules.")),
-        rule_section(:controls, _("Controls"), _("Press Enter to roll or to choose a displayed move. Press V to browse your pawns, Shift+V to browse all pawns, P for a summary of your pawn positions, Shift+P for a summary of the opponents' pawn positions, T for the turn and Ctrl+F1 for these rules."))
+        rule_section(:route, _("From the base to the finish"),
+          _("Two to four players have four pawns each. Win by bringing all four to the finish first. Pawns start in the base, where they do not occupy the track. The players enter the shared track at fields 1, 14, 27 and 40 in seating order. The 52-field track wraps from 52 to 1, so a later starting number does not shorten a player's route."),
+          _("After the shared track a pawn enters its own six-field home lane; opponents cannot enter that lane. The last field is the finish. A pawn at the finish no longer moves and is not offered as a playable pawn.")),
+        rule_section(:roll, _("Rolling, choosing a pawn and captures"),
+          _("Roll one die. If exactly one pawn has a legal move, it moves automatically. If several can move, choose one from the list of legal destinations. If none can move, play passes on, except for an extra roll allowed by the six rule. One roll moves one pawn, not several pawns sharing its value."),
+          _("Landing on an opponent outside a safe starting field sends that pawn back to its base. All four entry fields are safe. With blockades enabled, two opposing pawns on one track field prevent passage or landing while moving along the track. Your own pair does not block your other pawns; entry from the base is handled separately.")),
+        rule_section(:choices, _("Five rules you can change"),
+          _("A 6 is required to leave the base: on by default. A six places a pawn on its entry field; it does not move it six fields further. When disabled, any roll allows entry. Roll again after a 6: on by default; disabling it passes the turn after the move even on a six."),
+          _("An exact roll is required to reach the finish: on by default. A roll going past the finish cannot move that pawn. When disabled, an excessive roll also brings it to the finish. Three consecutive sixes lose the turn: on by default; the third six ends the turn without moving a pawn for that roll, but does not undo previous moves."),
+          _("Two pawns of one player form a blockade: on by default. Disable it to remove blockade restrictions. These settings do not change the length of the shared track or private home lanes.")),
+        rule_section(:controls, _("Choosing and finding pawns"),
+          _("Enter rolls or confirms the selected legal pawn move. Arrow keys browse available moves. V opens your pawn list; Shift+V opens all pawns with owners and positions. These are inspection lists, not movement choices."),
+          _("P summarizes your positions and Shift+P the opponents' positions. Pawns in the base are included; finished pawns are omitted from these summaries. T reads the turn."))
       ]
     end
 
@@ -172,9 +179,13 @@ module GameRoomGames
       score = after - before
       score += 1_000 if after == FINISH_PROGRESS
       score += 240 if before < 0
-      score += 400 if capture_targets(state, player, after).any?
+      captures = capture_targets(state, player, after)
+      score += captures.sum { |other, index| 180 + state[:pawns][other][index] * 6 }
       score += 80 if safe_progress?(player, after)
-      score -= exposure_risk(state, player, after) * 35
+      moved = state.merge(pawns: state[:pawns].map(&:dup))
+      moved[:pawns][player][pawn] = after
+      captures.each { |other, index| moved[:pawns][other][index] = -1 }
+      score -= exposure_risk(moved, player, after) * (35 + after * 3)
       score
     end
 
@@ -515,15 +526,25 @@ module GameRoomGames
     def exposure_risk(state, player, progress)
       return 0 if progress < 0 || progress >= OUTER_LENGTH || safe_progress?(player, progress)
       global = global_track_index(player, progress)
-      state[:pawns].each_with_index.sum do |pawns, other|
-        next 0 if other == player
-        pawns.count do |candidate|
-          candidate.between?(0, OUTER_LENGTH - 1) && begin
-            distance = (global - global_track_index(other, candidate)) % OUTER_LENGTH
-            distance.between?(1, 6)
+      key = [player, state[:pawns], state[:options]].inspect
+      @ludo_threats ||= {}
+      unless @ludo_threats.key?(key)
+        @ludo_threats.clear if @ludo_threats.length >= 64
+        threats = Hash.new(0)
+        state[:pawns].each_index do |other|
+          next if other == player
+          (1..6).each do |roll|
+            possible = state.merge(roll: roll)
+            destinations = legal_pawn_indices(possible, other).filter_map do |pawn|
+              destination = destination_progress(possible, other, pawn)
+              global_track_index(other, destination) if destination < OUTER_LENGTH
+            end
+            destinations.uniq.each { |field| threats[field] += 1 }
           end
         end
+        @ludo_threats[key] = threats
       end
+      @ludo_threats[key][global]
     end
 
     def safe_progress?(player, progress)

@@ -65,6 +65,7 @@ module TysiacPlanning
       @known_passed_cards = known_passed_cards
       @inferred_void_suits = inferred_void_suits
       @deck = deck
+      @talon_limits = public_talon_limits
     end
 
     def choose_bid(actions, samples:)
@@ -562,8 +563,31 @@ module TysiacPlanning
         hands.fetch(player).any? { |card| voids.fetch(player, []).include?(card_suit(card)) }
       end
       return nil if publicly_promised_marriage_missing?(hands)
+      return nil if public_talon_assignment_impossible?(hands)
 
       world_from_state(hands: hands)
+    end
+
+    def public_talon_assignment_impossible?(hands)
+      @talon_limits.any? do |player, (talon, maximum)|
+        (hands.fetch(player, []) & talon).length > maximum
+      end
+    end
+
+    def public_talon_limits
+      # The UI hides the talon after the contract; its earlier disclosure is
+      # still public knowledge. Never apply this before the auction finishes.
+      return {} unless @state[:taker] && [:passing, :contract, :playing, :round_complete].include?(@state[:phase])
+      talon = @state[:talon].to_a
+      @players.reject { |player| same_player?(player, @state[:taker]) }.to_h do |player|
+        received = @events_after_last_deal.count do |event|
+          event["action"] == "pass_card" && same_player?(event["value"].to_s.split("|", 2).first, player)
+        end
+        played = @events_after_last_deal.filter_map do |event|
+          event["value"].to_s.split("|", 2)[1] if event["action"] == "play" && same_player?(event["actor"], player)
+        end
+        [player, [talon - played, received - (played & talon).length]]
+      end
     end
 
     def world_from_state(hands:)

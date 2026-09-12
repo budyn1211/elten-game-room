@@ -108,7 +108,16 @@ module NinetyNinePlanning
       return if !state[:draw_pile].empty? || state[:discard].length <= 1
 
       top = state[:discard].pop
-      state[:draw_pile] = state[:discard].reverse
+      cards = state[:discard].dup
+      # The seed belongs to the sampled world, never the real game's deck.
+      serial = state.fetch(:planning_recycles, 0)
+      random = Random.new(Digest::SHA256.hexdigest([state.fetch(:planning_seed, 0), serial, cards].inspect)[0, 16].to_i(16))
+      (cards.length - 1).downto(1) do |index|
+        other = random.rand(index + 1)
+        cards[index], cards[other] = cards[other], cards[index]
+      end
+      state[:draw_pile] = cards
+      state[:planning_recycles] = serial + 1
       state[:discard] = [top]
     end
   end
@@ -146,6 +155,8 @@ module NinetyNinePlanning
         end
       end
       state[:draw_pile] = unseen
+      state[:planning_seed] = seed_for(index)
+      state[:planning_recycles] = 0
       state
     end
 
@@ -275,7 +286,10 @@ module NinetyNinePlanning
         value += state[:eliminated][player] ? -2_000.0 : 1_000.0
         value += 8_000.0 if state[:winner] == player
         value -= 8_000.0 if state[:winner] != nil && state[:winner] != player
-        value += hand_value(game, state, player) if active.include?(player)
+        rivals = state[:players] - [player]
+        # Damage matters, but never as much as sacrificing our own survival.
+        value -= rivals.sum { |other| state[:tokens][other].to_i * 40.0 + (state[:eliminated][other] ? 0 : 100.0) } / [rivals.length, 1].max
+        value += hand_value(game, state, player) if active.include?(player) && state[:phase] == :playing
         result[player.to_s] = value
       end
     end
@@ -310,8 +324,9 @@ module NinetyNinePlanning
         state[:tokens].sort_by { |player, _value| player.to_s },
         state[:eliminated].sort_by { |player, _value| player.to_s },
         state[:hands].sort_by { |player, _value| player.to_s }.map { |player, cards| [player, cards.sort] },
-        state[:draw_pile].first(4),
-        state[:discard].last(4)
+        state[:draw_pile],
+        state[:discard],
+        state[:planning_seed], state[:planning_recycles]
       ]
     end
   end

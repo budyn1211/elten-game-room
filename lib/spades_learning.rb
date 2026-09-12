@@ -490,8 +490,17 @@ module SpadesLearning
 
       selected_policy = @policy || @policies.for_state(replay.state)
       phase = replay.state[:phase].to_s
+      if phase == "bidding"
+        allowed = game.send(:undominated_bot_bids, replay.state, actor, choices.map { |action| action["bid"].to_i })
+        choices = choices.select { |action| allowed.include?(action["bid"].to_i) }
+      end
       context = if game.respond_to?(:bot_decision_context)
         game.bot_decision_context(replay, actor, plan_round: @round_planning)
+      end
+      plan = context && context[:round_plan]
+      if plan && plan[:exact_decision] && !plan[:raw_scores].empty?
+        best_value = plan[:raw_scores].values.max
+        choices = choices.select { |action| plan[:raw_scores][action["card"]] == best_value }
       end
       scored = choices.map do |action|
         features = game.bot_action_features(replay, actor, action, context: context)

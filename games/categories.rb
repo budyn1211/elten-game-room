@@ -67,44 +67,24 @@ module GameRoomGames
 
     def rule_sections
       [
-        rule_section(
-          :goal,
-          _("Goal"),
-          _("Enter words beginning with the drawn letter in the displayed categories and score more points than the other players.")
-        ),
-        rule_section(
-          :setup,
-          _("Setup"),
-          _("Choose an easy, medium or hard category pool, or select a custom pool. The program draws the selected number of categories from that pool for every round."),
-          _("Category labels follow each player's interface language, while the selected answer language determines the letters used in the match."),
-          _("The table master may judge every round, or the judge may rotate in table order. A judge does not answer and receives no points in the round they judge."),
-          _("Identical answers in the same category are grouped. The judge, not the program, decides whether a single answer is unique, partially correct or incorrect, and whether an identical group is accepted or incorrect.")
-        ),
-        rule_section(
-          :play,
-          _("How to play"),
-          _("Fill any number of category fields and submit the sheet. Empty answers are allowed. Submitted answers cannot be changed."),
-          _("Answers remain hidden until writing has closed. Writing closes after every player submits or, when a time limit is enabled, when that time expires; missing answers then become blank."),
-          _("A unique answer is worth 2 points. A partially correct answer or an accepted identical group is worth 1 point per author. An empty or rejected answer is worth 0 points."),
-          _("When time expires, everything currently entered is submitted automatically. The fields are not cleared before the server accepts the answers.")
-        ),
-        rule_section(
-          :ending,
-          _("Ending the game"),
-          _("With a rotating judge, reaching the target score starts the final judge cycle. The match ends only after everyone has judged equally often."),
-          _("With a permanent table-master judge, the match may end after the completed round in which the target is reached. A tied lead either remains a shared victory or starts another complete cycle, according to the table option.")
-        ),
-        rule_section(
-          :variants,
-          _("Variants and table options"),
-          _("The table master chooses the judge mode, answer language, category pool, one to nine categories per round, answer time, target score and whether a tied lead causes a shared victory or another complete cycle.")
-        ),
-        rule_section(
-          :controls,
-          _("Controls"),
-          _("During judging, use the arrow keys to choose an assessment, Enter to confirm it, and Tab to move between grouped answers. Finish review closes judging."),
-          _("Press T for the letter and judge, Ctrl+T for the remaining time, S for scores, V for round information, Ctrl+F1 for these rules, and Escape to return to the table.")
-        )
+        rule_section(:words, _("Words for the drawn letter"),
+          _("Two to eight people play. In each round one is the judge and does not answer or score. Everyone else writes words beginning with the same drawn letter in the displayed categories. Fill as many fields as you can; empty answers are allowed. Each answer may contain up to 48 characters. Submit the sheet when ready; a submitted sheet cannot be changed."),
+          _("Answers are hidden while anyone is still writing. When everyone submits, or time expires, writing closes and submitted answers become available for judging. At the deadline the program submits the text still in your fields; it does not first clear it. A participant who has not supplied answers within closing is treated as having empty answers.")),
+        rule_section(:review, _("Judging and points"),
+          _("Identical answers in the same category are grouped. The judge decides whether they make sense, fit the category and letter, and deserve acceptance. A unique correct answer gives 2 points; a partially correct answer or an accepted repeated answer gives 1 per author; a rejected or empty answer gives 0. These decisions are made by the judge, not an automatic dictionary."),
+          _("Everyone sees the assessments and whose answers are being judged. The judge confirms all assessments and finishes review. Round totals are then added and the next round begins, unless the conditions for finishing the match have been met.")),
+        rule_section(:pools, _("Language and category choices"),
+          _("Answer language is Polish by default, with English also available. It chooses the alphabet used for drawing letters, not each player's interface language. Used letters are avoided until the selected alphabet has been exhausted. Category names are displayed in the player's interface language."),
+          _("The easy pool contains country, city, name, animal, plant, thing, profession, food and colour. Medium adds surname, famous person, sport, vehicle, clothing, body part, building, musical instrument and book. Hard also adds film, song, music group, river, mountain, island, language, invention and chemical element."),
+          _("Custom lets you check your own pool from those 27 categories. Categories shown in each round chooses how many are drawn afresh from that pool: 1 to 9, default 6, never more than the pool contains. Choosing a pool does not mean every category in it appears each round. The last custom choices are remembered locally.")),
+        rule_section(:time, _("Answer time and the judge"),
+          _("Answer time defaults to 90 seconds. Use 0 for no limit, or 10 to 3600 seconds. The countdown applies to writing, not to judging; without a limit everyone must submit. Local announcements warn near the end and announce expiry."),
+          _("Rotating judge is the default: participants judge in seating order. Table master judges every round makes the creator a permanent judge, excluded from the scoring competition. This is a rule for the entire table, not a choice made by each player.")),
+        rule_section(:finish, _("Finishing fairly and breaking a tie"),
+          _("Target score is 100 by default, from 10 to 1000. With rotating judging, reaching it finishes the current complete judge cycle so everyone has judged equally often. With the permanent judge, the completed scoring round can end the game. The highest eligible total wins; merely reaching the target first does not end an unfinished cycle."),
+          _("A tied lead can be a shared victory or trigger extra play, the default. Only the tied leaders keep competing. With rotating judging, someone outside that group judges if available; if everyone is tied, judging still rotates through a complete cycle. A permanent judge remains the judge. Extra play continues until the tie is broken; lower-scoring players do not rejoin the race.")),
+        rule_section(:controls, _("Writing, judging and information"),
+          _("Tab moves between answer fields and submission. During judging use the Arrow keys to choose a grade, Enter to confirm it, and Tab to visit answer groups; Finish review ends judging. Ctrl+T reads the remaining answer time, including while editing. T reads the letter and judge, S the scores and V round information. Ordinary letter shortcuts do not replace typing in answer or chat fields."))
       ]
     end
 
@@ -144,9 +124,10 @@ module GameRoomGames
         ),
         OptionDefinition.new(
           key: "custom_categories",
-          label: _("Custom categories, used only with the custom pool"),
+          label: _("Custom categories"),
           kind: :multiple_choice,
           default: DEFAULT_CUSTOM_CATEGORY_MASK,
+          visible_if: { "category_set" => CATEGORY_SET_CUSTOM },
           choices: CATEGORY_IDS.map do |category|
             OptionChoice.new(value: category, label: category_label(category))
           end
@@ -422,7 +403,7 @@ module GameRoomGames
             accepted_event = true
             history << history_entry(
               event_id,
-              _("The unjudged round was cancelled. The judge order did not advance."),
+              _("The round was cancelled. The judge order did not advance."),
               actor,
               :round_cancelled
             )
@@ -712,6 +693,13 @@ module GameRoomGames
       else
         _("Waiting for submitted answers to be revealed.")
       end
+      missing = state[:commitments].keys.reject { |player| player_hash_key?(state[:reveals], player) }
+      unless missing.empty?
+        message += " " + _("Waiting for answers from: %{players}.") % { players: missing.map { |player| participant_name(player) }.join(", ") }
+        if owner?(state[:players], viewer) || same_user?(state[:judge], viewer)
+          message += " " + _("You can begin review without the missing answers.")
+        end
+      end
       with_review_commands(information_surface("revealing_status", message), state, viewer)
     end
 
@@ -766,7 +754,7 @@ module GameRoomGames
       if owner?(state[:players], viewer)
         commands << GameSurfaces::Command.new(
           id: "cancel_round",
-          label: _("Cancel the unjudged round"),
+          label: _("Cancel the round"),
           enabled: true
         )
       end
@@ -779,7 +767,7 @@ module GameRoomGames
       composite(
         surface,
         "review",
-        [GameSurfaces::Command.new(id: "cancel_round", label: _("Cancel the unjudged round"), enabled: true)]
+        [GameSurfaces::Command.new(id: "cancel_round", label: _("Cancel the round"), enabled: true)]
       )
     end
 

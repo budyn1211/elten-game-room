@@ -167,6 +167,7 @@ module GameRoomScreens
   class GameRules
     def initialize(book)
       @book = book
+      @documents = book.documents
       @section_index = 0
     end
 
@@ -174,9 +175,9 @@ module GameRoomScreens
       loop do
         action = nil
         sections = ListBox.new(
-          @book.sections.map(&:title),
+          @documents.map(&:title),
           header: _("%{game} rules") % { game: @book.title },
-          index: bounded_index(@section_index, @book.sections),
+          index: bounded_index(@section_index, @documents),
           quiet: true
         )
         open_button = Button.new(_("Open"))
@@ -198,7 +199,7 @@ module GameRoomScreens
         form.wait
         return if action == :back
 
-        show_section(@book.sections[@section_index]) if action == :open
+        show_section(@documents[@section_index]) if action == :open
       end
     end
 
@@ -211,7 +212,7 @@ module GameRoomScreens
         text: section.text,
         quiet: true
       )
-      back_button = Button.new(_("Back to rule sections"))
+      back_button = Button.new(_("Back"))
       form = Form.new([content, back_button], quiet: true)
       form.cancel_button = back_button
       form.hide(back_button)

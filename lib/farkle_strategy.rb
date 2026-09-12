@@ -73,6 +73,16 @@ module FarklePlanning
       banked = state[:scores].fetch(player, 0).to_i
       limit = state[:options]["score_limit"].to_i
       minimum = banked.zero? ? state[:options]["entry_minimum"].to_i : state[:options]["turn_minimum"].to_i
+      leader = state[:scores].reject { |candidate, _| candidate == player }.values.max.to_i
+      # A small curvature changes risk preference, not the amount of searching.
+      # No giant bonus for a remote hypothetical winning roll.
+      @risk_exponent = if leader >= limit * 0.8 && leader > banked
+        1.1
+      elsif banked >= limit * 0.7 && banked > leader
+        0.9
+      else
+        1.0
+      end
 
       selected = if state[:phase] == :selecting
         choose_keep(choices, game, replay, banked, limit, minimum)
@@ -92,6 +102,13 @@ module FarklePlanning
     private
 
     def choose_keep(actions, game, replay, banked, limit, minimum)
+      winning = actions.select do |action|
+        details = game.bot_keep_details(replay, action)
+        total = details && replay.state[:turn_points].to_i + details[:points]
+        total && total >= minimum && banked + total >= limit
+      end
+      return winning.max_by { |action| game.bot_keep_details(replay, action)[:points] } unless winning.empty?
+
       actions.max_by do |action|
         details = game.bot_keep_details(replay, action)
         next -Float::INFINITY if details == nil
@@ -129,7 +146,7 @@ module FarklePlanning
     end
 
     def decision_value(dice, turn_points, banked, limit, minimum, depth)
-      key = [dice, turn_points, banked, limit, minimum, depth]
+      key = [dice, turn_points, banked, limit, minimum, depth, @risk_exponent]
       cached = @memo[key]
       return cached if cached != nil
 
@@ -169,8 +186,10 @@ module FarklePlanning
       total_value.to_f / denominator
     end
 
-    def bank_payoff(turn_points, _banked, _limit)
-      turn_points.to_f
+    def bank_payoff(turn_points, banked, limit)
+      needed = [limit - banked, 1].max.to_f
+      progress = [[turn_points / needed, 0.0].max, 1.0].min
+      needed * progress**(@risk_exponent || 1.0)
     end
   end
 end

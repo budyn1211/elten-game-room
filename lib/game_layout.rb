@@ -1,3 +1,5 @@
+require_relative "context_help"
+
 module GameRoomLayout
   STANDARD_SECTIONS = [:status, :game, :chat, :history, :users].freeze
 
@@ -168,6 +170,7 @@ module GameRoomLayout
 
     def begin_bindings
       binding_controls.each(&:reset_bindings!)
+      GameRoomContextHelp.replace(@form.fields, [], source: :game)
       @form.game_shortcut_signatures = []
       @form.history_navigation_signatures = []
     end
@@ -217,13 +220,25 @@ module GameRoomLayout
         focus_location || self.focus_location || [:status, 0]
       end
       old_identity = @surface_identity
+      old_field = @form.fields[@form.index.to_i]
+      hand_update = GameSurfaces.hand_surface?(view_spec.surface)
       state = surface_state || @surface&.state || {}
       if reset_surface || @view_spec == nil || @view_spec.surface != view_spec.surface
-        @surface = view_spec.surface == nil ? nil : GameSurfaces.build(view_spec.surface, state: state)
+        previous = new_game || reset_surface ? nil : @surface
+        @surface = if view_spec.surface == nil
+          nil
+        elsif hand_update
+          GameSurfaces.reconcile(view_spec.surface, previous: previous, state: state)
+        else
+          GameSurfaces.build(view_spec.surface, state: state)
+        end
       end
       @view_spec = view_spec
       @surface_identity = surface_identity_for(view_spec.surface)
       location = [:game, 0] if location[0] == :game && old_identity != @surface_identity
+      if hand_update && !phase_transition && location[0] == :game && @surface != nil && @surface.fields.include?(old_field)
+        location = [:game, @surface.fields.index(old_field)]
+      end
       update_users(user_items, header: users_header)
       update_history(history_items, header: text_or_default(view_spec.history_header, _("Game history")))
       @history.empty_label = text_or_default(view_spec.history_empty_label, _("No moves yet")) if @history.respond_to?(:empty_label=)
@@ -274,6 +289,16 @@ module GameRoomLayout
       @form.index = form_index_for_location([:users, 0])
     end
 
+    def focus_game(silent: false)
+      index = form_index_for_location([:game, 0])
+      return if @form.index.to_i == index
+      field = @form.fields[index]
+      field.suppress_next_focus! if silent && field.respond_to?(:suppress_next_focus!)
+      @form.index = index
+    ensure
+      field.clear_suppressed_focus! if silent && field.respond_to?(:clear_suppressed_focus!)
+    end
+
     def shortcut_fields
       @content_fields.reject { |field| field.equal?(@chat) }
     end
@@ -298,6 +323,12 @@ module GameRoomLayout
         history_follows_tail: follows_tail, chat_text: @chat.text,
         chat_index: @chat.index.to_i, chat_check: @chat.check.to_i
       )
+    end
+
+    def take_cursor_announcement
+      location = focus_location.to_a
+      field_index = @phase == :active && location[0] == :game ? location[1] : nil
+      @surface&.take_cursor_announcement(field_index)
     end
 
     private

@@ -1,5 +1,221 @@
 # Historia zmian
 
+## 1.1.6 — build 213 (kandydat do testów)
+
+- Ujednolicono kursor w kontrolkach ręki: po zagraniu wybierana jest najbliższa
+  pozostała karta powyżej, a przy zagraniu pierwszej — następna. Po dobraniu
+  kursor przechodzi na ostatnią otrzymaną kartę, również przy kilku kartach.
+  Bez wybranego sortowania nowe karty trafiają na dół. Wybrane sortowanie UNO
+  pozostaje zachowane. Odczytywana jest nazwa nowej karty pod kursorem, tylko
+  podczas przeglądania ręki; bez przeładowania formularza i przerywania czatu.
+  Pozostałe rodzaje kontrolek i zakończenie gry zachowują dotychczasową obsługę.
+- UNO: sortowanie według przykładu QC — żółty, czerwony, niebieski, zielony;
+  wartości 0–9, zmiana kierunku, pominięcie, dobierz dwie, dzikie karty.
+  Shift+C i Shift+H nadal przełączają kierunek, Shift+D przywraca kolejność ręki.
+- Włączono wcześniej uzgodnione poprawki audytu zasad i botów. Spades lepiej
+  szacuje gwarantowane lewy, uwzględnia samotnego asa pik, dokładne końcówki
+  oraz ryzyko zerwania zera partnera. No Hell i Suicide są rozłączne.
+- Poprawiono model publicznego musika Tysiąca, recykling talii Ninety-Nine,
+  wybór pewnej wygranej w Farkle i Yahtzee, skutki kart UNO, żądania i wyjątki
+  Makao, pule i wymianę Pokera oraz finanse i decyzje handlowe Monopoly.
+- Dopracowano legalne zagrożenia Chińczyka, analizę szachów, wielobicia
+  warcabów, ocenę Reversi i gróźb w Czwórkach. Poprawiono pamięć wyników
+  wspólnego planera. Sprawdzono wszystkie osiągalne pozycje kółka i krzyżyka;
+  doprecyzowano komunikaty Państw-Miast.
+- Zachowano ograniczenia obliczeń, ale domykanie wielobicia może wydłużyć
+  trudne decyzje warcabowe: zmierzona pozycja 10×10 zajmuje około 8,9 s zamiast
+  6,0 s. To nie jest obietnica jednakowej szybkości we wszystkich pozycjach.
+- Celowane regresje obejmują decyzje i reguły z audytu, sortowanie, kursor,
+  niezmienność czatu i innych kontrolek oraz binarne ładowanie paczki.
+  Próby na prawdziwych klientach pozostają do wykonania przez użytkownika.
+
+## 1.1.6 — build 212 (kandydat do testów)
+
+- Uporządkowano komunikaty Monopoly: kto płaci i komu, rzeczywista wpłata
+  i pozostały dług, skutki kart, zakupy, kolory grup, handel, aukcje i więzienie.
+  Usunięto zbędne automatyczne odczyty sald. Ceny i budynki nadal są na listach.
+- Monopoly: B podczas aukcji pozwala wpisać własną całkowitą ofertę. Dodano
+  ustawiany czas jednej decyzji; 0 oznacza brak limitu, upływ czasu daje pas.
+  Bankructwo następuje automatycznie w turze zadłużonego gracza, gdy nie ma już
+  budynków do sprzedaży ani nieruchomości do zastawienia. Oferty handlu nie
+  powstrzymują bankructwa. Zachowano kolejność tur przy powstaniu długu.
+- UNO: krótkie „Za późno!” z zachowaniem kary, poprawione komunikaty dobierania,
+  ruletki kolorów, buzzera, kwestionowania +4 i dodatkowych skutków kart.
+- Poker: R pyta krótko „Podbij o:”, G przy samej wysokiej karcie mówi
+  „Nie masz układu”. Poprawiono kwoty all-in i podbić, odczyt kart dobieranego,
+  wpłaty obowiązkowe, opis wygranych pul i przyczyny niedozwolonych działań.
+- Yahtzee: osobne komunikaty otrzymania premii 35 i 100 punktów.
+- Makao: czytelniejsze deklaracje, kary i pozostałe kolejki postoju;
+  P odczytuje przygotowany pakiet w kolejności zaznaczenia.
+- Pomoc F1 wspólnego ekranu nie gromadzi już powtórzonych skrótów podczas
+  odświeżeń. Uzupełniono polskie tłumaczenia, zasady i celowane regresje.
+
+## 1.1.6 — build 211 (kandydat do testów)
+
+- UNO: intercepcje działają podczas tury człowieka i komputera, również
+  w czasie ustawionego opóźnienia bota. Wyjątek w obsłudze ruchów dotyczy tylko UNO.
+- UNO: przy włączonych intercepcjach niepasująca karta zagrana Enterem poza
+  własną turą daje „Za późno” i 3 punkty karne. Karta zostaje w ręce, kolejka
+  się nie zmienia. Nie rozróżnia się przypadkowego i celowego naciśnięcia.
+  O karze decyduje stan po wcześniejszych zdarzeniach; nie restartuje ona
+  opóźnienia bota. Uzupełniono zasady i tłumaczenia.
+- Monopoly: krótkie komunikaty budowy, sprzedaży budynków, zastawiania i
+  wykupu zastawu, wspólne dla mowy i historii. Domy i hotele są rozróżniane.
+  Listy zarządzania nadal pokazują ceny i liczbę budynków.
+
+## 1.1.6 — build 210 (kandydat do testów)
+
+- Poprawiono błąd UTF-8/ASCII-8BIT uniemożliwiający instalację buildu 209.
+  Dane regionalnych plansz Monopoly mają jawne kodowanie UTF-8, również
+  podczas wczytywania z podpisanej paczki. Nie zmieniono zasad ani ekonomii.
+- Dodano regresję wczytywania binarnych źródeł z polskimi tłumaczeniami,
+  obejmującą inicjalizację programu, zasady 16 gier i dane 19 plansz.
+- Ujednolicono numer buildu zgłaszany przez program z numerem w paczce.
+  Wszystkie pozostałe zmiany buildu 209 są zachowane.
+
+## 1.1.6 — build 209 (kandydat do testów)
+
+- Przepisano zasady wszystkich 16 gier: pełny przebieg, punktacja, zakończenie,
+  warianty i działanie ustawień. Opisy mają nagłówki wewnątrz jednego tekstu.
+- Okno zasad zawiera „Zasady” i „Skróty klawiszowe w grze”; przy stole trzecią
+  pozycją są „Ustawienia tego stołu”. Pokazuje tylko włączone dodatki oraz
+  właściwe dla wariantu wartości, bez wyliczania wyłączonych checkboxów.
+- Zebrano skróty każdej gry i wspólne zasady obsługi czatu, historii oraz
+  komend planszowych. Dotychczasowy Ctrl+F1 pozostaje bez drugiego powiązania.
+- W zasadach Monopoly opisano wszystkie 19 plansz z ich rzeczywistym
+  rozmiarem, kapitałem, walutą, pensją i zapasem budynków.
+- Sprawdzono komplet ustawień własnego Makao i ich lokalne zapamiętywanie.
+  Podgląd stołu uwzględnia też włączone reguły gotowych profili, mimo że
+  ich checkboxy są ukryte w edytorze. Same profile pozostają niezmienione.
+
+- Monopoly: po wejściu na minus pozostali rozgrywają swoje tury; gracz
+  rozwiązuje dług w następnej własnej turze, przed rzutem.
+- Monopoly: listy budowania, sprzedaży i zastawów pozostają otwarte, dopóki
+  są dostępne działania. Podają koszty/przychody i liczbę budynków. Brak
+  możliwości działania jest oznajmiany; Escape wraca do głównego pola gry.
+- Monopoly: jawny komunikat podatku i salda; poprawione zaokrąglanie kosztu
+  wykupu zastawu. Zasada równomiernego budowania i sprzedaży pozostaje.
+- Monopoly: bot uwzględnia obie strony wymiany, nie zasypuje ofertami i nie
+  wraca do odrzuconych propozycji.
+- UNO: ustawienie opóźnienia ruchów botów 1–5 sekund, domyślnie 1 sekunda,
+  z ograniczeniem względem czasu na myślenie. Nie opóźnia ludzi ani aktualizacji.
+- Poker: bot nie traktuje czekania jako bezwartościowego i nie podbija tak
+  chętnie przeciętnych układów. Zachowuje podbicia mocnych rąk oraz pasowanie.
+
+## 1.1.6 — build 208 (kandydat do testów)
+
+- Yahtzee: para i dwie pary liczą sumę wszystkich pięciu kości; mizeria
+  liczy 36 minus suma. Dostosowano opis zasad i ocenę tych kategorii u bota.
+- Monopoly: przed wyborem zakupu słychać nieruchomość, kolor i cenę;
+  wybory to „Kup” i „Nie kupuj”. Kolory są również w wymianach.
+  Zdobycie pełnej grupy jest ogłaszane po zmianie właścicieli nieruchomości.
+- Monopoly: przetłumaczono pola specjalne oraz nazwy stacji, przedsiębiorstw
+  i pól neutralnych, zachowując regionalne nazwy własne ulic. Polska plansza
+  ma polskie znaki. Kontrola tłumaczeń obejmuje również dane plansz.
+- UNO: po dobraniu kary bez legalnej karty tura kończy się automatycznie.
+  Wynik rozdania podaje zwycięzcę oraz osobno przyznane każdemu punkty.
+- UNO: Shift+C przełącza sortowanie kolorami rosnąco/malejąco, Shift+H
+  wartościami rosnąco/malejąco. Kierunek zachowuje się przy odświeżeniu.
+- Poker: ogłaszane są preflop, flop, turn i river, wraz z nowymi kartami
+  wspólnymi, również przy all-in. Poker dobierany ogłasza pierwszą licytację,
+  wymianę i drugą licytację; oba warianty zachowują podsumowanie odsłonięcia.
+
+## 1.1.6 — build 207 (kandydat do testów)
+
+- Monopoly: zastąpiono zastępcze nazwy osiemnastu edycji układami odczytanymi
+  z QC. Sześć plansz ma 60 pól. Dodano różne kapitały i waluty, pełne czynsze
+  dodatkowych grup, sześć stacji, cztery przedsiębiorstwa oraz większy bank
+  budynków. Ruch do więzienia respektuje daną planszę, także indonezyjską.
+  Przeliczono kwoty kart, opłat i rezerwy botów. To nadal adaptacje, nie
+  deklaracja zgodności 1:1 wszystkich opłat z QC; szczegóły w
+  `docs/MONOPOLY_REGIONAL_BOARDS.md`.
+- Monopoly: karty ruchu wybierają rzeczywiste miejsca danej planszy, w tym
+  jej najdroższą ulicę i ulicę za więzieniem. Niepotwierdzone opłaty i premie
+  odnoszą się do miejscowej wypłaty za Start, a naprawy dodatkowych drogich
+  budynków uwzględniają ich koszt. Zachowano potwierdzone dane QC.
+- Poker: w obu wariantach R pozwala wpisać własne podbicie, niezależne od kwoty
+  wyrównania. Poprawiono ante, strit A–2–3–4–5, limity all-in, wymianę kart
+  przy ośmiu osobach oraz udział gracza all-in w wymianie.
+- UNO: naprawiono zwykłe szóstki, deklarowanie UNO, kary, odzyskiwanie talii,
+  zakończenie rozdania i rozpoczęcie kolejki po eliminacji No Mercy.
+- Makao: poprawiono pakiety i ich kolejność, deklarację Makao, działanie asa,
+  Jokera i czwórek oraz dobieranie i kontrolę wielkości rozdania.
+- Yahtzee: poprawiono sumy punktów i komunikaty o zachowanych oraz przerzucanych
+  kościach. Spacja tylko powtarza aktualny stan.
+- Monopoly: poprawiono czynsze, rozliczanie długów i bankructwa, wyjście z
+  więzienia oraz zaliczanie Startu. Dodano osobne talie Szansy i Kasy Społecznej,
+  zapas domów i hoteli oraz formularz własnych wymian pieniędzy i nieruchomości.
+- Poprawiono decyzje botów wszystkich pięciu gier: planowanie przerzutów,
+  ocenę wymiany i zakładów, wykorzystanie pakietów, kolorów i gotówki.
+- Podłączono dźwięki akcji nowych gier. Po rozdaniu UNO zwycięzca słyszy win1,
+  pozostali uczestnicy lose1; zakończenie całej partii zachowuje dźwięk finałowy.
+- Dodano polskie komunikaty i celowany zestaw testów pięciu gier.
+
+## 1.1.6 — build 206
+
+- ponownie sprawdzono pięć nowych gier punkt po punkcie według uzgodnionych
+  zasad i interfejsów;
+- w UNO poprawiono odpowiedzi na kary, wybór gracza przy siódemce, powrót do
+  kolejnego rozdania po eliminacji rundowej No Mercy oraz działanie wariantów
+  Classic, No Mercy, Flip, przechwyceń, zera i siódemki, buzzera i czasu na ruch;
+- długie rozgrywki botów w UNO są sprawdzane jako test stabilności wielu
+  kolejnych legalnych ruchów, bez sztucznego wymagania zakończenia partii;
+- w Makao pierwsza karta przygotowanego pakietu musi pasować do karty na stole;
+  Joker może reprezentować każdą kartę, a król kier broni przed królem
+  atakującym zgodnie z uzgodnionym wariantem;
+- w Yahtzee oddzielono premię za kolejne Yahtzee od zasady Jokera i poprawiono
+  kolejność wyboru kategorii przy Jokerze;
+- w Pokerze poprawiono ocenę układu z mniej niż pięciu kart, all-in, zasady
+  heads-up, otwarcie w pokerze dobieranym oraz opis wpisowego zamiast ukrytych
+  ciemnych;
+- w Monopoly uzupełniono karty specjalne, czynsz za przedsiębiorstwa, jackpot,
+  równomierne budowanie i sprzedawanie oraz bezpieczny, krótki zapis wymian;
+- wszystkie dziewiętnaście plansz Monopoly ma komplet nazw nieruchomości, w tym
+  plansza polska;
+- uzupełniono polskie tłumaczenia oraz testy reguł, interfejsów i długich
+  sekwencji ruchów nowych gier.
+
+## 1.1.6 — build 205
+
+- ustawienia stołu potrafią teraz wspólnie ukrywać pola, które nie dotyczą
+  wybranego wariantu; zastosowano to w Pokerze, Państwach-Miastach, UNO i
+  profilach Makao;
+- poprawiono uruchamianie Pokera w Ruby używanym przez ELTEN-a; tasowanie kart
+  jest nadal deterministyczne, ale nie korzysta już z nieobsługiwanego
+  argumentu, który zapętlał komunikat o zmianie stanu gry;
+- w Yahtzee główne pole pokazuje tylko rzut kośćmi lub listę kategorii, cyfry
+  od 1 do 6 wybierają kości według ich wartości, znaki od `!` do `^` je
+  zachowują, a Spacja odczytuje kości i stan wyboru;
+- w Monopoly usunięto osobne kończenie tury, dodano automatyczne przejście po
+  rozstrzygnięciu pola oraz nazwę grupy kolorystycznej przy zakupie i w akcie
+  własności;
+- zadłużony gracz w Monopoly widzi w głównym polu wyłącznie rzut kośćmi;
+  próba rzutu podaje brakującą kwotę, a dług rozwiązuje się istniejącymi
+  skrótami zarządzania nieruchomościami i wymiany;
+- uzupełniono polskie komunikaty nowych zachowań i testy ich wspólnego
+  interfejsu.
+
+## 1.1.6 — build 204
+
+- dodano Monopoly z dziewiętnastoma wariantami planszy, w tym planszą polską,
+  opcjonalnym jackpotem, aukcjami, ręcznym czynszem, wymianami, budowaniem,
+  zastawianiem nieruchomości, więzieniem i botami;
+- dodano Yahtzee z rosnącym sortowaniem kości, wyborem kości do ponownego
+  rzutu, listą możliwych wyników, dodatkowymi kategoriami i osobnymi opcjami
+  premii za kolejne Yahtzee oraz zasady Jokera;
+- dodano UNO z podstawowym wariantem domyślnym, odpowiedziami na kary,
+  opcjonalnymi przechwyceniami, zasadami zaawansowanymi, eliminacją punktową
+  oraz botami;
+- dodano Makao z wariantem prostym, polskim, jokerowym i własnym, pakietami
+  kart, kumulowanymi karami, deklaracjami, wołaniem makao oraz botami;
+- dodano Poker obejmujący Texas Hold'em i pokera dobieranego pięciokartowego,
+  różne struktury licytacji, limity podbić, rosnące ciemne, pule boczne,
+  wymianę kart, skróty informacyjne i boty;
+- rozbudowano wspólny interfejs o powierzchnie do gier kościanych oraz
+  jednoczesnego wybierania pakietu kart;
+- dodano polskie tłumaczenia nazw, ustawień, zasad, działań i komunikatów
+  wszystkich nowych gier.
+
 ## 1.1.5 — build 203
 
 - poprawiono odzyskiwanie synchronizacji po nieudanych lub anulowanych akcjach

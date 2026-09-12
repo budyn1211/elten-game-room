@@ -9,6 +9,7 @@ require "digest"
 # and bag handling do not have to be implemented twice.
 module SpadesPlanning
   class RoundPlanner
+    attr_reader :last_failure
     PlanningWorld = Struct.new(:state, :weight, :index, keyword_init: true)
 
     # These budgets keep one UI decision comfortably below a perceptible
@@ -46,11 +47,12 @@ module SpadesPlanning
     end
 
     def plan(state:, actor:, information:)
+      @last_failure = nil
       @next_cooperative_yield_at = monotonic_time + COOPERATIVE_YIELD_INTERVAL
       phase = state[:phase]
       choices = case phase
       when :bidding
-        @game.send(:legal_bid_values, state, actor)
+        @game.send(:undominated_bot_bids, state, actor, @game.send(:legal_bid_values, state, actor))
       when :playing
         @game.send(:legal_cards, state, actor)
       else
@@ -84,11 +86,13 @@ module SpadesPlanning
       refinement_attempted = false
       refinement_accepted = false
       evaluated_world_count = worlds.length
+      risk_worlds = worlds
 
       if refinement_needed?(state, actor, phase, initial_raw_scores)
         refinement_attempted = true
         candidates = best_choices(initial_raw_scores, 2)
         refinement_worlds, variants = refinement_budget(state, actor, information, worlds)
+        risk_worlds = worlds + refinement_worlds unless omniscient?(state)
         evaluated_world_count += refinement_worlds.length if !omniscient?(state)
         candidates.each do |choice|
           samples[choice].concat(
@@ -108,6 +112,17 @@ module SpadesPlanning
         raw_scores = proposed_scores if refinement_accepted
       end
 
+      exact_decision = phase == :playing && omniscient?(state) && remaining_card_count(state) - 1 <= exact_limit
+      # Reuse the already solved tails to certify short, low-branching endings.
+      # A failed bounded attempt is NOT advertised as an exact result.
+      if !exact_decision && phase == :playing && omniscient?(state) && remaining_card_count(state) <= 18
+        certified = certify_choices(state, actor, choices)
+        if certified
+          raw_scores = certified
+          exact_decision = true
+        end
+      end
+
       {
         phase: phase,
         scores: normalize(raw_scores),
@@ -116,18 +131,85 @@ module SpadesPlanning
         initial_raw_scores: initial_raw_scores,
         worlds: evaluated_world_count,
         exact_information: omniscient?(state),
+        exact_decision: exact_decision,
+        partner_nil_risks: phase == :playing ? immediate_partner_nil_risks(state, actor, choices, risk_worlds) : {},
         refinement_attempted: refinement_attempted,
         refinement_accepted: refinement_accepted,
         confidence: score_margin(raw_scores),
         exact_limit: exact_limit
       }
-    rescue StandardError
+    rescue StandardError => error
       # Planning is deliberately advisory. A malformed historical state must
       # not prevent the existing trained policy from making a legal move.
+      @last_failure = { type: error.class.name, message: error.message }
       empty_plan(phase)
     end
 
     private
+
+    def immediate_partner_nil_risks(state, actor, choices, worlds)
+      actor = player_key(state, actor)
+      return {} unless actor
+      partner = active_partner_nil(state, actor)
+      trick = state[:current_trick]
+      return {} unless partner && !trick.empty? && choices.length > 1
+      return {} if trick.any? { |play| same_player?(play[:player], partner) }
+      # A small exact tail, using the SAME public-information worlds as the
+      # round plan. Do not turn this into another complete-round search.
+      return {} if state[:players].length - trick.length - 1 > 2
+      budget = [1_500]
+      result = catch(:nil_risk_budget) do
+        choices.to_h do |card|
+          total = worlds.sum(&:weight)
+          risk = worlds.sum do |world|
+            child = copy_state(world.state)
+            child[:hands][actor].delete(card)
+            child[:current_trick] << { player: actor, card: card }
+            index = child[:players].index(actor)
+            child[:current_player] = child[:players][(index + 1) % child[:players].length]
+            partner_nil_trick_risk(child, actor, partner, budget) * world.weight
+          end
+          [card, risk / total]
+        end
+      end
+      result.is_a?(Hash) ? result : {}
+    end
+
+    def partner_nil_trick_risk(state, root, partner, budget)
+      throw :nil_risk_budget if budget[0] <= 0
+      budget[0] -= 1
+      if state[:current_trick].length == state[:players].length
+        return same_player?(@game.send(:trick_winner, state[:current_trick]), partner) ? 1.0 : 0.0
+      end
+      actor = state[:current_player]
+      allied = score_unit(state, actor) == score_unit(state, root)
+      value = allied ? 1.0 : 0.0
+      @game.send(:legal_cards, state, actor).each do |card|
+        child = copy_state(state)
+        child[:hands][actor].delete(card)
+        child[:current_trick] << { player: actor, card: card }
+        index = child[:players].index(actor)
+        child[:current_player] = child[:players][(index + 1) % child[:players].length]
+        next_value = partner_nil_trick_risk(child, root, partner, budget)
+        value = allied ? [value, next_value].min : [value, next_value].max
+        break if value == (allied ? 0.0 : 1.0)
+      end
+      value
+    end
+
+    def certify_choices(state, actor, choices)
+      @certification_budget = 4_000
+      catch(:certification_exhausted) do
+        return choices.to_h do |card|
+          child = copy_state(state)
+          apply_card(child, actor, card)
+          [card, exact_utilities(child, @exact_cache).fetch(player_key(state, actor))]
+        end
+      end
+      nil
+    ensure
+      @certification_budget = nil
+    end
 
     def empty_plan(phase)
       {
@@ -298,19 +380,25 @@ module SpadesPlanning
       ordered[0] - ordered[1]
     end
 
+    def hidden_card_allowed?(void_suits, player, card)
+      voids = void_suits.fetch(player.to_s, [])
+      !voids.include?(card_suit(card)) &&
+        !(card_suit(card) == "S" && card != "AS" && voids.include?("S_except_ace"))
+    end
+
     def assign_hidden_cards(cards, players, counts, void_suits, random)
       remaining = counts.dup
       result = players.each_with_object({}) { |player, hands| hands[player] = [] }
       ordered = cards.sort_by do |card|
         eligible = players.count do |player|
-          !void_suits.fetch(player.to_s, []).include?(card_suit(card))
+          hidden_card_allowed?(void_suits, player, card)
         end
         [eligible, random.rand]
       end
       ordered.each do |card|
         eligible = players.select do |player|
           remaining.fetch(player, 0) > 0 &&
-            !void_suits.fetch(player.to_s, []).include?(card_suit(card))
+            hidden_card_allowed?(void_suits, player, card)
         end
         return nil if eligible.empty?
 
@@ -539,6 +627,11 @@ module SpadesPlanning
       key = exact_state_key(state)
       cached = memo[key]
       return cached if cached != nil
+
+      if @certification_budget
+        throw :certification_exhausted if @certification_budget <= 0
+        @certification_budget -= 1
+      end
 
       actor = state[:current_player]
       legal = @game.send(:legal_cards, state, actor)

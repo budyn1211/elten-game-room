@@ -187,48 +187,31 @@ module GameRoomGames
 
     def rule_sections
       [
-        rule_section(
-          :goal,
-          _("Goal"),
-          _("Win rounds of tricks, fulfil your declarations and become the unique player or team at or above the table's score limit. The default winning score is 300 points; a tie for first place continues the game.")
-        ),
-        rule_section(
-          :setup,
-          _("Setup"),
+        rule_section(:contracts, _("Declarations and partnerships"),
+          _("Win rounds of tricks, fulfil your declarations and become the unique player or team at or above the table's score limit. The default winning score is 300 points; a tie for first place continues the game."),
           _("Spades is played by 3 to 6 players. Individual play is the default. Four players may form two teams of two. Six players may form three teams of two or two teams of three. At 3 and 5 players the game is individual."),
           _("With 3 players one 2 is removed and everyone receives 17 cards. With 4 players the complete deck gives 13 cards each. With 5 players two 2s are removed and everyone receives 10 cards. With 6 players all 2s are removed and everyone receives 8 cards."),
-          _("The dealer changes every round. The player to the dealer's left begins both bidding and the first trick. For team games, the table master may accept the alternating seat arrangement or assign every human and computer to a valid team before starting.")
-        ),
-        rule_section(
-          :play,
-          _("Bidding and playing tricks"),
+          _("The dealer changes every round. The player to the dealer's left begins both bidding and the first trick. For team games, the table master may accept the alternating seat arrangement or assign every human and computer to a valid team before starting.")),
+        rule_section(:tricks, _("Bidding, following suit and trump"),
           _("Each player declares from zero up to the number of cards in hand. Bids do not have to exceed earlier bids. In a team, the ordinary bids of partners combine into one contract; a zero bid remains an individual nil."),
           _("The first card sets the led suit. You must follow that suit when possible, except that you may withhold the ace of spades when it is your only spade. Otherwise you may play any card, including a spade. The highest spade wins the trick; if no spade was played, the highest card of the led suit wins. Aces are high and 2s are low."),
-          _("Spades are always trump. You may not lead a spade until one has been used to trump another suit, unless your hand contains only spades. The winner of a trick leads the next one.")
-        ),
-        rule_section(
-          :ending,
-          _("Scoring and ending the game"),
+          _("Spades are always trump. You may not lead a spade until one has been used to trump another suit, unless your hand contains only spades. The winner of a trick leads the next one.")),
+        rule_section(:points, _("Contracts, nils and overtricks"),
           _("In standard scoring, making a regular contract gives 10 points for every bid trick plus 1 point for every overtrick. Missing it gives minus 10 times the bid. Overtricks are already part of the displayed score; every accumulated tenth overtrick also causes a 100 point penalty."),
           _("A successful nil, a bid of zero with no tricks won, gives 100 points. A failed nil costs 100 points, and its tricks become overtricks in standard play. In a team, a nil is scored separately and its tricks do not help the partner's ordinary contract."),
           _("With 3 or 4 players, making a bid of 1 or 2 exactly gives a 20 point bonus. Large successful bids receive another 10 points for each level beginning at 10, 7, 6 or 5 with respectively 3, 4, 5 or 6 players."),
-          _("After every round the scores are updated and another deal begins automatically while no unique leader has reached the selected limit. Once there is such a leader, that player or team wins the game.")
-        ),
-        rule_section(
-          :variants,
-          _("Variants and table options"),
+          _("After every round the scores are updated and another deal begins automatically while no unique leader has reached the selected limit. Once there is such a leader, that player or team wins the game.")),
+        rule_section(:variants, _("No Hell, Quicksand and Suicide"),
+          _("No Hell and Suicide cannot be enabled together."),
           _("No Hell prevents the last bidder from making the sum of all bids equal the number of tricks in the round."),
           _("Quicksand changes regular contract scoring. An exact contract gives 10 times the bid. Every overtrick costs 10 points, and a missed contract costs 10 points for every missing trick. There are no persistent bags. Nil still gives or costs 100 points, but a failed nil creates no bags."),
-          _("Suicide is available only to teams of two. At least one partner on every team must bid nil, while a nonzero bid must be at least 4. Both partners may bid nil. Suicide uses standard scoring and may be combined only with a valid two-person team arrangement."),
-          _("Omniscient bots is an optional challenge mode in which computers know all hands while planning. It is deliberately unfair and is off by default. Ordinary computers infer hidden cards only from their own hand and public play.")
-        ),
-        rule_section(
-          :controls,
-          _("Controls"),
+          _("Suicide is available only to teams of two. At least one partner on every team must bid nil, while a nonzero bid must be at least 4. Both partners may bid nil. It changes bidding requirements, not the selected scoring system."),
+          _("No Hell, Quicksand and Suicide are off by default. Quicksand takes precedence over standard contract bonuses and bag scoring when enabled. The score limit must be positive and defaults to 300. Team arrangement is Individual by default; team membership is chosen before the game and partners share a score.")),
+        rule_section(:computers, _("Computer opponents"),
+          _("Omniscient bots is an optional challenge mode in which computers know all hands while planning. It is deliberately unfair and is off by default. Ordinary computers infer hidden cards only from their own hand and public play.")),
+        rule_section(:controls, _("Bidding and inspecting a trick"),
           _("Use the Arrow keys to browse your hand and press Enter to play the current card. During your bid, press B, enter a number and confirm it. Outside bidding, B reads all declarations."),
-          _("Press T for the current turn, S for scores and bags, C to read the cards on the table, Ctrl+C to browse them, F for the led suit, I for your own round information, and V for every player's round information. Trick progress is read as tricks won over tricks bid, for example 3/5."),
-          _("Tab moves between your hand and other game fields, history and users. F1 gives shortcut hints. Ctrl+F1 opens these complete rules. Escape returns to the table.")
-        )
+          _("Press T for the current turn, S for scores and bags, C to read the cards on the table, Ctrl+C to browse them, F for the led suit, I for your own round information, and V for every player's round information. Trick progress is read as tricks won over tricks bid, for example 3/5."))
       ]
     end
 
@@ -428,7 +411,8 @@ module GameRoomGames
           key: "no_hell",
           label: _("No hell"),
           kind: :boolean,
-          default: false
+          default: false,
+          visible_if: ->(options) { options["suicide"] != true || options["no_hell"] == true }
         ),
         OptionDefinition.new(
           key: "quicksand",
@@ -440,7 +424,8 @@ module GameRoomGames
           key: "suicide",
           label: _("Suicide"),
           kind: :boolean,
-          default: false
+          default: false,
+          visible_if: ->(options) { options["no_hell"] != true || options["suicide"] == true }
         ),
         OptionDefinition.new(
           key: "omniscient_bots",
@@ -472,6 +457,7 @@ module GameRoomGames
     def options_error(options, player_count: nil)
       values = normalize_options(options)
       return _("The score limit must be greater than zero.") if values["score_limit"].to_i <= 0
+      return _("No Hell and Suicide cannot be enabled together.") if values["no_hell"] && values["suicide"]
 
       team_size = values["team_size"].to_i
       if values["suicide"] && team_size != 2
@@ -820,7 +806,8 @@ module GameRoomGames
           bot_last_seat_winner_conservation_score_adjustment(state, actor, action) +
           bot_future_control_conservation_score_adjustment(state, actor, action, context) +
           bot_expiring_control_score_adjustment(state, actor, action, context) +
-          bot_match_defense_score_adjustment(state, actor, action, context)
+          bot_match_defense_score_adjustment(state, actor, action, context) +
+          bot_partner_nil_risk_adjustment(action, context)
       end
       return 0.0 if state[:phase] != :bidding
 
@@ -833,6 +820,16 @@ module GameRoomGames
         bot_match_closing_bid_score_adjustment(state, actor, bid, context)
     end
     public :bot_policy_score_adjustment
+
+    def bot_partner_nil_risk_adjustment(action, context)
+      plan = context.is_a?(Hash) ? context[:round_plan] : nil
+      risks = plan.is_a?(Hash) ? plan.fetch(:partner_nil_risks, {}) : {}
+      return 0.0 unless risks.length > 1
+      extra = risks.fetch(action["card"].to_s, 0.0) - risks.values.min
+      # Preserve control when the difference is tiny/uncertain. A concrete
+      # avoidable danger to nil weighs more than a generic saved-honour bonus.
+      extra >= 0.25 ? -60.0 * extra : 0.0
+    end
 
     # A complete-round rollout is still heuristic while most cards remain in
     # hand. In particular it can count the same fragile side-suit expectation
@@ -1743,6 +1740,7 @@ module GameRoomGames
       round_events = last_deal == nil ? [] : events[(last_deal + 1)..]
       plays = round_events.to_a.select { |event| event["action"].to_s == "play" }
       void_suits = Hash.new { |hash, player| hash[player] = [] }
+      ace_played = plays.any? { |event| event["value"].to_s == "AS" }
       plays.each_slice(replay.players.length) do |trick|
         next if trick.empty?
 
@@ -1751,7 +1749,8 @@ module GameRoomGames
           next if card_suit(event["value"]) == led_suit
 
           player = event["actor"].to_s
-          void_suits[player] << led_suit if !void_suits[player].include?(led_suit)
+          missing = led_suit == "S" && !ace_played ? "S_except_ace" : led_suit
+          void_suits[player] << missing if !void_suits[player].include?(missing)
         end
       end
       {
@@ -2038,6 +2037,29 @@ module GameRoomGames
         probability *= safe.to_f / available
       end
       probability
+    end
+
+    # Top consecutive trumps are guaranteed independently of unknown hands.
+    # Prune only strict score dominance, not merely bids below an average.
+    def undominated_bot_bids(state, actor, bids)
+      return bids unless state[:options]["team_size"].to_i == 0 && !state[:options]["no_hell"]
+      hand = hand_for(state, actor).to_a
+      guaranteed = RANKS.reverse.take_while { |rank| hand.include?("#{rank}S") }.length
+      return bids if guaranteed.zero? || bids.length <= 1
+      scoring = Scoring.new(state[:players], state[:options])
+      values = bids.to_h do |bid|
+        outcomes = (guaranteed..cards_per_player(state[:players].length)).map do |won|
+          scoring.apply(bids: state[:bids].merge(actor => bid), tricks: { actor => won }, scores: state[:scores]).scores[actor]
+        end
+        [bid, outcomes]
+      end
+      bids.reject do |bid|
+        bids.any? do |other|
+          next false if other == bid
+          pairs = values[bid].zip(values[other])
+          pairs.all? { |old, replacement| replacement >= old } && pairs.any? { |old, replacement| replacement > old }
+        end
+      end
     end
 
     def estimated_bot_bid(state, actor)
@@ -2482,6 +2504,7 @@ module GameRoomGames
             id: "hand",
             header: _("Your hand"),
             cards: hand_cards,
+            hand_order: hand_for(state, viewer).to_a.dup, hand_epoch: [viewer, state[:round]].join(":"),
             empty_label: _("Your hand is empty")
           )
         ]

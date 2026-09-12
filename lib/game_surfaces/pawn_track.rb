@@ -1,6 +1,6 @@
 module GameSurfaces
   PawnTrackItem = Struct.new(:id, :label, :action, keyword_init: true)
-  PawnTrackSpec = Struct.new(:id, :header, :items, :empty_label, :activation_action, keyword_init: true)
+  PawnTrackSpec = Struct.new(:id, :header, :items, :empty_label, :activation_action, :menus, keyword_init: true)
 
   # A compact, accessible surface for race games in which the meaningful
   # information is a pawn's logical position, not its coordinates on a drawn
@@ -11,7 +11,10 @@ module GameSurfaces
 
     def initialize(spec, state: {})
       @spec = spec
-      @items = @spec.items.to_a
+      @menus = @spec.menus || {}
+      @menu = state_value(state, "menu", "").to_s
+      @menu = "" if @menus[@menu].to_a.empty?
+      @items = @menu.empty? ? @spec.items.to_a : @menus[@menu]
       validate_spec!
       @index = restored_index(state)
       @control = RefreshAwareListBox.new(
@@ -23,7 +26,7 @@ module GameSurfaces
       )
       @control.on(:select) do |params|
         item = @items[params.to_a[0].to_i]
-        action = item&.action || @spec.activation_action
+        action = item&.action || (@menu.empty? ? @spec.activation_action : nil)
         emit_surface_action(action) if action != nil
       end
     end
@@ -36,8 +39,32 @@ module GameSurfaces
       item = @items[@control.index.to_i]
       {
         "index" => @control.index.to_i,
-        "item_id" => item&.id.to_s
+        "item_id" => item&.id.to_s,
+        "menu" => @menu
       }
+    end
+
+    # Local navigation only; Enter still uses the ordinary game action path.
+    # Menu choice IDs survive replay refresh, and the game regenerates legal
+    # entries/costs after each confirmed operation. An exhausted menu closes.
+    def handle_command(command, payload = {})
+      return false unless command.to_s == "open_menu"
+      menu = payload["menu"].to_s
+      return false if @menus[menu].to_a.empty?
+      @menu = menu
+      replace_items(@menus[menu])
+      true
+    end
+
+    def cancel_pending_action?
+      !@menu.empty?
+    end
+
+    def cancel_pending_action!
+      return false if @menu.empty?
+      @menu = ""
+      replace_items(@spec.items.to_a)
+      true
     end
 
     def suppress_next_focus!(_field_index = 0)
@@ -45,6 +72,13 @@ module GameSurfaces
     end
 
     private
+
+    def replace_items(items)
+      @items = items
+      @control.options = items.map(&:label)
+      @control.index = 0
+      @control.focus
+    end
 
     def emit_surface_action(action)
       emit_action(action.kind, action.name, action.payload, source: action.source)
