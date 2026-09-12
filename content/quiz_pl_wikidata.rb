@@ -3,8 +3,8 @@ require_relative "../lib/game_content"
 
 GameRoomContent.registry.register_pack(
   GameRoomContent::Pack.new(
-    id: "quiz.pl.wikidata.v1",
-    set_id: "quiz.pl.wikidata",
+    id: "quiz.wikidata.pl",
+    set_id: "quiz.wikidata",
     kind: :quiz,
     language_id: "pl-PL",
     version: 1,

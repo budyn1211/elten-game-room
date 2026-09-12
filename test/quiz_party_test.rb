@@ -29,7 +29,7 @@ require_relative "../lib/game_bots"
 require_relative "../lib/hidden_submissions"
 require_relative "../lib/game_content"
 require_relative "../content/languages"
-require_relative "../content/quiz_pl"
+require_relative "../content/quiz_pl_wikidata"
 require_relative "../games/quiz_party"
 
 class QuizRepository
@@ -105,7 +105,7 @@ defaults = game.default_options
 assert(defaults["answer_time"] == 20, "the default answer time is wrong")
 assert(defaults["target_score"] == 15, "the default target score is wrong")
 assert(defaults["content_language_id"] == "pl-PL", "the question language option was not offered")
-assert(defaults["content_set_id"] == "quiz.general", "the question set option was not offered")
+assert(defaults["content_set_id"] == "quiz.wikidata", "the question set option was not offered")
 language_definition = game.effective_option_definitions.find { |definition| definition.key == "content_language_id" }
 assert(language_definition != nil && language_definition.kind == :choice, "the table cannot pick a question language")
 assert(language_definition.choices.map(&:value) == ["pl-PL"], "the installed question languages are not offered as choices")
@@ -133,9 +133,9 @@ assert(replay.current_player == "Alice", "the chooser is not the active player")
 choice_surface = game.surface_spec(replay, "Alice")
 assert(choice_surface.mode == :single_choice, "the chooser did not receive a category list")
 assert(choice_surface.submit_on_select == true, "choosing a category needs a second keystroke")
-pack_categories = GameRoomContent.registry.pack("quiz.general.pl")
+pack_categories = GameRoomContent.registry.pack("quiz.wikidata.pl")
   .data["questions"].map { |question| question["category"] }.uniq.sort
-pack_category_counts = GameRoomContent.registry.pack("quiz.general.pl")
+pack_category_counts = GameRoomContent.registry.pack("quiz.wikidata.pl")
   .data["questions"].group_by { |question| question["category"] }.transform_values(&:length)
 offered_categories = choice_surface.options.map(&:id)
 assert(offered_categories.length == replay.state[:choices].length, "the round offered a different number of categories than it drew")
@@ -240,7 +240,7 @@ assert(question_surface.submit_on_select == true, "answering needs a second keys
 assert(question_surface.options.map(&:label).uniq.length == 4, "a question offered duplicate answers")
 assert(game.surface_spec(replay, "Alice").options.map(&:label) == question_surface.options.map(&:label), "players saw the answers in a different order")
 
-pack = GameRoomContent.registry.pack("quiz.general.pl")
+pack = GameRoomContent.registry.pack("quiz.wikidata.pl")
 asked = pack.data["questions"].find { |question| question["id"] == replay.state[:question_id] }
 question_entry = replay.history.reverse.find { |entry| entry.kind == :question }
 assert(question_entry != nil && question_entry.text == asked["prompt"], "the spoken question has a numbering prefix")

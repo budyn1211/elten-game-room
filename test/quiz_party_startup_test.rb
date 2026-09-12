@@ -28,8 +28,9 @@ end
 require "json"
 require_relative "../lib/game_content"
 require_relative "../content/languages"
-require_relative "../content/quiz_pl"
 require_relative "../content/quiz_general_en"
+require_relative "../content/quiz_pl_wikidata"
+require_relative "../content/quiz_witcher_pl"
 require_relative "../games/quiz_party"
 require_relative "../games/registry"
 
@@ -54,11 +55,22 @@ keys = game.effective_option_definitions.map(&:key)
 assert(keys.uniq.length == keys.length, "the game exposes duplicate option keys")
 assert(keys.include?("content_language_id"), "the table cannot choose a question language")
 
-pack = GameRoomContent.registry.pack("quiz.general.pl")
-assert(pack != nil && pack.verified?, "the Polish question pack did not load")
-assert(pack.supports?(game_id: "quiz", kind: :quiz), "the question pack is not offered to this game")
-assert(pack.data["questions"].length >= 90, "the question pack lost its questions")
+polish_pack = GameRoomContent.registry.pack("quiz.wikidata.pl")
+assert(polish_pack != nil && polish_pack.verified?, "the Polish Wikidata question pack did not load")
+assert(polish_pack.data["questions"].length == 15_498, "the Polish Wikidata question pack lost its questions")
+witcher_pack = GameRoomContent.registry.pack("quiz.witcher.pl")
+assert(witcher_pack != nil && witcher_pack.verified?, "the Polish Witcher question pack did not load")
+assert(witcher_pack.data["questions"].length == 6_623, "the Polish Witcher question pack lost its questions")
 assert(game.selected_content_pack(options) != nil, "the default table options do not resolve to an installed pack")
+polish_sets = game.send(:available_content_sets, "pl-PL").map(&:id).sort
+assert(polish_sets == ["quiz.wikidata", "quiz.witcher"], "Polish does not offer exactly the two intended question sets")
+[
+  ["quiz.wikidata", "pl-PL"],
+  ["quiz.witcher", "pl-PL"]
+].each do |set_id, language_id|
+  set_options = game.normalize_options("content_set_id" => set_id, "content_language_id" => language_id)
+  assert(JSON.generate(set_options).bytesize <= 256, "#{set_id} options exceed the server field limit")
+end
 
 english_pack = GameRoomContent.registry.pack("quiz.general.en")
 assert(english_pack != nil && english_pack.verified?, "the English question pack did not load")
@@ -66,7 +78,7 @@ assert(english_pack.license == "CC-BY-SA-4.0", "the English question pack lost i
 assert(english_pack.author == "OpenTriviaQA contributors", "the English question pack lost its attribution")
 assert(english_pack.data["questions"].length == 28_577, "the English question pack lost its questions")
 assert(english_pack.data["questions"].map { |question| question["category"] }.uniq.length == 20, "the English question pack lost its categories")
-assert(GameRoomContent.registry.pack_set("quiz.general").language_ids.sort == ["en", "pl-PL"], "the general set did not group its language variants")
+assert(GameRoomContent.registry.pack_set("quiz.general").language_ids == ["en"], "the removed Polish general variant is still registered")
 
 GameRoomContent.registry.register_language(
   GameRoomContent::LanguageProfile.new(
@@ -134,4 +146,4 @@ assert(fresh.options_summary(italian).include?("15"), "the Italian table lost it
 mismatched = italian.merge("content_pack_checksum" => "0" * 64)
 assert(fresh.validation_error(mismatched, player_count: 2) != nil, "a table with a tampered content checksum was accepted")
 
-puts "Quiz Party startup tests passed: registry, rule book, Polish and English packs, and an added Italian language"
+puts "Quiz Party startup tests passed: registry, two Polish sets, English OpenTriviaQA, and an added Italian language"

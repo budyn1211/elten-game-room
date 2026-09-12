@@ -47,6 +47,8 @@ app = EltenGameRoom.allocate
 app.define_singleton_method(:read_json) { |_path, default:| default }
 app.define_singleton_method(:alert) { |message| raise message }
 game = GameRoomGames::QuizParty.new
+polish_set_ids = game.send(:available_content_sets, "pl-PL").map(&:id).sort
+assert(polish_set_ids == ["quiz.wikidata", "quiz.witcher"], "the removed small Polish question set is still offered")
 target_language = game.default_options["content_language_id"] == "en" ? "pl-PL" : "en"
 step = 0
 
@@ -71,7 +73,8 @@ end
 options = app.send(:configure_game_options, game)
 assert(step == 2, "changing the question language did not rebuild the option form once")
 assert(options["content_language_id"] == target_language, "the rebuilt option form rejected the selected language")
-assert(options["content_set_id"] == "quiz.general", "the rebuilt option form did not preserve a compatible question set")
+selected_pack = game.selected_content_pack(options)
+assert(selected_pack != nil && selected_pack.language_id == target_language, "the rebuilt option form did not select a compatible question set")
 
 multiple_choice_game = Class.new(GameRoomGames::QuizParty) do
   def option_definitions
