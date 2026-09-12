@@ -62,12 +62,24 @@ Form.driver = lambda do |form|
 
   if step == 0
     language_control.index = language_definition.choices.index { |choice| choice.value == target_language }
+    step += 1
+    language_control.trigger(:move)
   else
     selected_language = language_definition.choices[language_control.index].value
     assert(selected_language == target_language, "rebuilding the option form reset the selected language")
+    set_control = form.fields.find { |field| field.is_a?(ListBox) && field.header == "Game content set" }
+    assert(form.fields[form.index] == set_control, "the rebuilt form did not focus the question set")
+    expected_count = target_language == "pl-PL" ? 2 : 1
+    assert(set_control != nil && set_control.options.length == expected_count, "changing language did not immediately replace the question sets")
+    labels = set_control.options.join(" ")
+    if target_language == "pl-PL"
+      assert(labels.include?("15498") && labels.include?("6623") && !labels.include?("28577"), "Polish still shows the English question set")
+    else
+      assert(labels.include?("28577"), "English does not show the OpenTriviaQA set")
+    end
+    step += 1
+    form.fields.find { |field| field.is_a?(Button) && field.label == "Create table" }.trigger(:press)
   end
-  step += 1
-  form.fields.find { |field| field.is_a?(Button) && field.label == "Create table" }.trigger(:press)
 end
 
 options = app.send(:configure_game_options, game)
@@ -106,13 +118,15 @@ Form.driver = lambda do |form|
   if multiple_step == 0
     language_control.index = language_definition.choices.index { |choice| choice.value == multiple_target_language }
     topics_control.select_multiselection_indices([1])
+    multiple_step += 1
+    language_control.trigger(:move)
   else
     selected_language = language_definition.choices[language_control.index].value
     assert(selected_language == multiple_target_language, "rebuilding reset the language beside a multiple-choice option")
     assert(topics_control.multiselections.sort == [0, 1], "rebuilding reset a multiple-choice option")
+    multiple_step += 1
+    form.fields.find { |field| field.is_a?(Button) && field.label == "Create table" }.trigger(:press)
   end
-  multiple_step += 1
-  form.fields.find { |field| field.is_a?(Button) && field.label == "Create table" }.trigger(:press)
 end
 
 multiple_options = app.send(:configure_game_options, multiple_choice_game)

@@ -645,6 +645,7 @@ class EltenGameRoom < Program
     definitions = game.effective_option_definitions(selected).to_a
     return game.default_options if definitions.empty?
     built_language = game.default_options[GameRoomContent::LANGUAGE_OPTION_KEY].to_s
+    focused_option_key = nil
 
     loop do
       controls = [Static.new(_("Choose game options using Tab and the arrow keys. In lists allowing multiple selections, use Space to select or clear an item."))]
@@ -706,7 +707,12 @@ class EltenGameRoom < Program
       action = nil
       save_button = Button.new(_("Create table"))
       cancel_button = Button.new(_("Cancel"))
-      form = Form.new(controls + [save_button, cancel_button], quiet: true)
+      focused_binding_index = bindings.index do |definition, _control|
+        definition.key.to_s == focused_option_key
+      end
+      form_index = focused_binding_index == nil ? 0 : focused_binding_index + 1
+      form = Form.new(controls + [save_button, cancel_button], index: form_index, quiet: true)
+      focused_option_key = nil
       form.accept_button = save_button
       form.cancel_button = cancel_button
       refresh_visibility = lambda do
@@ -732,7 +738,24 @@ class EltenGameRoom < Program
         action = :cancel
         form.resume
       end
+      language_binding = bindings.find do |definition, _control|
+        definition.key.to_s == GameRoomContent::LANGUAGE_OPTION_KEY
+      end
+      if language_binding != nil
+        language_binding[1].on(:move) do
+          action = :language_changed
+          form.resume
+        end
+      end
       form.wait
+      if action == :language_changed
+        options = game.normalize_options(game_option_values(bindings))
+        selected = options
+        built_language = options[GameRoomContent::LANGUAGE_OPTION_KEY].to_s
+        definitions = game.effective_option_definitions(selected).to_a
+        focused_option_key = GameRoomContent::SET_OPTION_KEY
+        next
+      end
       return nil if action != :save
 
       raw = game_option_values(bindings)
