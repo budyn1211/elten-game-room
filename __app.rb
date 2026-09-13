@@ -3,8 +3,8 @@
   "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
-  "version": "1.1.6",
-  "build_id": "213",
+  "version": "1.1.7",
+  "build_id": "217",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -21,8 +21,8 @@
   "required_assets": {
     "sounds": [
       "connect", "disconnect", "chatmsg", "ding", "shuffle", "draw", "draw2",
-      "farkle", "lose1", "lose3", "play", "play2", "replay", "reverse",
-      "reverse3", "roll", "win1", "win2"
+      "farkle", "interception", "lose1", "lose3", "play", "play2", "replay",
+      "reverse", "reverse3", "roll", "skip", "win1", "win2"
     ]
   }
 }
@@ -59,6 +59,9 @@ require_relative "lib/game_screen"
 require_relative "lib/game_content"
 require_relative "content/languages"
 require_relative "content/monopoly_boards"
+require_relative "content/quiz_general_en"
+require_relative "content/quiz_pl_wikidata"
+require_relative "content/quiz_witcher_pl"
 require_relative "games/base"
 require_relative "games/board_game"
 require_relative "games/card_game"
@@ -78,11 +81,12 @@ require_relative "games/yahtzee"
 require_relative "games/uno"
 require_relative "games/poker"
 require_relative "games/makao"
+require_relative "games/quiz_party"
 require_relative "games/registry"
 
 class EltenGameRoom < Program
-  GAME_ROOM_VERSION = "1.1.6".freeze
-  GAME_ROOM_BUILD_ID = 213
+  GAME_ROOM_VERSION = "1.1.7".freeze
+  GAME_ROOM_BUILD_ID = 217
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
 
@@ -142,7 +146,8 @@ class EltenGameRoom < Program
     GameRoomGames::Yahtzee,
     GameRoomGames::Uno,
     GameRoomGames::Poker,
-    GameRoomGames::Makao
+    GameRoomGames::Makao,
+    GameRoomGames::QuizParty
   ])
 
   DEFAULT_SETTINGS = {
@@ -636,13 +641,16 @@ class EltenGameRoom < Program
   def configure_game_options(game)
     return {} if game == nil
 
-    definitions = game.effective_option_definitions.to_a
+    selected = {}
+    definitions = game.effective_option_definitions(selected).to_a
     return game.default_options if definitions.empty?
+    built_language = game.default_options[GameRoomContent::LANGUAGE_OPTION_KEY].to_s
+    focused_option_key = nil
 
     loop do
       controls = [Static.new(_("Choose game options using Tab and the arrow keys. In lists allowing multiple selections, use Space to select or clear an item."))]
       bindings = []
-      defaults = remembered_game_option_defaults(game, definitions)
+      defaults = remembered_game_option_defaults(game, definitions).merge(selected)
       definitions.each do |definition|
         key = definition.key.to_s
         case definition.kind.to_s
@@ -699,7 +707,12 @@ class EltenGameRoom < Program
       action = nil
       save_button = Button.new(_("Create table"))
       cancel_button = Button.new(_("Cancel"))
-      form = Form.new(controls + [save_button, cancel_button], quiet: true)
+      focused_binding_index = bindings.index do |definition, _control|
+        definition.key.to_s == focused_option_key
+      end
+      form_index = focused_binding_index == nil ? 0 : focused_binding_index + 1
+      form = Form.new(controls + [save_button, cancel_button], index: form_index, quiet: true)
+      focused_option_key = nil
       form.accept_button = save_button
       form.cancel_button = cancel_button
       refresh_visibility = lambda do
@@ -725,11 +738,35 @@ class EltenGameRoom < Program
         action = :cancel
         form.resume
       end
+      language_binding = bindings.find do |definition, _control|
+        definition.key.to_s == GameRoomContent::LANGUAGE_OPTION_KEY
+      end
+      if language_binding != nil
+        language_binding[1].on(:move) do
+          action = :language_changed
+          form.resume
+        end
+      end
       form.wait
+      if action == :language_changed
+        options = game.normalize_options(game_option_values(bindings))
+        selected = options
+        built_language = options[GameRoomContent::LANGUAGE_OPTION_KEY].to_s
+        definitions = game.effective_option_definitions(selected).to_a
+        focused_option_key = GameRoomContent::SET_OPTION_KEY
+        next
+      end
       return nil if action != :save
 
       raw = game_option_values(bindings)
       options = game.normalize_options(raw)
+      chosen_language = options[GameRoomContent::LANGUAGE_OPTION_KEY].to_s
+      if chosen_language != built_language
+        selected = options
+        built_language = chosen_language
+        definitions = game.effective_option_definitions(selected).to_a
+        next
+      end
       error = game.validation_error(options)
       if error == nil
         remember_multiple_choice_options(game, definitions, options)
@@ -878,6 +915,7 @@ class EltenGameRoom < Program
       end
       GameRoomParticipantMenu.bind(layout, available: -> do
         [:invite_online, :invite_contacts, :rules, :leave] +
+          GameRoomParticipantMenu.role_actions(room: snapshot, viewer: Session.name) +
           GameRoomParticipantMenu.management_actions(
             room: snapshot, game: state.game, active: state.active?, viewer: Session.name, owner: owner
           )
@@ -900,6 +938,9 @@ class EltenGameRoom < Program
         quiet_reentry = true
       when :add_bot, :remove_bot
         change_room_computer(row, action, participant)
+        quiet_reentry = true
+      when :observe_next_game, :play_next_game
+        change_observer_mode(row, action)
         quiet_reentry = true
       when :rules
         show_game_rules(state.game, options: state.game&.options_from_json(row["game_options"]))
@@ -973,6 +1014,19 @@ class EltenGameRoom < Program
     alert(_("This table is full.")) if status == :full
     alert(_("This table is no longer available.")) if status == :closed
     result
+  end
+
+  def change_observer_mode(row, action)
+    observing = action == :observe_next_game
+    title = observing ? _("Enabling observer mode") : _("Enabling player mode")
+    snapshot = run_network_task(title, ui: :none) do
+      @lobby.set_observer(row, Session.name, observing)
+    end
+    return nil if snapshot == nil
+
+    message = observing ? _("You will observe the next game.") : _("You will play in the next game.")
+    speak(message, stop: false, break_sequence: false)
+    snapshot
   end
 
   def show_invite_users(row, source:)
@@ -1583,7 +1637,7 @@ class EltenGameRoom < Program
       return
     end
 
-    participants = state.room.participants
+    participants = state.room.game_participants
     if !valid_player_count?(game, participants.length)
       alert(invalid_player_count_message(game, participants.length))
       return
@@ -1599,7 +1653,7 @@ class EltenGameRoom < Program
     options = configure_team_assignment(game, options, participants)
     return if options == nil
 
-    refreshed_room = run_network_task(_("Checking the table members")) { @lobby.snapshot_for(row) }
+    refreshed_room = run_network_task(_("Checking the table members")) { @lobby.snapshot_for(row, force: true) }
     return if refreshed_room == nil
     if @lobby.playing?(refreshed_room.table)
       refreshed = load_room_state(refreshed_room.table, title: _("Opening the current game"))
@@ -1608,7 +1662,7 @@ class EltenGameRoom < Program
       alert(_("A game has already started. Opening the current game."))
       return refreshed.session
     end
-    latest_participants = refreshed_room.participants
+    latest_participants = refreshed_room.game_participants
     if !same_participant_order?(participants, latest_participants)
       alert(_("The users at the table changed while teams were being selected. Please start again."))
       return
@@ -1816,7 +1870,8 @@ class EltenGameRoom < Program
         saved
       end,
       layout: @table_layouts&.[](@lobby.table_id(table)),
-      manage_computer: ->(current_table, action, participant) { change_room_computer(current_table, action, participant) }
+      manage_computer: ->(current_table, action, participant) { change_room_computer(current_table, action, participant) },
+      manage_observer: ->(current_table, action) { change_observer_mode(current_table, action) }
     ).run
   end
 

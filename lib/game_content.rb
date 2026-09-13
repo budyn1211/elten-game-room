@@ -84,7 +84,7 @@ module GameRoomContent
 
   class Pack
     attr_reader :id, :set_id, :kind, :language_id, :version, :title, :game_ids,
-      :checksum, :license, :author
+      :checksum, :license, :author, :entry_count
 
     def initialize(
       id:,
@@ -98,7 +98,8 @@ module GameRoomContent
       loader: nil,
       checksum: nil,
       license: nil,
-      author: nil
+      author: nil,
+      entry_count: nil
     )
       @id = GameRoomContent.utf8(id).strip
       @set_id = GameRoomContent.utf8(set_id == nil ? @id : set_id).strip
@@ -109,6 +110,8 @@ module GameRoomContent
       @game_ids = game_ids.to_a.map { |game_id| GameRoomContent.utf8(game_id) }.reject(&:empty?).uniq.freeze
       @license = GameRoomContent.utf8(license).strip
       @author = GameRoomContent.utf8(author).strip
+      @entry_count = entry_count == nil ? nil : Integer(entry_count)
+      raise ArgumentError, "a content entry count cannot be negative" if @entry_count != nil && @entry_count < 0
       @loader = loader
       @data = data == nil ? nil : deep_freeze(normalize_data(data))
       raise ArgumentError, "a content pack requires a valid id" if !PACK_ID_PATTERN.match?(@id)

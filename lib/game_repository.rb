@@ -154,7 +154,7 @@ class GameRepository
     accepted_events.to_a.map { |event| event["sequence"].to_i + 1 }.max.to_i
   end
 
-  def append_events(session:, sequence:, events:, recipients: nil, actor: Session.name)
+  def append_events(session:, sequence:, events:, recipients: nil, actor: Session.name, controller: false)
     raise ArgumentError, "The game no longer exists" if session_id(session) <= 0 || session["table_id"].to_i <= 0
 
     players = players_for(session)
@@ -165,6 +165,10 @@ class GameRepository
       owner = insertion_user(session, "player_one")
       raise ArgumentError, "Only the table owner may move a computer" if owner.casecmp(Session.name.to_s) != 0
       raise ArgumentError, "The computer is not a player in this game" if !includes_user?(players, event_actor)
+    elsif controller
+      owner = insertion_user(session, "player_one")
+      raise ArgumentError, "Only the table owner may submit an automatic player action" if owner.casecmp(Session.name.to_s) != 0
+      raise ArgumentError, "The automatic action actor is not a player in this game" if !includes_user?(players, event_actor)
     else
       raise ArgumentError, "A user may only submit their own move" if event_actor.casecmp(Session.name.to_s) != 0
       raise ArgumentError, "You are not a player in this game" if !includes_user?(players, Session.name)
@@ -187,7 +191,8 @@ class GameRepository
         session: current,
         sequence: sequence,
         events: commands,
-        actor: event_actor
+        actor: event_actor,
+        controller: controller == true
       )
     end
 
@@ -230,6 +235,13 @@ class GameRepository
   def actor_of(event, session = nil)
     author = insertion_user(event, "actor")
     claimed = event["actor"].to_s
+    if native_live_sessions? && event["__controller"] == true
+      return "" if session == nil
+      owner = insertion_user(session, "player_one")
+      return "" if !GameRoomParticipants.same?(author, owner)
+      return "" if !includes_user?(players_for(session), claimed)
+      return claimed
+    end
     return author if !GameRoomParticipants.bot?(claimed)
     return "" if session == nil
 
@@ -268,7 +280,9 @@ class GameRepository
     raise ArgumentError, "A game requires at least one player" if participants.empty?
     raise ArgumentError, "A game supports at most #{MAX_PLAYERS} players" if participants.length > MAX_PLAYERS
     raise ArgumentError, "A game participant name is too long" if participants.any? { |participant| participant.length > MAX_PLAYER_LENGTH }
-    raise ArgumentError, "The table owner must be the first player" if participants.first.casecmp(owner) != 0
+    if !native_live_sessions? && participants.first.casecmp(owner) != 0
+      raise ArgumentError, "The table owner must be the first player"
+    end
 
     if native_live_sessions?
       inserted = @transport.start_game(

@@ -33,7 +33,7 @@ class InvitationRepository
     end
   end
 
-  DEFAULT_TTL = 10 * 60
+  DEFAULT_TTL = 5 * 60
   INVITATION_LIMIT = 200
   RESPONSE_LIMIT = 500
   RESPONSES = ["accepted", "rejected", "expired"].freeze
@@ -47,7 +47,7 @@ class InvitationRepository
 
   # Reserve a duplicate key only for an invitation that was actually sent.
   # Notification delivery is separate and must not turn a failed native
-  # invitation into a success message or a ten-minute local lockout.
+  # invitation into a success message or a long local lockout.
   def deliver(table:, sender:, recipient:)
     result = create(table: table, sender: sender, recipient: recipient)
     return result if !result.created?

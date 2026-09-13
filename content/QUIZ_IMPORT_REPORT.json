@@ -1,0 +1,334 @@
+{
+  "revision": "efa6e640a57901e7b01e5ac2158e84f1c3375435",
+  "packs": {
+    "quiz.general.en": {
+      "input": 28577,
+      "kept": 28575,
+      "changed": [
+        "d89f94f49463",
+        "d0e8a581ad8e",
+        "c0263149ec78",
+        "1168e2ea9a42",
+        "4446a0a7ece8",
+        "be7046871c13",
+        "df27d182af0f",
+        "0d5f2707ab9e",
+        "1af6777f23e6",
+        "b5c741672288",
+        "239dc7dc61e4",
+        "e5bd2d1f1182",
+        "e5149a44cc19",
+        "f7ee85cdd474",
+        "689275d00498",
+        "798a57a21a0a",
+        "e416d1dd9f9c",
+        "d58fb45af706",
+        "02f00948c9c2",
+        "5b6d61294aeb"
+      ],
+      "rejected": [
+        {
+          "id": "81c27a2d2f32",
+          "reason": "depends on another question",
+          "prompt": "What time is the character in the previous question supposed to meet with the (implied) Narrator of this song?"
+        },
+        {
+          "id": "5a9ee80d0c22",
+          "reason": "depends on another question",
+          "prompt": "Referring to the previous question, if its 6:00 P.M. in Ossining, NY, what time is it in Honolulu, Hawaii?"
+        }
+      ],
+      "checksum": "35aa0f738cfed6a10b2cdf8d09615e2232dfffa16e69b37cd0c10e77daea09f1",
+      "input_sha256": "9386447f5f13c8084ef3d80f853a248dfdefc82eb23ab21d03a32f5ad778b91d"
+    },
+    "quiz.wikidata.pl": {
+      "input": 15498,
+      "kept": 15498,
+      "changed": [],
+      "rejected": [],
+      "checksum": "5850da276253ee3e70688ff05a1c670f30fe048279fb0143ad58dba196326206",
+      "input_sha256": "8c3359787f9c69c901b5b285d7c0e117537558e4ce4602cdb5bb6261158db063"
+    },
+    "quiz.witcher.pl": {
+      "input": 6623,
+      "kept": 6571,
+      "changed": [
+        "2b899dee7c76",
+        "207958fa9936",
+        "8dda61cbd45b",
+        "2ede512edc93",
+        "124697765430",
+        "e9a051b993d7",
+        "2249d6cc4686",
+        "b331b1152434",
+        "b6addde4d0c2",
+        "d6d7a973090a",
+        "50798ae287af"
+      ],
+      "rejected": [
+        {
+          "id": "b930bc912506",
+          "reason": "missing actor/context",
+          "prompt": "(serial, 2019 — którą postać z uniwersum Wiedźmina zagrała lub dubbingowała ta osoba?"
+        },
+        {
+          "id": "6b903ed50baf",
+          "reason": "duplicate fact template: 244863a6aa6e",
+          "prompt": "Abigail — którym z poniższych przezwisk określano tę postać?"
+        },
+        {
+          "id": "2f0f1862012f",
+          "reason": "duplicate fact template: 1ced1638ba43",
+          "prompt": "Abigail — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "2f468650c6cf",
+          "reason": "duplicate fact template: 6ef8da231204",
+          "prompt": "Alzur — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "799f9634514d",
+          "reason": "duplicate fact template: 9dd7be591c6b",
+          "prompt": "Avallac'h — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "9491d489e3a7",
+          "reason": "duplicate fact template: d7baadcf6f06",
+          "prompt": "Cynthia — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "795a97f4f20a",
+          "reason": "duplicate fact template: 25db6745358a",
+          "prompt": "Felicja Cori — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "c5424b0d676e",
+          "reason": "duplicate fact template: 3fd8ec0e6d54",
+          "prompt": "Filippa Eilhart — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "ef3ac1947062",
+          "reason": "duplicate fact template: f8d61ed4ae20",
+          "prompt": "Joanna Selborne — którym z poniższych przezwisk określano tę postać?"
+        },
+        {
+          "id": "973fd8fe8def",
+          "reason": "duplicate fact template: dab5bc6039a7",
+          "prompt": "Lockhart — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "d77a4a44b3c0",
+          "reason": "duplicate fact template: 8811db0dfb01",
+          "prompt": "Margarita Laux-Antille — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "65834ff0bbfe",
+          "reason": "unresolved import markup",
+          "prompt": "Olgierd Łukasiewicz |serial) — którą postać z uniwersum Wiedźmina zagrała lub dubbingowała ta osoba?"
+        },
+        {
+          "id": "c822b4e4723c",
+          "reason": "duplicate fact template: 315b5dd78114",
+          "prompt": "Sabrina Glevissig — którym z poniższych przezwisk określano tę postać?"
+        },
+        {
+          "id": "425af009d2b1",
+          "reason": "duplicate fact template: b92dba5e70d0",
+          "prompt": "Sabrina Glevissig — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "3329cffaba30",
+          "reason": "duplicate fact template: 99f2f42d23b8",
+          "prompt": "Sheala de Tancarville — którym z poniższych przezwisk określano tę postać?"
+        },
+        {
+          "id": "f9ec0636dca0",
+          "reason": "duplicate fact template: 7cd4a31060cd",
+          "prompt": "Stregobor — którym z poniższych przezwisk określano tę postać?"
+        },
+        {
+          "id": "38cb708b1465",
+          "reason": "duplicate fact template: bb100047b81d",
+          "prompt": "Stregobor — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "3040630e5d81",
+          "reason": "duplicate fact template: 642b6a331ad9",
+          "prompt": "Algernon Guincamp — którym z poniższych przezwisk określano tę postać?"
+        },
+        {
+          "id": "ad8d47e2dedd",
+          "reason": "duplicate fact template: 51bcf3722a28",
+          "prompt": "Algernon Guincamp — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "2bc72f803d02",
+          "reason": "duplicate fact template: 22ff6e125afa",
+          "prompt": "Artamon z Asguth — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "4cc596e68009",
+          "reason": "duplicate fact template: e4dd61cd5a09",
+          "prompt": "Auberon Muircetach — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "f8e060267a39",
+          "reason": "unresolved import markup",
+          "prompt": "Bronisław Wrocławski |serial) — którą postać z uniwersum Wiedźmina zagrała lub dubbingowała ta osoba?"
+        },
+        {
+          "id": "4f00e1676aaa",
+          "reason": "duplicate fact template: 83071b0ba239",
+          "prompt": "Caranthir Ar-Feiniel — którym z poniższych przezwisk określano tę postać?"
+        },
+        {
+          "id": "68193b5adcac",
+          "reason": "duplicate fact template: dab8b6e82d31",
+          "prompt": "Corine Tilly — którym z poniższych przezwisk określano tę postać?"
+        },
+        {
+          "id": "d8dc00acc37e",
+          "reason": "duplicate fact template: c97caf9edf9c",
+          "prompt": "Ida Emean — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "272339fefabb",
+          "reason": "duplicate fact template: 29d50f8a70de",
+          "prompt": "Istredd — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "aac0e093fa92",
+          "reason": "duplicate fact template: 6e5d36e0577f",
+          "prompt": "Leticia Charbonneau — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "bda0cd8a30aa",
+          "reason": "duplicate fact template: 520420f0fa67",
+          "prompt": "Nimue — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "cc81a5dc7663",
+          "reason": "duplicate fact template: 16fc0783ff42",
+          "prompt": "Ortolan — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "8457e01c8f61",
+          "reason": "duplicate fact template: e4ff83924fe7",
+          "prompt": "Radmir z Tor Carnedd — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "c8a713771a3f",
+          "reason": "duplicate fact template: 72a08fcc8e05",
+          "prompt": "Sorel Degerlund — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "85656f027d42",
+          "reason": "duplicate fact template: a71db4c90e41",
+          "prompt": "Tetra Gilcrest/Netflix — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "a479369ea06d",
+          "reason": "duplicate fact template: 9ce2b2aeee68",
+          "prompt": "Vrai Natteravn — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "4f61bc5236ec",
+          "reason": "duplicate fact template: c3c42666adf0",
+          "prompt": "Adrianna — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "3f47fc431394",
+          "reason": "duplicate fact template: d2881d05d200",
+          "prompt": "Aeramas — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "61ab0b22b495",
+          "reason": "duplicate fact template: e41c8108c35a",
+          "prompt": "April — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "ddf70c3b1cc9",
+          "reason": "duplicate fact template: 906a5bb13b1a",
+          "prompt": "Axel Raby — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "0a4b9adeadbc",
+          "reason": "duplicate fact template: 9ed6fb7cc09d",
+          "prompt": "Biruta Icarti — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "c330d2a435c3",
+          "reason": "duplicate fact template: 5918d887291d",
+          "prompt": "Dorreniel — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "20846c46e15d",
+          "reason": "duplicate fact template: 608f538420cf",
+          "prompt": "Eltibald — jaki przydomek nosiła ta postać?"
+        },
+        {
+          "id": "a7726e855194",
+          "reason": "duplicate fact template: 0576eb5dafdf",
+          "prompt": "Harlan Tzara — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "9788020cd976",
+          "reason": "duplicate fact template: ecdc6e5d08b7",
+          "prompt": "Irion — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "2129cbb6d68b",
+          "reason": "duplicate fact template: 0421c9d139eb",
+          "prompt": "Królowa Zimy — którym z poniższych przezwisk określano tę postać?"
+        },
+        {
+          "id": "6effba198021",
+          "reason": "duplicate fact template: e46b564ef7b6",
+          "prompt": "Królowa Zimy — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "6aee07dd9113",
+          "reason": "duplicate fact template: 8f9b0e655cc4",
+          "prompt": "Mardin z Rakverelina — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "d8fa59137995",
+          "reason": "duplicate fact template: 1d77d60567d0",
+          "prompt": "Nina Vivero — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "9440d722be59",
+          "reason": "duplicate fact template: e6bd95004411",
+          "prompt": "Operator Artefaktu — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "35d3188fc1c7",
+          "reason": "duplicate fact template: c961bbd836d9",
+          "prompt": "Radeyah — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "22c1bb4e2410",
+          "reason": "duplicate fact template: 73d39caeaa26",
+          "prompt": "Reidrich — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "f44a35a098ab",
+          "reason": "duplicate fact template: f058c1bc107d",
+          "prompt": "Sigo Bunc — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "d672031fd11a",
+          "reason": "duplicate fact template: ee4941da1a58",
+          "prompt": "Tadrus Hen Lohsa — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        },
+        {
+          "id": "fee0d2442da4",
+          "reason": "duplicate fact template: c3b52e9b860a",
+          "prompt": "Wierzym — w jakiej miejscowości lub lokacji mieszkała ta postać?"
+        }
+      ],
+      "checksum": "f0c574035b805bbb6c285d99a842c347817d2432b0d01d498254c3d9906420b9",
+      "input_sha256": "28d76c227e5712251aacb1e4aa786c49a984d00816ec1d4fd2aa0131d0af16d2"
+    }
+  }
+}

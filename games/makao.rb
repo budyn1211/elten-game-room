@@ -268,7 +268,7 @@ module GameRoomGames
         announcement_shortcut(key: "c", label: _("read the table card"), message: table_text(state)),
         announcement_shortcut(key: "g", label: _("read the current penalty"), message: penalty_text(state, viewer)),
         announcement_shortcut(key: "s", label: _("read card counts"), message: counts_text(state)),
-        announcement_shortcut(key: "d", label: _("read your hand"), message: hand_for(state, viewer).map { |card| makao_card_label(card) }.join(", ")),
+        announcement_shortcut(key: "d", label: _("read your hand"), message: hand_shortcut_text(state, viewer)),
         GameShortcut.new(key: "u", label: _("say Makao"), kind: :action, action_kind: "command", action_name: "makao"),
         GameShortcut.new(key: "u", modifiers: [:shift], label: _("catch missing Makao"), kind: :action, action_kind: "command", action_name: "catch")
       ]
@@ -704,6 +704,13 @@ module GameRoomGames
     def hand_for(state, actor)
       player = player_key(state, actor)
       player == nil ? [] : state[:hands][player]
+    end
+
+    def hand_shortcut_text(state, viewer)
+      cards = hand_for(state, viewer)
+      return _("Your hand is empty.") if cards.empty?
+
+      cards.map { |card| makao_card_label(card) }.join(", ")
     end
 
     def advance_player(state, actor, steps, consume_skips: true)

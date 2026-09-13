@@ -1,5 +1,44 @@
 # Historia zmian
 
+## 1.1.7 — build 217 (kandydat do testów)
+
+- Naprawiono zbędny zapis podczas sprzątania już usuniętych odpowiedzi.
+- Błąd sprzątania lokalnej kopii odpowiedzi nie przerywa punktowania quizu
+  ani przejścia do kolejnego pytania.
+- Gdy Windows blokuje podmianę głównego pliku odpowiedzi, gra może użyć
+  trwałego zapisu awaryjnego. Jeżeli również on zawiedzie, odpowiedź nie
+  zostanie wysłana bez kopii potrzebnej do późniejszego ujawnienia.
+- Poprawka dotyczy wspólnego zapisu Quiz Party i Państw-Miast; nie zmienia
+  zasad, wyników, botów ani protokołu synchronizacji. Szczegóły i ograniczenia:
+  `docs/HIDDEN_SUBMISSIONS_217.md`. Zachowano cały build 216.
+
+## 1.1.7 — build 216 (kandydat do testów)
+
+- Lokalnie dodano Quiz Party wraz z poprawkami spóźnionych odpowiedzi,
+  limitów czasu, awaryjnego kończenia pytania i gospodarza-obserwatora.
+- Dodano polskie komunikaty, poprawiono prezentację wyników i oczyszczono
+  wskazane problemy w pytaniach. Duże bazy wczytują się dopiero przy użyciu.
+- Szczegóły i ograniczenia danych: `docs/QUIZ_PR3_FIXES.md`.
+- Zachowano wszystkie poprawki buildów 214 i 215. Uzupełniono odtwarzanie
+  automatycznych działań gospodarza-obserwatora w imieniu gracza.
+- Wydanie do ręcznych testów; PR pozostaje niescalony na GitHubie. Pochodzenie
+  polskich baz pytań nadal wymaga wyjaśnienia przed szerszą dystrybucją.
+
+## 1.1.6 — build 215 (kandydat do testów)
+
+- Naprawiono wejście do Makao przed rozdaniem i w trybie obserwatora: skrót D
+  zawsze ma bezpieczny komunikat, także przy pustej ręce.
+- Dźwięki należące do jednego zdarzenia mogą ponownie zabrzmieć równocześnie,
+  na przykład zagranie karty razem z jej efektem albo wynikiem rozdania.
+- Dodano globalny tryb obserwatora pod Ctrl+Shift+O. Użytkownik pozostaje przy
+  stole, zachowuje czat i historię, ale nie jest liczony jako gracz w następnym
+  rozdaniu. Ponowne użycie skrótu przywraca udział w następnej grze. Trwająca
+  partia nie zmienia składu.
+- Zaproszenia do stołu wygasają po pięciu minutach we wszystkich obsługiwanych
+  ścieżkach.
+- UNO: C odczytuje wyłącznie kartę na stole, a V wyłącznie aktualny kolor.
+- Zachowano sekwencje i poprawki intercepcji z buildu 214.
+
 ## 1.1.6 — build 213 (kandydat do testów)
 
 - Ujednolicono kursor w kontrolkach ręki: po zagraniu wybierana jest najbliższa

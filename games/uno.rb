@@ -54,7 +54,7 @@ module GameRoomGames
     def rule_sections
       [
         rule_section(:hand, _("Matching cards and winning rounds"),
-          _("Two to eight players begin each round with seven cards. Play one card matching the effective colour or the face of the top discard; a wild lets you choose the next colour. Cards are played one at a time. The first player with an empty hand wins the round, but a final draw penalty or buzzer is resolved before scoring."),
+          _("Two to eight players begin each round with seven cards. Play one card matching the effective colour or the face of the top discard; a wild lets you choose the next colour. Cards are normally played one at a time. The first player with an empty hand wins the round, but a final draw penalty or buzzer is resolved before scoring."),
           _("The round winner gets zero points. Others add the points of cards left in their hands: number cards their value, coloured action cards 20, and wild cards 50. Eliminate a player at this score defaults to 500 (50–5000). Reaching or exceeding it eliminates that player; the remaining players start another round. The last remaining player wins the whole game."),
           _("Declare UNO when one card remains. An opponent can catch an undeclared last card in the response window and make its owner draw two. If the draw pile runs out, discarded cards except its top are shuffled back into the draw pile; held cards stay in their hands.")),
         rule_section(:decks, _("Classic, No Mercy and Flip decks"),
@@ -69,11 +69,12 @@ module GameRoomGames
           _("Challenging Wild Draw Four is off by default and available only in Classic. F challenges the last such play: if its author still had a card of the previous colour, they draw four instead. If the play was justified, the challenger draws six and loses the turn. This is not an automatic check on every wild play.")),
         rule_section(:speed, _("Interceptions, hand changes and the buzzer"),
           _("Interceptions is off by default. When enabled, a matching non-wild card can be played out of turn to take over the turn; it must match both colour and face. Super interceptions, separately off, relaxes this to the same face regardless of colour. An interception becomes visible as its own play, not part of a hidden batch."),
+          _("Straights is off by default. When enabled, a player may start a straight only during their own turn by playing a number card. They may then quickly add consecutive number cards of the same colour, in ascending or descending order. Every card is a separate visible play. The sequence ends as soon as another player plays or intercepts; there is no separate straight timer."),
           _("With interceptions enabled, pressing Enter on a nonmatching card during another player's turn announces Too late and adds 3 penalty points to your total. The card stays in your hand and the turn does not change. This applies against people and computers, including during the bot's delay. There is no accidental-key exception. Wrong cards on your own turn, disabled interceptions and buzzer response windows do not incur this penalty. Elimination at the score limit is checked at the end of the round."),
           _("Zero and seven hand swapping is off by default. Seven exchanges your hand with a selected opponent. Zero passes every active hand along the direction of play. Buzzer cards is also off: it adds eight universal cards to Classic or No Mercy, not Flip. After one is played, all active players press B; the last draws two. Anything can be played after a buzzer."),
           _("Thinking time is 0 by default, meaning unlimited, or 1–300 seconds. Expiry takes the pending penalty, or one card if there is none, and ends the turn. Buzzer responses pause this countdown. Bot move delay is 1–5 seconds, default 1; it cannot exceed a nonzero thinking time. The pause is shortened near expiry so a bot can submit. It does not delay humans or synchronization.")),
         rule_section(:controls, _("Playing, sorting and checking the state"),
-          _("Arrow keys browse your hand; Enter plays a card and opens colour or opponent choices when needed. Space draws. C reads the top card and effective colour. S reads scores, T the turn, U declares or catches UNO, F challenges Wild Draw Four, B responds to a buzzer and G reads the pending penalty."),
+          _("Arrow keys browse your hand; Enter plays a card and opens colour or opponent choices when needed. Space draws. C reads the top card, V the current colour, S the scores, T the turn, U declares or catches UNO, F challenges Wild Draw Four, B responds to a buzzer and G reads the pending penalty."),
           _("Shift+C toggles ascending/descending colour order. Shift+H toggles ascending/descending card-value order. Shift+D restores deal order. Sorting changes your local hand view, not anyone's cards or the turn."))
       ]
     end
@@ -91,6 +92,7 @@ module GameRoomGames
         OptionDefinition.new(key: "allow_optional_draw", label: _("Allow drawing with a playable card"), kind: :boolean, default: true),
         OptionDefinition.new(key: "maximum_optional_draws", label: _("Maximum cards drawn voluntarily in one turn"), kind: :integer, default: 3,
           visible_if: { "allow_optional_draw" => true }),
+        OptionDefinition.new(key: "straights", label: _("Straights"), kind: :boolean, default: false),
         OptionDefinition.new(key: "interceptions", label: _("Interceptions"), kind: :boolean, default: false),
         OptionDefinition.new(key: "super_interceptions", label: _("Super interceptions by value"), kind: :boolean, default: false,
           visible_if: { "interceptions" => true }),
@@ -213,6 +215,11 @@ module GameRoomGames
         return active_players(state).reject { |player| state[:buzzer_pressed][player] }
       end
       actors = active_players(state).select { |player| hand_for(state, player).length == 1 && !(state[:uno_declarations] || {})[player] }
+      straight_actor = state[:straight_actor]
+      if straight_actor != nil && active_players(state).include?(straight_actor) &&
+          hand_for(state, straight_actor).any? { |card| straight_continuation?(state, straight_actor, card) }
+        actors << straight_actor
+      end
       actors << state[:current_player]
       if state[:options]["interceptions"] && state[:phase] == :playing
         active_players(state).each do |player|
@@ -237,10 +244,16 @@ module GameRoomGames
       end
       announcements << { "kind" => "command", "action" => "catch" } if catchable_player(state, actor)
       if !same_user?(actor, state[:current_player])
-        return announcements if !state[:options]["interceptions"]
-        return announcements + hand_for(state, actor).flat_map do |card|
-          interceptable?(state, card) ? card_actions(card, state, true, actor) : []
+        actions = hand_for(state, actor).flat_map do |card|
+          if straight_continuation?(state, actor, card)
+            card_actions(card, state, false, actor, straight: true)
+          elsif state[:options]["interceptions"] && interceptable?(state, card)
+            card_actions(card, state, true, actor)
+          else
+            []
+          end
         end
+        return announcements + actions
       end
       actions = hand_for(state, actor).flat_map do |card|
         playable?(state, card) ? card_actions(card, state, false, actor) : []
@@ -288,7 +301,8 @@ module GameRoomGames
           return [:illegal_card, nil] if !too_late_interception?(state, actor, card)
           choice = ""
         end
-        [:ok, event_plan("play", [card, choice, next_turn_deadline(state, context)].join("|"))]
+        event_deadline = candidate && candidate["straight"] ? state[:turn_deadline].to_i : next_turn_deadline(state, context)
+        [:ok, event_plan("play", [card, choice, event_deadline].join("|"))]
       when "draw", "pass", "uno", "catch", "challenge", "buzz"
         return [:cannot_draw, nil] if action == "draw" && !legal.any? { |item| item["action"] == "draw" }
         return [:invalid, nil] if !legal.any? { |item| item["action"] == action }
@@ -330,8 +344,12 @@ module GameRoomGames
 
     def turn_announcement(replay, viewer)
       return status_text(replay.state, viewer) if replay.state[:buzzer_active]
+      super
+    end
+
+    def current_turn_shortcut_text(replay, viewer)
       announcement = super
-      return announcement if announcement == nil || replay.state[:turn_deadline].to_i <= 0
+      return announcement if announcement == nil || replay.finished? || replay.state[:turn_deadline].to_i <= 0
 
       remaining = [replay.state[:turn_deadline].to_i - Time.now.to_i, 0].max
       _("%{turn} %{seconds} seconds remain.") % { turn: announcement, seconds: remaining }
@@ -341,7 +359,8 @@ module GameRoomGames
       state = replay.state
       shortcuts = [
         GameShortcut.new(key: "space", label: _("draw a card"), kind: :action, action_kind: "command", action_name: "draw"),
-        announcement_shortcut(key: "c", label: _("read the top card"), message: top_text(state)),
+        announcement_shortcut(key: "c", label: _("read the top card"), message: top_card_text(state)),
+        announcement_shortcut(key: "v", label: _("read the current colour"), message: colour_text(state)),
         announcement_shortcut(key: "s", label: _("read the scores"), message: scores_text(state)),
         GameShortcut.new(key: "u", label: _("declare or catch UNO"), kind: :action, action_kind: "command", action_name: hand_for(state, viewer).length == 1 && !(state[:uno_declarations] || {})[player_key(state, viewer)] ? "uno" : (catchable_player(state, viewer) ? "catch" : "uno")),
         GameShortcut.new(key: "f", label: _("challenge Wild Draw Four"), kind: :action, action_kind: "command", action_name: "challenge"),
@@ -450,6 +469,7 @@ module GameRoomGames
         pending_family: nil, pending_colour: nil, side: :light, mercy_cards: [],
         challenge_player: nil, challenge_legal: nil, turn_deadline: 0,
         buzzer_active: false, buzzer_pressed: {}, buzzer_player: nil, free_play: false,
+        straight_actor: nil, straight_last: nil, straight_direction: nil,
         pending_finisher: nil, winner: nil }
     end
 
@@ -479,6 +499,7 @@ module GameRoomGames
         pending_family: nil, pending_colour: nil, side: :light, mercy_cards: [],
         challenge_player: nil, challenge_legal: nil, turn_deadline: deadline,
         buzzer_active: false, buzzer_pressed: {}, buzzer_player: nil, free_play: false,
+        straight_actor: nil, straight_last: nil, straight_direction: nil,
         pending_finisher: nil)
       id = repository.event_id(event)
       history << HistoryEntry.new(key: "deal:#{round}", text: _("UNO round %{round} started. First card: %{card}.") % { round: round, card: uno_label(top, state) }, event_id: id, actor: actor, kind: :deal)
@@ -490,12 +511,14 @@ module GameRoomGames
     def apply_play(state, event, actor, repository, history)
       card, choice, deadline_text = event["value"].to_s.split("|", 3)
       deadline = deadline_text.to_i
+      previous_current_player = state[:current_player]
       current = same_user?(actor, state[:current_player])
-      interception = !current && state[:options]["interceptions"] && interceptable?(state, card)
+      straight = !current && straight_continuation?(state, actor, card)
+      interception = !current && !straight && state[:options]["interceptions"] && interceptable?(state, card)
       return false if state[:phase] != :playing || state[:buzzer_active]
       player = player_key(state, actor)
       return false if player == nil || !active_players(state).include?(player) || !state[:hands][player].include?(card)
-      if !current && !interception
+      if !current && !interception && !straight
         return false if !too_late_interception?(state, player, card)
 
         # Resolve the attempt against the ordered replay, not the old screen:
@@ -514,6 +537,7 @@ module GameRoomGames
         selected_seven_target = seven_target(state, player, choice)
         return false if selected_seven_target == nil
       end
+      clear_straight(state) if current || interception
       played_text = played_label(card, choice, state)
       state[:hands][player].delete_at(state[:hands][player].index(card))
       previous_colour = state[:colour]
@@ -539,7 +563,7 @@ module GameRoomGames
         state[:pending_family] = nil
       end
       if challenge_card?(state, card) && state[:options]["bluff_challenge"]
-        state[:challenge_player] = next_active_player(state, player, 1)
+        state[:challenge_player] = interception ? previous_current_player : next_active_player(state, player, 1)
         state[:challenge_source] = player
         state[:challenge_legal] = !state[:hands][player].any? { |candidate| !wild?(candidate) && card_color(candidate) == previous_colour }
       end
@@ -549,7 +573,8 @@ module GameRoomGames
         state[:discard].insert(state[:discard].length - 1, *discarded)
       end
       id = repository.event_id(event)
-      history << HistoryEntry.new(key: "play:#{id}", text: _("%{player} played %{card}.") % { player: participant_name(player), card: played_text }, event_id: id, actor: actor, kind: :play)
+      play_key = interception ? "interception" : (straight ? "straight" : "play")
+      history << HistoryEntry.new(key: "#{play_key}:#{id}", text: _("%{player} played %{card}.") % { player: participant_name(player), card: played_text }, event_id: id, actor: actor, kind: :play)
       if type == "L"
         flip_all_cards(state)
         side = state[:side] == :dark ? _("dark side") : _("light side")
@@ -571,7 +596,13 @@ module GameRoomGames
         state[:direction] *= -1
         steps = active_players(state).length == 2 ? 0 : 1
       end
-      state[:current_player] = next_active_player(state, player, interception ? 0 : steps)
+      state[:current_player] = if straight
+        previous_current_player
+      elsif interception && state[:pending_draw] > 0
+        previous_current_player
+      else
+        next_active_player(state, player, interception ? 0 : steps)
+      end
       if state[:options]["zero_seven"] && card_number(card) == 7
         target = selected_seven_target
         state[:hands][player], state[:hands][target] = state[:hands][target], state[:hands][player]
@@ -588,12 +619,17 @@ module GameRoomGames
         state[:buzzer_player] = player
         state[:turn_deadline] = 0
       else
-        state[:turn_deadline] = deadline
+        state[:turn_deadline] = deadline if !straight
       end
       if state[:options]["zero_seven"] && [0, 7].include?(card_number(card))
         state[:uno_declarations] = {}
       end
       state[:uno_window] = player if state[:hands][player].length == 1
+      if straight
+        extend_straight(state, player, card)
+      elsif current
+        begin_straight(state, player, card)
+      end
       finisher = active_players(state).find { |owner| state[:hands][owner].empty? }
       if finisher
         if state[:pending_draw] > 0 || state[:pending_colour] != nil || state[:buzzer_active]
@@ -612,6 +648,7 @@ module GameRoomGames
     def apply_draw(state, event, actor, repository, history)
       return false if state[:phase] != :playing || !same_user?(actor, state[:current_player]) || !can_draw?(state, actor)
       player = player_key(state, actor)
+      clear_straight(state)
       next_deadline = event["value"].to_s.to_i
       roulette = state[:pending_type] == "C" && state[:pending_colour] != nil
       state[:uno_window] = nil
@@ -651,6 +688,7 @@ module GameRoomGames
 
     def apply_pass(state, event, actor, repository, history)
       return false if !same_user?(actor, state[:current_player]) || state[:optional_draws].zero? || state[:pending_draw] > 0
+      clear_straight(state)
       id = repository.event_id(event)
       history << HistoryEntry.new(key: "pass:#{id}", text: _("%{player} ended the turn.") % { player: participant_name(actor) }, event_id: id, actor: actor, kind: :pass)
       advance_turn(state, actor, event["value"].to_s.to_i)
@@ -735,6 +773,7 @@ module GameRoomGames
       next_deadline = Integer(next_deadline_text, 10)
       player = state[:players][index]
       return false if player == nil || !same_user?(player, state[:current_player]) || expected_deadline <= 0 || state[:turn_deadline].to_i != expected_deadline
+      clear_straight(state)
 
       roulette = state[:pending_type] == "C" && state[:pending_colour] != nil
       cards = if roulette
@@ -787,6 +826,39 @@ module GameRoomGames
       card_color(card) == card_color(top) && card_face(card) == card_face(top)
     end
 
+    def straight_continuation?(state, actor, card)
+      return false if !state[:options]["straights"] || state[:straight_actor] == nil
+      return false if !same_user?(actor, state[:straight_actor])
+      number = card_number(card)
+      previous = state[:straight_last]
+      return false if number == nil || previous == nil || card_color(card) != card_color(state[:discard].last)
+
+      difference = number - previous.to_i
+      direction = state[:straight_direction]
+      direction == nil ? difference.abs == 1 : difference == direction.to_i
+    end
+
+    def begin_straight(state, player, card)
+      clear_straight(state)
+      return if !state[:options]["straights"] || card_number(card) == nil || state[:phase] != :playing
+
+      state[:straight_actor] = player
+      state[:straight_last] = card_number(card)
+    end
+
+    def extend_straight(state, player, card)
+      previous = state[:straight_last].to_i
+      state[:straight_actor] = player
+      state[:straight_last] = card_number(card)
+      state[:straight_direction] ||= state[:straight_last].to_i - previous
+    end
+
+    def clear_straight(state)
+      state[:straight_actor] = nil
+      state[:straight_last] = nil
+      state[:straight_direction] = nil
+    end
+
     def too_late_interception?(state, actor, card)
       state[:phase] == :playing && !state[:buzzer_active] &&
         state[:options]["interceptions"] && state[:current_player] != nil &&
@@ -803,7 +875,7 @@ module GameRoomGames
       state[:optional_draws].to_i < state[:options]["maximum_optional_draws"].to_i
     end
 
-    def card_actions(card, state, interception, actor)
+    def card_actions(card, state, interception, actor, straight: false)
       choices = if wild?(card) && !buzzer?(card)
         available_colors(state)
       elsif state[:options]["zero_seven"] && card_number(card) == 7
@@ -813,7 +885,7 @@ module GameRoomGames
       end
       choices.map do |choice|
         { "kind" => "card", "action" => "play", "card" => card, "card_id" => card,
-          "choice" => choice, "interception" => interception }
+          "choice" => choice, "interception" => interception, "straight" => straight }
       end
     end
 
@@ -1100,6 +1172,7 @@ module GameRoomGames
     end
 
     def finish_round(state, winner, event_id, history)
+      clear_straight(state)
       history << HistoryEntry.new(key: "round:#{event_id}", text: _("%{player} won the round.") % {
         player: participant_name(winner)
       }, event_id: event_id, actor: winner, kind: :round_result)
@@ -1154,6 +1227,7 @@ module GameRoomGames
     end
 
     def advance_turn(state, actor, deadline = 0)
+      clear_straight(state)
       state[:current_player] = next_active_player(state, actor, 1)
       state[:optional_draws] = 0
       state[:free_play] = false
@@ -1220,9 +1294,26 @@ module GameRoomGames
     def top_text(state)
       top = state[:discard].last
       return _("There is no card on the discard pile.") if top == nil
+
       return _("%{card}; any card may be played.") % { card: uno_label(top, state) } if state[:free_play]
 
       _("%{card}; current colour: %{colour}.") % { card: uno_label(top, state), colour: COLOR_NAMES.fetch(state[:colour], state[:colour]) }
+    end
+
+    def top_card_text(state)
+      top = state[:discard].last
+      return _("There is no card on the discard pile.") if top == nil
+
+      uno_label(top, state)
+    end
+
+    def colour_text(state)
+      return _("Any colour may be played.") if state[:free_play]
+
+      colour = state[:colour].to_s
+      return _("There is no current colour.") if colour.empty?
+
+      _("Current colour: %{colour}.") % { colour: COLOR_NAMES.fetch(colour, colour) }
     end
 
     def scores_text(state)

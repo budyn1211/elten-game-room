@@ -14,6 +14,8 @@ module GameRoomParticipantMenu
       Entry.new(action: :invite_online, label: _("Invite an online Elten user"), menu_key: "i", help_key: "Ctrl+I"),
       Entry.new(action: :invite_contacts, label: _("Invite someone from your contacts"), menu_key: "I", help_key: "Ctrl+Shift+I"),
       Entry.new(action: :add_bot, label: _("Add a computer"), menu_key: "o", help_key: "Ctrl+O"),
+      Entry.new(action: :observe_next_game, label: _("Observe the next game"), menu_key: "O", help_key: "Ctrl+Shift+O"),
+      Entry.new(action: :play_next_game, label: _("Play in the next game"), menu_key: "O", help_key: "Ctrl+Shift+O"),
       Entry.new(action: :rules, label: _("Game rules"), menu_key: :ctrl_f1, help_key: "Ctrl+F1"),
       Entry.new(action: :leave, label: _("Leave"), menu_key: "")
     ]
@@ -27,6 +29,13 @@ module GameRoomParticipantMenu
     actions << :add_bot if game&.supports_bots? && room.participants.length < maximum
     actions << :remove_bot if !room.bots.to_a.empty?
     actions
+  end
+
+  def role_actions(room:, viewer:)
+    return [] if room == nil || GameRoomParticipants.bot?(viewer)
+    return [] if !GameRoomParticipants.includes?(room.members, viewer)
+
+    room.observer?(viewer) ? [:play_next_game] : [:observe_next_game]
   end
 
   def bind(layout, available:, &dispatch)

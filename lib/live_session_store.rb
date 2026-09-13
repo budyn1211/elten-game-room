@@ -16,7 +16,7 @@ class GameRoomLiveSessionStore
   STACK_PAGE_SIZE = 128
   EVENT_ID_MULTIPLIER = 100
   DISCOVERY_LIMIT = 100
-  INVITATION_TTL = 10 * 60
+  INVITATION_TTL = 5 * 60
 
   Record = Struct.new(
     :table_id,
@@ -136,11 +136,11 @@ class GameRoomLiveSessionStore
     end.max_by { |row| [row["created_at"].to_i, row["__id"].to_i] }
   end
 
-  def room_snapshot(table_or_id)
+  def room_snapshot(table_or_id, force: false)
     table_id = table_identifier(table_or_id)
     return nil if table_id == nil
 
-    ensure_current(table_id)
+    ensure_current(table_id, force: force)
     session = active_session(table_id)
     return nil if session == nil
 
@@ -153,8 +153,27 @@ class GameRoomLiveSessionStore
     {
       table: table,
       members: unique_users(members),
-      bots: GameRoomParticipants.bots_for(table_id, table["bot_count"].to_i)
+      bots: GameRoomParticipants.bots_for(table_id, table["bot_count"].to_i),
+      observers: observer_users(table_id, members: members)
     }
+  end
+
+  def set_observer(table_or_id, observing, actor:)
+    table_id = table_identifier(table_or_id)
+    raise ArgumentError, "Invalid room" if table_id == nil
+    raise ArgumentError, "Only your own table role may be changed" if !same_user?(endpoint.user, actor)
+
+    ensure_current(table_id, force: true)
+    members = connected_users(table_id)
+    raise ArgumentError, "The user is not at this table" if !members.any? { |member| same_user?(member, actor) }
+
+    append_record(
+      table_id,
+      "room_role",
+      { "role" => observing ? "observer" : "player" },
+      actor: actor
+    )
+    observer_users(table_id, members: members)
   end
 
   def join_room(table, user)
@@ -237,14 +256,31 @@ class GameRoomLiveSessionStore
     table_id = table_identifier(table)
     raise ArgumentError, "Invalid room" if table_id == nil
 
+    ensure_current(table_id, force: true)
+    state = table_for(table_id)
+    members = connected_users(table_id)
+    observers = observer_users(table_id, members: members)
+    requested_players = unique_users(players.to_a)
+    bots = GameRoomParticipants.bots_for(table_id, state["bot_count"].to_i)
+    invalid_player = requested_players.any? do |player|
+      if GameRoomParticipants.bot?(player)
+        !bots.any? { |bot| same_user?(bot, player) }
+      else
+        observers.any? { |observer| same_user?(observer, player) } ||
+          !members.any? { |member| same_user?(member, player) }
+      end
+    end
+    if invalid_player
+      raise ArgumentError, "The table roles changed before the game started"
+    end
+
     game_session_id = unused_game_identifier(table_id)
     # Keep one complete room-state record before the new game. The immutable
     # room identity remains in native session metadata. No current-game replay
     # is truncated, and chat already received by this client stays local.
-    state = table_for(table_id)
-    checkpoint = append_record(table_id, "room_state", state.slice(
-      "status", "bot_count", "game_options", "updated_at"
-    ), actor: actor)
+    checkpoint_state = state.slice("status", "bot_count", "game_options", "updated_at")
+    checkpoint_state["observers"] = observer_users(table_id)
+    checkpoint = append_record(table_id, "room_state", checkpoint_state, actor: actor)
     payload = {
       "session_id" => game_session_id,
       "game" => game.to_s,
@@ -275,7 +311,7 @@ class GameRoomLiveSessionStore
     game_sessions(table).find { |row| row["__id"].to_i == wanted }
   end
 
-  def append_game_action(session:, sequence:, events:, actor:)
+  def append_game_action(session:, sequence:, events:, actor:, controller: false)
     table_id = positive_identifier(session["table_id"])
     session_id = positive_identifier(session["__id"] || session["id"])
     raise ArgumentError, "Invalid game" if table_id == nil || session_id == nil
@@ -290,6 +326,7 @@ class GameRoomLiveSessionStore
     record = append_record(table_id, "game_action", {
       "session_id" => session_id,
       "sequence" => sequence.to_i,
+      "controller" => controller == true,
       "events" => commands
     }, actor: actor)
     expand_game_action(record)
@@ -334,7 +371,7 @@ class GameRoomLiveSessionStore
           "recipient" => recipient,
           "status" => "pending",
           "created_at" => stored[:created_at],
-          "expires_at" => invitation.respond_to?(:expires_at) ? invitation.expires_at.to_i : stored[:created_at] + INVITATION_TTL,
+          "expires_at" => invitation_expiration(stored),
           "__native_invitation" => invitation
         }
       end
@@ -478,6 +515,7 @@ class GameRoomLiveSessionStore
   end
 
   def take_invitation(table_id, invitation_id)
+    prune_invitations
     id = positive_identifier(invitation_id)
     room_id = table_identifier(table_id)
     return nil if id == nil || room_id == nil
@@ -503,14 +541,29 @@ class GameRoomLiveSessionStore
 
   def prune_invitations
     now = Time.now.to_i
+    expired = []
     @mutex.synchronize do
       @pending_invitations.delete_if do |_id, stored|
         invitation = stored[:invitation]
-        (invitation.respond_to?(:pending?) && !invitation.pending?) ||
-          (invitation.respond_to?(:expires_at) && invitation.expires_at.to_i.positive? && invitation.expires_at.to_i <= now)
+        no_longer_pending = invitation.respond_to?(:pending?) && !invitation.pending?
+        timed_out = invitation_expiration(stored) <= now
+        expired << invitation if timed_out && !no_longer_pending
+        no_longer_pending || timed_out
       end
       @resolved_invitations.delete_if { |_id, expires_at| expires_at <= now }
     end
+    expired.each do |invitation|
+      invitation.reject if !invitation.respond_to?(:pending?) || invitation.pending?
+    rescue StandardError => error
+      log_warning("expired invitation cleanup", nil, error)
+    end
+  end
+
+  def invitation_expiration(stored)
+    local_expiration = stored[:created_at].to_i + INVITATION_TTL
+    invitation = stored[:invitation]
+    native_expiration = invitation.respond_to?(:expires_at) ? invitation.expires_at.to_i : 0
+    native_expiration.positive? ? [local_expiration, native_expiration].min : local_expiration
   end
 
   def discover_pages
@@ -729,6 +782,25 @@ class GameRoomLiveSessionStore
     @mutex.synchronize { @records[table_id].dup }
   end
 
+  def observer_users(table_id, members: nil)
+    roles = {}
+    records_for(table_id).each do |record|
+      case record.packet["kind"].to_s
+      when "room_state"
+        data = record.packet["data"].to_h
+        next if !data.key?("observers")
+
+        roles = unique_users(data["observers"].to_a).each_with_object({}) do |user, result|
+          result[user.downcase] = "observer"
+        end
+      when "room_role"
+        roles[record.packet["actor"].to_s.downcase] = record.packet.dig("data", "role").to_s
+      end
+    end
+    current_members = unique_users(members || connected_users(table_id))
+    current_members.select { |member| roles[member.downcase] == "observer" }
+  end
+
   def table_for(table_id, fallback: nil)
     session = active_session(table_id)
     metadata = session&.metadata.to_h
@@ -856,6 +928,7 @@ class GameRoomLiveSessionStore
         "sequence" => data["sequence"].to_i + offset,
         "move_id" => command["move_id"].to_s,
         "actor" => actor,
+        "__controller" => data["controller"] == true,
         "action" => command["action"].to_s,
         "value" => command["value"].to_s,
         "created_at" => record.created_at.to_i
@@ -889,7 +962,9 @@ class GameRoomLiveSessionStore
     when "room_state"
       return false if !same_user?(sender, owner) || !same_user?(actor, owner)
 
-      (data.keys - %w[status bot_count game_options updated_at]).empty? && room_fields_valid?(data)
+      (data.keys - %w[status bot_count game_options updated_at observers]).empty? && room_fields_valid?(data)
+    when "room_role"
+      same_user?(sender, actor) && data.keys == ["role"] && %w[player observer].include?(data["role"])
     when "room_activity"
       same_user?(sender, actor) &&
         %w[created joined left bot_added bot_removed chat].include?(data["activity_kind"]) &&
@@ -899,7 +974,7 @@ class GameRoomLiveSessionStore
 
       players = data["players"]
       players.is_a?(Array) && players.all? { |player| nonempty_text?(player) } &&
-        players.length.between?(1, MAX_CAPACITY) && same_user?(players.first, owner) &&
+        players.length.between?(1, MAX_CAPACITY) &&
         unique_users(players).length == players.length && positive_integer?(data["session_id"]) &&
         nonempty_text?(data["game"]) && json_object_text?(data["options"]) &&
         positive_integer?(data["created_at"])
@@ -911,7 +986,13 @@ class GameRoomLiveSessionStore
   end
 
   def valid_game_action_record?(table_id, sender, actor, data, owner)
-    return false if GameRoomParticipants.bot?(actor) ? !same_user?(sender, owner) : !same_user?(sender, actor)
+    controlled = data["controller"] == true
+    return false if data.key?("controller") && data["controller"] != true && data["controller"] != false
+    if GameRoomParticipants.bot?(actor) || controlled
+      return false if !same_user?(sender, owner)
+    else
+      return false if !same_user?(sender, actor)
+    end
 
     session_id = data["session_id"]
     commands = data["events"]
@@ -929,7 +1010,7 @@ class GameRoomLiveSessionStore
     return false if game == nil
 
     players = game.packet.dig("data", "players").to_a.map(&:to_s)
-    if GameRoomParticipants.bot?(actor)
+    if GameRoomParticipants.bot?(actor) || controlled
       same_user?(sender, owner) && players.any? { |player| same_user?(player, actor) }
     else
       same_user?(sender, actor) && players.any? { |player| same_user?(player, actor) }
@@ -958,6 +1039,12 @@ class GameRoomLiveSessionStore
     return false if data.key?("status") && !%w[waiting playing closed].include?(data["status"])
     return false if data.key?("bot_count") && !integer_between?(data["bot_count"], 0, MAX_CAPACITY)
     return false if data.key?("game_options") && !json_object_text?(data["game_options"])
+    if data.key?("observers")
+      observers = data["observers"]
+      return false if !observers.is_a?(Array) || observers.length > MAX_CAPACITY
+      return false if observers.any? { |observer| !nonempty_text?(observer) }
+      return false if unique_users(observers).length != observers.length
+    end
 
     %w[created_at updated_at].all? { |key| !data.key?(key) || positive_integer?(data[key]) }
   end

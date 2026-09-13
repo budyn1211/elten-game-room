@@ -15,9 +15,18 @@ class LobbyRepository
     end
   end
 
-  TableSnapshot = Struct.new(:table, :members, :bots, keyword_init: true) do
+  TableSnapshot = Struct.new(:table, :members, :bots, :observers, keyword_init: true) do
     def participants
       GameRoomParticipants.unique(members.to_a + bots.to_a)
+    end
+
+    def observer?(user)
+      GameRoomParticipants.includes?(observers.to_a, user)
+    end
+
+    def game_participants
+      humans = members.to_a.reject { |member| observer?(member) }
+      GameRoomParticipants.unique(humans + bots.to_a)
     end
 
     def participant_count
@@ -79,9 +88,9 @@ class LobbyRepository
     end
   end
 
-  def snapshot_for(row)
+  def snapshot_for(row, force: false)
     if native_live_sessions?
-      snapshot = @transport.room_snapshot(row)
+      snapshot = force ? @transport.room_snapshot(row, force: true) : @transport.room_snapshot(row)
       return snapshot == nil ? nil : native_snapshot(snapshot)
     end
 
@@ -348,6 +357,19 @@ class LobbyRepository
     update_bot_count(row, -1, snapshot: snapshot)
   end
 
+  def set_observer(row, user, observing)
+    raise "Observer mode requires native LiveSessions" if !native_live_sessions?
+
+    snapshot = snapshot_for(row, force: true)
+    return nil if snapshot == nil
+    raise ArgumentError, "Only your own table role may be changed" if !GameRoomParticipants.same?(user, Session.name)
+    raise ArgumentError, "A computer cannot observe a game" if GameRoomParticipants.bot?(user)
+    raise ArgumentError, "The user is not at this table" if !GameRoomParticipants.includes?(snapshot.members, user)
+
+    @transport.set_observer(snapshot.table, observing, actor: user)
+    snapshot_for(snapshot.table, force: true)
+  end
+
   def available?(row)
     AVAILABLE_STATUSES.include?(row["status"].to_s)
   end
@@ -407,7 +429,8 @@ class LobbyRepository
     TableSnapshot.new(
       table: value.fetch(:table),
       members: value.fetch(:members).to_a,
-      bots: value.fetch(:bots).to_a
+      bots: value.fetch(:bots).to_a,
+      observers: value.fetch(:observers, []).to_a
     )
   end
 

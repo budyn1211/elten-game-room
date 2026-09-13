@@ -1,0 +1,19 @@
+OpenTriviaQA attribution and modification notice
+
+Source: https://github.com/uberspot/OpenTriviaQA
+Source commit: dcc1cdf36c2985ed5c849d1f2265c5041ffcdfb9
+Source JSON SHA-256: 7bf09d415ccb3f273756e9786ca114b6cae543d1865bce308839b67c3c9d10e5
+Original authors: uberspot and OpenTriviaQA contributors
+License: Creative Commons Attribution-ShareAlike 4.0 International
+License URL: https://creativecommons.org/licenses/by-sa/4.0/
+
+Changes made for ELTEN Game Room:
+- converted the source data to the Quiz Party content-pack format;
+- repaired mixed UTF-8 and Windows-1252 source encoding;
+- normalized whitespace;
+- retained only topical categories and questions with exactly four unique choices;
+- removed prompts longer than 20 words and duplicate prompts;
+- marked difficulty as medium because the source supplies no difficulty metadata.
+
+The modified English question data are distributed under CC BY-SA 4.0.
+The game code and independently created question packs are separate works with their own licenses.

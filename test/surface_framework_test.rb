@@ -732,6 +732,85 @@ multiple.on_action { |value| multiple_action = value }
 multiple.fields[1].trigger(:press)
 assert(multiple_action["answer"] == ["blue"], "multiple-choice answer was not preserved")
 
+single = GameSurfaces.build(
+  GameSurfaces::QuestionSpec.new(
+    id: "capital_choice",
+    prompt: "Capital of Poland",
+    mode: :single_choice,
+    options: [
+      GameSurfaces::QuestionOption.new(id: "krakow", label: "Krakow"),
+      GameSurfaces::QuestionOption.new(id: "warsaw", label: "Warsaw")
+    ],
+    required: true,
+    submit_on_select: true
+  )
+)
+assert(single.fields.length == 1, "an immediate single choice must not add a submit button")
+single_action = nil
+single.on_action { |value| single_action = value }
+single.fields[0].index = 1
+single.fields[0].trigger(:select)
+assert(single_action.kind == "question" && single_action.name == "submit", "an immediate single choice emitted an invalid action")
+assert(single_action["answer"] == "warsaw", "an immediate single choice lost its selected option")
+
+pending = single.submission_action
+assert(pending != nil, "a timed question surface exposed no pending submission")
+assert(pending.kind == "question" && pending.name == "submit", "a pending question submission used an invalid action")
+assert(pending["answer"] == "warsaw", "a pending question submission lost the selected answer")
+assert(pending["question_id"] == "capital_choice", "a pending question submission lost its question id")
+
+readable_spec = GameSurfaces::QuestionSpec.new(
+  id: "readable_capital",
+  prompt: "Capital of Poland",
+  mode: :single_choice,
+  options: [
+    GameSurfaces::QuestionOption.new(id: "krakow", label: "Krakow"),
+    GameSurfaces::QuestionOption.new(id: "warsaw", label: "Warsaw"),
+    GameSurfaces::QuestionOption.new(id: "paris", label: "Paris"),
+    GameSurfaces::QuestionOption.new(id: "rome", label: "Rome")
+  ],
+  required: true,
+  submit_on_select: true,
+  prompt_in_choices: true
+)
+readable = GameSurfaces.build(readable_spec)
+assert(readable.fields[0].options == ["Capital of Poland", "Krakow", "Warsaw", "Paris", "Rome"], "the question is not the first line above its answers")
+assert(readable.fields[0].header == "", "the question is still only a list header")
+assert(readable.fields[0].index == 0, "the question is not focused when the answer list opens")
+readable_action = nil
+readable.on_action { |value| readable_action = value }
+readable.fields[0].trigger(:select)
+assert(readable_action == nil, "the question line was submitted as an answer")
+readable.fields[0].index = 1
+readable.fields[0].trigger(:select)
+assert(readable_action != nil && readable_action["answer"] == "krakow", "the first answer below the question mapped to the wrong option")
+readable.fields[0].index = 4
+readable.fields[0].trigger(:select)
+assert(readable_action["answer"] == "rome", "the last answer below the question mapped to the wrong option")
+restored_readable = GameSurfaces.build(readable_spec, state: readable.state)
+assert(restored_readable.fields[0].index == 4, "refreshing the answer list lost its position")
+
+information = GameSurfaces.build(
+  GameSurfaces::QuestionSpec.new(
+    id: "summary",
+    prompt: "Round summary",
+    mode: :information,
+    value: "Alice leads."
+  )
+)
+assert(information.submission_action == nil, "an information surface must not submit an answer")
+
+read_only_question = GameSurfaces.build(
+  GameSurfaces::QuestionSpec.new(
+    id: "closed",
+    prompt: "Capital of Poland",
+    mode: :single_choice,
+    options: [GameSurfaces::QuestionOption.new(id: "warsaw", label: "Warsaw")],
+    read_only: true
+  )
+)
+assert(read_only_question.submission_action == nil, "a read-only question must not submit an answer")
+
 sheet = GameSurfaces.build(
   GameSurfaces::AnswerSheetSpec.new(
     id: "cities",

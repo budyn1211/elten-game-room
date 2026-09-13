@@ -250,8 +250,8 @@ module GameRoomGames
       GameRoomContent.registry
     end
 
-    def effective_option_definitions
-      definitions = content_option_definitions + option_definitions.to_a
+    def effective_option_definitions(selected = {})
+      definitions = content_option_definitions(selected) + option_definitions.to_a
       keys = definitions.map { |definition| definition.key.to_s }
       raise ArgumentError, "game option keys must be unique" if keys.uniq.length != keys.length
 
@@ -601,6 +601,13 @@ module GameRoomGames
           player: participant_name(replay.current_player)
         }
       end
+      if turn_phase_kind(replay) == :choice
+        return _("Choose a category.") if same_user?(replay.current_player, viewer)
+
+        return _("%{player} is choosing a category.") % {
+          player: participant_name(replay.current_player)
+        }
+      end
       return _("It is your turn.") if same_user?(replay.current_player, viewer)
 
       _("It is %{player}'s turn.") % {
@@ -627,6 +634,8 @@ module GameRoomGames
         _("%{player} is bidding.") % { player: participant_name(player) }
       when :review
         _("%{player} is reviewing the answers.") % { player: participant_name(player) }
+      when :choice
+        _("%{player} is choosing a category.") % { player: participant_name(player) }
       else
         _("It is %{player}'s turn.") % { player: participant_name(player) }
       end
@@ -649,6 +658,8 @@ module GameRoomGames
         _("The game has already ended.")
       when :not_your_turn
         _("It is not your turn.")
+      when :local_storage_unavailable
+        _("Your answer could not be saved on this device and was not sent. Please try again.")
       else
         _("This move is not available.")
       end
@@ -716,10 +727,13 @@ module GameRoomGames
       content_registry.packs_for(game_id: id, kind: content_pack_kind)
     end
 
-    def available_content_sets
+    def available_content_sets(language_id = nil)
       return [] if content_pack_kind.to_s.empty?
 
-      content_registry.pack_sets_for(game_id: id, kind: content_pack_kind)
+      sets = content_registry.pack_sets_for(game_id: id, kind: content_pack_kind)
+      return sets if language_id.to_s.empty?
+
+      sets.select { |pack_set| pack_set.language_ids.include?(language_id.to_s) }
     end
 
     def available_content_languages
@@ -728,31 +742,31 @@ module GameRoomGames
         .sort_by { |language| [language.label.downcase, language.id] }
     end
 
-    def default_content_set_id
-      available_content_sets.first&.id
-    end
+    def default_content_language_id(set_id = nil)
+      if set_id.to_s.empty?
+        return available_content_languages.first&.id
+      end
 
-    def default_content_language_id(set_id = default_content_set_id)
       pack_set = available_content_sets.find { |candidate| candidate.id == set_id.to_s }
       pack_set&.language_ids&.first
     end
 
-    def content_option_definitions
+    def default_content_set_id(language_id = default_content_language_id)
+      sets = available_content_sets(language_id)
+      sets = available_content_sets if sets.empty?
+      sets.first&.id
+    end
+
+    def content_option_definitions(selected = {})
       return [] if content_pack_kind.to_s.empty?
 
-      pack_sets = available_content_sets
       languages = available_content_languages
-      raise ArgumentError, "#{id} requires a #{content_pack_kind} content pack" if pack_sets.empty?
+      raise ArgumentError, "#{id} requires a #{content_pack_kind} content pack" if available_content_sets.empty?
+      language_id = option_source_value(selected, GameRoomContent::LANGUAGE_OPTION_KEY)
+      language_id = default_content_language_id if language_id.to_s.empty?
+      pack_sets = available_content_sets(language_id)
+      pack_sets = available_content_sets if pack_sets.empty?
       [
-        OptionDefinition.new(
-          key: GameRoomContent::SET_OPTION_KEY,
-          label: _("Game content set"),
-          kind: :choice,
-          default: default_content_set_id,
-          choices: pack_sets.map do |pack_set|
-            OptionChoice.new(value: pack_set.id, label: pack_set.title)
-          end
-        ),
         OptionDefinition.new(
           key: GameRoomContent::LANGUAGE_OPTION_KEY,
           label: _("Game content language"),
@@ -761,17 +775,36 @@ module GameRoomGames
           choices: languages.map do |language|
             OptionChoice.new(value: language.id, label: language.label)
           end
+        ),
+        OptionDefinition.new(
+          key: GameRoomContent::SET_OPTION_KEY,
+          label: _("Game content set"),
+          kind: :choice,
+          default: default_content_set_id(language_id),
+          choices: pack_sets.map do |pack_set|
+            OptionChoice.new(value: pack_set.id, label: content_set_choice_label(pack_set, language_id))
+          end
         )
       ]
+    end
+
+    def content_set_choice_label(pack_set, _language_id = nil)
+      pack_set.title
     end
 
     def normalize_content_options(source, result)
       return if content_pack_kind.to_s.empty?
 
-      requested_set = option_source_value(source, GameRoomContent::SET_OPTION_KEY)
-      requested_set = default_content_set_id if requested_set.to_s.empty?
       requested_language = option_source_value(source, GameRoomContent::LANGUAGE_OPTION_KEY)
-      requested_language = default_content_language_id(requested_set) if requested_language.to_s.empty?
+      requested_language = default_content_language_id if requested_language.to_s.empty?
+      requested_set = option_source_value(source, GameRoomContent::SET_OPTION_KEY)
+      requested_set = default_content_set_id(requested_language) if requested_set.to_s.empty?
+      known_set = available_content_sets.any? { |candidate| candidate.id == requested_set.to_s }
+      known_language = available_content_languages.any? { |candidate| candidate.id == requested_language.to_s }
+      if known_set && known_language &&
+          !available_content_sets(requested_language).any? { |candidate| candidate.id == requested_set.to_s }
+        requested_set = default_content_set_id(requested_language)
+      end
       result[GameRoomContent::SET_OPTION_KEY] = requested_set.to_s
       result[GameRoomContent::LANGUAGE_OPTION_KEY] = requested_language.to_s
       pack = content_registry.pack_for(
@@ -834,8 +867,9 @@ module GameRoomGames
       return "" if pack == nil
 
       language = content_registry.language(pack.language_id)
+      pack_set = content_registry.pack_set(pack.set_id)
       _("content: %{title}; language: %{language}") % {
-        title: content_registry.pack_set(pack.set_id)&.title || pack.title,
+        title: pack_set == nil ? pack.title : content_set_choice_label(pack_set, pack.language_id),
         language: language == nil ? pack.language_id : language.label
       }
     end
@@ -912,6 +946,7 @@ module GameRoomGames
       phase = replay&.state.is_a?(Hash) ? replay.state[:phase].to_s.to_sym : nil
       return :bidding if [:bidding, :auction].include?(phase)
       return :review if [:review, :judging].include?(phase)
+      return :choice if [:choosing].include?(phase)
 
       :turn
     end

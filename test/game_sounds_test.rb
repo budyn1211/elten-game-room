@@ -44,29 +44,29 @@ end
 
 playing = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: {}, history: [])
 assert(cue("spades", { "id" => 1, "action" => "deal" }, playing, playing, repository, viewer) == "shuffle", "Spades did not shuffle on a deal")
-assert(cue("spades", { "id" => 2, "action" => "play", "value" => "AS" }, playing, playing, repository, viewer) == "draw2", "Spades trump did not use draw2")
+assert(cue("spades", { "id" => 2, "action" => "play", "value" => "AS" }, playing, playing, repository, viewer) == ["play", "draw2"], "Spades trump did not layer draw2 over the card sound")
 assert(cue("spades", { "id" => 3, "action" => "play", "value" => "AH" }, playing, playing, repository, viewer) == "play", "ordinary Spades card did not use play")
 
 before_32 = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: { total: 32, eliminated: { viewer => false, "Bob" => false } }, history: [])
 after_34 = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: { total: 34, eliminated: { viewer => false, "Bob" => false } }, history: [])
-assert(cue("ninety_nine", { "id" => 4, "action" => "play", "value" => "05C|normal" }, before_32, after_34, repository, viewer) == "draw2", "crossing 33 did not use draw2")
+assert(cue("ninety_nine", { "id" => 4, "action" => "play", "value" => "05C|normal" }, before_32, after_34, repository, viewer) == ["play", "draw2"], "crossing 33 did not layer draw2 over the card sound")
 
 before_98 = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: { total: 98, eliminated: { viewer => false, "Bob" => false } }, history: [])
 after_99 = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: { total: 99, eliminated: { viewer => false, "Bob" => false } }, history: [])
-assert(cue("ninety_nine", { "id" => 5, "actor" => viewer, "action" => "play", "value" => "0AC|one" }, before_98, after_99, repository, viewer) == "win1", "the viewer reaching exactly 99 did not use win1")
-assert(cue("ninety_nine", { "id" => 6, "actor" => "Bob", "action" => "play", "value" => "0AC|one" }, before_98, after_99, repository, viewer) == "lose1", "an opponent reaching exactly 99 did not use lose1")
+assert(cue("ninety_nine", { "id" => 5, "actor" => viewer, "action" => "play", "value" => "0AC|one" }, before_98, after_99, repository, viewer) == ["play", "win1"], "the viewer reaching exactly 99 lost one of its sounds")
+assert(cue("ninety_nine", { "id" => 6, "actor" => "Bob", "action" => "play", "value" => "0AC|one" }, before_98, after_99, repository, viewer) == ["play", "lose1"], "an opponent reaching exactly 99 lost one of its sounds")
 
 after_100 = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: { total: 100, eliminated: { viewer => false, "Bob" => false } }, history: [])
-assert(cue("ninety_nine", { "id" => 7, "actor" => viewer, "action" => "play", "value" => "02C|normal" }, before_98, after_100, repository, viewer) == "lose1", "the viewer exceeding 99 did not use lose1")
-assert(cue("ninety_nine", { "id" => 8, "actor" => "Bob", "action" => "play", "value" => "02C|normal" }, before_98, after_100, repository, viewer) == "win1", "an opponent exceeding 99 did not use win1")
+assert(cue("ninety_nine", { "id" => 7, "actor" => viewer, "action" => "play", "value" => "02C|normal" }, before_98, after_100, repository, viewer) == ["play", "lose1"], "the viewer exceeding 99 lost one of its sounds")
+assert(cue("ninety_nine", { "id" => 8, "actor" => "Bob", "action" => "play", "value" => "02C|normal" }, before_98, after_100, repository, viewer) == ["play", "win1"], "an opponent exceeding 99 lost one of its sounds")
 
 three_active = Replay.new(players: [viewer, "Bob", "Carol"], winner: nil, draw: false, state: { total: 10, eliminated: { viewer => false, "Bob" => false, "Carol" => false } }, history: [])
-assert(cue("ninety_nine", { "id" => 9, "action" => "play", "value" => "04C|normal" }, three_active, three_active, repository, viewer) == "reverse3", "a Ninety-Nine direction change did not use reverse3")
-assert(cue("ninety_nine", { "id" => 10, "action" => "play", "value" => "0JC|normal" }, playing, playing, repository, viewer) == "reverse", "a Ninety-Nine skip did not use reverse")
+assert(cue("ninety_nine", { "id" => 9, "action" => "play", "value" => "04C|normal" }, three_active, three_active, repository, viewer) == ["play", "reverse3"], "a Ninety-Nine direction change lost one of its sounds")
+assert(cue("ninety_nine", { "id" => 10, "action" => "play", "value" => "0JC|normal" }, playing, playing, repository, viewer) == ["play", "reverse"], "a Ninety-Nine skip lost one of its sounds")
 assert(cue("ninety_nine", { "id" => 11, "action" => "draw" }, playing, playing, repository, viewer) == "draw", "a Ninety-Nine draw did not use draw")
 
 farkled = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: {}, history: [History.new(event_id: 12, kind: :farkle)])
-assert(cue("farkle", { "id" => 12, "action" => "roll" }, playing, farkled, repository, viewer) == "farkle", "a Farkle did not replace the ordinary roll sound")
+assert(cue("farkle", { "id" => 12, "action" => "roll" }, playing, farkled, repository, viewer) == ["roll", "farkle"], "a Farkle did not keep both roll sounds")
 before_hot_dice = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: { dice_to_roll: 2 }, history: [])
 after_hot_dice = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: { dice_to_roll: 6 }, history: [])
 assert(cue("farkle", { "id" => 13, "action" => "keep", "value" => "0,1" }, before_hot_dice, after_hot_dice, repository, viewer) == "replay", "hot dice did not use replay")
@@ -82,8 +82,8 @@ assert(cue("ludo", { "id" => 147, "action" => "roll" }, playing, automatic_ludo,
 
 won = Replay.new(players: [viewer, "Bob"], winner: viewer, draw: false, state: {}, history: [])
 lost = Replay.new(players: [viewer, "Bob"], winner: "Bob", draw: false, state: {}, history: [])
-assert(cue("four_in_a_row", { "id" => 15, "action" => "drop" }, playing, won, repository, viewer) == "win2", "winning a game did not use win2")
-assert(cue("four_in_a_row", { "id" => 16, "action" => "drop" }, playing, lost, repository, viewer) == "lose3", "losing a game did not use lose3")
+assert(cue("four_in_a_row", { "id" => 15, "action" => "drop" }, playing, won, repository, viewer) == ["play2", "win2"], "winning a game lost the move or result sound")
+assert(cue("four_in_a_row", { "id" => 16, "action" => "drop" }, playing, lost, repository, viewer) == ["play2", "lose3"], "losing a game lost the move or result sound")
 
 tracker = GameRoomSounds::MembershipTracker.new
 assert(tracker.observe([viewer]).empty?, "the first room snapshot announced an old member")

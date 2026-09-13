@@ -1,8 +1,11 @@
 require "digest"
 require "json"
 require "securerandom"
+require "monitor"
 
 module HiddenSubmissions
+  class StorageError < StandardError; end
+
   Envelope = Struct.new(
     :session_id,
     :round_id,
@@ -74,24 +77,84 @@ module HiddenSubmissions
 
   class ProgramStorage
     DEFAULT_PATH = "hidden_submissions.json"
+    REVISION_KEY = "storage_revision"
+    COORDINATORS_LOCK = Monitor.new
 
     def initialize(program, path: DEFAULT_PATH)
       @program = program
       @path = path.to_s
+      # Screens sharing a Program also share the read/modify/write transaction.
+      # ELTEN locks individual JSON operations, not the pair of operations.
+      @coordinator = COORDINATORS_LOCK.synchronize do
+        stores = program.instance_variable_get(:@game_room_hidden_submission_stores)
+        if stores == nil
+          stores = {}
+          program.instance_variable_set(:@game_room_hidden_submission_stores, stores)
+        end
+        stores[@path] ||= { lock: Monitor.new, retry_at: 0.0, warned: false }
+      end
     end
 
     def read
-      normalize_root(@program.read_json(@path, default: { "entries" => {} }))
+      @coordinator[:lock].synchronize { read_snapshot }
     end
 
     def update(&block)
-      root = read
-      block.call(root)
-      @program.write_json(@path, root)
-      root
+      @coordinator[:lock].synchronize do
+        before = read_snapshot
+        root = Marshal.load(Marshal.dump(before))
+        block.call(root)
+        # In particular, discard after an already-confirmed reveal is a no-op.
+        return root if root == before
+
+        if Process.clock_gettime(Process::CLOCK_MONOTONIC) < @coordinator[:retry_at]
+          raise StorageError, "Cannot save hidden answers on this device."
+        end
+        root[REVISION_KEY] = before.fetch(REVISION_KEY, 0).to_i + 1
+        persist_snapshot(root)
+        root
+      end
     end
 
     private
+
+    def paths
+      [@path, @path + ".recovery.json"]
+    end
+
+    def read_snapshot
+      # A newer recovery snapshot supersedes the original, including deletions.
+      # This also works after reopening the screen or restarting ELTEN.
+      snapshots = paths.map do |path|
+        normalize_root(@program.read_json(path, default: { "entries" => {} }))
+      end
+      snapshots.max_by { |root| root.fetch(REVISION_KEY, 0).to_i }
+    rescue SystemCallError, IOError
+      raise StorageError, "Cannot read hidden answers on this device."
+    end
+
+    def persist_snapshot(root)
+      paths.each do |path|
+        begin
+          result = @program.write_json(path, root)
+          raise IOError, "JSON write failed" if result == false
+          @coordinator[:retry_at] = 0.0
+          @coordinator[:warned] = false
+          return
+        rescue SystemCallError, IOError
+          # Do not delete/truncate the original to make Windows rename work.
+          # The second path has the same private app-storage permissions.
+        end
+      end
+      # No sleeps or network retries. Repeated automatic checks must not hammer
+      # a directory which is temporarily unwritable.
+      @coordinator[:retry_at] = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 1.0
+      unless @coordinator[:warned]
+        Log.warning("ELTEN Game Room: cannot update local hidden answer storage.") if defined?(Log)
+        @coordinator[:warned] = true
+      end
+      raise StorageError, "Cannot save hidden answers on this device."
+    end
 
     def normalize_root(root)
       value = root.is_a?(Hash) ? root : {}
@@ -152,6 +215,10 @@ module HiddenSubmissions
         removed = entries.delete(entry_key(session_id, round_id, user)) != nil
       end
       removed
+    rescue StorageError
+      # The reveal is already confirmed. Retaining an old local envelope is
+      # harmless; a cleanup failure must not stop scoring or the next question.
+      false
     end
 
     def verify(envelope)

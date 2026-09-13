@@ -811,6 +811,8 @@ module GameRoomGames
         payload: answers
       )
       [:ok, event_plan("answer_commit", envelope.commitment)]
+    rescue HiddenSubmissions::StorageError
+      [:local_storage_unavailable, nil]
     end
 
     def submit_review_change(selection, state, actor)

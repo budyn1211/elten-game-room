@@ -118,7 +118,7 @@ class GameRoomTransport
 
   class LiveSessionBackend
     class InvitationExchange
-      ENTRY_TTL = 600
+      ENTRY_TTL = 300
       RESOLVED_TTL = 300
 
       def initialize
@@ -698,10 +698,16 @@ class GameRoomTransport
     @live_store.current_room(user)
   end
 
-  def room_snapshot(table_or_id)
+  def room_snapshot(table_or_id, force: false)
     raise "The native LiveSessions store is unavailable" if !live_store?
 
-    @live_store.room_snapshot(table_or_id)
+    @live_store.room_snapshot(table_or_id, force: force)
+  end
+
+  def set_observer(table_or_id, observing, actor:)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+
+    @live_store.set_observer(table_or_id, observing, actor: actor)
   end
 
   def join_room(table, user)

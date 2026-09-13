@@ -13,16 +13,20 @@ module RoomPresentation
     user_rows(members, **options).map(&:label)
   end
 
-  def user_rows(members, bots: [], owner:, players:, active:, team_assignment: nil, statuses: {}, scores: nil)
+  def user_rows(members, bots: [], observers: [], owner:, players:, active:, team_assignment: nil, statuses: {}, scores: nil)
     participants = GameRoomParticipants.unique(members.to_a + bots.to_a + players.to_a)
     participants.map do |participant|
       roles = []
       roles << _("table master") if GameRoomParticipants.human?(participant) && same_user?(participant, owner)
       roles << _("computer") if GameRoomParticipants.bot?(participant)
+      observes_next = includes_user?(observers, participant)
       if active
-        roles << (includes_user?(players, participant) ? _("player") : _("observer"))
+        current_player = includes_user?(players, participant)
+        roles << (current_player ? _("player") : _("observer"))
+        roles << _("will observe the next game") if current_player && observes_next
+        roles << _("will play in the next game") if !current_player && !observes_next && GameRoomParticipants.human?(participant)
       else
-        roles << _("waiting for a game")
+        roles << (observes_next ? _("observer") : _("waiting for a game"))
       end
       team = team_assignment&.team_number_for(participant)
       roles << _("team %{team}") % { team: team } if team != nil
@@ -50,7 +54,7 @@ module RoomPresentation
       )
     end
     user_rows(
-      room.members, bots: room.bots.to_a, owner: owner,
+      room.members, bots: room.bots.to_a, observers: room.observers.to_a, owner: owner,
       players: listed_players, active: active,
       team_assignment: replay == nil ? nil : game.team_assignment(options, players: players),
       statuses: statuses, scores: replay == nil ? nil : game.participant_scores(replay)

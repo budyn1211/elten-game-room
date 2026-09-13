@@ -87,7 +87,12 @@ end
 Kernel.prepend(BinaryRulesLoad::Requires)
 BinaryRulesLoad.load(File.join(BinaryRulesLoad::ROOT, "__app.rb"))
 registry = EltenGameRoom::GAME_REGISTRY
-raise "Lost games during binary loading" unless registry.ids.length == 16
+raise "Lost games during binary loading" unless registry.ids.length == 17
+raise "Quiz Party was not loaded from binary sources" unless registry.ids.include?("quiz")
+%w[quiz.general.en quiz.wikidata.pl quiz.witcher.pl].each do |id|
+  pack = GameRoomContent.registry.pack(id)
+  raise "Question data loaded eagerly" if pack.verified?
+end
 registry.ids.each do |id|
   game = registry.build(id)
   documents = game.rule_book(options: game.default_options).documents
@@ -105,7 +110,13 @@ GameRoomContent::MonopolyBoards.choices.each do |choice|
     raise "Binary field name in #{choice.value}" unless square[:name].encoding == Encoding::UTF_8
   end
 end
+%w[quiz.general.en quiz.wikidata.pl quiz.witcher.pl].each do |id|
+  pack = GameRoomContent.registry.pack(id)
+  questions = pack.data.fetch("questions")
+  raise "Binary lazy Quiz data failed to verify" unless pack.verified? && pack.entry_count == questions.length
+  raise "Binary Quiz prompt" unless questions.all? { |q| q["prompt"].encoding == Encoding::UTF_8 && q["prompt"].valid_encoding? }
+end
 metadata = BinaryRulesLoad.instance_variable_get(:@metadata) || JSON.parse(File.read(File.join(BinaryRulesLoad::ROOT, "manifest.json")))
 raise "Runtime build differs from package manifest" unless EltenGameRoom::GAME_ROOM_BUILD_ID.to_s == metadata.fetch("build_id").to_s
 raise "Runtime version differs from package manifest" unless EltenGameRoom::GAME_ROOM_VERSION == metadata.fetch("version")
-puts "Binary program loading, all 16 rule books and 19 Monopoly boards passed"
+puts "Binary program loading, all 17 rule books and 19 Monopoly boards passed"

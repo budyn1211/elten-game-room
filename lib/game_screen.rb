@@ -31,10 +31,12 @@ class GameScreen
     game_name: nil,
     send_chat: nil,
     layout: nil,
-    manage_computer: nil
+    manage_computer: nil,
+    manage_observer: nil
   )
     @layout = layout
     @manage_computer = manage_computer
+    @manage_observer = manage_observer
     @program = program
     @repository = repository
     @game = game
@@ -221,6 +223,10 @@ class GameScreen
         @room_snapshot = nil
         @activity_entries = nil
         @suppress_surface_focus = true
+      when :observe_next_game, :play_next_game
+        updated_room = @manage_observer&.call(@table, action)
+        @room_snapshot = updated_room if updated_room != nil
+        @suppress_surface_focus = true
       when :restart
         return :restart
       when :chat
@@ -346,6 +352,9 @@ class GameScreen
       actions = [:rules, :leave]
       actions << :invite_online if @invite_online != nil
       actions << :invite_contacts if @invite_contacts != nil
+      if @manage_observer != nil
+        actions.concat(GameRoomParticipantMenu.role_actions(room: @room_snapshot, viewer: Session.name))
+      end
       if @manage_computer != nil
         actions.concat(GameRoomParticipantMenu.management_actions(
           room: @room_snapshot, game: @game, active: !replay.finished?, viewer: Session.name, owner: @table_owner
@@ -1354,7 +1363,11 @@ class GameScreen
       context: context
     )
     if status != :ok
-      Log.warning("ELTEN Game Room bot chose a rejected action: #{@game.id}, #{status}")
+      # Storage reports this failure once until a write succeeds. It is not
+      # a bad bot decision and must not flood logs on every automatic check.
+      if status != :local_storage_unavailable
+        Log.warning("ELTEN Game Room bot chose a rejected action: #{@game.id}, #{status}")
+      end
       return false
     end
     validate_action_plan!(plan)
@@ -1417,13 +1430,16 @@ class GameScreen
     )
 
     context = action_context
-    selection = @game.automatic_action(replay, Session.name, context: context)
+    automatic_actor = automatic_actor_for(replay)
+    return false if automatic_actor.to_s.empty?
+
+    selection = @game.automatic_action(replay, automatic_actor, context: context)
     return false if selection == nil
 
     status, plan = @game.action_for(
       selection,
       replay,
-      Session.name,
+      automatic_actor,
       context: context
     )
     if status != :ok
@@ -1439,7 +1455,8 @@ class GameScreen
           sequence: @repository.next_sequence(@session, replay.accepted_events),
           events: plan.events,
           recipients: game_recipients,
-          actor: Session.name
+          actor: automatic_actor,
+          controller: !same_user?(automatic_actor, Session.name)
         )
       rescue StandardError => error
         # A timeout may mean the action was committed but its acknowledgement
@@ -1471,7 +1488,9 @@ class GameScreen
       table_owner: @table_owner
     )
 
-    @game.automatic_action_due?(replay, Session.name, context: action_context)
+    actor = automatic_actor_for(replay)
+    return false if actor.to_s.empty?
+    @game.automatic_action_due?(replay, actor, context: action_context)
   rescue StandardError => error
     Log.warning("ELTEN Game Room automatic-action deadline check failed: #{error.class}: #{error.message}")
     false
@@ -1485,6 +1504,14 @@ class GameScreen
       random_source: @random_source,
       now: Time.now.to_i
     )
+  end
+
+  def automatic_actor_for(replay)
+    if !GameRoomParticipants.includes?(replay.players, Session.name) && same_user?(@table_owner, Session.name)
+      replay.players.first
+    else
+      Session.name
+    end
   end
 
   def bot_search_seed(replay)

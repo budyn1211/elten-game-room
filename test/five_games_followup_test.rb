@@ -234,7 +234,7 @@ history = [GameRoomGames::HistoryEntry.new(key: "round:99", event_id: 99, kind: 
 { "Alice" => "lose1", "Bob" => "win1", "Carol" => "lose1" }.each do |viewer, expected|
   actual = GameRoomSounds.event_cue(game: uno, event: event("play"), before_replay: view(state),
     after_replay: view(state, history), repository: REPOSITORY, viewer: viewer)
-  assert(actual == expected, "UNO round sound incorrect for #{viewer}: #{actual}")
+  assert(actual == ["play", expected], "UNO round sound incorrect for #{viewer}: #{actual}")
   checks += 1
 end
 puts "Five-game follow-up checks passed: #{checks}"

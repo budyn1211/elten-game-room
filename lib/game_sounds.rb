@@ -10,6 +10,7 @@ module GameRoomSounds
     draw
     draw2
     farkle
+    interception
     lose1
     lose3
     play
@@ -18,6 +19,7 @@ module GameRoomSounds
     reverse
     reverse3
     roll
+    skip
     win1
     win2
   ].freeze
@@ -71,43 +73,68 @@ module GameRoomSounds
     nil
   end
 
-  # One event receives one primary sound. A special sound replaces the generic
-  # card or piece sound, which prevents overlapping effects for the same move.
+  # One persisted event may carry several independent cues. SoundPool starts
+  # them without waiting, so a move, its special effect and its result remain
+  # audible even when they belong to the same atomic action.
   def event_cue(game:, event:, before_replay:, after_replay:, repository:, viewer:)
-    result = result_cue(game, before_replay, after_replay, viewer)
-    return result if result != nil
+    cues = Array(action_cue(
+      game: game,
+      event: event,
+      before_replay: before_replay,
+      after_replay: after_replay,
+      repository: repository,
+      viewer: viewer
+    ))
+    cues.concat(Array(result_cue(game, before_replay, after_replay, viewer)))
+    cues = cues.compact.map(&:to_s).reject(&:empty?).uniq
+    return nil if cues.empty?
+    return cues.first if cues.length == 1
 
+    cues
+  end
+
+  def action_cue(game:, event:, before_replay:, after_replay:, repository:, viewer:)
     action = event["action"].to_s
     case game.id.to_s
     when "spades"
       return "shuffle" if action == "deal"
       return nil if action != "play"
 
-      event["value"].to_s.end_with?("S") ? "draw2" : "play"
+      event["value"].to_s.end_with?("S") ? ["play", "draw2"] : "play"
     when "tysiac"
       return "shuffle" if action == "deal"
       return nil if action != "play"
 
       _mode, card = event["value"].to_s.split("|", 2)
       trump = after_replay&.state.to_h[:trump].to_s
-      !trump.empty? && card.to_s.end_with?(trump) ? "draw2" : "play"
+      !trump.empty? && card.to_s.end_with?(trump) ? ["play", "draw2"] : "play"
     when "ninety_nine"
       ninety_nine_cue(event, before_replay, after_replay, viewer)
     when "farkle"
       farkle_cue(event, before_replay, after_replay, repository)
     when "uno"
-      return nil if history_for_event(after_replay, event, repository).any? { |entry| entry.key.to_s.start_with?("too_late:") }
-      round_result = history_for_event(after_replay, event, repository).find { |entry| entry.kind == :round_result }
-      if round_result && GameRoomParticipants.includes?(after_replay.players, viewer)
-        return GameRoomParticipants.same?(round_result.actor, viewer) ? "win1" : "lose1"
-      end
-      return "shuffle" if action == "deal"
-      return "draw" if %w[draw turn_timeout catch challenge].include?(action)
-      if action == "play"
+      event_history = history_for_event(after_replay, event, repository)
+      return nil if event_history.any? { |entry| entry.key.to_s.start_with?("too_late:") }
+      cues = []
+      if action == "deal"
+        cues << "shuffle"
+      elsif %w[draw turn_timeout catch challenge].include?(action)
+        cues << "draw"
+      elsif action == "play"
+        cues << "play"
         type = event["value"].to_s[1]
-        return "reverse" if %w[V R L].include?(type)
-        return "play"
+        cues << "skip" if type == "S"
+        cues << "reverse3" if %w[V R].include?(type)
+        cues << "reverse" if type == "L"
       end
+      if event_history.any? { |entry| entry.key.to_s.start_with?("interception:") }
+        cues << "interception"
+      end
+      round_result = event_history.find { |entry| entry.kind == :round_result }
+      if round_result && GameRoomParticipants.includes?(after_replay.players, viewer)
+        cues << (GameRoomParticipants.same?(round_result.actor, viewer) ? "win1" : "lose1")
+      end
+      cues
     when "makao"
       return "shuffle" if action == "deal"
       return "play" if action == "play"
@@ -137,7 +164,22 @@ module GameRoomSounds
       end
 
       ["move", "move_pawn"].include?(action) ? "play2" : nil
+    when "quiz"
+      quiz_cue(event, after_replay, repository, viewer)
     end
+  end
+
+  def quiz_cue(event, after_replay, repository, viewer)
+    action = event["action"].to_s
+    return "shuffle" if action == "round_draw"
+    return "draw" if action == "round_category"
+    return nil if action != "question_finished"
+
+    answered_correctly = history_for_event(after_replay, event, repository).any? do |entry|
+      entry.kind == :answer_result && entry.field.to_s == "right" &&
+        GameRoomParticipants.same?(entry.actor, viewer)
+    end
+    answered_correctly ? "replay" : nil
   end
 
   def result_cue(game, before_replay, after_replay, viewer)
@@ -178,13 +220,15 @@ module GameRoomSounds
       end
     end
 
-    action == "play_draw" ? [primary, "draw"] : primary
+    cues = primary == "play" ? ["play"] : ["play", primary]
+    cues << "draw" if action == "play_draw"
+    cues
   end
 
   def farkle_cue(event, before_replay, after_replay, repository)
     action = event["action"].to_s
     if action == "roll"
-      return "farkle" if history_for_event(after_replay, event, repository).any? { |entry| entry.kind == :farkle }
+      return ["roll", "farkle"] if history_for_event(after_replay, event, repository).any? { |entry| entry.kind == :farkle }
 
       return "roll"
     end
