@@ -211,6 +211,7 @@ next_session = session.merge("__id" => 2)
 repository.define_singleton_method(:session_by_id) { |_id, table:| next_session }
 controller.define_singleton_method(:switch_session) { |_id| }
 new_session_sync = Object.new
+new_session_sync.define_singleton_method(:recovery_pending?) { false }
 new_session_sync.define_singleton_method(:update_session) { |_id, **_options| self }
 new_session_sync.define_singleton_method(:synchronized!) { self }
 new_session_sync.define_singleton_method(:synchronize) { |**_options, &operation| operation.call }
@@ -343,6 +344,9 @@ match_repository.define_singleton_method(:append_events) do |session:, sequence:
   inserted
 end
 match_sync = Object.new
+match_sync.define_singleton_method(:waiting?) { false }
+match_sync.define_singleton_method(:recovery_pending?) { false }
+match_sync.define_singleton_method(:reconciled?) { false }
 match_sync.define_singleton_method(:synchronize) { |**_options, &operation| operation.call }
 app.define_singleton_method(:play_sound_from_asset) { |_name| }
 match_screen = GameScreen.new(**arguments.merge(repository: match_repository, synchronizer: match_sync, layout: nil))

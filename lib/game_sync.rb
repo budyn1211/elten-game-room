@@ -1,3 +1,5 @@
+require_relative "network_errors"
+
 module GameRoomSync
   ERROR_BACKOFF = 30.0
   RATE_LIMIT_BACKOFF = 60.0
@@ -26,6 +28,10 @@ module GameRoomSync
       @reconnect = reconnect
       @clock = clock || -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }
       synchronized!
+      # Reopening a screen must not strand a pending reveal whose local
+      # hidden envelope was already consumed. The store outlives the screen.
+      error = @transport.pending_move_error(@table_id) if @transport.respond_to?(:pending_move_error)
+      failed!(error) if error != nil
     end
 
     def update_session(session_id, discard_pending: false)
@@ -41,10 +47,22 @@ module GameRoomSync
       # the replacement edit field.
       return nil if !idle
 
-      if @transport.respond_to?(:consume_recovery) && @transport.consume_recovery(@table_id)
-        return Event.new(kind: :recovery, session_id: @session_id) if allow_recovery
+      recovery = @transport.consume_recovery(@table_id) if @transport.respond_to?(:consume_recovery)
+      if recovery == :closed
+        synchronized!
+        return Event.new(kind: :closed, session_id: @session_id)
+      end
+      if recovery
+        recovery.is_a?(Exception) ? failed!(recovery) : request_recovery!
+      end
 
-        request_recovery!
+      # Coalesce notifications during an actual outage. Neither a new gap nor
+      # a room/chat wake-up may bypass Retry-After and trigger another read.
+      return nil if waiting?
+      if @recovery_pending && allow_recovery
+        @recovery_pending = false
+        @recovering = true
+        return Event.new(kind: :recovery, session_id: @session_id)
       end
 
       started_session_id = @transport.consume_game_start(@table_id)
@@ -63,42 +81,63 @@ module GameRoomSync
         return Event.new(kind: :table_changed, session_id: @session_id)
       end
 
-      return nil if !@recovery_pending || !allow_recovery || now < @next_reconcile_at
-
-      @recovery_pending = false
-      @next_reconcile_at = Float::INFINITY
-      Event.new(kind: :recovery, session_id: @session_id)
+      nil
     end
 
     def synchronize(complete: true)
       @reconnect&.call
+      recovering = complete && recovery_pending? && !waiting?
+      @reconciled = false
+      if recovering && @transport.respond_to?(:reconcile)
+        @transport.reconcile(@table_id)
+        @reconciled = true
+      end
       result = yield
       # A successful chat/users refresh does not prove that a previously
       # failed game read or game switch has recovered.
-      synchronized! if complete
+      synchronized! if complete && (recovering || !recovery_pending?)
       result
     rescue StandardError => error
       failed!(error)
       raise
+    ensure
+      @reconciled = false
     end
 
     def synchronized!
       @recovery_pending = false
+      @recovering = false
+      @retry_not_before = 0.0
       @next_reconcile_at = Float::INFINITY
       self
     end
 
     def failed!(error)
-      delay = rate_limited?(error) ? @rate_limit_backoff : @error_backoff
+      delay = GameRoomNetworkErrors.retry_delay(error, normal: @error_backoff, rate_limit: @rate_limit_backoff)
       @recovery_pending = true
-      @next_reconcile_at = now + delay
+      @recovering = false
+      @retry_not_before = [@retry_not_before.to_f, now + delay].max
+      @next_reconcile_at = @retry_not_before
       self
     end
 
     def request_recovery!(delay: 0)
       @recovery_pending = true
-      @next_reconcile_at = now + [delay.to_f, 0.0].max
+      @retry_not_before = [@retry_not_before.to_f, now + [delay.to_f, 0.0].max].max
+      @next_reconcile_at = @retry_not_before
       self
+    end
+
+    def recovery_pending?
+      @recovery_pending || @recovering
+    end
+
+    def waiting?
+      recovery_pending? && now < @retry_not_before.to_f
+    end
+
+    def reconciled?
+      @reconciled == true
     end
 
     private
@@ -118,10 +157,6 @@ module GameRoomSync
       duration
     rescue TypeError, ArgumentError
       raise ArgumentError, "#{name} must be finite and greater than zero"
-    end
-
-    def rate_limited?(error)
-      error.message.to_s.match?(/(?:too many requests|rate.?limit|\b429\b)/i)
     end
   end
 end

@@ -680,6 +680,18 @@ class GameRoomTransport
     @live_store != nil
   end
 
+  def reconcile(table_id)
+    @live_store.reconcile(table_id) if live_store?
+  end
+
+  def pending_move_error(table_id)
+    @live_store.pending_move_error(table_id) if live_store?
+  end
+
+  def consume_recovered_game_events(session)
+    live_store? ? @live_store.consume_recovered_game_events(session) : []
+  end
+
   def create_room(**arguments)
     raise "The native LiveSessions store is unavailable" if !live_store?
 
@@ -1002,7 +1014,7 @@ class GameRoomTransport
   end
 
   def consume_recovery(table_id)
-    @mutex.synchronize { @pending_recoveries.delete(table_id.to_i) == true }
+    @mutex.synchronize { @pending_recoveries.delete(table_id.to_i) }
   end
 
   private
@@ -1015,9 +1027,13 @@ class GameRoomTransport
         @pending_table_changes[table_id.to_i] = true
       when :game
         @pending_game_changes[value.to_i] ||= monotonic_time if value.to_i.positive?
-      when :recovery, :closed
-        @pending_recoveries[table_id.to_i] = true
+      when :closed
+        @pending_recoveries[table_id.to_i] = :closed
+      when :recovery
+        @pending_recoveries[table_id.to_i] ||= true
         @pending_table_changes[table_id.to_i] = true
+      when :network_error
+        @pending_recoveries[table_id.to_i] = value if @pending_recoveries[table_id.to_i] != :closed
       when :table
         @pending_table_changes[table_id.to_i] = true
       end

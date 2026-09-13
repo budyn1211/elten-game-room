@@ -11,8 +11,9 @@ h.broker.automatic_delivery = false
 expected = 0
 restarts = 0
 faults = 0
+recovery_clock = 0.0
 controllers = h.users.to_h do |user|
-  [user, GameRoomSync::Controller.new(transport: h.transports[user], table_id: h.table["__id"])]
+  [user, GameRoomSync::Controller.new(transport: h.transports[user], table_id: h.table["__id"], clock: -> { recovery_clock })]
 end
 
 settle = lambda do |stage|
@@ -45,10 +46,16 @@ batches.times do |batch|
     begin
       h.write(actor, [GameRoomGames::EventCommand.new(action: "tick", value: "#{batch}:#{actor}")], sequence: sequence)
       expected += 1
-    rescue EltenAPI::LiveSessions::TimeoutError
+    rescue EltenAPI::LiveSessions::TimeoutError => error
       faults += 1
-      expected += 1 if fault == :after
-      # Never resend an uncertain move. Catch up through the stored log.
+      controller = controllers[actor]
+      controller.failed!(error)
+      recovery_clock += GameRoomSync::ERROR_BACKOFF + 1
+      assert(controller.next_event(idle: true).kind == :recovery, "uncertain move lost its recovery")
+      # Resolve through the common recovery path. If absent, retry the SAME
+      # operation identity instead of silently dropping a pre-commit failure.
+      h.as(actor) { controller.synchronize { h.events(actor) } }
+      expected += 1
     end
     h.broker.deliver(user: h.users.sample(random: random), limit: random.rand(1..5), duplicate: random.rand(2).zero?)
   end

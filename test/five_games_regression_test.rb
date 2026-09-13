@@ -241,7 +241,10 @@ check("Monopoly: a property sale can clear negative cash") do
   state = initial(monopoly)
   state[:cash]["Alice"] = -20
   state[:owners][1] = "Alice"
-  offer = monopoly.send(:trade_actions, state, "Alice").find { |a| a["offer"].start_with?("1|1|") }
+  offer = monopoly.send(:trade_actions, state, "Alice").find do |action|
+    parsed = monopoly.send(:parse_trade_offer, state, action["offer"])
+    parsed != nil && parsed[:target] == "Bob" && parsed[:give_properties] == [1] && parsed[:receive_cash] > 0
+  end
   expect(offer != nil, "Fixture sale offer unavailable")
   expect(monopoly.send(:apply_trade, state, event("trade_offer", offer["offer"]), "Alice", REPO, []), "Fixture sale offer rejected")
   ok = monopoly.send(:apply_trade, state, event("trade_accept", "", "Bob", 2), "Bob", REPO, [])

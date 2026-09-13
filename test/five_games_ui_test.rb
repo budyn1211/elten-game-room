@@ -150,24 +150,57 @@ state = game.send(:initial_state, %w[Alice Bob Carol], game.default_options)
 state[:owners].merge!(1 => "Alice", 3 => "Bob", 6 => "Carol")
 replay = GameRoomGames::Replay.new(players: state[:players], current_player: "Alice", history: [], accepted_events: [], state: state)
 trade = game.custom_game_shortcuts(replay, "Alice").find { |shortcut| shortcut.key == "e" }
-assert(trade.kind == :form, "Trade still uses fixed offers")
+assert(trade.kind == :staged_form, "Trade does not begin with a player list")
+trade_form = game.staged_form_shortcut(trade, replay, "Alice", { "target" => 1 })
+assert(trade_form.kind == :form && trade_form.payload["target"] == 1, "Trade player selection did not open the offer form")
+assert(trade_form.fields.count { |field| field.kind == :multiple_choice } == 2, "Trade properties are not grouped into two arrow lists")
 screen = GameScreen.allocate
 screen.instance_variable_set(:@game, game)
 Form.on_wait = lambda do |form|
-  target = form.fields.first
-  bob_index = trade.fields.index { |field| field.key == "receive_3" }
-  carol_index = trade.fields.index { |field| field.key == "receive_6" }
-  assert(form.hidden_controls.include?(form.fields[carol_index]), "Carol property visible for Bob")
-  target.index = 1
-  target.trigger(:move)
-  assert(form.hidden_controls.include?(form.fields[bob_index]) && !form.hidden_controls.include?(form.fields[carol_index]), "Trade form does not follow selected recipient")
-  form.fields[carol_index].checked = true
+  own_properties = form.fields[2]
+  requested_properties = form.fields[3]
+  own_properties.select_multiselection_indices([0])
+  requested_properties.select_multiselection_indices([0])
   form.accept_button.trigger(:press)
 end
-action = screen.send(:form_shortcut_action, trade)
-assert(action.payload["target"] == 2 && action.payload["receive_6"] && !action.payload.key?("receive_3"), "Wrong trade payload")
+action = screen.send(:form_shortcut_action, trade_form)
+assert(action.payload["target"] == 1 && action.payload["give_properties"] == [1] && action.payload["receive_properties"] == [3], "Wrong trade payload")
 Form.on_wait = ->(form) { form.cancel_button.trigger(:press) }
-assert(screen.send(:form_shortcut_action, trade) == nil, "Cancel sent a proposal")
+assert(screen.send(:form_shortcut_action, trade_form) == nil, "Cancel sent a proposal")
+Form.on_wait = nil
+
+# Exercise the full two-stage flow: Escape from the offer returns to the player
+# list, while selecting a player emits only the small preparation action.
+module Session
+  def self.name = "Alice"
+end
+prepared_targets = []
+screen.define_singleton_method(:submit_inline_action) do |current_replay, selection, title:|
+  assert(title == "Preparing trade", "trade preparation used the wrong task title")
+  prepared_targets << selection.payload["target"]
+  [current_replay, [Object.new]]
+end
+wait_step = 0
+Form.on_wait = lambda do |form|
+  case wait_step
+  when 0
+    form.fields.first.index = 1 # Carol
+    form.accept_button.trigger(:press)
+  when 1
+    form.cancel_button.trigger(:press) # Back to the player list
+  when 2
+    form.fields.first.index = 0 # Bob
+    form.accept_button.trigger(:press)
+  when 3
+    form.fields[2].select_multiselection_indices([0])
+    form.accept_button.trigger(:press)
+  end
+  wait_step += 1
+end
+action = screen.send(:staged_form_shortcut_action, trade, replay)
+assert(prepared_targets == [2, 1], "Escape did not return from the offer to the player list")
+assert(action.name == "trade_offer" && action.payload["target"] == 1 && action.payload["give_properties"] == [1],
+  "the staged trade returned the wrong final proposal")
 Form.on_wait = nil
 
 # Both variants use the real numeric-input handler, not a preset list.

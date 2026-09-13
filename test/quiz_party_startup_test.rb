@@ -56,19 +56,25 @@ assert(keys.uniq.length == keys.length, "the game exposes duplicate option keys"
 assert(keys.include?("content_language_id"), "the table cannot choose a question language")
 
 polish_pack = GameRoomContent.registry.pack("quiz.wikidata.pl")
-packs = %w[quiz.wikidata.pl quiz.witcher.pl quiz.general.en].map { |id| GameRoomContent.registry.pack(id) }
+packs = %w[
+  quiz.wikidata.pl quiz.witcher.pl quiz.witcher.g.pl
+  quiz.witcher.b.pl quiz.general.en
+].map { |id| GameRoomContent.registry.pack(id) }
 assert(packs.all? { |pack| pack && !pack.verified? }, "rules/defaults/options eagerly loaded a question database")
 audit = JSON.parse(File.read(File.expand_path("../content/QUIZ_IMPORT_REPORT.json", __dir__), encoding: "UTF-8"))["packs"]
 assert(polish_pack.data["questions"].length == 15_498, "the Polish Wikidata question pack lost its questions")
 assert(polish_pack.verified? && packs.drop(1).none?(&:verified?), "loading Polish also loaded an unrelated pack")
 witcher_pack = GameRoomContent.registry.pack("quiz.witcher.pl")
 assert(witcher_pack.data["questions"].length == audit.fetch(witcher_pack.id).fetch("kept") && witcher_pack.verified?, "the cleaned Witcher data did not verify")
+assert(packs[2..].none?(&:verified?), "loading the full Witcher set eagerly loaded a detailed set")
 assert(game.selected_content_pack(options) != nil, "the default table options do not resolve to an installed pack")
 polish_sets = game.send(:available_content_sets, "pl-PL").map(&:id).sort
-assert(polish_sets == ["quiz.wikidata", "quiz.witcher"], "Polish does not offer exactly the two intended question sets")
+assert(polish_sets == ["quiz.wikidata", "quiz.witcher", "quiz.witcher.b", "quiz.witcher.g"], "Polish does not offer the intended question sets")
 [
   ["quiz.wikidata", "pl-PL"],
-  ["quiz.witcher", "pl-PL"]
+  ["quiz.witcher", "pl-PL"],
+  ["quiz.witcher.g", "pl-PL"],
+  ["quiz.witcher.b", "pl-PL"]
 ].each do |set_id, language_id|
   set_options = game.normalize_options("content_set_id" => set_id, "content_language_id" => language_id)
   assert(JSON.generate(set_options).bytesize <= 256, "#{set_id} options exceed the server field limit")
@@ -81,9 +87,14 @@ assert(english_pack.author == "OpenTriviaQA contributors", "the English question
 assert(english_pack.data["questions"].length == audit.fetch(english_pack.id).fetch("kept") && english_pack.verified?, "the cleaned English data did not verify")
 packs.each do |pack|
   assert(pack.entry_count == pack.data["questions"].length, "the lightweight count is incorrect")
-  removed = audit.fetch(pack.id).fetch("rejected").map { |entry| entry["id"] }
-  assert((pack.data["questions"].map { |q| q["id"] } & removed).empty?, "a quarantined question is still playable")
 end
+removed = audit.fetch("quiz.witcher.pl").fetch("rejected").map { |entry| entry["id"] }
+witcher_packs = packs.select { |pack| pack.id.start_with?("quiz.witcher") }
+witcher_packs.each do |pack|
+  assert((pack.data["questions"].map { |q| q["id"] } & removed).empty?, "a quarantined Witcher question is still playable")
+end
+removed = audit.fetch("quiz.general.en").fetch("rejected").map { |entry| entry["id"] }
+assert((english_pack.data["questions"].map { |q| q["id"] } & removed).empty?, "a quarantined English question is still playable")
 assert(english_pack.data["questions"].map { |question| question["category"] }.uniq.length == 20, "the English question pack lost its categories")
 assert(GameRoomContent.registry.pack_set("quiz.general").language_ids == ["en"], "the removed Polish general variant is still registered")
 
@@ -153,4 +164,4 @@ assert(fresh.options_summary(italian).include?("15"), "the Italian table lost it
 mismatched = italian.merge("content_pack_checksum" => "0" * 64)
 assert(fresh.validation_error(mismatched, player_count: 2) != nil, "a table with a tampered content checksum was accepted")
 
-puts "Quiz Party startup tests passed: registry, two Polish sets, English OpenTriviaQA, and an added Italian language"
+puts "Quiz Party startup tests passed: registry, four Polish sets, English OpenTriviaQA, and an added Italian language"

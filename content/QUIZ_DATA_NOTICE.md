@@ -36,6 +36,27 @@ missing-name/import-fragment questions and duplicate residence/nickname
 templates, normalizes wiki labels and preserves available links. It is not
 a manual fact-check of every question, distractor or paraphrase in the data.
 
+### Witcher medium split in data version 2
+
+Build 218 reviews all 6,571 retained Witcher question IDs for the medium from
+which the particular fact comes. The full Polish set remains available, while
+two derived sets expose games and books together with screen adaptations. All
+three views use one source database and a compact ID-to-medium map; the large
+question database is not copied for either derived set.
+
+The review compares the question wording, the medium of the concrete answer,
+the supplied preliminary map and categories returned by Wiedźmin Wiki for
+3,971 unique subjects and answers. It corrects 2,351 assignments relative to
+the preliminary map and adds a natural medium qualification to 5,810 prompts
+that were not already unambiguous. IDs, answers, distractors, difficulty and
+thematic round categories remain unchanged. Four damaged imported performer
+labels are repaired in prompt text; no answer is rewritten by this audit.
+
+This is a complete classification and clarity review, not a complete factual
+verification of all answers. The full decision list, the comparison with the
+preliminary map and the captured source metadata are stored outside the signed
+application under `diagnostics/witcher-medium-audit-218`.
+
 ## Rebuilding these files
 
 Use a checkout of the exact revision above, then run from the Game Room root:

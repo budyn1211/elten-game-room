@@ -10,6 +10,7 @@ module GameRoomSounds
     draw
     draw2
     farkle
+    hit1
     interception
     lose1
     lose3
@@ -147,8 +148,13 @@ module GameRoomSounds
       return "roll" if action == "roll"
       return "play" if action == "score"
     when "monopoly"
-      return "roll" if action == "roll"
-      return "play2" if %w[buy build sell mortgage unmortgage trade_accept auction_bid].include?(action)
+      cues = []
+      cues << "roll" if action == "roll"
+      cues << "play2" if %w[buy build sell mortgage unmortgage trade_accept auction_bid].include?(action)
+      event_history = history_for_event(after_replay, event, repository)
+      cues << "hit1" if event_history.any? { |entry| entry.key.to_s.start_with?("group_complete:") }
+      return cues.first if cues.length == 1
+      return cues if !cues.empty?
     when "four_in_a_row"
       action == "drop" ? "play2" : nil
     when "tic_tac_toe"

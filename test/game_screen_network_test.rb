@@ -227,6 +227,8 @@ assert(network_options[:cancellable] == true, "an inline assessment lost network
 assert(network_result == :sent, "an inline assessment changed the network result")
 
 synchronizer = Object.new
+synchronizer.define_singleton_method(:waiting?) { false }
+synchronizer.define_singleton_method(:recovery_pending?) { false }
 synchronizations = 0
 synchronizer.define_singleton_method(:synchronize) do |**_options, &operation|
   synchronizations += 1

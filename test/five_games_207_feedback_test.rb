@@ -78,7 +78,9 @@ check("Monopoly arrival and offer carry colour; purchase choices stay short") do
   offer = game.send(:encode_trade_offer, target: 1, give_property: 1, receive_property: 6)
   text = game.send(:trade_label, state, offer)
   assert(text.include?("pink group") && text.include?("light blue group"), "trade omits colours")
-  assert(game.send(:trade_form_fields, state, "Alice").find { |field| field.key == "give_1" }.label.include?("pink group"), "trade checkbox omits colour")
+  fields = game.send(:trade_form_fields, state, "Alice", "Bob")
+  own_list = fields.find { |field| field.key == "give_properties" }
+  assert(own_list.choices.any? { |choice| choice.label.include?("pink group") }, "trade property list omits colour")
 end
 check("Monopoly full group is announced once on purchase, not on later events") do
   game = GameRoomGames::Monopoly.new

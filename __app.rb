@@ -4,7 +4,7 @@
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
   "version": "1.1.7",
-  "build_id": "217",
+  "build_id": "218",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -21,7 +21,7 @@
   "required_assets": {
     "sounds": [
       "connect", "disconnect", "chatmsg", "ding", "shuffle", "draw", "draw2",
-      "farkle", "interception", "lose1", "lose3", "play", "play2", "replay",
+      "farkle", "hit1", "interception", "lose1", "lose3", "play", "play2", "replay",
       "reverse", "reverse3", "roll", "skip", "win1", "win2"
     ]
   }
@@ -86,7 +86,7 @@ require_relative "games/registry"
 
 class EltenGameRoom < Program
   GAME_ROOM_VERSION = "1.1.7".freeze
-  GAME_ROOM_BUILD_ID = 217
+  GAME_ROOM_BUILD_ID = 218
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
 
@@ -843,6 +843,7 @@ class EltenGameRoom < Program
     @table_layouts ||= {}
     table_id = @lobby.table_id(row)
     layout = nil
+    last_room_state = nil
     quiet_reentry = false
     synchronizer = GameRoomSync::Controller.new(
       transport: @transport, table_id: table_id,
@@ -853,7 +854,16 @@ class EltenGameRoom < Program
         row, title: _("Updating table"), synchronizer: synchronizer,
         ui: layout&.focus_location.to_a[0] == :chat ? layout.chat : :none
       )
+      if state == :unavailable
+        if last_room_state == nil
+          event = GameScreen.wait_for_connection(synchronizer)
+          return if event == nil || event.kind == :closed
+          next
+        end
+        state = last_room_state
+      end
       return if state == nil
+      last_room_state = state
 
       snapshot = state.room
       row = snapshot.table
@@ -926,13 +936,16 @@ class EltenGameRoom < Program
         event = synchronizer.next_event(idle: form.keyboard_idle_frame?)
         next if event == nil
 
-        action = :refresh
+        action = event.kind == :closed ? :closed : :refresh
         form.resume_for_refresh
       end)
       quiet_reentry ? layout.wait_without_announcement : form.wait
       layout.begin_bindings
       quiet_reentry = false
       case action
+      when :closed
+        forget_room_membership(row)
+        return
       when :start_game
         start_new_game(row)
         quiet_reentry = true
@@ -1793,6 +1806,8 @@ class EltenGameRoom < Program
   end
 
   def load_room_state(row, title:, synchronizer: nil, ui: nil)
+    return :unavailable if synchronizer != nil && synchronizer.waiting?
+
     payload = run_network_task(title, ui: ui) do
       operation = lambda do
         room = @lobby.snapshot_for(row)
@@ -1809,7 +1824,13 @@ class EltenGameRoom < Program
       end
       synchronizer == nil ? operation.call : synchronizer.synchronize(&operation)
     end
-    return nil if payload == nil || payload[0] == nil
+    if payload == nil
+      return nil if synchronizer == nil
+
+      synchronizer.request_recovery!(delay: GameRoomSync::ERROR_BACKOFF) if !synchronizer.recovery_pending?
+      return :unavailable
+    end
+    return nil if payload[0] == nil
 
     room, game_snapshot, activity_entries = payload
     game = game_snapshot == nil ? game_definition(room.table["game"]) : game_definition(game_snapshot.session["game"])

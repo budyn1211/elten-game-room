@@ -13,7 +13,7 @@ Replay = Struct.new(:players, :winner, :draw, :state, :history, keyword_init: tr
     winner != nil || draw == true
   end
 end
-History = Struct.new(:event_id, :kind, keyword_init: true)
+History = Struct.new(:event_id, :kind, :key, keyword_init: true)
 
 class SoundGame
   attr_reader :id
@@ -79,6 +79,17 @@ assert(cue("ludo", { "id" => 145, "action" => "move" }, playing, playing, reposi
 assert(cue("ludo", { "id" => 146, "action" => "move_pawn" }, playing, playing, repository, viewer) == "play2", "a semantic Ludo pawn move did not use play2")
 automatic_ludo = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: {}, history: [History.new(event_id: 147, kind: :move)])
 assert(cue("ludo", { "id" => 147, "action" => "roll" }, playing, automatic_ludo, repository, viewer) == ["roll", "play2"], "an automatic Ludo move lost one of its sounds")
+
+completed_group = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: {},
+  history: [History.new(event_id: 148, kind: :game, key: "group_complete:148:Alice:pink")])
+assert(cue("monopoly", { "id" => 148, "action" => "buy" }, playing, completed_group, repository, viewer) == ["play2", "hit1"],
+  "a completed Monopoly group did not keep the purchase sound and add hit1")
+assert(cue("monopoly", { "id" => 149, "action" => "buy" }, playing, playing, repository, viewer) == "play2",
+  "an ordinary Monopoly purchase gained the completed-group sound")
+bankruptcy_group = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: {},
+  history: [History.new(event_id: 150, kind: :game, key: "group_complete:150:Alice:pink")])
+assert(cue("monopoly", { "id" => 150, "action" => "bankrupt" }, playing, bankruptcy_group, repository, viewer) == "hit1",
+  "a group completed by bankruptcy has no completion sound")
 
 won = Replay.new(players: [viewer, "Bob"], winner: viewer, draw: false, state: {}, history: [])
 lost = Replay.new(players: [viewer, "Bob"], winner: "Bob", draw: false, state: {}, history: [])

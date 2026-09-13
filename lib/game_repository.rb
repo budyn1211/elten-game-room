@@ -154,6 +154,10 @@ class GameRepository
     accepted_events.to_a.map { |event| event["sequence"].to_i + 1 }.max.to_i
   end
 
+  def consume_recovered_events(session)
+    native_live_sessions? ? @transport.consume_recovered_game_events(session) : []
+  end
+
   def append_events(session:, sequence:, events:, recipients: nil, actor: Session.name, controller: false)
     raise ArgumentError, "The game no longer exists" if session_id(session) <= 0 || session["table_id"].to_i <= 0
 

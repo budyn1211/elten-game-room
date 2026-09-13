@@ -54,7 +54,7 @@ module GameRoomGames
     :fields,
     keyword_init: true
   ) do
-    KINDS = [:announcement, :browse, :number_input, :choice, :form, :action, :surface].freeze
+    KINDS = [:announcement, :browse, :number_input, :choice, :staged_form, :form, :action, :surface].freeze
     NAMED_KEYS = ["space"].freeze
 
     def initialize(
@@ -90,7 +90,7 @@ module GameRoomGames
         raise ArgumentError, "an announcement shortcut requires a message" if message.to_s.empty?
       elsif normalized_kind == :form
         raise ArgumentError, "a form shortcut requires fields and an action" if fields.to_a.empty? || action_kind.to_s.empty? || action_name.to_s.empty?
-        raise ArgumentError, "invalid form field" if fields.any? { |field| !field.is_a?(OptionDefinition) || ![:integer, :choice, :boolean].include?(field.kind.to_sym) }
+        raise ArgumentError, "invalid form field" if fields.any? { |field| !field.is_a?(OptionDefinition) || ![:integer, :choice, :multiple_choice, :boolean].include?(field.kind.to_sym) }
       elsif normalized_kind == :number_input
         raise ArgumentError, "a number shortcut requires a prompt" if prompt.to_s.empty?
         raise ArgumentError, "a number shortcut requires an action" if action_kind.to_s.empty? || action_name.to_s.empty?
@@ -103,9 +103,9 @@ module GameRoomGames
           raise ArgumentError, "a number shortcut requires allowed values" if values.empty?
           allowed_values = values
         end
-      elsif [:browse, :choice].include?(normalized_kind)
+      elsif [:browse, :choice, :staged_form].include?(normalized_kind)
         raise ArgumentError, "a choice shortcut requires a prompt" if prompt.to_s.empty?
-        if normalized_kind == :choice
+        if [:choice, :staged_form].include?(normalized_kind)
           raise ArgumentError, "a choice shortcut requires an action" if action_kind.to_s.empty? || action_name.to_s.empty?
           raise ArgumentError, "a choice shortcut requires a payload key" if value_key.to_s.empty?
         end
@@ -679,6 +679,14 @@ module GameRoomGames
 
     def game_view_spec(replay, viewer)
       GameRoomLayout::ViewSpec.new(surface: surface_spec(replay, viewer))
+    end
+
+    # A staged form first persists a small public selection (for example the
+    # other party to a negotiation), then asks the game for the local form
+    # which completes the action. Games that do not use staged forms keep the
+    # default nil result.
+    def staged_form_shortcut(_shortcut, _replay, _viewer, _selection)
+      nil
     end
 
     # A game may locally adapt history labels to presentation settings such

@@ -2,6 +2,7 @@ require "json"
 require "securerandom"
 require "thread"
 require_relative "game_participants"
+require_relative "network_errors"
 
 # The authoritative, ephemeral state of one Game Room table lives in one
 # discoverable LiveSession.  Every mutation is appended to the session stack;
@@ -38,6 +39,9 @@ class GameRoomLiveSessionStore
     @native_session_ids = {}
     @records = Hash.new { |hash, key| hash[key] = [] }
     @record_keys = Hash.new { |hash, key| hash[key] = {} }
+    @message_records = Hash.new { |hash, key| hash[key] = {} }
+    @pending_moves = {}
+    @recovered_moves = Hash.new { |hash, key| hash[key] = [] }
     @stack_cursors = Hash.new(0)
     @received_sequences = Hash.new { |hash, key| hash[key] = {} }
     @discovered = {}
@@ -210,6 +214,8 @@ class GameRoomLiveSessionStore
     return false if table_id == nil
 
     session = @mutex.synchronize do
+      @pending_moves.delete(table_id)
+      @recovered_moves.delete(table_id)
       @native_session_ids.delete_if { |_native_id, id| id == table_id }
       @sessions.delete(table_id)
     end
@@ -346,6 +352,17 @@ class GameRoomLiveSessionStore
     end.sort_by { |row| row["__id"].to_i }
   end
 
+  def consume_recovered_game_events(session)
+    table_id = session["table_id"].to_i
+    records = @mutex.synchronize do
+      @recovered_moves.delete(table_id).to_a.map do |record|
+        @message_records[table_id][[record.sender.downcase, record.message_id]] || record
+      end
+    end
+    records.select { |record| record.packet.dig("data", "session_id").to_i == session["__id"].to_i }
+      .flat_map { |record| expand_game_action(record) }
+  end
+
   def invite_user(table_id:, user:, metadata:)
     session = active_session(table_identifier(table_id))
     return false if session == nil
@@ -416,6 +433,33 @@ class GameRoomLiveSessionStore
     end
   end
 
+  # Only invoked by error/gap recovery, never by an ordinary cached read.
+  def pending_move_error(table_id)
+    @mutex.synchronize do
+      pending = @pending_moves[table_id.to_i]
+      pending && (pending[:error] || GameRoomNetworkErrors::PendingMove.new("A game move is awaiting confirmation"))
+    end
+  end
+
+  def reconcile(table_id)
+    table_id = table_identifier(table_id)
+    return false if table_id == nil
+    return false if !ensure_current(table_id, force: true)
+
+    pending = @mutex.synchronize { @pending_moves[table_id] }
+    latest_game = records_for(table_id).reverse.find { |record| record.packet["kind"] == "game_started" }
+    if pending != nil && latest_game != nil && pending[:packet].dig("data", "session_id") != latest_game.packet.dig("data", "session_id")
+      @mutex.synchronize { @pending_moves.delete(table_id) if @pending_moves[table_id].equal?(pending) }
+      pending = nil
+    end
+    if pending != nil
+      # An empty read is not evidence that a timed-out request cannot arrive
+      # later. Keep its UUID, packet, actor, random values and event sequence.
+      write_record(table_id, pending)
+    end
+    true
+  end
+
   private
 
   def trim_previous_games(table_id, through)
@@ -462,7 +506,16 @@ class GameRoomLiveSessionStore
       @endpoint = current
       different
     end
-    register_invitation_callback(current) if changed
+    if changed
+      register_invitation_callback(current)
+      if current.respond_to?(:on_error)
+        current.on_error do |error|
+          next if !@endpoint.equal?(current) || !GameRoomNetworkErrors.transient?(error)
+
+          active_table_ids.each { |id| emit_change(id, :network_error, error) }
+        end
+      end
+    end
     current
   end
 
@@ -626,6 +679,8 @@ class GameRoomLiveSessionStore
       session.on_closed do |_reason|
         @mutex.synchronize do
           @sessions.delete(table_id) if @sessions[table_id].equal?(session)
+          @pending_moves.delete(table_id)
+          @recovered_moves.delete(table_id)
           @native_session_ids.delete(session.id.to_s) if session.respond_to?(:id)
         end
         emit_change(table_id, :closed, nil)
@@ -694,28 +749,64 @@ class GameRoomLiveSessionStore
       "actor" => actor.to_s,
       "data" => JSON.parse(JSON.generate(data))
     }
-    result = session.stack_push(packet, message_id: message_id)
-    sequence = extract_push_sequence(result, session)
+    pending = { message_id: message_id, packet: packet, sender: endpoint.user.to_s, writing: false }
+    @mutex.synchronize do
+      raise GameRoomNetworkErrors::PendingMove, "An earlier game move is awaiting confirmation" if @pending_moves.key?(table_id)
+
+      @pending_moves[table_id] = pending if kind.to_s == "game_action"
+    end
+    write_record(table_id, pending)
+  end
+
+  def write_record(table_id, pending)
+    acquired = false
+    session = active_session(table_id)
+    raise GameRoomNetworkErrors::PendingMove, "The game connection is not ready" if session == nil
+    @mutex.synchronize do
+      raise GameRoomNetworkErrors::PendingMove, "A game move is already being sent" if pending[:writing]
+
+      pending[:writing] = true
+      acquired = true
+    end
+    result = session.stack_push(pending[:packet], message_id: pending[:message_id])
+    sequence = extract_push_sequence(result)
     record = ingest_record(
       table_id,
       sequence: sequence,
-      message_id: message_id,
-      sender: endpoint.user.to_s,
-      packet: packet,
+      message_id: pending[:message_id],
+      sender: pending[:sender],
+      packet: pending[:packet],
       created_at: Time.now.to_i
     )
-    record || records_for(table_id).find { |entry| entry.message_id == message_id }
+    record || confirmed_record(table_id, pending)
+  rescue StandardError => error
+    # A native callback can confirm the write before its HTTP reply fails.
+    confirmed = confirmed_record(table_id, pending)
+    return confirmed if confirmed != nil
+
+    @mutex.synchronize do
+      if acquired && GameRoomNetworkErrors.transient?(error)
+        pending[:uncertain] = true
+        pending[:error] = error
+      end
+      @pending_moves.delete(table_id) if @pending_moves[table_id].equal?(pending) && !GameRoomNetworkErrors.transient?(error)
+    end
+    raise
+  ensure
+    @mutex.synchronize { pending[:writing] = false } if acquired
   end
 
-  def extract_push_sequence(result, session)
+  def confirmed_record(table_id, pending)
+    @mutex.synchronize { @message_records[table_id][[pending[:sender].downcase, pending[:message_id]]] }
+  end
+
+  def extract_push_sequence(result)
     candidates = [
       result.is_a?(Hash) ? result["seq"] : nil,
-      result.is_a?(Hash) ? result.dig("entry", "seq") : nil,
-      result.is_a?(Hash) ? result.dig("stack", "last_seq") : nil,
-      session.respond_to?(:stack_state) ? session.stack_state["last_seq"] : nil
+      result.is_a?(Hash) ? result.dig("entry", "seq") : nil
     ]
     sequence = candidates.map(&:to_i).find { |value| value.positive? }
-    raise "LiveSessions did not return the stored stack position" if sequence == nil
+    raise GameRoomNetworkErrors::UncertainWrite, "LiveSessions did not return the stored stack position" if sequence == nil
 
     sequence
   end
@@ -743,14 +834,27 @@ class GameRoomLiveSessionStore
       next false if @record_keys[table_id].key?(key)
 
       @record_keys[table_id][key] = true
-      @records[table_id] << record
-      @records[table_id].sort_by!(&:sequence)
       # A local push acknowledgement can overtake messages not delivered yet.
       # Only a contiguous prefix is safe as the cursor of subsequent reads.
       cursor = @stack_cursors[table_id]
       @received_sequences[table_id][seq] = true if seq > cursor
       cursor += 1 while @received_sequences[table_id].delete(cursor + 1)
       @stack_cursors[table_id] = cursor
+      # Even if a late original and a retry occupy different stack positions,
+      # all readers apply this authenticated operation just once.
+      message_key = [sender.to_s.downcase, identity]
+      previous = @message_records[table_id][message_key]
+      next false if previous != nil && previous.sequence <= seq
+      @records[table_id].delete(previous) if previous != nil
+
+      @message_records[table_id][message_key] = record
+      @records[table_id] << record
+      @records[table_id].sort_by!(&:sequence)
+      pending = @pending_moves[table_id]
+      if pending != nil && pending[:message_id] == identity && pending[:sender].casecmp(sender.to_s) == 0
+        @recovered_moves[table_id] << record if pending[:uncertain]
+        @pending_moves.delete(table_id)
+      end
       true
     end
     emit_record_change(table_id, record) if inserted

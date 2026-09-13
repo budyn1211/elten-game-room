@@ -82,6 +82,7 @@ class NativeLiveSessionsBroker
       @sessions = []
       @invitations = []
       @invitation_callbacks = []
+      @error_callbacks = []
     end
 
     def create(metadata:, participant_metadata:, capacity:, visibility:, discovery_metadata:, **options)
@@ -116,6 +117,9 @@ class NativeLiveSessionsBroker
     def on_invitation(&block)
       @invitation_callbacks << block
     end
+
+    def on_error(&block); @error_callbacks << block; end
+    def report_error(error); @error_callbacks.each { |callback| callback.call(error) }; end
 
     def next_invitation(timeout: nil)
       @invitations.shift
@@ -244,6 +248,7 @@ class NativeLiveSessionsBroker
     end
 
     def stack_push(packet, message_id:)
+      (@push_attempts ||= []) << [message_id, JSON.parse(JSON.generate(packet))]
       @calls[:push] += 1
       raise EltenAPI::LiveSessions::SessionClosed if closed?
       fault, @fail_next_push = @fail_next_push, nil

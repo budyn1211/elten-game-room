@@ -3,7 +3,7 @@
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
   "version": "1.1.7",
-  "build_id": "217",
+  "build_id": "218",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": [
@@ -32,6 +32,7 @@
       "draw",
       "draw2",
       "farkle",
+      "hit1",
       "interception",
       "lose1",
       "lose3",

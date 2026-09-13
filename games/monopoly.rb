@@ -47,7 +47,7 @@ module GameRoomGames
           _("Building and selling lists show the property's colour, existing buildings and the cost or proceeds. After an operation the list remains open while another operation is possible. If none is possible, the game explains that rather than offering an invalid building action.")),
         rule_section(:mortgage, _("Mortgages and negotiated trades"),
           _("Mortgaging pays the deed's mortgage value and stops rent on that property. A street may be mortgaged only after all buildings in its colour group have been sold. Unmortgaging costs the mortgage plus 10%, rounded up to whole money units. Both lists show the actual amount and stay open for further operations."),
-          _("A trade can include several properties and cash on either side. Select the other player, what you offer and what you request. The recipient can accept or reject; nothing transfers before acceptance. Mortgaged properties and streets in a built-up group cannot be traded. The proposal must remain affordable and valid. Computers consider both sides' gains and avoid repeatedly sending the same rejected proposal.")),
+          _("A trade can include several properties and cash on either side. E first opens the player list. Enter chooses the partner and announces that you are preparing an offer; it does not send an empty offer. The next form contains both cash amounts, one arrow-key list of your properties, one arrow-key list of the other player's properties and Send proposal. Tab moves between those whole sections. Escape returns from the form to the player list. The recipient can accept or reject; nothing transfers before acceptance. Mortgaged properties and streets in a built-up group cannot be traded. The proposal must remain affordable and valid. Computers consider both sides' gains and avoid repeatedly sending the same rejected proposal.")),
         rule_section(:debt, _("What happens when cash becomes negative"),
           _("A negative balance ends your current turn, even after doubles. Other players take their normal turns before your next turn begins. Only then do you sell buildings, mortgage or trade to cover the deficit. Roll remains the main action but reports the missing amount instead of rolling until the balance is no longer negative. A charge outside your turn does not interrupt someone else's move."),
           _("You may declare bankruptcy while in debt. It also happens automatically on your own turn if your cash is negative and there are no buildings you can sell or properties you can mortgage. Possible trade offers do not delay it. An insolvent move still ends first and the other players take their turns before this decision. Bankruptcy removes you from active play. A player creditor receives your remaining properties and held jail cards; buildings are liquidated at half price. With a bank debt the properties return to the bank. The last solvent player wins.")),
@@ -75,7 +75,7 @@ module GameRoomGames
           end),
         rule_section(:controls, _("Movement and property management keys"),
           _("Arrow keys and Enter choose the current action, such as rolling, buying or answering an offer. I reads positions, T the phase and turn, C your cash, S finances, F the current deed, D unowned properties and Shift+D the whole board. V lists your holdings; Shift+V the others' holdings."),
-          _("H opens building, Shift+H selling buildings, K mortgages, Shift+K unmortgaging. Browse the list and confirm with Enter; you stay in it for further operations. Escape closes that list. E prepares a trade; A accepts and R rejects an incoming proposal. G bids in an auction. Space requests manual rent when that decision is yours. P pays to leave jail and J uses a jail card. Debt and bankruptcy actions are available only in their appropriate state."))
+          _("H opens building, Shift+H selling buildings, K mortgages, Shift+K unmortgaging. Browse the list and confirm with Enter; you stay in it for further operations. Escape closes that list. E opens the player list for a trade; A accepts and R rejects an incoming proposal. G bids in an auction. Space requests manual rent when that decision is yours. P pays to leave jail and J uses a jail card. Debt and bankruptcy actions are available only in their appropriate state."))
       ]
     end
 
@@ -131,7 +131,7 @@ module GameRoomGames
         when "build", "sell", "mortgage", "unmortgage" then apply_property_action(state, event, actor, repository, history)
         when "pay_jail", "use_jail_card" then apply_jail_action(state, event, actor, repository, history)
         when "request_rent", "waive_rent" then apply_manual_rent(state, event, actor, repository, history)
-        when "trade_offer", "trade_accept", "trade_reject" then apply_trade(state, event, actor, repository, history)
+        when "trade_prepare", "trade_offer", "trade_accept", "trade_reject" then apply_trade(state, event, actor, repository, history)
         when "bankrupt" then apply_bankruptcy(state, event, actor, repository, history)
         when "bankrupt_auto" then apply_automatic_bankruptcy(state, event, actor, repository, history)
         when "auction_bid", "auction_pass" then apply_auction(state, event, actor, repository, history)
@@ -141,7 +141,7 @@ module GameRoomGames
         if applied
           announce_completed_groups(state, groups_before, repository.event_id(event), history) if groups_before
           settle_debts(state, repository.event_id(event), history)
-          advance_completed_turn(state)
+          advance_completed_turn(state) if event["action"].to_s != "trade_prepare"
           accepted << event
         end
       end
@@ -225,16 +225,28 @@ module GameRoomGames
         return [:invalid, nil] if ![:awaiting_roll, :turn_complete].include?(state[:phase])
         value = selection["offer"].to_s
         if value.empty?
-          value = JSON.generate({ target: Integer(selection["target"].to_s, 10),
-            give_properties: state[:board].filter_map { |square| square[:index] if selection["give_#{square[:index]}"] == true },
-            receive_properties: state[:board].filter_map { |square| square[:index] if selection["receive_#{square[:index]}"] == true },
-            give_cash: Integer(selection["give_cash"].to_s, 10), receive_cash: Integer(selection["receive_cash"].to_s, 10) })
+          value = encode_trade_offer(
+            target: Integer(selection["target"].to_s, 10),
+            give_properties: selection["give_properties"],
+            receive_properties: selection["receive_properties"],
+            give_cash: Integer(selection["give_cash"].to_s, 10),
+            receive_cash: Integer(selection["receive_cash"].to_s, 10)
+          )
         end
         offer = parse_trade_offer(state, value)
-        return [:invalid, nil] if offer == nil
+        return [:invalid_trade, nil] if offer == nil
         offer[:from] = player_key(state, actor)
-        return [:invalid, nil] if !valid_trade_offer?(state, offer)
+        return [:empty_trade, nil] if empty_trade_offer?(offer)
+        return [:invalid_trade, nil] if !valid_trade_offer?(state, offer)
         return [:ok, event_plan("trade_offer", value)]
+      end
+      if action == "trade_prepare"
+        return [:invalid_trade, nil] if ![:awaiting_roll, :turn_complete].include?(state[:phase])
+        target_index = Integer(selection["target"].to_s, 10)
+        target = state[:players][target_index]
+        player = player_key(state, actor)
+        return [:invalid_trade, nil] if target == nil || same_user?(target, player) || !active_players(state).include?(target)
+        return [:ok, event_plan("trade_prepare", target_index.to_s(36))]
       end
       if action == "roll"
         deficit = -state[:cash][player_key(state, actor)].to_i
@@ -317,8 +329,8 @@ module GameRoomGames
         announcement_shortcut(key: "f", label: _("read the current deed"), message: deed_text(state, current_square(state, player))),
         browse_shortcut(key: "d", label: _("browse unowned property"), prompt: _("Unowned property"), choices: property_choices(state) { |square| state[:owners][square[:index]] == nil }),
         browse_shortcut(key: "d", modifiers: [:shift], label: _("browse the board"), prompt: _("Board"), choices: board_choices(state)),
-        browse_shortcut(key: "v", label: _("browse your holdings"), prompt: _("Your holdings"), choices: property_choices(state) { |square| same_user?(state[:owners][square[:index]], player) }),
-        browse_shortcut(key: "v", modifiers: [:shift], label: _("browse other holdings"), prompt: _("Other holdings"), choices: property_choices(state) { |square| state[:owners][square[:index]] != nil && !same_user?(state[:owners][square[:index]], player) })
+        browse_shortcut(key: "v", label: _("browse your holdings"), prompt: _("Your holdings"), choices: property_choices(state, group_progress: true) { |square| same_user?(state[:owners][square[:index]], player) }),
+        browse_shortcut(key: "v", modifiers: [:shift], label: _("browse other holdings"), prompt: _("Other holdings"), choices: property_choices(state, group_progress: true) { |square| state[:owners][square[:index]] != nil && !same_user?(state[:owners][square[:index]], player) })
       ]
       shortcuts.concat(property_action_shortcuts(actions, state, viewer))
       {
@@ -347,8 +359,11 @@ module GameRoomGames
       end
       if same_user?(state[:current_player], viewer) && [:awaiting_roll, :turn_complete].include?(state[:phase]) && active_players(state).length > 1
         shortcuts << GameShortcut.new(
-          key: "e", label: _("arrange a trade"), kind: :form, prompt: _("Trade proposal"),
-          action_kind: "command", action_name: "trade_offer", fields: trade_form_fields(state, player)
+          key: "e", label: _("arrange a trade"), kind: :staged_form, prompt: _("Choose a player for the trade"),
+          action_kind: "command", action_name: "trade_prepare", value_key: "target",
+          choices: active_players(state).reject { |other| same_user?(other, player) }.map do |other|
+            OptionChoice.new(value: player_index(state[:players], other), label: participant_name(other))
+          end
         )
       end
       {
@@ -361,6 +376,35 @@ module GameRoomGames
           action_kind: "command", action_name: action_name)
       end
       shortcuts
+    end
+
+    def staged_form_shortcut(shortcut, replay, viewer, selection)
+      return nil if shortcut.action_name != "trade_prepare"
+
+      state = replay.state
+      player = player_key(state, viewer)
+      target_index = Integer(selection["target"].to_s, 10)
+      target = state[:players][target_index]
+      return nil if player == nil || target == nil || same_user?(player, target)
+
+      GameShortcut.new(
+        key: "e", label: _("arrange a trade"), kind: :form, prompt: _("Trade proposal"),
+        action_kind: "command", action_name: "trade_offer", payload: { "target" => target_index },
+        fields: trade_form_fields(state, player, target)
+      )
+    rescue ArgumentError, TypeError
+      nil
+    end
+
+    def move_error_for(status, selection: nil, replay: nil, actor: nil)
+      case status
+      when :empty_trade
+        _("Choose at least one property or enter different cash amounts before sending the proposal.")
+      when :invalid_trade
+        _("This trade is no longer valid. Check the player, properties and available cash.")
+      else
+        super
+      end
     end
 
     def bot_observation(replay, actor)
@@ -696,6 +740,18 @@ module GameRoomGames
     def apply_trade(state, event, actor, repository, history)
       action = event["action"].to_s
       id = repository.event_id(event)
+      if action == "trade_prepare"
+        return false if ![:awaiting_roll, :turn_complete].include?(state[:phase]) || !same_user?(state[:current_player], actor)
+        target_index = Integer(event["value"].to_s, 36)
+        target = state[:players][target_index]
+        player = player_key(state, actor)
+        return false if target == nil || same_user?(target, player) || !active_players(state).include?(target)
+
+        history << HistoryEntry.new(key: "trade_prepare:#{id}", text: _("%{player} is preparing a trade offer for %{target}.") % {
+          player: participant_name(player), target: participant_name(target)
+        }, event_id: id, actor: actor, kind: :game)
+        return true
+      end
       if action == "trade_offer"
         return false if ![:awaiting_roll, :turn_complete].include?(state[:phase]) || !same_user?(state[:current_player], actor)
         offer = parse_trade_offer(state, event["value"])
@@ -734,6 +790,8 @@ module GameRoomGames
       state[:trade_offer] = nil
       state[:trade_phase] = nil
       true
+    rescue ArgumentError, TypeError
+      false
     end
 
     def apply_bankruptcy(state, event, actor, repository, history)
@@ -1072,9 +1130,19 @@ module GameRoomGames
       amount = [amount.to_i, 0].max
       paid = [[state[:cash][player], 0].max, amount].min
       pay_money(state, player, recipient, amount)
-      text = _("%{player} paid %{amount} to %{recipient}: %{reason}.") % {
-        player: participant_name(player), amount: paid, recipient: recipient_name(recipient), reason: reason
-      }
+      text = if recipient == :jackpot
+        _("%{player} pays %{amount} into the Free Parking pool: %{reason}.") % {
+          player: participant_name(player), amount: paid, reason: reason
+        }
+      elsif state[:players].include?(recipient)
+        _("%{player} pays %{recipient} %{amount}: %{reason}.") % {
+          player: participant_name(player), recipient: participant_name(recipient), amount: paid, reason: reason
+        }
+      else
+        _("%{player} paid %{amount} to %{recipient}: %{reason}.") % {
+          player: participant_name(player), amount: paid, recipient: recipient_name(recipient), reason: reason
+        }
+      end
       if paid < amount
         text += " " + _("%{player} still owes %{amount} to %{recipient}.") % { player: participant_name(player), amount: amount - paid, recipient: recipient_name(recipient) }
       end
@@ -1329,12 +1397,35 @@ module GameRoomGames
       owned_squares(state, player).select { |square| tradeable_index?(state, square[:index]) }
     end
 
-    def encode_trade_offer(target:, give_property: -1, receive_property: -1, give_cash: 0, receive_cash: 0)
-      [target, give_property, receive_property, give_cash, receive_cash].join("|")
+    TRADE_OFFER_VERSION = "2".freeze
+    TRADE_CASH_LIMIT = 99_999_999
+
+    def encode_trade_offer(target:, give_property: -1, receive_property: -1, give_properties: nil, receive_properties: nil, give_cash: 0, receive_cash: 0)
+      give = normalize_offer_indices(give_properties, give_property)
+      receive = normalize_offer_indices(receive_properties, receive_property)
+      [
+        TRADE_OFFER_VERSION,
+        Integer(target.to_s, 10).to_s(36),
+        property_mask(give).to_s(36),
+        property_mask(receive).to_s(36),
+        Integer(give_cash.to_s, 10),
+        Integer(receive_cash.to_s, 10)
+      ].join("|")
     end
 
     def parse_trade_offer(state, value)
-      if value.to_s.start_with?("{")
+      parts = value.to_s.split("|", -1)
+      if parts.length == 6 && parts.first == TRADE_OFFER_VERSION
+        target_index = Integer(parts[1], 36)
+        give_mask = Integer(parts[2], 36)
+        receive_mask = Integer(parts[3], 36)
+        give_cash = Integer(parts[4], 10)
+        receive_cash = Integer(parts[5], 10)
+        return nil if give_mask < 0 || receive_mask < 0
+        return nil if (give_mask >> state[:board].length) != 0 || (receive_mask >> state[:board].length) != 0
+        give = indices_from_property_mask(give_mask, state[:board].length)
+        receive = indices_from_property_mask(receive_mask, state[:board].length)
+      elsif value.to_s.start_with?("{")
         data = JSON.parse(value)
         target_index = data.fetch("target")
         return nil if !target_index.is_a?(Integer)
@@ -1345,7 +1436,6 @@ module GameRoomGames
         give_cash, receive_cash = data.fetch("give_cash"), data.fetch("receive_cash")
         return nil if !give_cash.is_a?(Integer) || !receive_cash.is_a?(Integer)
       else
-        parts = value.to_s.split("|", -1)
         return nil if parts.length != 5
         target_index, given, received, give_cash, receive_cash = parts.map { |part| Integer(part, 10) }
         return nil if given < -1 || received < -1
@@ -1358,11 +1448,33 @@ module GameRoomGames
       nil
     end
 
+    def normalize_offer_indices(indices, single)
+      values = indices == nil ? (single.to_i < 0 ? [] : [single]) : indices.to_a
+      values.map { |index| Integer(index.to_s, 10) }.uniq.sort
+    end
+
+    def property_mask(indices)
+      indices.to_a.reduce(0) do |mask, index|
+        raise ArgumentError, "invalid property index" if index.to_i < 0
+        mask | (1 << index.to_i)
+      end
+    end
+
+    def indices_from_property_mask(mask, board_length)
+      board_length.times.select { |index| (mask & (1 << index)) != 0 }
+    end
+
+    def empty_trade_offer?(offer)
+      offer_properties(offer, :give).empty? && offer_properties(offer, :receive).empty? &&
+        offer[:give_cash].to_i == offer[:receive_cash].to_i
+    end
+
     def valid_trade_offer?(state, offer = state[:trade_offer])
       return false if offer == nil || !active_players(state).include?(offer[:from]) || !active_players(state).include?(offer[:target])
       return false if same_user?(offer[:from], offer[:target])
       return false if offer[:give_cash] < 0 || offer[:receive_cash] < 0
-      return false if offer_properties(offer, :give).empty? && offer_properties(offer, :receive).empty? && offer[:give_cash] == offer[:receive_cash]
+      return false if offer[:give_cash] > TRADE_CASH_LIMIT || offer[:receive_cash] > TRADE_CASH_LIMIT
+      return false if empty_trade_offer?(offer)
       return false if offer[:give_cash] > 0 && state[:cash][offer[:from]].to_i + offer[:receive_cash] < offer[:give_cash]
       return false if offer[:receive_cash] > 0 && state[:cash][offer[:target]].to_i + offer[:give_cash] < offer[:receive_cash]
       offer_properties(offer, :give).each do |index|
@@ -1421,22 +1533,21 @@ module GameRoomGames
       offer["#{side}_properties".to_sym] || (offer["#{side}_property".to_sym].to_i >= 0 ? [offer["#{side}_property".to_sym]] : [])
     end
 
-    def trade_form_fields(state, player)
-      targets = active_players(state).reject { |other| same_user?(other, player) }
-      fields = [OptionDefinition.new(key: "target", label: _("Trade with"), kind: :choice,
-        choices: targets.map { |other| OptionChoice.new(value: player_index(state[:players], other), label: participant_name(other)) }),
+    def trade_form_fields(state, player, target)
+      own = tradeable_squares(state, player).map do |square|
+        OptionChoice.new(value: square[:index], label: property_name_and_group(square))
+      end
+      theirs = tradeable_squares(state, target).map do |square|
+        OptionChoice.new(value: square[:index], label: property_name_and_group(square))
+      end
+      own = [OptionChoice.new(value: nil, label: _("No matching property."))] if own.empty?
+      theirs = [OptionChoice.new(value: nil, label: _("No matching property."))] if theirs.empty?
+      [
         OptionDefinition.new(key: "give_cash", label: _("Money you offer"), kind: :integer, default: 0),
-        OptionDefinition.new(key: "receive_cash", label: _("Money you request"), kind: :integer, default: 0)]
-      tradeable_squares(state, player).each do |square|
-        fields << OptionDefinition.new(key: "give_#{square[:index]}", label: _("give %{property}") % { property: property_name_and_group(square) }, kind: :boolean, default: false)
-      end
-      targets.each do |target|
-        tradeable_squares(state, target).each do |square|
-          fields << OptionDefinition.new(key: "receive_#{square[:index]}", label: _("receive %{property}") % { property: property_name_and_group(square) }, kind: :boolean,
-            default: false, visible_if: { "target" => player_index(state[:players], target) })
-        end
-      end
-      fields
+        OptionDefinition.new(key: "receive_cash", label: _("Money you request"), kind: :integer, default: 0),
+        OptionDefinition.new(key: "give_properties", label: _("Your properties in the offer"), kind: :multiple_choice, choices: own),
+        OptionDefinition.new(key: "receive_properties", label: _("Requested properties from %{player}") % { player: participant_name(target) }, kind: :multiple_choice, choices: theirs)
+      ]
     end
 
     def monopoly_cash_reserve(state, player)
@@ -1572,7 +1683,12 @@ module GameRoomGames
     end
 
     def positions_text(state)
-      state[:players].map { |player| _("%{player}: %{square}") % { player: participant_name(player), square: current_square(state, player)[:name] } }.join("; ")
+      state[:players].map do |player|
+        square = current_square(state, player)
+        _("%{player}: field %{number}, %{square}") % {
+          player: participant_name(player), number: square[:index], square: square[:name]
+        }
+      end.join("; ")
     end
 
     def finances_text(state)
@@ -1642,8 +1758,19 @@ module GameRoomGames
       }.fetch(square[:group].to_s, square[:group].to_s)
     end
 
-    def property_choices(state)
-      labels = state[:board].select { |square| [:property, :railroad, :utility].include?(square[:type]) && yield(square) }.map { |square| deed_text(state, square) }
+    def property_choices(state, group_progress: false)
+      labels = state[:board].select { |square| [:property, :railroad, :utility].include?(square[:type]) && yield(square) }.map do |square|
+        text = deed_text(state, square)
+        if group_progress && square[:type] == :property
+          owner = state[:owners][square[:index]]
+          group = colour_group_squares(state, square[:group])
+          owned = group.count { |member| same_user?(state[:owners][member[:index]], owner) }
+          text = _("%{property}; group ownership %{owned} of %{total}.") % {
+            property: text.sub(/\.\z/, ""), owned: owned, total: group.length
+          }
+        end
+        text
+      end
       labels = [_('No matching property.')] if labels.empty?
       labels.each_with_index.map { |label, index| ShortcutChoice.new(value: index, label: label) }
     end

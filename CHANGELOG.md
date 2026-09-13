@@ -1,5 +1,47 @@
 # Historia zmian
 
+## Poprawki po buildzie 218 (niewydane)
+
+- Przejściowy błąd połączenia nie zamyka ekranu pokoju ani partii. Zachowany
+  jest ostatni poprawny stan i tekst czatu do czasu odzyskania połączenia.
+- Ujednolicono odzyskiwanie niepewnych ruchów ludzi, botów i automatycznych
+  przejść, np. przygotowania następnego pytania quizu. Ponowienie zachowuje
+  ten sam ruch i wynik losowania, a powtórzony wpis nie jest stosowany drugi raz.
+- Powiadomienia nie skracają przerwy wymaganej po błędzie 429. Nie dodano
+  okresowego odpytywania podczas prawidłowej rozgrywki. Sprawdzono celowane
+  awarie transportu i interfejsu; szczegóły: `docs/CONNECTION_RECOVERY_AFTER_218.md`.
+- Przebudowano wymiany w Monopoly: najpierw wybiera się gracza z listy, a
+  następnie ustala pieniądze i nieruchomości w dwóch listach pól wyboru.
+  Escape wraca do wyboru partnera, a rozpoczęcie układania oferty jest widoczne
+  dla pozostałych osób przy stole.
+- Cała oferta wymiany jest zapisywana w jednym zwartym zdarzeniu, mieszczącym
+  wszystkie nieruchomości także na planszach 60-polowych. Zbyt duże zdarzenie
+  jest odrzucane kontrolowanie zamiast zamykać Game Room.
+- Skrót I podaje numer pola razem z jego nazwą. Zwykłe listy posiadłości
+  pokazują przy ulicach, ile pól danej grupy ma ich właściciel.
+- Uproszczono komunikaty płatności między graczami i wpłat do puli Darmowego
+  parkingu.
+- Skompletowanie nowej grupy kolorystycznej odtwarza `hit1.ogg`, niezależnie
+  od tego, czy nastąpiło przez zakup, aukcję, wymianę czy bankructwo.
+
+## 1.1.7 — build 218 (kandydat do testów)
+
+- Polski zestaw Wiedźmin ma teraz trzy warianty: pełne 6571 pytań, 3292
+  pytania o gry oraz 3279 pytań o książki i ekranizacje.
+- Ponownie sprawdzono przypisanie medium wszystkich 6571 pytań. Poprawiono
+  2351 klasyfikacji względem dostarczonej mapy pomocniczej, także wśród jej
+  pozycji o średniej i wysokiej pewności.
+- Doprecyzowano naturalnie 5810 niejednoznacznych pytań, bez zmiany ich ID,
+  odpowiedzi, poziomu trudności ani kategorii tematycznej. Audyt nie jest
+  pełną weryfikacją merytoryczną wszystkich odpowiedzi.
+- Zestawy szczegółowe są tworzone leniwie ze wspólnej bazy, bez kopiowania
+  całych pytań do osobnych plików. Każdy zestaw ma wersję danych 2, własną
+  liczbę pytań i sumę kontrolną.
+- Dodano sprawdzenie kompletności podziału, braku duplikatów, polskich nazw,
+  rozpoczęcia i odtworzenia partii oraz binarnego wczytywania z paczki.
+- Zachowano wszystkie poprawki buildu 217. Nie zmieniono zasad Quiz Party,
+  punktacji, botów, transportu ani lokalnego zapisu ukrytych odpowiedzi.
+
 ## 1.1.7 — build 217 (kandydat do testów)
 
 - Naprawiono zbędny zapis podczas sprzątania już usuniętych odpowiedzi.

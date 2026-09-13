@@ -327,7 +327,19 @@
           "prompt": "Wierzym — w jakiej miejscowości lub lokacji mieszkała ta postać?"
         }
       ],
-      "checksum": "f0c574035b805bbb6c285d99a842c347817d2432b0d01d498254c3d9906420b9",
+      "data_version": 2,
+      "base_checksum": "f0c574035b805bbb6c285d99a842c347817d2432b0d01d498254c3d9906420b9",
+      "checksum": "dc5c73b141a2c58b482214d365e764475e8ac2fce944efeca08c4a20df51d1ab",
+      "derived_sets": {
+        "quiz.witcher.g.pl": {
+          "questions": 3292,
+          "checksum": "edfea37897aa97716812e26637958ff925a79a69aa81259d48b485e7ab4880ff"
+        },
+        "quiz.witcher.b.pl": {
+          "questions": 3279,
+          "checksum": "578f560d4d5cffe75292ca10fb97433560e8b6cb747806bea064a1f8e7765a87"
+        }
+      },
       "input_sha256": "28d76c227e5712251aacb1e4aa786c49a984d00816ec1d4fd2aa0131d0af16d2"
     }
   }

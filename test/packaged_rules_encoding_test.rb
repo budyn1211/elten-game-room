@@ -89,7 +89,7 @@ BinaryRulesLoad.load(File.join(BinaryRulesLoad::ROOT, "__app.rb"))
 registry = EltenGameRoom::GAME_REGISTRY
 raise "Lost games during binary loading" unless registry.ids.length == 17
 raise "Quiz Party was not loaded from binary sources" unless registry.ids.include?("quiz")
-%w[quiz.general.en quiz.wikidata.pl quiz.witcher.pl].each do |id|
+%w[quiz.general.en quiz.wikidata.pl quiz.witcher.pl quiz.witcher.g.pl quiz.witcher.b.pl].each do |id|
   pack = GameRoomContent.registry.pack(id)
   raise "Question data loaded eagerly" if pack.verified?
 end
@@ -110,7 +110,7 @@ GameRoomContent::MonopolyBoards.choices.each do |choice|
     raise "Binary field name in #{choice.value}" unless square[:name].encoding == Encoding::UTF_8
   end
 end
-%w[quiz.general.en quiz.wikidata.pl quiz.witcher.pl].each do |id|
+%w[quiz.general.en quiz.wikidata.pl quiz.witcher.pl quiz.witcher.g.pl quiz.witcher.b.pl].each do |id|
   pack = GameRoomContent.registry.pack(id)
   questions = pack.data.fetch("questions")
   raise "Binary lazy Quiz data failed to verify" unless pack.verified? && pack.entry_count == questions.length

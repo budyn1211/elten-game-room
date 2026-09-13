@@ -16,3 +16,7 @@ Dźwięki `connect.ogg` i `disconnect.ogg` zostały później zastąpione, a
 nie zawiera osobnego dokumentu potwierdzającego pierwotne źródło i licencję
 tych plików. Przed objęciem zasobów jednolitą licencją należy uzupełnić tę
 informację albo zastąpić je dźwiękami o jednoznacznej licencji.
+
+Dźwięk `hit1.ogg`, używany przy skompletowaniu grupy w Monopoly, pochodzi z
+dostarczonego zestawu Quentin Playroom. Dla tego pliku również nie ma w
+repozytorium osobnego potwierdzenia licencji.

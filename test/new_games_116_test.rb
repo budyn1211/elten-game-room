@@ -165,7 +165,9 @@ trade_state[:owners][1] = "Alice"
 trade_replay = GameRoomGames::Replay.new(players: players, current_player: "Alice", winner: nil,
   draw: false, accepted_events: [], history: [], state: trade_state)
 offer = monopoly.legal_actions(trade_replay, "Alice").find do |action|
-  action["action"] == "trade_offer" && action["offer"].start_with?("1|1|-1|")
+  next false if action["action"] != "trade_offer"
+  parsed = monopoly.send(:parse_trade_offer, trade_state, action["offer"])
+  parsed[:target] == "Bob" && parsed[:give_properties] == [1] && parsed[:receive_properties].empty?
 end
 assert(offer != nil, "Monopoly did not create a property sale proposal")
 trade_history = []
