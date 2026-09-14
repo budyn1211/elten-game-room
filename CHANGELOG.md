@@ -1,5 +1,12 @@
 # Historia zmian
 
+## 1.1.8 — build 223 (kandydat do testów)
+
+- Lista „Co nowego” jest teraz prawidłowo zapamiętywana po jej zamknięciu,
+  dlatego nie pojawia się ponownie przy każdym wejściu do Game Roomu.
+- Numer wersji i buildu jest wyświetlany raz jako nagłówek, a pod nim znajdują
+  się kolejne zmiany bez powtarzania numeru przy każdej pozycji.
+
 ## 1.1.8 — build 222 (kandydat do testów)
 
 - Aktualizacje gry i pokoju są odbierane również podczas naciskania klawisza

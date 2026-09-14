@@ -5,14 +5,18 @@ class Program
   def self.server_app(**_options); end
   def self.app_runtime; nil; end
 
-  def read_json(path, default:)
+  def self.test_json
     @test_json ||= {}
-    @test_json.fetch(path, default)
+  end
+
+  def read_json(path, default:)
+    self.class.test_json.fetch(path, default)
   end
 
   def update_json(path, default:)
-    @test_json ||= {}
-    @test_json[path] = yield(@test_json.fetch(path, default))
+    value = self.class.test_json.fetch(path, default)
+    yield(value)
+    self.class.test_json[path] = value
   end
 end
 
@@ -55,7 +59,11 @@ assert(GameRoomChangelog.pending_entries(nil, 220, entries: entries).empty?, "fi
 assert(GameRoomChangelog.available_entries(221, entries: entries).map(&:build) == [221], "future entries appeared in the manual list")
 
 lines = GameRoomChangelog.list_items(first_install)
-assert(lines.length == first_install.first.changes.length && lines.all? { |line| line.start_with?("Version 1.1.8, build 222:") }, "changelog entries were not flattened into readable rows")
+assert(lines.first == "Version 1.1.8, build 222", "the current build heading is incorrect")
+assert(lines.drop(1) == first_install.first.changes, "the build number is repeated for every change")
+missed_lines = GameRoomChangelog.list_items(missed)
+assert(missed_lines.count { |line| line.start_with?("Version ") } == 2, "missed builds do not have one heading each")
+assert(missed_lines.first == "Version 1.1.8, build 222", "missed builds are not shown newest first")
 
 resumes = 0
 captured_form = nil
@@ -88,12 +96,13 @@ app = EltenGameRoom.new
 app.send(:show_update_changelog)
 state = app.read_json(GameRoomChangelog::STORAGE_FILE, default: {})
 current_entry = GameRoomChangelog::ENTRIES.find { |entry| entry.build == EltenGameRoom::GAME_ROOM_BUILD_ID }
-expected_current_rows = current_entry.changes.length
+expected_current_rows = current_entry.changes.length + 1
 assert(shown.length == 1 && shown.first.length == expected_current_rows, "the current changelog was not shown on first launch")
 assert(state[GameRoomChangelog::LAST_SEEN_BUILD_KEY] == EltenGameRoom::GAME_ROOM_BUILD_ID, "closing the changelog did not mark the build as read")
-app.send(:show_update_changelog)
-assert(shown.length == 1, "the changelog was shown twice for the same build")
-app.send(:show_changelog)
+reopened_app = EltenGameRoom.new
+reopened_app.send(:show_update_changelog)
+assert(shown.length == 1, "the changelog was shown again after reopening Game Room")
+reopened_app.send(:show_changelog)
 assert(shown.length == 2, "the changelog could not be opened manually")
 
 assert(EltenGameRoom::MAIN_OPTIONS.last == "What's new", "the main menu has no What's new entry")

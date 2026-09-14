@@ -1,7 +1,7 @@
 module GameRoomChangelog
   STORAGE_FILE = "changelog.json".freeze
   LAST_SEEN_BUILD_KEY = "last_seen_build".freeze
-  ITEM_TEMPLATE = "Version %{version}, build %{build}: %{change}".freeze
+  ENTRY_TEMPLATE = "Version %{version}, build %{build}".freeze
 
   Entry = Struct.new(:version, :build, :changes, keyword_init: true)
 
@@ -23,6 +23,13 @@ module GameRoomChangelog
         "A What's new list is shown once after an update and remains available from the main menu.",
         "Game Room notifications use their own notice sound. Joining a table also clears invitations and notifications for that table.",
         "After playing Wild or Wild Draw Four in UNO, colours are offered in the order yellow, red, blue, green."
+      ].freeze
+    ).freeze,
+    Entry.new(
+      version: "1.1.8",
+      build: 223,
+      changes: [
+        "The What's new list is remembered correctly after closing it and groups all changes under a single version and build heading."
       ].freeze
     ).freeze
   ].freeze
@@ -48,13 +55,11 @@ module GameRoomChangelog
   def list_items(entries, translator: nil)
     translate = translator || ->(text) { text }
     entries.flat_map do |entry|
-      entry.changes.map do |change|
-        translate.call(ITEM_TEMPLATE) % {
-          version: entry.version,
-          build: entry.build,
-          change: translate.call(change)
-        }
-      end
+      heading = translate.call(ENTRY_TEMPLATE) % {
+        version: entry.version,
+        build: entry.build
+      }
+      [heading] + entry.changes.map { |change| translate.call(change) }
     end
   end
 end

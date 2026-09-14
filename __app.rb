@@ -4,7 +4,7 @@
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
   "version": "1.1.8",
-  "build_id": "222",
+  "build_id": "223",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -89,7 +89,7 @@ require_relative "games/registry"
 
 class EltenGameRoom < Program
   GAME_ROOM_VERSION = "1.1.8".freeze
-  GAME_ROOM_BUILD_ID = 222
+  GAME_ROOM_BUILD_ID = 223
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
   NOTIFICATION_CONTACT_CACHE_SECONDS = 5 * 60
@@ -537,14 +537,14 @@ class EltenGameRoom < Program
 
   def remember_changelog_build
     update_json(GameRoomChangelog::STORAGE_FILE, default: {}) do |state|
-      result = state.is_a?(Hash) ? state.dup : {}
+      raise TypeError, "invalid changelog state" if !state.is_a?(Hash)
+
       previous = begin
-        Integer(result[GameRoomChangelog::LAST_SEEN_BUILD_KEY])
+        Integer(state[GameRoomChangelog::LAST_SEEN_BUILD_KEY])
       rescue StandardError
         0
       end
-      result[GameRoomChangelog::LAST_SEEN_BUILD_KEY] = [previous, GAME_ROOM_BUILD_ID].max
-      result
+      state[GameRoomChangelog::LAST_SEEN_BUILD_KEY] = [previous, GAME_ROOM_BUILD_ID].max
     end
   rescue StandardError => error
     Log.warning("ELTEN Game Room changelog state could not be saved: #{error.class}: #{error.message}") if defined?(Log)
