@@ -4,7 +4,7 @@
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
   "version": "1.1.8",
-  "build_id": "221",
+  "build_id": "222",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -20,7 +20,7 @@
   },
   "required_assets": {
     "sounds": [
-      "connect", "disconnect", "chatmsg", "buzzer2", "ding", "shuffle", "draw", "draw2",
+      "connect", "disconnect", "chatmsg", "notice", "buzzer2", "ding", "shuffle", "draw", "draw2",
       "farkle", "hit1", "interception", "lose1", "lose3", "play", "play2", "replay",
       "reverse", "reverse3", "roll", "skip", "win1", "win2"
     ]
@@ -35,6 +35,7 @@ require_relative "lib/game_room_server_tables"
 require_relative "lib/game_room_user_registry"
 require_relative "lib/table_activity_repository"
 require_relative "lib/game_rules"
+require_relative "lib/game_room_changelog"
 require_relative "lib/game_room_screens"
 require_relative "lib/invitation_repository"
 require_relative "lib/invitation_notifications"
@@ -88,7 +89,7 @@ require_relative "games/registry"
 
 class EltenGameRoom < Program
   GAME_ROOM_VERSION = "1.1.8".freeze
-  GAME_ROOM_BUILD_ID = 221
+  GAME_ROOM_BUILD_ID = 222
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
   NOTIFICATION_CONTACT_CACHE_SECONDS = 5 * 60
@@ -130,7 +131,8 @@ class EltenGameRoom < Program
     _("Game rules"),
     _("Invitations"),
     _("Leaderboards"),
-    _("Settings")
+    _("Settings"),
+    _("What's new")
   ].freeze
 
   GAME_REGISTRY = GameRoomGames::Registry.new([
@@ -216,7 +218,11 @@ class EltenGameRoom < Program
   def self.map_notification(notification)
     metadata = notification.metadata.to_h
     settings = normalized_settings
-    sound = settings["invitation_sounds"] ? "notification" : nil
+    sound = nil
+    if settings["invitation_sounds"]
+      notice_sound = respond_to?(:sound_asset_path) ? sound_asset_path("notice") : nil
+      sound = notice_sound || "notice"
+    end
     case notification.type.to_s
     when "game_room.invitation"
       presentation = notification.presentation(
@@ -247,6 +253,7 @@ class EltenGameRoom < Program
 
   def program_main
     initialize_services
+    show_update_changelog
     check_server_table_access
     current = run_network_task(_("Checking your current table")) do
       @transport.start
@@ -486,7 +493,61 @@ class EltenGameRoom < Program
       alert(_("Leaderboards will become available after the first playable game is added."))
     when 5
       show_settings
+    when 6
+      show_changelog
     end
+  end
+
+  def show_update_changelog
+    return if !respond_to?(:read_json, true) || !respond_to?(:update_json, true)
+
+    entries = GameRoomChangelog.pending_entries(
+      last_seen_changelog_build,
+      GAME_ROOM_BUILD_ID
+    )
+    return if entries.empty?
+
+    show_changelog_entries(entries)
+    remember_changelog_build
+  end
+
+  def show_changelog
+    entries = GameRoomChangelog.available_entries(GAME_ROOM_BUILD_ID)
+    return if entries.empty?
+
+    show_changelog_entries(entries)
+    remember_changelog_build
+  end
+
+  def show_changelog_entries(entries)
+    items = GameRoomChangelog.list_items(entries, translator: ->(text) { _(text) })
+    GameRoomScreens::Changelog.new(items).wait
+  end
+
+  def last_seen_changelog_build
+    state = read_json(GameRoomChangelog::STORAGE_FILE, default: {})
+    value = state.is_a?(Hash) ? state[GameRoomChangelog::LAST_SEEN_BUILD_KEY] : nil
+    return nil if value == nil
+
+    Integer(value)
+  rescue StandardError => error
+    Log.warning("ELTEN Game Room changelog state could not be read: #{error.class}: #{error.message}") if defined?(Log)
+    nil
+  end
+
+  def remember_changelog_build
+    update_json(GameRoomChangelog::STORAGE_FILE, default: {}) do |state|
+      result = state.is_a?(Hash) ? state.dup : {}
+      previous = begin
+        Integer(result[GameRoomChangelog::LAST_SEEN_BUILD_KEY])
+      rescue StandardError
+        0
+      end
+      result[GameRoomChangelog::LAST_SEEN_BUILD_KEY] = [previous, GAME_ROOM_BUILD_ID].max
+      result
+    end
+  rescue StandardError => error
+    Log.warning("ELTEN Game Room changelog state could not be saved: #{error.class}: #{error.message}") if defined?(Log)
   end
 
   def show_rules_library
@@ -651,17 +712,41 @@ class EltenGameRoom < Program
 
     run_network_task(_("Joining table")) do
       selected_table = snapshot.table
+      pending_invitations = pending_invitations_for_table(selected_table)
       connected = establish_table_transport(selected_table, bootstrap: true)
       next :transport_failed if !connected
 
       joined = @lobby.join_table(selected_table, Session.name, announce: false)
       if joined&.entered?
         @lobby.announce_table_joined(joined.table, joined.members, actor: Session.name) if joined.status == :joined
+        complete_joined_table_invitations(joined.table, pending_invitations)
       else
         @transport.deactivate_table(table_id: @lobby.table_id(selected_table))
       end
       joined
     end
+  end
+
+  def pending_invitations_for_table(row)
+    return [] if row == nil
+
+    @invitations.pending_for(Session.name, tables: [row]).select do |invitation|
+      invitation.table_id == @lobby.table_id(row)
+    end
+  rescue StandardError => error
+    Log.warning("ELTEN Game Room joined-table invitation lookup failed: #{error.class}: #{error.message}") if defined?(Log)
+    []
+  end
+
+  def complete_joined_table_invitations(row, invitations)
+    invitations.to_a.each do |invitation|
+      begin
+        @invitations.respond(invitation, recipient: Session.name, response: "accepted")
+      rescue StandardError => error
+        Log.warning("ELTEN Game Room joined-table invitation response failed: #{error.class}: #{error.message}") if defined?(Log)
+      end
+    end
+    revoke_table_invitation_notifications(@lobby.table_id(row))
   end
 
   def select_game(header, game_ids)
@@ -986,7 +1071,7 @@ class EltenGameRoom < Program
       form.add_timer(FormTimer.new(GameScreen::TIMER_INTERVAL, repeat: true) do
         next if action != nil
 
-        event = synchronizer.next_event(idle: form.keyboard_idle_frame?)
+        event = synchronizer.next_event
         next if event == nil
 
         action = event.kind == :closed ? :closed : :refresh
@@ -1464,6 +1549,14 @@ class EltenGameRoom < Program
     true
   rescue StandardError => error
     Log.warning("ELTEN Game Room invitation notification cleanup failed: #{error.class}: #{error.message}") if defined?(Log)
+    false
+  end
+
+  def revoke_table_invitation_notifications(table_id)
+    @invitation_notifications.revoke_for_table(table_id)
+    true
+  rescue StandardError => error
+    Log.warning("ELTEN Game Room table invitation notification cleanup failed: #{error.class}: #{error.message}") if defined?(Log)
     false
   end
 

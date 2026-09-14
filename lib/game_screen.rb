@@ -1,5 +1,6 @@
 require_relative "game_bots"
 require_relative "game_participants"
+require_relative "game_repository"
 require_relative "game_layout"
 require_relative "game_sync"
 require_relative "game_simulation"
@@ -267,7 +268,7 @@ class GameScreen
     back.on(:press) { form.resume }
     form.cancel_button = back
     form.add_timer(FormTimer.new(TIMER_INTERVAL, repeat: true) do
-      event = synchronizer.next_event(idle: form.keyboard_idle_frame?)
+      event = synchronizer.next_event
       if event != nil
         result = event
         form.resume_for_refresh
@@ -478,7 +479,6 @@ class GameScreen
       announce_due_timers(replay)
       automatic_due = automatic_action_due?(replay)
       sync_event = @synchronizer.next_event(
-        idle: form.keyboard_idle_frame?,
         allow_recovery: recovery_allowed?(automatic_due, bot_actor)
       )
       local_action = if replay.finished? || connection_recovery_pending?

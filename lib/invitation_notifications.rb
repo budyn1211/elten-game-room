@@ -28,20 +28,57 @@ class InvitationNotifications
     ids.length
   end
 
+  def revoke_for_table(table_id)
+    wanted = table_id.to_i
+    return 0 if wanted <= 0
+
+    ids = @gateway
+      .list(@client, all: false, app_uuids: [@app_uuid])
+      .to_a
+      .filter_map { |notification| matching_table_notification_id(notification, wanted) }
+      .uniq
+    return 0 if ids.empty?
+
+    @gateway.revoke_many(@client, ids)
+    ids.length
+  end
+
   private
 
   def matching_notification_id(notification, invitation_id)
+    metadata = invitation_metadata(notification)
+    return nil if metadata == nil
+    return nil if hash_value(metadata, "invitation_id").to_i != invitation_id
+
+    notification_id(notification)
+  end
+
+  def matching_table_notification_id(notification, table_id)
+    metadata = invitation_metadata(notification)
+    return nil if metadata == nil
+    return nil if hash_value(metadata, "table_id").to_i != table_id
+
+    notification_id(notification)
+  end
+
+  def invitation_metadata(notification)
     return nil if notification.respond_to?(:revoked) && notification.revoked == true
     return nil if !same_app?(notification)
 
-    payload = notification.respond_to?(:payload) ? notification.payload : nil
-    return nil if !payload.is_a?(Hash)
-    return nil if hash_value(payload, "type").to_s != NOTIFICATION_TYPE
+    type = notification.respond_to?(:type) ? notification.type.to_s : ""
+    metadata = notification.respond_to?(:metadata) ? notification.metadata : nil
+    if type.empty? || !metadata.is_a?(Hash)
+      payload = notification.respond_to?(:payload) ? notification.payload : nil
+      return nil if !payload.is_a?(Hash)
+      type = hash_value(payload, "type").to_s
+      metadata = hash_value(payload, "metadata")
+    end
+    return nil if type != NOTIFICATION_TYPE || !metadata.is_a?(Hash)
 
-    metadata = hash_value(payload, "metadata")
-    return nil if !metadata.is_a?(Hash)
-    return nil if hash_value(metadata, "invitation_id").to_i != invitation_id
+    metadata
+  end
 
+  def notification_id(notification)
     id = notification.respond_to?(:id) ? notification.id.to_i : 0
     id > 0 ? id : nil
   end

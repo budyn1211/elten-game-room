@@ -43,34 +43,27 @@ controller = GameRoomSync::Controller.new(
 )
 
 assert(controller.next_reconcile_at.infinite?, "periodic reconciliation was not disabled")
-assert(controller.next_event(idle: true) == nil, "reconciliation ran before it was due")
+assert(controller.next_event == nil, "reconciliation ran before it was due")
 
 transport.recoveries[7] = true
-assert(controller.next_event(idle: false) == nil, "a LiveSessions gap interrupted active input")
-assert(transport.recoveries[7] == true, "a LiveSessions gap was consumed during active input")
-event = controller.next_event(idle: true)
-assert(event.kind == :recovery, "a LiveSessions gap did not trigger reconciliation")
+event = controller.next_event
+assert(event.kind == :recovery, "a LiveSessions gap was blocked by keyboard activity")
 
 transport.game_starts[7] = 12
 transport.game_changes[11] = 99.5
 transport.table_changes[7] = true
-assert(controller.next_event(idle: false) == nil, "a LiveSessions update interrupted active input")
-assert(transport.game_starts[7] == 12, "a game start was consumed during active input")
-assert(transport.game_changes[11] == 99.5, "a game change was consumed during active input")
-assert(transport.table_changes[7] == true, "a table change was consumed during active input")
-event = controller.next_event(idle: true)
+event = controller.next_event
 assert(event.kind == :game_started && event.session_id == 12, "a new game did not have first priority")
-event = controller.next_event(idle: true)
+event = controller.next_event
 assert(event.kind == :game_changed && event.received_at == 99.5, "a game change lost its receive time")
-event = controller.next_event(idle: true)
+event = controller.next_event
 assert(event.kind == :table_changed, "a table change was not returned after the game change")
 
 now = 103.0
-assert(controller.next_event(idle: true) == nil, "a periodic reconciliation still ran")
+assert(controller.next_event == nil, "a periodic reconciliation still ran")
 controller.request_recovery!
-assert(controller.next_event(idle: false) == nil, "recovery interrupted active keyboard input")
-assert(controller.next_event(idle: true, allow_recovery: false) == nil, "a caller could not postpone recovery")
-event = controller.next_event(idle: true)
+assert(controller.next_event(allow_recovery: false) == nil, "a caller could not postpone recovery")
+event = controller.next_event
 assert(event.kind == :recovery, "requested recovery was not returned")
 
 now = 104.0

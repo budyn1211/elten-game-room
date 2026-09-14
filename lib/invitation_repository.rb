@@ -124,6 +124,7 @@ class InvitationRepository
       return @transport.pending_invitations.filter_map do |row|
         next if !same_user?(row["recipient"], recipient)
         next if row["expires_at"].to_i.positive? && row["expires_at"].to_i <= now.to_i
+        next if @responses.key?([row_id(row), recipient.to_s.downcase])
 
         table = table_by_id[row["table_id"].to_i]
         table == nil ? nil : PendingInvitation.new(invitation: row, table: table)

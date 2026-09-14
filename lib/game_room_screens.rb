@@ -3,6 +3,23 @@ require_relative "context_help"
 module GameRoomScreens
   MenuResult = Struct.new(:action, :index, keyword_init: true)
 
+  class Changelog
+    def initialize(items)
+      @items = items.to_a.map(&:to_s)
+    end
+
+    def wait
+      list = ListBox.new(@items, header: _("What's new"), index: 0, quiet: true)
+      close_button = Button.new(_("Close"))
+      form = Form.new([list, close_button], quiet: true)
+      form.accept_button = close_button
+      form.cancel_button = close_button
+      form.hide(close_button)
+      close_button.on(:press) { form.resume }
+      form.wait
+    end
+  end
+
   class MainMenu
     def initialize(options:, history_items: [], index: 0, invitations: false, refresh: nil)
       @options = options

@@ -15,7 +15,7 @@ module EltenAPI::Tasks
 end
 
 def drain_wakeups(sync)
-  20.times { return if sync.next_event(idle: true).nil? }
+  20.times { return if sync.next_event.nil? }
   raise "wakeups did not settle"
 end
 
@@ -119,7 +119,7 @@ end
       sync.synchronize(complete: false) { h.transports["Bob"].room_snapshot(h.table) }
       assert(sync.next_reconcile_at.finite?, "room refresh swallowed the recovery")
       clock[0] = 200.0
-      assert(sync.next_event(idle: true).kind == :recovery, "no recovery wakeup")
+      assert(sync.next_event.kind == :recovery, "no recovery wakeup")
       result = sync.synchronize { screen.send(:recover_game_update, h.repositories["Bob"].events_revision(h.events("Bob"))) }
       assert(result[3] == :refresh, "recovery did not wake the automatic-action loop")
       fresh = h.replay("Bob")
@@ -144,7 +144,7 @@ check.call("a failed new-game switch keeps its target until recovery succeeds") 
   newest = h.session
   h.broker.automatic_delivery = false
   h.write("Alice", [GameRoomGames::EventCommand.new(action: "tick", value: "new game")])
-  event = sync.next_event(idle: true)
+  event = sync.next_event
   assert(event.kind == :game_started, "missing new-game notification")
   screen.instance_variable_set(:@new_session_id, event.session_id)
   h.view("Bob").fail_next_read = EltenAPI::LiveSessions::TimeoutError.new("switch failed")
@@ -157,10 +157,10 @@ check.call("a failed new-game switch keeps its target until recovery succeeds") 
   assert(sync.next_reconcile_at.finite?, "chat cancelled the pending game switch")
   sync.synchronize(complete: false) { h.repositories["Bob"].snapshot_for(old) }
   clock[0] = 200.0
-  event = sync.next_event(idle: true)
+  event = sync.next_event
   if event.kind == :table_changed
     sync.synchronize(complete: false) { h.transports["Bob"].room_snapshot(h.table) }
-    event = sync.next_event(idle: true)
+    event = sync.next_event
   end
   assert(event.kind == :recovery, "room update cancelled the pending switch")
   result = sync.synchronize { screen.send(:recover_game_update, [0, 0]) }

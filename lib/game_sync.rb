@@ -40,13 +40,12 @@ module GameRoomSync
       self
     end
 
-    def next_event(idle:, allow_recovery: true)
-      # Form#resume performs one last host input update before the old form is
-      # discarded.  Do not consume a wake-up while a key is active, otherwise
-      # a character queued by that final update can be spoken but never reach
-      # the replacement edit field.
-      return nil if !idle
-
+    def next_event(allow_recovery: true)
+      # LiveSessions delivery must not depend on the host keyboard state. A
+      # missed key-release can otherwise strand every following update until
+      # the user changes scenes. The shared layout keeps the active edit
+      # control, and resume_for_refresh avoids the extra input update which
+      # used to consume a queued character during maintenance refreshes.
       recovery = @transport.consume_recovery(@table_id) if @transport.respond_to?(:consume_recovery)
       if recovery == :closed
         synchronized!

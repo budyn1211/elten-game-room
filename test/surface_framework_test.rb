@@ -220,6 +220,31 @@ persistent_chat_layout = GameRoomLayout::Screen.new(
 )
 assert(persistent_chat_layout.chat.equal?(layout.chat), "a refresh replaced the active chat control")
 assert(persistent_chat_layout.chat.text == "draft message", "a refresh restored a stale chat copy")
+persistent_chat_layout.form.index = persistent_chat_layout.form.fields.index(persistent_chat_layout.chat)
+persistent_chat_layout.chat.index = 8
+persistent_chat_layout.chat.check = 8
+persistent_chat_layout.form.resume_for_refresh
+persistent_chat_layout.update(
+  view_spec: layout_spec,
+  history_items: ["Remote move", "Another remote move"],
+  user_items: ["Alice", "Bob"],
+  users_header: "Users at the table (2)",
+  focus_location: [:chat, 0]
+)
+assert(persistent_chat_layout.chat.equal?(layout.chat), "a live update replaced the chat being edited")
+assert(
+  [persistent_chat_layout.chat.text, persistent_chat_layout.chat.index, persistent_chat_layout.chat.check] ==
+    ["draft message", 8, 8],
+  "a live update changed the chat text or selection"
+)
+persistent_chat_layout.chat.text =
+  persistent_chat_layout.chat.text.dup.insert(persistent_chat_layout.chat.index, "X")
+persistent_chat_layout.chat.index += 1
+persistent_chat_layout.chat.check = persistent_chat_layout.chat.index
+assert(
+  persistent_chat_layout.chat.text == "draft meXssage" && persistent_chat_layout.chat.index == 9,
+  "the first character typed after a live update was lost"
+)
 submit_result = []
 persistent_chat_layout.chat.on_submit { submit_result << :old }
 persistent_chat_layout.chat.on_submit { submit_result << :current }

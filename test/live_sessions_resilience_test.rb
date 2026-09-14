@@ -21,7 +21,7 @@ settle = lambda do |stage|
   h.users.each do |user|
     controller = controllers[user]
     12.times do
-      event = controller.next_event(idle: true)
+      event = controller.next_event
       break if event == nil
       controller.synchronize do
         current = h.repositories[user].session_for_table(h.table)
@@ -51,7 +51,7 @@ batches.times do |batch|
       controller = controllers[actor]
       controller.failed!(error)
       recovery_clock += GameRoomSync::ERROR_BACKOFF + 1
-      assert(controller.next_event(idle: true).kind == :recovery, "uncertain move lost its recovery")
+      assert(controller.next_event.kind == :recovery, "uncertain move lost its recovery")
       # Resolve through the common recovery path. If absent, retry the SAME
       # operation identity instead of silently dropping a pre-commit failure.
       h.as(actor) { controller.synchronize { h.events(actor) } }
@@ -94,7 +94,7 @@ rescue EltenAPI::LiveSessions::TimeoutError
 end
 clock = GameRoomSync::ERROR_BACKOFF + 1
 # Drain initial room events as well as the scheduled retry.
-events = 5.times.filter_map { read_controller.next_event(idle: true) }
+events = 5.times.filter_map { read_controller.next_event }
 assert(events.any? { |event| event.kind == :recovery }, "failed native read did not schedule recovery")
 read_controller.synchronize { gap.events("Dave") }
 gap.assert_converged("failed native read followed by recovery", expected_count: 3)

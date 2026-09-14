@@ -85,8 +85,8 @@ assert(game.bot_move_delay(pending, "Alice", context: context_for) == 0.0,
 
 choice_surface = game.surface_spec(pending, "Alice")
 assert(choice_surface.zones.first.id == "colour_choice", "The colour selector did not replace the hand")
-assert(choice_surface.zones.first.cards.map(&:id) == GameRoomGames::Uno::COLORS,
-  "The colour selector does not contain the current deck colours")
+assert(choice_surface.zones.first.cards.map(&:id) == %w[Y R B G],
+  "The Wild colour selector is not ordered yellow, red, blue, green")
 
 status, colour_plan = game.action_for(
   { "kind" => "card", "action" => "select", "card_id" => "G", "card" => "G" },
@@ -113,6 +113,9 @@ assert(applied && state[:pending_draw] == 4 && state[:challenge_player] == nil,
 assert(history.map(&:text) == ["Alice played wild draw four."],
   "Wild Draw Four exposed its colour in the physical play event")
 draw_four_pending = uno_wild_replay(state, history)
+draw_four_surface = game.surface_spec(draw_four_pending, "Alice")
+assert(draw_four_surface.zones.first.cards.map(&:id) == %w[Y R B G],
+  "The Wild Draw Four colour selector is not ordered yellow, red, blue, green")
 spoken = game.describe_event({ "id" => 10, "actor" => "Alice", "action" => "play", "value" => "NF0||0" },
   NewGames116Repository.new(state[:players]), draw_four_pending, "Alice")
 assert(spoken == ["Alice played wild draw four.", "Choose a colour."],

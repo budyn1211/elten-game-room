@@ -6,8 +6,9 @@ module GameRoomGames
   class Uno < CardGame
     COLORS = %w[R Y G B].freeze
     DARK_COLORS = %w[O P T U].freeze
-    # Presentation order only: preserve deck construction and colour choices.
-    SORT_COLORS = (%w[Y R B G] + DARK_COLORS).freeze
+    COLOUR_CHOICE_ORDER = %w[Y R B G].freeze
+    # Presentation order only: preserve deck construction.
+    SORT_COLORS = (COLOUR_CHOICE_ORDER + DARK_COLORS).freeze
     COLOR_NAMES = {
       "R" => _("red"), "Y" => _("yellow"), "G" => _("green"), "B" => _("blue"),
       "O" => _("orange"), "P" => _("pink"), "T" => _("teal"), "U" => _("purple")
@@ -349,7 +350,7 @@ module GameRoomGames
     def surface_spec(replay, viewer)
       state = replay.state
       if colour_choice_pending?(state) && same_user?(state[:colour_choice_player], viewer)
-        colours = available_colors(state).map do |colour|
+        colours = colour_choice_order(state).map do |colour|
           GameSurfaces::Card.new(id: colour, label: COLOR_NAMES.fetch(colour), value: colour,
             choices: [], sort_keys: {})
         end
@@ -1138,6 +1139,10 @@ module GameRoomGames
 
     def available_colors(state)
       state[:side] == :dark ? DARK_COLORS : COLORS
+    end
+
+    def colour_choice_order(state)
+      state[:side] == :dark ? DARK_COLORS : COLOUR_CHOICE_ORDER
     end
 
     def all_colors

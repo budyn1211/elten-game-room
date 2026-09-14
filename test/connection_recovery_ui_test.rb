@@ -31,7 +31,7 @@ def ui_fixture
   clock = [0.0]
   sync = GameRoomSync::Controller.new(transport: h.transports["Alice"], table_id: h.table["__id"],
     session_id: h.session["__id"], clock: -> { clock[0] })
-  10.times { sync.next_event(idle: true) }
+  10.times { sync.next_event }
   screen = GameScreen.new(program: ProgramDouble.new(h.broker.endpoint("Alice")),
     repository: h.repositories["Alice"], game: h.game, session: h.session,
     table: h.table, table_owner: "Alice", synchronizer: sync,
@@ -68,10 +68,10 @@ screen.define_singleton_method(:wait_for_action) do |replay, _revision, **_optio
     assert(!@pending_event_ids.empty?, "cached game falsely rejected an unverified move")
     assert(sync.waiting?, "failed ordinary read did not schedule recovery")
     assert([chat.text, chat.index, chat.check] == ["unfinished text", 8, 3], "read failure lost the chat draft")
-    20.times { sync.next_event(idle: true) }
+    20.times { sync.next_event }
     assert(h.view("Alice").calls[:read] == reads + 1, "backoff still polled")
     clock[0] = 31
-    assert(sync.next_event(idle: true).kind == :recovery, "cached screen has no recovery wake-up")
+    assert(sync.next_event.kind == :recovery, "cached screen has no recovery wake-up")
     :refresh
   when 3
     assert(replay.accepted_events.length == 2, "recovery did not replay both moves")
@@ -103,7 +103,7 @@ puts "PASS: failure before first snapshot waits without an empty/closed game pro
 h, screen, sync, clock = ui_fixture
 sync.failed!(EltenAPI::LiveSessions::TimeoutError.new("outage"))
 h.view("Alice").close
-event = sync.next_event(idle: true)
+event = sync.next_event
 assert(event.kind == :closed && !sync.waiting?, "confirmed closure waited for the retry timeout")
 puts "PASS: confirmed room closure bypasses an unrelated network backoff"
 

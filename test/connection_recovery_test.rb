@@ -26,7 +26,7 @@ Time.singleton_class.prepend(RecoveryClock)
 def controller_for(h, user, clock)
   sync = GameRoomSync::Controller.new(transport: h.transports[user],
     table_id: h.table["__id"], session_id: h.session["__id"], clock: -> { clock[0] })
-  10.times { sync.next_event(idle: true) }
+  10.times { sync.next_event }
   sync.synchronized!
 end
 
@@ -80,10 +80,10 @@ end
       raise "a new plan replaced the uncertain one"
     rescue GameRoomNetworkErrors::PendingMove
     end
-    assert(sync.next_event(idle: true).nil?, "retry ignored the backoff")
+    assert(sync.next_event.nil?, "retry ignored the backoff")
     pushes = view.calls[:push]
     clock[0] = 31
-    assert(sync.next_event(idle: true).kind == :recovery, "no retry after failure")
+    assert(sync.next_event.kind == :recovery, "no retry after failure")
     sync.synchronize { h.events("Alice") }
     attempts = view.instance_variable_get(:@push_attempts)
     assert(view.calls[:push] == pushes + (fault == :before ? 1 : 0), "wrong number of retry writes")
@@ -92,7 +92,7 @@ end
     h.assert_converged("#{fault} failure", expected_count: 1)
     assert(h.events("Bob").first["value"] == packet.value, "random plan was replaced")
     before = h.users.to_h { |u| [u, h.view(u).calls.dup] }
-    100.times { sync.next_event(idle: true); h.events("Alice") }
+    100.times { sync.next_event; h.events("Alice") }
     assert(h.users.all? { |u| h.view(u).calls == before[u] }, "healthy state started polling")
   end
 end
@@ -226,7 +226,7 @@ check.call("reopening a screen recovers its pending move without planning it aga
   reopened = GameRoomSync::Controller.new(transport: h.transports["Alice"], table_id: h.table["__id"], clock: -> { clock[0] })
   assert(reopened.waiting? && reopened.next_reconcile_at == 95, "new screen lost pending state or Retry-After")
   clock[0] = 96
-  assert(reopened.next_event(idle: true).kind == :recovery, "new screen needs another move to trigger recovery")
+  assert(reopened.next_event.kind == :recovery, "new screen needs another move to trigger recovery")
   reopened.synchronize { h.events("Alice") }
   assert(h.view("Alice").instance_variable_get(:@push_attempts).last == original, "reopening recreated the move")
   h.assert_converged("reopened screen", expected_count: 1)
@@ -240,16 +240,15 @@ check.call("429 recovery obeys Retry-After despite new gaps and room/chat wake-u
   error = EltenLink::Error.new("rate_limits.exceeded")
   error.define_singleton_method(:retry_after) { 90 }
   h.broker.endpoint("Bob").report_error(error)
-  assert(sync.next_event(idle: true).nil? && sync.next_reconcile_at == 90, "native error did not schedule advertised delay")
+  assert(sync.next_event.nil? && sync.next_reconcile_at == 90, "native error did not schedule advertised delay")
   clock[0] = 10
   h.view("Bob").instance_variable_get(:@gap_callbacks).each { |cb| cb.call({}) }
   h.write("Alice", [GameRoomGames::EventCommand.new(action: "tick", value: "changed")])
-  assert(sync.next_event(idle: true).nil? && sync.next_reconcile_at == 90, "gap bypassed Retry-After")
+  assert(sync.next_event.nil? && sync.next_reconcile_at == 90, "gap bypassed Retry-After")
   sync.synchronize(complete: false) { :cached_chat }
   assert(sync.next_reconcile_at == 90, "chat discarded the pending recovery")
   clock[0] = 90
-  assert(sync.next_event(idle: false).nil?, "recovery consumed an active character")
-  assert(sync.next_event(idle: true).kind == :recovery, "retry never became due")
+  assert(sync.next_event.kind == :recovery, "retry never became due without keyboard activity")
   h.view("Bob").fail_next_read = error
   begin
     sync.synchronize { h.events("Bob") }
@@ -257,7 +256,7 @@ check.call("429 recovery obeys Retry-After despite new gaps and room/chat wake-u
   end
   assert(sync.next_reconcile_at == 180, "429 during recovery was not retained")
   clock[0] = 180
-  assert(sync.next_event(idle: true).kind == :recovery, "second retry was lost")
+  assert(sync.next_event.kind == :recovery, "second retry was lost")
   sync.synchronize { h.events("Bob") }
   assert(!sync.recovery_pending?, "recovery did not finish")
   h.assert_converged("429 recovery", expected_count: 1)
@@ -310,7 +309,7 @@ end
         # The host's existing control/recovery path delivers missed stack
         # messages. No new Game Room inactivity timer or polling is involved.
         h.broker.deliver(user: "Bob", duplicate: true)
-        assert(sync.next_event(idle: true).kind == :game_changed, "recovered native message did not wake the screen")
+        assert(sync.next_event.kind == :game_changed, "recovered native message did not wake the screen")
       else
         h.view(user).fail_next_push = fault
         assert(!screen.send(:perform_automatic_action, old), "uncertain transition reported success")
@@ -321,7 +320,7 @@ end
         clock[0] = 31
         $recovery_now = 1035
         fixture.contexts.each_value { |context| context.now = $recovery_now }
-        assert(sync.next_event(idle: true).kind == :recovery, "human-only quiz has no recovery wake-up")
+        assert(sync.next_event.kind == :recovery, "human-only quiz has no recovery wake-up")
         reads = h.view(user).calls[:read]
         result = sync.synchronize { screen.send(:recover_game_update, h.repositories[user].events_revision(old.accepted_events)) }
         assert(result[3] == :refresh, "next-question screen did not wake up")
@@ -372,7 +371,7 @@ check.call("human writes share uncertainty recovery and report a replay rejectio
     assert(!screen.send(:submit_action, replay), "failed human write reported success")
     assert(!screen.send(:submit_action, replay) && plans == 1, "human plan was recreated while uncertain")
     clock[0] = 31
-    sync.next_event(idle: true)
+    sync.next_event
     sync.synchronize { screen.send(:recover_game_update, [0, 0]) }
     # Transport confirmation is not game-rule acceptance. A stale human move
     # rejected by replay must use the existing choose-again message once.

@@ -1,0 +1,120 @@
+require_relative "support/ui"
+require_relative "support/log"
+
+class Program
+  def self.server_app(**_options); end
+  def self.app_runtime; nil; end
+
+  def read_json(path, default:)
+    @test_json ||= {}
+    @test_json.fetch(path, default)
+  end
+
+  def update_json(path, default:)
+    @test_json ||= {}
+    @test_json[path] = yield(@test_json.fetch(path, default))
+  end
+end
+
+module Session
+  def self.name; "Alice"; end
+end
+
+module EltenLink
+  class Error < StandardError; end
+  class Client; end
+  module Contacts; end
+end
+
+module EltenAPI
+  module LiveSessions
+    class Error < StandardError; end
+    class TimeoutError < Error; end
+    class SessionClosed < Error; end
+    class StackFull < Error; end
+  end
+
+  module Tasks
+    class Cancelled < StandardError; end
+  end
+end
+
+require_relative "../__app"
+
+def assert(condition, message)
+  raise message if !condition
+end
+
+entries = GameRoomChangelog::ENTRIES
+first_install = GameRoomChangelog.pending_entries(nil, 222, entries: entries)
+assert(first_install.map(&:build) == [222], "first installation did not show only the current build")
+missed = GameRoomChangelog.pending_entries(220, 222, entries: entries)
+assert(missed.map(&:build) == [222, 221], "missed updates were not shown newest first")
+assert(GameRoomChangelog.pending_entries(223, 222, entries: entries).empty?, "a downgrade reopened an old changelog")
+assert(GameRoomChangelog.pending_entries(nil, 220, entries: entries).empty?, "first installation showed an older build")
+assert(GameRoomChangelog.available_entries(221, entries: entries).map(&:build) == [221], "future entries appeared in the manual list")
+
+lines = GameRoomChangelog.list_items(first_install)
+assert(lines.length == first_install.first.changes.length && lines.all? { |line| line.start_with?("Version 1.1.8, build 222:") }, "changelog entries were not flattened into readable rows")
+
+resumes = 0
+captured_form = nil
+Form.class_eval do
+  define_method(:resume) { resumes += 1 }
+  alias_method :changelog_original_wait, :wait
+  define_method(:wait) do
+    captured_form = self
+    accept_button.trigger(:press)
+  end
+end
+GameRoomScreens::Changelog.new(["Change one", "Change two"]).wait
+assert(captured_form.fields.length == 2, "the changelog is not a single list with a hidden close action")
+assert(captured_form.fields.first.options == ["Change one", "Change two"], "the changelog changed its rows")
+assert(captured_form.accept_button.equal?(captured_form.cancel_button), "Enter and Escape do not close the same list")
+assert(captured_form.hidden_controls.include?(captured_form.accept_button), "the close action became an extra visible field")
+assert(resumes == 1, "Enter on the changelog list did not close it")
+Form.class_eval do
+  alias_method :wait, :changelog_original_wait
+  remove_method :changelog_original_wait
+end
+
+shown = []
+GameRoomScreens::Changelog.define_singleton_method(:new) do |items|
+  shown << items
+  Object.new.tap { |screen| screen.define_singleton_method(:wait) { true } }
+end
+
+app = EltenGameRoom.new
+app.send(:show_update_changelog)
+state = app.read_json(GameRoomChangelog::STORAGE_FILE, default: {})
+current_entry = GameRoomChangelog::ENTRIES.find { |entry| entry.build == EltenGameRoom::GAME_ROOM_BUILD_ID }
+expected_current_rows = current_entry.changes.length
+assert(shown.length == 1 && shown.first.length == expected_current_rows, "the current changelog was not shown on first launch")
+assert(state[GameRoomChangelog::LAST_SEEN_BUILD_KEY] == EltenGameRoom::GAME_ROOM_BUILD_ID, "closing the changelog did not mark the build as read")
+app.send(:show_update_changelog)
+assert(shown.length == 1, "the changelog was shown twice for the same build")
+app.send(:show_changelog)
+assert(shown.length == 2, "the changelog could not be opened manually")
+
+assert(EltenGameRoom::MAIN_OPTIONS.last == "What's new", "the main menu has no What's new entry")
+opened = 0
+app.define_singleton_method(:show_changelog) { opened += 1 }
+app.send(:open_main_option, EltenGameRoom::MAIN_OPTIONS.length - 1)
+assert(opened == 1, "the main menu entry does not open the changelog")
+
+translations = JSON.parse(File.read(File.expand_path("../locale/changelog-after-221-pl.json", __dir__), encoding: "UTF-8"))
+mo = File.binread(File.expand_path("../locale/PL.mo", __dir__))
+count, originals, localized = mo.byteslice(8, 12).unpack("V3")
+catalog = count.times.to_h do |index|
+  source_length, source_offset = mo.byteslice(originals + index * 8, 8).unpack("V2")
+  value_length, value_offset = mo.byteslice(localized + index * 8, 8).unpack("V2")
+  [
+    mo.byteslice(source_offset, source_length).force_encoding("UTF-8"),
+    mo.byteslice(value_offset, value_length).force_encoding("UTF-8")
+  ]
+end
+translations.each do |source, translation|
+  assert(catalog[source] == translation, "uncompiled changelog translation: #{source}")
+end
+
+puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage and main menu"

@@ -48,6 +48,7 @@ module GameRoomGames
         rule_section(:penalties, _("Twos, threes, fours and kings"),
           _("Each two adds two penalty cards and each three adds three. Twos and threes may answer each other is on in the ready-made profiles: the debt accumulates, for example two plus three means five. With this option off, only another card of the same attacking rank answers. A player with no legal defence automatically draws the full debt and ends the turn."),
           _("A four requires waiting. With Fours accumulate skipped turns enabled, answer with another four or a packet of fours to pass on the increased number. Whoever accepts waits exactly that many turns, including the current one, and is automatically skipped on later waiting turns. With accumulation off, a four causes one missed turn and cannot be answered with another four."),
+          _("A draw attack always targets the next seat and never rebounds to its author. A player who is already waiting cannot defend against a two, three, attacking king or equivalent joker: the cards are drawn automatically and that resolution consumes one waiting turn."),
           _("With Attacking kings enabled, the king of spades attacks the next player with five cards. The king of hearts answers that king attack and adds another five, so the next player owes ten. It does not reverse the direction. The other kings are ordinary matching cards. King penalties are separate from the two/three family.")),
         rule_section(:special, _("Suit changes, requests, queens and jokers"),
           _("Ace changes suit lets an ace be played on any ordinary table card and opens the choice of a suit. It does not cancel a pending draw or waiting penalty. If disabled, aces only match normally. Jack requests a rank from 5 to 10 makes a played jack request one of those ranks from the next player. With it off, jacks are ordinary cards."),
@@ -321,7 +322,8 @@ module GameRoomGames
         score -= cards.count { |card| joker?(card) || card_rank(card) == "A" } * 80
         simulated = replay.state.merge(skip_turns: replay.state[:skip_turns].dup, makao_windows: replay.state[:makao_windows].to_h.dup)
         apply_packet_effects(simulated, cards, effective)
-        next_player = advance_player(simulated, actor, 1)
+        consume_skips = simulated[:draw_penalty].to_i <= 0 && simulated[:skip_penalty].to_i <= 0
+        next_player = advance_player(simulated, actor, 1, consume_skips: consume_skips)
         attack = simulated[:draw_penalty].to_i + simulated[:skip_penalty].to_i * 2
         score += [attack, 12].min * (hand_for(replay.state, next_player).length <= 2 ? 40 : 12)
         # Preserve a flexible defence and prefer a connected remaining hand.
@@ -449,7 +451,11 @@ module GameRoomGames
         state[:current_player] = nil
         history << result_history(event_id: id, winner: player)
       else
-        state[:current_player] = advance_player(state, player, 1, consume_skips: state[:skip_penalty].zero?)
+        # A pending penalty belongs to the physical next seat. Waiting turns
+        # affect who may make an ordinary move, but must never reflect a draw
+        # attack back to its author.
+        consume_skips = state[:draw_penalty].to_i <= 0 && state[:skip_penalty].to_i <= 0
+        state[:current_player] = advance_player(state, player, 1, consume_skips: consume_skips)
       end
       true
     end
@@ -471,6 +477,10 @@ module GameRoomGames
       state[:draw_penalty] = 0
       state[:penalty_kind] = nil
       state[:drawn_this_turn] = true
+      if penalty && state[:skip_turns].to_h[player].to_i > 0
+        # Paying a draw attack is this waiting player's entire scheduled turn.
+        state[:skip_turns][player] -= 1
+      end
       if !penalty && state[:options]["draw_responses"] && drawn.length == 1 && playable_first?(state, drawn.first)
         # The drawn card stays available to play in the same turn.
       else
@@ -529,6 +539,10 @@ module GameRoomGames
 
     def validate_packet(state, actor, cards, choice)
       return :not_your_turn if !same_user?(state[:current_player], actor)
+      player = player_key(state, actor)
+      # Once a waiting penalty has been accepted, the player does not get to
+      # defend a later draw attack during one of those waiting turns.
+      return :illegal_card if state[:draw_penalty].to_i > 0 && state[:skip_turns].to_h[player].to_i > 0
       return :invalid_packet if cards.empty? || cards.uniq.length != cards.length
       hand = hand_for(state, actor)
       return :card_not_in_hand if cards.any? { |card| !hand.include?(card) }

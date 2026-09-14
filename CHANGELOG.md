@@ -1,5 +1,24 @@
 # Historia zmian
 
+## 1.1.8 — build 222 (kandydat do testów)
+
+- Aktualizacje gry i pokoju są odbierane również podczas naciskania klawisza
+  albo wpisywania tekstu. Powinno to rozwiązać problem sporadycznego utykania
+  partii. Aktywny czat nadal zachowuje tekst, pozycję kursora i zaznaczenie.
+- W Makao kara dobierania nie wraca już do autora, gdy następny gracz ma do
+  odczekania jedną lub więcej kolejek.
+- Po drugim przeglądzie przywrócono 284 dobrze potwierdzone pytania Quiz Party,
+  bez przywracania pytań niejednoznacznych.
+- Dodano listę „Co nowego”. Pojawia się raz po instalacji nowszego buildu,
+  zachowuje pominięte wydania i nie otwiera ponownie starszych zmian po
+  downgrade. Można ją później otworzyć z głównego menu. Enter lub Escape
+  zamyka listę.
+- Powiadomienia Game Roomu korzystają z własnego dźwięku `notice.ogg`.
+  Po udanym wejściu do stołu powiązane z nim zaproszenie i powiadomienie są
+  usuwane także wtedy, gdy gracz wszedł przez zwykłą listę albo widget.
+- Po zagraniu Dzikiej albo Dzikiej dobierz cztery w UNO kolory są wybierane w
+  kolejności: żółty, czerwony, niebieski, zielony.
+
 ## 1.1.8 — build 221 (kandydat do testów)
 
 - Quiz Party nie zatrzymuje się już na „Przygotowywanie następnego pytania”,
