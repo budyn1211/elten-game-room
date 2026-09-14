@@ -6,7 +6,8 @@ root = File.expand_path("..", __dir__)
 names = %w[
   connection_recovery connection_recovery_ui synchronization_regressions
   native_live_sessions_store live_sessions_multiplayer live_sessions_resilience
-  transport game_sync game_screen_network room_interface bot_turn_controller
+  transport game_sync game_screen_network room_interface game_room_settings_widget
+  game_sounds bot_turn_controller
   quiz_party_review_regressions observer_and_shortcut_regressions
   game_event_transport_limit monopoly_trade_compact packaged_rules_encoding
 ]

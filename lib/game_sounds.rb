@@ -5,6 +5,7 @@ module GameRoomSounds
     connect
     disconnect
     chatmsg
+    buzzer2
     ding
     shuffle
     draw
@@ -56,6 +57,9 @@ module GameRoomSounds
 
   def play(program, name)
     return nil if name == nil || !ASSET_NAMES.include?(name.to_s)
+    if program.respond_to?(:game_room_sound_enabled?, true)
+      return nil if !program.send(:game_room_sound_enabled?, name.to_s)
+    end
 
     program.play_sound_from_asset(name.to_s)
   rescue Exception => error
@@ -119,6 +123,8 @@ module GameRoomSounds
       cues = []
       if action == "deal"
         cues << "shuffle"
+      elsif action == "uno"
+        cues << "buzzer2" if event_history.any? { |entry| entry.key.to_s.start_with?("uno:") }
       elsif %w[draw turn_timeout catch challenge].include?(action)
         cues << "draw"
       elsif action == "play"
@@ -140,6 +146,10 @@ module GameRoomSounds
       return "shuffle" if action == "deal"
       return "play" if action == "play"
       return "draw" if %w[draw catch].include?(action)
+      if action == "makao"
+        event_history = history_for_event(after_replay, event, repository)
+        return "buzzer2" if event_history.any? { |entry| entry.key.to_s.start_with?("makao:") }
+      end
     when "poker"
       return "shuffle" if action == "deal"
       return "draw" if action == "exchange" && !event["value"].to_s.empty?

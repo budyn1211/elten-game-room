@@ -46,7 +46,7 @@ module GameRoomGames
           _("Play one card or an ordered packet of equal ranks. The first card must match the current suit or rank, or qualify under an active special rule. Later cards in the same packet may have different suits but must have the same rank; a joker can represent that rank. The packet is a single move. Its order matters because the last card determines the resulting table state."),
           _("With no legal starting card, draw one. If the drawn card is playable and Draw responses is enabled, you may play it in this turn, including a matching packet, or pass. Otherwise the turn passes automatically. You cannot draw voluntarily while already holding a playable card, and paying a draw penalty always ends the turn. If the deck runs out, discards except the current top card are recycled.")),
         rule_section(:penalties, _("Twos, threes, fours and kings"),
-          _("Each two adds two penalty cards and each three adds three. Twos and threes may answer each other is on in the ready-made profiles: the debt accumulates, for example two plus three means five. With this option off, only another card of the same attacking rank answers. A player who accepts the debt draws its full amount and ends the turn."),
+          _("Each two adds two penalty cards and each three adds three. Twos and threes may answer each other is on in the ready-made profiles: the debt accumulates, for example two plus three means five. With this option off, only another card of the same attacking rank answers. A player with no legal defence automatically draws the full debt and ends the turn."),
           _("A four requires waiting. With Fours accumulate skipped turns enabled, answer with another four or a packet of fours to pass on the increased number. Whoever accepts waits exactly that many turns, including the current one, and is automatically skipped on later waiting turns. With accumulation off, a four causes one missed turn and cannot be answered with another four."),
           _("With Attacking kings enabled, the king of spades attacks the next player with five cards. The king of hearts answers that king attack and adds another five, so the next player owes ten. It does not reverse the direction. The other kings are ordinary matching cards. King penalties are separate from the two/three family.")),
         rule_section(:special, _("Suit changes, requests, queens and jokers"),
@@ -55,10 +55,11 @@ module GameRoomGames
         rule_section(:profiles, _("Ready-made profiles and your own rules"),
           _("Simple Makao is the default: no jokers, mixing two/three penalties, cumulative fours, suit-changing aces and playing a drawn card are enabled; jack requests, universal queens and attacking kings are disabled. Polish extended Makao adds those three features, still without jokers. Makao with jokers adds two jokers and attacking kings to the simple profile, fixes the deal at five cards, and leaves jack requests and universal queens off."),
           _("Custom rules exposes every special-rule switch described above: jokers, mixed twos/threes, cumulative fours, ace suit changes, jack requests, universal queens, attacking kings and playing a drawn card. These values are remembered locally for the next custom table, not imposed on other people's tables. Cards dealt to each player can be 3–15, default 5, except in the fixed joker profile. The chosen player count and hand size must leave a card for the table."),
-          _("Cards drawn for missing Makao defaults to 1, from 1 to 10, in every profile. Say Makao once your hand contains one card. Another player may catch the omission before your next turn and make you draw this many cards. Playing your last card ends the game; there is no points-elimination tournament in this implementation.")),
+          _("Cards drawn for missing Makao defaults to 1, from 1 to 10, in every profile. Say Makao once your hand contains one card. Another player may catch the omission before your next turn and make you draw this many cards. Playing your last card ends the game; there is no points-elimination tournament in this implementation."),
+          _("Bot move delay is 1–5 seconds, default 1. It delays only computer decisions; it does not delay human moves or synchronization.")),
         rule_section(:controls, _("Preparing and playing a packet"),
-          _("Arrow keys browse your hand. Enter plays the current card, or the prepared packet, opening any required declaration list. Shift+Enter adds or removes a card from the packet in selection order; Enter also includes the current card if it is not selected yet. P reads the prepared packet in selection order; Shift+P clears it. Space draws, or ends the turn after an ordinary draw. To accept a waiting penalty, use its separate action with Enter."),
-          _("C reads the table card and declaration, G the pending penalty, T the turn, S card counts and D your hand. U says Makao, Shift+U catches another player. A declaration or catch does not require your ordinary turn."))
+          _("Arrow keys browse your hand. Enter plays the current card, or the prepared packet, opening any required declaration list. Shift+Enter adds or removes a card from the packet in selection order; Enter also includes the current card if it is not selected yet. P reads the prepared packet in selection order; Shift+P clears it. Space draws, or ends the turn after an ordinary draw. If you cannot defend against a draw or waiting penalty, the game accepts it automatically."),
+          _("C reads the table card and declaration, G the pending penalty, T the turn, E card counts and D your hand. U says Makao, Shift+U catches another player. A declaration or catch does not require your ordinary turn."))
       ]
     end
 
@@ -84,7 +85,8 @@ module GameRoomGames
           visible_if: custom_rules),
         OptionDefinition.new(key: "draw_responses", label: _("A drawn playable card may be played immediately"), kind: :boolean, default: true,
           visible_if: custom_rules),
-        OptionDefinition.new(key: "makao_penalty", label: _("Cards drawn for missing Makao"), kind: :integer, default: 1)
+        OptionDefinition.new(key: "makao_penalty", label: _("Cards drawn for missing Makao"), kind: :integer, default: 1),
+        OptionDefinition.new(key: "bot_delay", label: _("Bot move delay in seconds (1 to 5)"), kind: :integer, default: 1)
       ]
     end
 
@@ -117,6 +119,7 @@ module GameRoomGames
       values = normalize_options(options)
       return _("The hand size must be from 3 to 15.") if !values["hand_size"].to_i.between?(3, 15)
       return _("The Makao penalty must be from 1 to 10.") if !values["makao_penalty"].to_i.between?(1, 10)
+      return _("Bot move delay must be from 1 to 5 seconds.") if !values["bot_delay"].to_i.between?(1, 5)
       if player_count && player_count.to_i * values["hand_size"].to_i >= (values["jokers"] ? 54 : 52)
         return _("There are not enough cards to deal this many cards to every player.")
       end
@@ -126,7 +129,12 @@ module GameRoomGames
     def options_summary(options)
       values = normalize_options(options)
       profile = PROFILES.find { |choice| choice.value == values["profile"] }&.label || values["profile"]
-      _("%{profile}; %{cards} cards; jokers: %{jokers}") % { profile: profile, cards: values["hand_size"], jokers: values["jokers"] ? _("yes") : _("no") }
+      _("%{profile}; %{cards} cards; jokers: %{jokers}; bot delay: %{delay} s") % {
+        profile: profile,
+        cards: values["hand_size"],
+        jokers: values["jokers"] ? _("yes") : _("no"),
+        delay: values["bot_delay"]
+      }
     end
 
     def replay(session, events, repository)
@@ -154,8 +162,23 @@ module GameRoomGames
     end
 
     def automatic_action(replay, actor, context: nil)
-      return nil if replay.finished? || !same_user?(actor, replay.players.first) || replay.state[:phase] != :awaiting_deal
+      return nil if replay.finished?
+      forced = forced_penalty_action(replay, actor)
+      return forced if forced != nil
+      return nil if !same_user?(actor, replay.players.first) || replay.state[:phase] != :awaiting_deal
+
       { "kind" => "command", "action" => "deal" }
+    end
+
+    def automatic_action_allowed?(replay, actor, table_owner:)
+      forced = forced_penalty_action(replay, replay.state[:current_player])
+      return same_user?(actor, replay.state[:current_player]) if forced != nil
+
+      super
+    end
+
+    def bot_move_delay(replay, _actor, context: nil)
+      [[replay.state[:options]["bot_delay"].to_i, 1].max, 5].min
     end
 
     def legal_actions(replay, actor, context: nil)
@@ -267,7 +290,7 @@ module GameRoomGames
         surface_shortcut(key: "p", modifiers: [:shift], label: _("clear the prepared packet"), command: "clear_packet"),
         announcement_shortcut(key: "c", label: _("read the table card"), message: table_text(state)),
         announcement_shortcut(key: "g", label: _("read the current penalty"), message: penalty_text(state, viewer)),
-        announcement_shortcut(key: "s", label: _("read card counts"), message: counts_text(state)),
+        announcement_shortcut(key: "e", label: _("read card counts"), message: counts_text(state)),
         announcement_shortcut(key: "d", label: _("read your hand"), message: hand_shortcut_text(state, viewer)),
         GameShortcut.new(key: "u", label: _("say Makao"), kind: :action, action_kind: "command", action_name: "makao"),
         GameShortcut.new(key: "u", modifiers: [:shift], label: _("catch missing Makao"), kind: :action, action_kind: "command", action_name: "catch")
@@ -339,6 +362,24 @@ module GameRoomGames
     end
 
     private
+
+    def forced_penalty_action(replay, actor)
+      state = replay.state
+      return nil if replay.finished? || state[:phase] != :playing || !same_user?(state[:current_player], actor)
+      return nil if state[:draw_penalty].to_i <= 0 && state[:skip_penalty].to_i <= 0
+      return nil if penalty_defence_available?(state, actor)
+
+      action = state[:skip_penalty].to_i > 0 ? "accept_skip" : "draw"
+      { "kind" => "command", "action" => action }
+    end
+
+    def penalty_defence_available?(state, actor)
+      hand_for(state, actor).any? do |card|
+        choices = card_choices_for(state, card)
+        choices = [""] if choices.empty?
+        choices.any? { |choice| validate_packet(state, actor, [card], choice) == :ok }
+      end
+    end
 
     def initial_state(players, options)
       { players: players, options: options, phase: :awaiting_deal, dealer_index: nil,
@@ -756,7 +797,9 @@ module GameRoomGames
     end
 
     def counts_text(state)
-      state[:players].map { |player| _("%{player}: %{count}") % { player: participant_name(player), count: state[:hands][player].length } }.join("; ")
+      state[:players].map do |player|
+        "#{participant_name(player)}, #{state[:hands].fetch(player, []).length}"
+      end.join(". ") + "."
     end
   end
 end

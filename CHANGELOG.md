@@ -1,7 +1,67 @@
 # Historia zmian
 
-## Poprawki po buildzie 218 (niewydane)
+## 1.1.8 — build 221 (kandydat do testów)
 
+- Quiz Party nie zatrzymuje się już na „Przygotowywanie następnego pytania”,
+  gdy ten sam wpis LiveSessions otrzyma po stronie nadawcy i odbiorcy nieco
+  inne znaczniki czasu. Czterosekundowa przerwa między pytaniami nadal jest
+  pilnowana przed wysłaniem następnego pytania.
+
+## 1.1.8 — build 220 (kandydat do testów)
+
+- Ustawienia Game Roomu są podzielone na kategorie: komunikaty lobby,
+  powiadomienia, dźwięki i widget. Komunikaty lobby można ograniczyć do
+  wybranych gier i osobno włączać dla tworzenia stołu, wejścia, wyjścia oraz
+  zmian komputerów.
+- Powiadomienia o zaproszeniach na głównym ekranie ELTEN-a można przyjmować od
+  wszystkich, tylko od kontaktów albo od nikogo. Zaproszenie nadal pozostaje
+  dostępne wewnątrz Game Roomu.
+- Dźwięki można osobno wyłączyć dla gier, czatu, wchodzenia i wychodzenia z
+  pokoju oraz zaproszeń i innych powiadomień Game Roomu.
+- Dodano opcjonalną zakładkę Game Roomu na głównym ekranie ELTEN-a. Pokazuje
+  wybrane gry i aktywne stoły w krótkiej postaci „gra, właściciel”, odświeża
+  się po wejściu lub klawiszem R i nie odpytuje sieci bez przerwy.
+- Uproszczono listę dołączania: pierwszy ekran podaje tylko nazwy gier, a po
+  wybraniu gry każdy stół jest opisany samą nazwą właściciela. Dostępność jest
+  ponownie sprawdzana przy wejściu, bez mylących liczników uczestników.
+
+- Makao ma ustawiane opóźnienie ruchu komputerów od 1 do 5 sekund, skrót E
+  podający liczbę kart graczy oraz dźwięk `buzzer2.ogg` przy prawidłowym
+  zgłoszeniu Makao.
+- „Zaproś z kontaktów” pokazuje wyłącznie kontakty, które są obecnie online;
+  stan jest pobierany jednym zbiorczym żądaniem.
+- Makao automatycznie przyjmuje karę dobierania lub czekania, jeśli bieżący
+  gracz nie ma żadnej legalnej karty obronnej; dostępna obrona nadal pozostaje
+  decyzją gracza.
+- Każde z 50 574 pierwotnych pytań angielskich, polskich ogólnych i
+  wiedźmińskich otrzymało zapisaną decyzję: zachować, poprawić albo usunąć.
+- Zachowano 29 844 pytania: 13 836 angielskich, 10 939 polskich ogólnych i
+  5069 wiedźmińskich. Usunięto 20 730 pytań, których odpowiedzi, medium albo
+  jednoznaczności nie udało się rzetelnie potwierdzić.
+- Poprawiono 5851 zachowanych pytań, m.in. błędne klucze odpowiedzi,
+  niejednoznaczne warianty, oznaczenie medium Wiedźmina, język oraz pytania o
+  obywatelstwo zależne od czasu.
+- Wiedźmin nadal korzysta z jednej leniwej bazy: 2654 pytania o gry i 2415 o
+  książki oraz ekranizacje.
+- Audyt porównano z niezależną pracą Balteama, ale nie przyjęto jej bez
+  sprawdzenia. Zachowano stabilne identyfikatory i dowody źródłowe każdej
+  pozostawionej pozycji.
+- Przeszły wszystkie 32 celowane testy Quiz Party, danych, podziału Wiedźmina,
+  startu i odtwarzania gry oraz wspólnego transportu.
+
+## 1.1.8 — build 219 (kandydat do testów)
+
+- Skrót E w UNO podaje zwięźle liczbę kart każdego gracza. Zgłoszenie UNO
+  przez dowolnego uczestnika odtwarza dźwięk `buzzer2.ogg`.
+- Przyjęto poprawki polskiej bazy pytań sportowych z PR #4: usunięto 131
+  niejednoznacznych pytań o aktualnych trenerów i dodano 61 indywidualnie
+  sprawdzonych pytań wraz ze źródłami. Zachowano podział zestawu Wiedźmina
+  wprowadzony w buildzie 218.
+- W UNO zagranie Dzikiej oraz Dzikiej dobierz cztery jest teraz oddzielone od
+  wyboru koloru. Karta najpierw fizycznie trafia na stół i jest ogłaszana, a
+  potem gracz wybiera kolor w osobnym kroku. W tym czasie nie można wykonać
+  intercepcji i nie upływa czas na myślenie; następny gracz dostaje pełny czas
+  dopiero po wybraniu koloru.
 - Przejściowy błąd połączenia nie zamyka ekranu pokoju ani partii. Zachowany
   jest ostatni poprawny stan i tekst czatu do czasu odzyskania połączenia.
 - Ujednolicono odzyskiwanie niepewnych ruchów ludzi, botów i automatycznych

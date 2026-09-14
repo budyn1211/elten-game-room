@@ -57,6 +57,42 @@ verification of all answers. The full decision list, the comparison with the
 preliminary map and the captured source metadata are stored outside the signed
 application under `diagnostics/witcher-medium-audit-218`.
 
+### Full factual and language audit after build 219
+
+Every question then present in the English general, Polish general and Polish
+Witcher sources received one recorded decision. Retained answers were checked
+against captured Wikidata statements, Wikipedia article revisions or Polish
+Witcher Wiki article revisions as appropriate. A matching word alone was not
+treated as proof: numerical answers had to occur as an actual quantity, and the
+source context had to identify the fact asked by the prompt. Questions that
+remained unconfirmed were removed; wording and answer keys were corrected when
+the evidence supported a precise repair. The Witcher source was also checked
+again for the medium of the concrete fact, so the detailed game and books/screen
+views continue to form an exact partition of the retained source.
+
+The independent Polish general audit by Balteam at commit
+`9be74abfa6968270bfc04312833767bd83833ac3` was compared by original stable ID,
+not copied blindly. Its schema-aware removals and replacements were accepted
+where they supplied stronger evidence; local search false negatives were kept
+when that audit supplied a verified structured relation. The complete combined
+decision ledger, removal list, correction list and evidence URLs are stored in
+`diagnostics/quiz-factual-audit-220`.
+
+The final audited runtime sets contain 13,836 English general questions, 10,939
+Polish general questions and 5,069 Witcher questions. The Witcher views contain
+2,654 game questions and 2,415 book/screen questions. These audited data sets
+were first packaged in version 1.1.8, build 220.
+
+After build 221 had been signed, all 20,730 removals were reconsidered in a
+separate conservative recovery audit. It restored only questions for which the
+exact fact, the full answer set and (for Witcher questions) the assigned medium
+could be confirmed. The current source sets therefore contain 13,903 English
+general questions, 11,088 Polish general questions and 5,137 Witcher questions.
+The Witcher views contain 2,670 game questions and 2,467 book/screen questions.
+The complete second-pass ledger is stored in
+`diagnostics/quiz-recovery-audit-after-221`. These data are newer than the
+already signed build 221 package and are not contained in that package.
+
 ## Rebuilding these files
 
 Use a checkout of the exact revision above, then run from the Game Room root:

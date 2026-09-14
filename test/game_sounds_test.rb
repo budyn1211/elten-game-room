@@ -77,6 +77,15 @@ assert(cue("reversi", { "id" => 143, "action" => "place" }, playing, playing, re
 assert(cue("ludo", { "id" => 144, "action" => "roll" }, playing, playing, repository, viewer) == "roll", "a Ludo roll did not use roll")
 assert(cue("ludo", { "id" => 145, "action" => "move" }, playing, playing, repository, viewer) == "play2", "a Ludo pawn move did not use play2")
 assert(cue("ludo", { "id" => 146, "action" => "move_pawn" }, playing, playing, repository, viewer) == "play2", "a semantic Ludo pawn move did not use play2")
+uno_declared = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: {},
+  history: [History.new(event_id: 1461, kind: :game, key: "uno:1461")])
+assert(cue("uno", { "id" => 1461, "action" => "uno" }, playing, uno_declared, repository, viewer) == "buzzer2", "saying UNO did not use buzzer2")
+assert(cue("uno", { "id" => 1462, "action" => "uno" }, playing, playing, repository, viewer) == nil, "a rejected UNO declaration played its sound")
+assert(File.file?(File.expand_path("../Audio/buzzer2.ogg", __dir__)), "the UNO declaration sound asset is missing")
+makao_declared = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: {},
+  history: [History.new(event_id: 1463, kind: :game, key: "makao:1463")])
+assert(cue("makao", { "id" => 1463, "action" => "makao" }, playing, makao_declared, repository, viewer) == "buzzer2", "saying Makao did not use buzzer2")
+assert(cue("makao", { "id" => 1464, "action" => "makao" }, playing, playing, repository, viewer) == nil, "a rejected Makao declaration played its sound")
 automatic_ludo = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: {}, history: [History.new(event_id: 147, kind: :move)])
 assert(cue("ludo", { "id" => 147, "action" => "roll" }, playing, automatic_ludo, repository, viewer) == ["roll", "play2"], "an automatic Ludo move lost one of its sounds")
 
@@ -107,5 +116,12 @@ played = []
 program.define_singleton_method(:play_sound_from_asset) { |name| played << name }
 GameRoomSounds.play_all(program, ["welcome", "connect", "chatmsg", "not_registered"])
 assert(played == ["connect", "chatmsg"], "the sound player rejected a chat asset or accepted an unknown asset")
+
+filtered_program = Object.new
+filtered_played = []
+filtered_program.define_singleton_method(:play_sound_from_asset) { |name| filtered_played << name }
+filtered_program.define_singleton_method(:game_room_sound_enabled?) { |name| name == "connect" }
+GameRoomSounds.play_all(filtered_program, ["roll", "connect", "chatmsg"])
+assert(filtered_played == ["connect"], "the sound player ignored the Game Room category filter")
 
 puts "Game sound tests passed"

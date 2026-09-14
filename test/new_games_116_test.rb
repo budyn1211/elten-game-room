@@ -384,6 +384,9 @@ assert(uno.send(:next_game_active_index, mercy_state, 2, 1) == 0,
 makao = GameRoomGames::Makao.new
 assert(makao.supports_bots?, "Makao has no bot")
 assert(makao.default_options["profile"] == "simple" && !makao.default_options["jokers"], "Makao does not default to the simple profile")
+assert(makao.default_options["bot_delay"] == 1, "Makao does not default to a one-second bot delay")
+assert(makao.options_error(makao.default_options.merge("bot_delay" => 0)) != nil, "Makao accepted a bot delay below one second")
+assert(makao.options_error(makao.default_options.merge("bot_delay" => 6)) != nil, "Makao accepted a bot delay above five seconds")
 makao_definitions = makao.option_definitions.to_h { |definition| [definition.key, definition] }
 assert(!makao.option_visible?(makao_definitions["jokers"], makao.default_options),
   "Makao shows custom rule switches for a ready-made profile")
@@ -401,9 +404,21 @@ assert(universal_joker_choices.length == 52 && universal_joker_choices.include?(
 makao_session = { "options" => JSON.generate(joker_options) }
 makao_events = []
 makao_replay = makao.replay(makao_session, makao_events, repository)
+assert(makao.bot_move_delay(makao_replay, "Alice") == 1, "Makao ignored the configured bot delay")
 makao_replay = append_action(makao, makao_session, repository, makao_events, makao_replay, "Alice",
   makao.automatic_action(makao_replay, "Alice"), context_for)
 assert(makao_replay.state[:hands].values.all? { |hand| hand.length == 5 }, "Makao did not deal five cards")
+makao_counts = makao.custom_game_shortcuts(makao_replay, "Alice").find do |shortcut|
+  shortcut.key == "e" && shortcut.kind == :announcement && shortcut.modifiers.to_a.empty?
+end
+assert(makao_counts && makao_counts.message == "Alice, 5. Bob, 5. Carol, 5.",
+  "Makao E does not read concise card counts")
+paced_makao = makao.replay(
+  { "options" => JSON.generate(joker_options.merge("bot_delay" => 5)) },
+  [],
+  repository
+)
+assert(makao.bot_move_delay(paced_makao, "Alice") == 5, "Makao did not apply a five-second bot delay")
 makao_actor = makao_replay.current_player
 makao_move = makao.legal_actions(makao_replay, makao_actor).find { |action| action["action"] == "play" } ||
   makao.legal_actions(makao_replay, makao_actor).find { |action| action["action"] == "draw" }
@@ -422,6 +437,34 @@ accept_skip = { "id" => 2, "actor" => "Bob", "action" => "accept_skip", "value" 
 assert(makao.send(:apply_accept_skip, skip_state, accept_skip, "Bob", repository, skip_history), "Makao did not accept the waiting penalty")
 assert(skip_state[:current_player] == "Carol" && skip_state[:skip_turns]["Bob"] == 1, "Makao did not preserve the remaining waiting turn")
 assert(makao.send(:advance_player, skip_state, "Carol", 1) == "Alice", "Makao did not skip the penalized player on the next circuit")
+
+forced_draw_state = makao.send(:initial_state, players, joker_options)
+forced_draw_state.update(phase: :playing, current_player: "Bob", declared_suit: "C", discard: ["2C"],
+  draw_penalty: 2, penalty_kind: "draw",
+  hands: { "Alice" => ["9S"], "Bob" => %w[5D 6D], "Carol" => ["7H"] })
+forced_draw_replay = GameRoomGames::Replay.new(players: players, current_player: "Bob", state: forced_draw_state)
+assert(makao.automatic_action(forced_draw_replay, "Bob") == { "kind" => "command", "action" => "draw" },
+  "Makao did not automatically accept an unavoidable draw penalty")
+assert(makao.automatic_action_allowed?(forced_draw_replay, "Bob", table_owner: "Alice"),
+  "Makao did not allow a non-owner to submit their own unavoidable penalty")
+assert(!makao.automatic_action_allowed?(forced_draw_replay, "Carol", table_owner: "Alice"),
+  "Makao allowed another non-owner to submit somebody else's penalty")
+assert(!makao.automatic_action_allowed?(forced_draw_replay, "Host", table_owner: "Host"),
+  "Makao allowed an observing table owner to duplicate a human player's automatic penalty")
+forced_draw_state[:hands]["Bob"] << "3D"
+assert(makao.automatic_action(forced_draw_replay, "Bob") == nil,
+  "Makao automatically drew a penalty although the player could defend")
+
+forced_skip_state = makao.send(:initial_state, players, joker_options)
+forced_skip_state.update(phase: :playing, current_player: "Bob", declared_suit: "C", discard: ["4C"],
+  skip_penalty: 2,
+  hands: { "Alice" => ["9S"], "Bob" => %w[5D 6D], "Carol" => ["7H"] })
+forced_skip_replay = GameRoomGames::Replay.new(players: players, current_player: "Bob", state: forced_skip_state)
+assert(makao.automatic_action(forced_skip_replay, "Bob") == { "kind" => "command", "action" => "accept_skip" },
+  "Makao did not automatically accept an unavoidable waiting penalty")
+forced_skip_state[:hands]["Bob"] << "4D"
+assert(makao.automatic_action(forced_skip_replay, "Bob") == nil,
+  "Makao automatically accepted a waiting penalty although the player could defend")
 
 joker_packet_state = makao.send(:initial_state, players, joker_options)
 joker_packet_state.update(phase: :playing, current_player: "Alice", declared_suit: "C", discard: ["7C"],

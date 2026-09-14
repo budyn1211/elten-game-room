@@ -5,7 +5,7 @@ require "rbconfig"
 # Targeted coverage for Quiz Party and the shared parts changed by PR #3.
 root = File.expand_path("..", __dir__)
 names = %w[
-  quiz_data_cleanup quiz_pack_builder quiz_party quiz_party_startup
+  quiz_data_cleanup quiz_pack_builder quiz_factual_audit quiz_recovery_audit quiz_party quiz_party_startup
   quiz_party_review_regressions quiz_party_translation witcher_medium_split game_content
   hidden_submissions_storage quiz_party_storage categories_storage
   game_option_form surface_framework packaged_rules_encoding categories

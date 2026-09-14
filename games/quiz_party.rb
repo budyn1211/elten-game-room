@@ -169,8 +169,7 @@ module GameRoomGames
           drawn = parsed == nil ? nil : categories_by_codes(state, parsed[:categories])
           if state[:phase] == :drawing && owner?(players, actor) && parsed != nil &&
               drawn != nil && drawn.length == round_choice_count(state) &&
-              parsed[:round] == state[:completed_rounds] + 1 && timestamp != nil &&
-              next_question_pause_over?(state, timestamp)
+              parsed[:round] == state[:completed_rounds] + 1
             state[:choices] = drawn
             state[:phase] = :choosing
             state[:resume_at] = 0
@@ -217,8 +216,12 @@ module GameRoomGames
           if state[:phase] == :starting && owner?(players, actor) && parsed != nil &&
               question != nil && question["category"].to_s == state[:category].to_s &&
               parsed[:round] == state[:round] && parsed[:position] == state[:position] + 1 &&
-              drawable_question?(state, parsed[:question_id]) &&
-              valid_question_timing?(state, timestamp)
+              drawable_question?(state, parsed[:question_id]) && timestamp != nil
+            # The owner enforces the presentation pause before creating this
+            # transition. Rechecking it while replaying would be unsafe: the
+            # sender's optimistic record and the native LiveSessions record can
+            # legitimately receive different wall-clock timestamps. Phase,
+            # position and authenticated ownership make the transition valid.
             reset_used_questions(state) if fresh_questions(state).empty?
             state[:position] = parsed[:position]
             state[:question_id] = parsed[:question_id]
@@ -1077,10 +1080,6 @@ module GameRoomGames
       return sequence.to_i - 1 if sequence != nil && sequence.to_i > 0
 
       nil
-    end
-
-    def valid_question_timing?(state, timestamp)
-      timestamp != nil && next_question_pause_over?(state, timestamp)
     end
 
     def answers_may_close?(state, timestamp)

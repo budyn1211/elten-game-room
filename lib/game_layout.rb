@@ -158,6 +158,7 @@ module GameRoomLayout
       @waiting_status = GameSurfaces::RefreshAwareListBox.new([], header: "", quiet: true)
       @back_button = Button.new(_("Leave"))
       @form = GameSurfaces::RefreshAwareForm.new([], index: 0, quiet: true)
+      @preserved_hand_surface_state = nil
       @form.extend(ShortcutFormBehavior)
       binding_controls.each { |control| control.extend(Bindings) }
       update(
@@ -222,7 +223,20 @@ module GameRoomLayout
       old_identity = @surface_identity
       old_field = @form.fields[@form.index.to_i]
       hand_update = GameSurfaces.hand_surface?(view_spec.surface)
+      previous_hand = GameSurfaces.hand_surface?(@view_spec&.surface)
+      if new_game || reset_surface
+        @preserved_hand_surface_state = nil
+      elsif previous_hand && @surface != nil
+        # A staged action may temporarily replace the hand with another
+        # control, such as UNO's colour selector. Keep the hand cursor until
+        # the hand returns instead of replacing it with the transient list's
+        # position.
+        @preserved_hand_surface_state = @surface.state
+      end
       state = surface_state || @surface&.state || {}
+      if hand_update && !previous_hand && @preserved_hand_surface_state != nil
+        state = @preserved_hand_surface_state
+      end
       if reset_surface || @view_spec == nil || @view_spec.surface != view_spec.surface
         previous = new_game || reset_surface ? nil : @surface
         @surface = if view_spec.surface == nil
@@ -233,6 +247,7 @@ module GameRoomLayout
           GameSurfaces.build(view_spec.surface, state: state)
         end
       end
+      @preserved_hand_surface_state = @surface.state if hand_update && @surface != nil
       @view_spec = view_spec
       @surface_identity = surface_identity_for(view_spec.surface)
       location = [:game, 0] if location[0] == :game && old_identity != @surface_identity

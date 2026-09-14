@@ -59,17 +59,21 @@ end
 module EltenLink
   class Client; end
   module Users
-    def self.online(_client); ["Carol"]; end
+    def self.online(_client); ["Carol", "Eve"]; end
   end
   module Contacts
-    def self.list(_client); ["Carol"]; end
+    def self.list(_client); ["Carol", "Dana"]; end
   end
 end
 [:online, :contacts].each do |source|
   app = EltenGameRoom.allocate
   app.define_singleton_method(:invitation_sending_available?) { true }
   app.define_singleton_method(:announce_server_table_access) { nil }
-  app.define_singleton_method(:select_invitation_recipient) { |users, _header| users.first }
+  offered_users = []
+  app.define_singleton_method(:select_invitation_recipient) do |users, _header|
+    offered_users << users.dup
+    users.first
+  end
   app.define_singleton_method(:invitation_metadata) { |_row, id| { "invitation_id" => id } }
   table = { "__id" => 7, "owner" => "Alice" }
   snapshot = LobbyRepository::TableSnapshot.new(table: table, members: %w[Alice Bob], bots: [])
@@ -101,5 +105,7 @@ end
   outcome = true
   app.send(:show_invite_users, table, source: source)
   assert(notifications.length == 1 && alerts.last == "Invitation sent.", "#{source} did not recover after delivery failure")
+  expected_users = source == :contacts ? ["Carol"] : ["Carol", "Eve"]
+  assert(offered_users.all? { |users| users == expected_users }, "#{source} invitation candidates do not respect online contacts")
 end
 puts "Native network error boundaries passed"

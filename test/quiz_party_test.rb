@@ -359,8 +359,9 @@ assert(
 )
 ready_context = context.dup
 ready_context.now = scored_at + GameRoomGames::QuizParty::NEXT_QUESTION_PAUSE
+ready_action = game.automatic_action(replay, "Alice", context: ready_context)
 assert(
-  game.automatic_action(replay, "Alice", context: ready_context) != nil,
+  ready_action != nil,
   "the next question never started after the pause"
 )
 assert(
@@ -372,6 +373,21 @@ clockless_context.now = nil
 assert(
   game.automatic_action(replay, "Alice", context: clockless_context) != nil,
   "an unknown clock stalled the table instead of starting the next question"
+)
+
+status, ready_plan = game.action_for(ready_action, replay, "Alice", context: ready_context)
+assert(status == :ok, "the next question was rejected after the owner's pause")
+skewed_question = {
+  "id" => 10_001,
+  "actor" => "Alice",
+  "action" => ready_plan.events.first.action,
+  "value" => ready_plan.events.first.value,
+  "created_at" => replay.state[:resume_at].to_i - 1
+}
+skewed_replay = game.replay(session, events + [skewed_question], repository)
+assert(
+  skewed_replay.state[:phase] == :answering && skewed_replay.state[:position] == 2,
+  "a receiver rejected the next question when LiveSessions timestamps differed across clients"
 )
 
 assert(
@@ -560,6 +576,24 @@ round_pause_context.now = round_scored_at + GameRoomGames::QuizParty::NEXT_QUEST
 assert(
   game.automatic_action(replay, "Alice", context: round_pause_context) == nil,
   "the next round was drawn before the pause had elapsed"
+)
+
+round_ready_context = context.dup
+round_ready_context.now = round_scored_at + GameRoomGames::QuizParty::NEXT_QUESTION_PAUSE
+round_ready_action = game.automatic_action(replay, "Alice", context: round_ready_context)
+status, round_ready_plan = game.action_for(round_ready_action, replay, "Alice", context: round_ready_context)
+assert(status == :ok, "the next round draw was rejected after the owner's pause")
+skewed_round_draw = {
+  "id" => 10_002,
+  "actor" => "Alice",
+  "action" => round_ready_plan.events.first.action,
+  "value" => round_ready_plan.events.first.value,
+  "created_at" => replay.state[:resume_at].to_i - 1
+}
+skewed_round_replay = game.replay(session, events + [skewed_round_draw], repository)
+assert(
+  skewed_round_replay.state[:phase] == :choosing,
+  "a receiver rejected the next round when LiveSessions timestamps differed across clients"
 )
 
 replay = draw_round(

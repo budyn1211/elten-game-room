@@ -3,8 +3,8 @@
   "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
-  "version": "1.1.7",
-  "build_id": "218",
+  "version": "1.1.8",
+  "build_id": "221",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -20,7 +20,7 @@
   },
   "required_assets": {
     "sounds": [
-      "connect", "disconnect", "chatmsg", "ding", "shuffle", "draw", "draw2",
+      "connect", "disconnect", "chatmsg", "buzzer2", "ding", "shuffle", "draw", "draw2",
       "farkle", "hit1", "interception", "lose1", "lose3", "play", "play2", "replay",
       "reverse", "reverse3", "roll", "skip", "win1", "win2"
     ]
@@ -40,6 +40,8 @@ require_relative "lib/invitation_repository"
 require_relative "lib/invitation_notifications"
 require_relative "lib/game_participants"
 require_relative "lib/game_sounds"
+require_relative "lib/game_room_preferences"
+require_relative "lib/game_room_widget"
 require_relative "lib/game_teams"
 require_relative "lib/game_bots"
 require_relative "lib/lobby_repository"
@@ -85,10 +87,11 @@ require_relative "games/quiz_party"
 require_relative "games/registry"
 
 class EltenGameRoom < Program
-  GAME_ROOM_VERSION = "1.1.7".freeze
-  GAME_ROOM_BUILD_ID = 218
+  GAME_ROOM_VERSION = "1.1.8".freeze
+  GAME_ROOM_BUILD_ID = 221
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
+  NOTIFICATION_CONTACT_CACHE_SECONDS = 5 * 60
 
   SERVER_TABLES = {
     "game_room_users" => {
@@ -150,13 +153,7 @@ class EltenGameRoom < Program
     GameRoomGames::QuizParty
   ])
 
-  DEFAULT_SETTINGS = {
-    "announce_lobby_changes" => true,
-    "announce_table_created" => true,
-    "announce_player_joined" => true,
-    "announce_player_left" => true,
-    "announce_computer_changes" => true
-  }.freeze
+  DEFAULT_SETTINGS = GameRoomPreferences.defaults(GAME_REGISTRY.ids).freeze
 
   server_app(
     uuid: "468f59c5-c9d7-47cd-80f1-1a6fbfd1aa80",
@@ -165,20 +162,77 @@ class EltenGameRoom < Program
     notifications: true
   )
 
+  def self.activate
+    return if !respond_to?(:app_runtime) || app_runtime == nil || !respond_to?(:extension)
+    return if @game_room_extension_registered == true
+
+    program = new
+    extension("game_room_main_tab") do |extension|
+      extension.main_tab(
+        "tables",
+        label: _("Game Room"),
+        visible: -> { normalized_settings["widget_enabled"] }
+      ) do |context|
+        current = context.current_control
+        current.is_a?(GameRoomWidget::TableList) ? current : program.send(:build_widget_control)
+      end
+    end
+    @game_room_extension_registered = true
+  rescue StandardError => error
+    Log.warning("ELTEN Game Room extension registration failed: #{error.class}: #{error.message}") if defined?(Log)
+  end
+
+  def self.normalized_settings
+    GameRoomPreferences.normalize(
+      read_json("settings.json", default: DEFAULT_SETTINGS.dup),
+      GAME_REGISTRY.ids
+    )
+  end
+
+  def self.notification_sender_in_contacts?(sender)
+    now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    if @notification_contacts == nil || @notification_contacts_loaded_at == nil ||
+        now - @notification_contacts_loaded_at >= NOTIFICATION_CONTACT_CACHE_SECONDS
+      contacts = EltenLink::Contacts.list(EltenLink::Client.new)
+      @notification_contacts = contacts.to_a.each_with_object({}) do |user, result|
+        result[user.to_s.strip.downcase] = true
+      end
+      @notification_contacts_loaded_at = now
+    end
+    @notification_contacts.key?(sender.to_s.strip.downcase)
+  rescue StandardError => error
+    Log.warning("ELTEN Game Room invitation contact filter failed: #{error.class}: #{error.message}") if defined?(Log)
+    @notification_contacts != nil && @notification_contacts.key?(sender.to_s.strip.downcase)
+  end
+
+  def self.invitation_notification_allowed?(settings, sender)
+    case settings["invitation_notifications"].to_s
+    when "nobody" then false
+    when "contacts" then notification_sender_in_contacts?(sender)
+    else true
+    end
+  end
+
   def self.map_notification(notification)
     metadata = notification.metadata.to_h
+    settings = normalized_settings
+    sound = settings["invitation_sounds"] ? "notification" : nil
     case notification.type.to_s
     when "game_room.invitation"
-      notification.presentation(
+      presentation = notification.presentation(
         title: _("Game invitation"),
         body: _("%{sender} invites you to %{table} (%{game}).") % {
           sender: metadata["sender"].to_s,
           table: metadata["table_name"].to_s,
           game: metadata["game_name"].to_s
         },
-        sound: "notification",
+        sound: sound,
         action: :open_invitation
       )
+      if !invitation_notification_allowed?(settings, metadata["sender"] || notification.sender)
+        presentation.suppress_default!
+      end
+      presentation
     when "game_room.invitation_rejected"
       notification.presentation(
         title: _("Game invitation declined"),
@@ -186,7 +240,7 @@ class EltenGameRoom < Program
           user: metadata["user"].to_s,
           table: metadata["table_name"].to_s
         },
-        sound: "notification"
+        sound: sound
       )
     end
   end
@@ -367,10 +421,10 @@ class EltenGameRoom < Program
     @lobby_activity_entries.sort_by! { |entry| [entry.created_at.to_i, entry.id.to_i] }
     @lobby_activity_entries = @lobby_activity_entries.last(TableActivityRepository::GLOBAL_LIMIT)
 
-    settings = read_json("settings.json", default: DEFAULT_SETTINGS.dup)
+    settings = game_room_settings
     new_entries.each do |entry|
       next if GameRoomParticipants.same?(entry.actor, Session.name)
-      next if !lobby_announcement_enabled?(entry.kind, settings)
+      next if !lobby_announcement_enabled?(entry.kind, entry.game, settings)
 
       text = @table_activity.text_for(entry, game_name: ->(id) { game_name(id) }, global: true)
       speak(text, stop: false, break_sequence: false) if !text.to_s.empty?
@@ -412,17 +466,10 @@ class EltenGameRoom < Program
     Time.now.to_f
   end
 
-  def lobby_announcement_enabled?(kind, settings)
-    key = case kind.to_s
-    when "created" then "announce_table_created"
-    when "joined" then "announce_player_joined"
-    when "left" then "announce_player_left"
-    when "bot_added", "bot_removed" then "announce_computer_changes"
-    end
-    return false if key == nil
-    return settings[key] != false if settings.key?(key)
-
-    settings["announce_lobby_changes"] != false
+  def lobby_announcement_enabled?(kind, game_id, settings)
+    GameRoomPreferences.lobby_announcement_enabled?(
+      settings, kind, game_id, GAME_REGISTRY.ids
+    )
   end
 
   def open_main_option(index)
@@ -506,7 +553,7 @@ class EltenGameRoom < Program
       selected_index = [selected_index, game_ids.length - 1].min
       action = nil
       games = ListBox.new(
-        game_ids.map { |game_id| game_lobby_label(game_id, snapshots) },
+        game_ids.map { |game_id| game_lobby_label(game_id) },
         header: _("Join a table"),
         index: selected_index,
         quiet: true
@@ -575,19 +622,7 @@ class EltenGameRoom < Program
       form.wait
       return false if action != :join
 
-      result = run_network_task(_("Joining table")) do
-        selected_table = snapshots[selected_index].table
-        connected = establish_table_transport(selected_table, bootstrap: true)
-        next :transport_failed if !connected
-
-        joined = @lobby.join_table(selected_table, Session.name, announce: false)
-        if joined&.entered?
-          @lobby.announce_table_joined(joined.table, joined.members, actor: Session.name) if joined.status == :joined
-        else
-          @transport.deactivate_table(table_id: @lobby.table_id(selected_table))
-        end
-        joined
-      end
+      result = join_table_snapshot(snapshots[selected_index])
       return false if result == nil
       if result == :transport_failed
         alert(_("The real-time connection to this table could not be established. Please try again."))
@@ -608,6 +643,24 @@ class EltenGameRoom < Program
       when :closed
         alert(_("This table is no longer available."))
       end
+    end
+  end
+
+  def join_table_snapshot(snapshot)
+    return nil if snapshot == nil
+
+    run_network_task(_("Joining table")) do
+      selected_table = snapshot.table
+      connected = establish_table_transport(selected_table, bootstrap: true)
+      next :transport_failed if !connected
+
+      joined = @lobby.join_table(selected_table, Session.name, announce: false)
+      if joined&.entered?
+        @lobby.announce_table_joined(joined.table, joined.members, actor: Session.name) if joined.status == :joined
+      else
+        @transport.deactivate_table(table_id: @lobby.table_id(selected_table))
+      end
+      joined
     end
   end
 
@@ -1051,7 +1104,11 @@ class EltenGameRoom < Program
 
       client = EltenLink::Client.new
       users = if source == :contacts
-        EltenLink::Contacts.list(client)
+        contacts = EltenLink::Contacts.list(client)
+        online = EltenLink::Users.online(client).each_with_object({}) do |user, result|
+          result[user.to_s.strip.downcase] = true
+        end
+        contacts.select { |user| online.key?(user.to_s.strip.downcase) }
       else
         EltenLink::Users.online(client)
       end
@@ -1066,7 +1123,7 @@ class EltenGameRoom < Program
 
     snapshot, candidates = payload
     if candidates.empty?
-      message = source == :contacts ? _("There are no contacts available to invite.") : _("There are no online users available to invite.")
+      message = source == :contacts ? _("There are no online contacts available to invite.") : _("There are no online users available to invite.")
       alert(message)
       return
     end
@@ -1442,15 +1499,103 @@ class EltenGameRoom < Program
     (row["__id"] || row["id"]).to_i
   end
 
+  def game_room_settings(reload: false)
+    if reload || @game_room_settings == nil
+      stored = read_json("settings.json", default: DEFAULT_SETTINGS.dup)
+      @game_room_settings = GameRoomPreferences.normalize(stored, GAME_REGISTRY.ids)
+    end
+    @game_room_settings
+  end
+
+  def build_widget_control
+    GameRoomWidget::TableList.new(
+      loader: -> { load_widget_table_snapshots },
+      opener: ->(snapshot) { open_widget_table(snapshot) },
+      labeler: ->(snapshot) { widget_table_label(snapshot) },
+      id_for: ->(snapshot) { @lobby.table_id(snapshot.table) }
+    )
+  end
+
+  def load_widget_table_snapshots
+    initialize_services
+    settings = game_room_settings(reload: true)
+    allowed_games = settings["widget_games"].to_a.map(&:to_s)
+    show_unavailable = settings["widget_show_unavailable"] == true
+    snapshots = run_network_task(_("Loading Game Room tables"), silent: true) do
+      @transport.start
+      @lobby.open_table_snapshots
+    end
+    return nil if snapshots == nil
+
+    snapshots.select do |snapshot|
+      allowed_games.include?(snapshot.table["game"].to_s) &&
+        (show_unavailable || widget_table_available?(snapshot))
+    end
+  end
+
+  def widget_table_available?(snapshot)
+    row = snapshot.table
+    return true if GameRoomParticipants.same?(@lobby.owner_of(row), Session.name)
+    return true if snapshot.members.to_a.any? { |member| GameRoomParticipants.same?(member, Session.name) }
+
+    discovered = row["__discovered_session"]
+    !discovered.respond_to?(:can_join?) || discovered.can_join?
+  end
+
+  def widget_table_label(snapshot)
+    row = snapshot.table
+    label = _("%{game}, %{owner}") % {
+      game: game_name(row["game"]),
+      owner: GameRoomParticipants.display_name(@lobby.owner_of(row))
+    }
+    widget_table_available?(snapshot) ? label : _("%{table}, unavailable") % { table: label }
+  end
+
+  def open_widget_table(snapshot)
+    initialize_services
+    if @widget_program_prepared != true
+      check_server_table_access
+      run_network_task(_("Connecting to Elten"), silent: true) do
+        @transport.start
+        register_game_room_user
+      end
+      @widget_program_prepared = true
+    end
+
+    result = join_table_snapshot(snapshot)
+    return if result == nil
+    if result == :transport_failed
+      alert(_("The real-time connection to this table could not be established. Please try again."))
+      return
+    end
+
+    case result.status
+    when :joined, :already_here
+      announce_joined_room(result.table) if result.status == :joined
+      show_table_screen(result.table)
+    when :already_at_another_table
+      alert(_("You are already at another table."))
+      show_table_screen(result.table)
+    when :full
+      alert(_("This table is full."))
+    when :closed
+      alert(_("This table is no longer available."))
+    end
+  end
+
   def show_settings
-    settings = read_json("settings.json", default: DEFAULT_SETTINGS.dup)
-    updated = GameRoomScreens::Settings.new(settings).wait
+    settings = game_room_settings(reload: true)
+    games = GAME_REGISTRY.ids.map { |game_id| { id: game_id, name: game_name(game_id) } }
+    updated = GameRoomScreens::Settings.new(settings, games: games).wait
     return if updated == nil
 
+    normalized = GameRoomPreferences.normalize(updated, GAME_REGISTRY.ids)
     update_json("settings.json", default: DEFAULT_SETTINGS.dup) do |state|
-      updated.each { |key, value| state[key] = value }
+      normalized.each { |key, value| state[key] = value }
       state
     end
+    @game_room_settings = normalized
+    Programs::Extensions.refresh_ui if defined?(Programs::Extensions) && Programs::Extensions.respond_to?(:refresh_ui)
     alert(_("Settings saved."))
   end
 
@@ -1532,28 +1677,12 @@ class EltenGameRoom < Program
     known + (available - known).sort
   end
 
-  def game_lobby_label(game_id, snapshots)
-    matching = snapshots.select { |snapshot| snapshot.table["game"].to_s == game_id.to_s }
-    waiting = matching.count { |snapshot| @lobby.waiting?(snapshot.table) }
-    _("%{game} (%{waiting}/%{total})") % {
-      game: game_name(game_id),
-      waiting: waiting,
-      total: matching.length
-    }
+  def game_lobby_label(game_id)
+    game_name(game_id)
   end
 
   def table_join_label(snapshot)
-    row = snapshot.table
-    label = _("%{status}; %{name}; host: %{owner}; users: %{users}; %{count}/%{maximum}") % {
-      status: table_status_label(row),
-      name: row["name"].to_s,
-      owner: @lobby.owner_of(row),
-      users: snapshot.participants.map { |participant| GameRoomParticipants.display_name(participant) }.join(", "),
-      count: snapshot.participant_count,
-      maximum: @lobby.capacity_of(row)
-    }
-    summary = game_options_summary(row)
-    summary.empty? ? label : "#{label}; #{summary}"
+    GameRoomParticipants.display_name(@lobby.owner_of(snapshot.table))
   end
 
   def table_header(snapshot)
@@ -1902,6 +2031,10 @@ class EltenGameRoom < Program
 
   def play_game_sounds(names)
     GameRoomSounds.play_all(self, names)
+  end
+
+  def game_room_sound_enabled?(name)
+    GameRoomPreferences.sound_enabled?(game_room_settings, name, GAME_REGISTRY.ids)
   end
 
   def room_membership_tracker(row)

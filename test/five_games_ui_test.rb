@@ -41,6 +41,8 @@ reset_sort = shortcuts.find { |item| item.key == "d" && item.modifiers == [:shif
 uno_surface.handle_command("sort_cards", reset_sort.payload)
 assert(uno_surface.fields.first.options == uno_state[:hands]["Alice"].map { |card| uno.send(:uno_label, card, uno_state) }, "Shift+D did not restore deal order")
 assert(shortcuts.any? { |item| item.key == "c" && item.kind == :announcement && item.modifiers.to_a.empty? }, "Normal C was replaced by sort")
+card_counts = shortcuts.find { |item| item.key == "e" && item.kind == :announcement && item.modifiers.to_a.empty? }
+assert(card_counts && card_counts.message == "Alice, 5. Bob, 1.", "UNO E does not read concise card counts")
 
 yahtzee_spec = GameSurfaces::RollAndScoreSpec.new(
   id: "yahtzee",

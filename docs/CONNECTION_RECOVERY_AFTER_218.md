@@ -70,5 +70,5 @@ odświeżeń; poprawka zapobiega myleniu przerwy z końcem pokoju i utracie
 oczekującego ruchu. Ponowienie dotyczy ruchów gry, nie transakcji tworzenia
 stołu, zaproszeń czy wieloetapowego uruchamiania partii.
 
-Wersja nadal 1.1.7/build 218. Nie budowano, nie podpisywano, nie instalowano
+Poprawki weszły do podpisanej paczki 1.1.8/build 219. Nie instalowano
 i nie publikowano paczki w ramach tej poprawki.

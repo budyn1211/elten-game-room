@@ -139,6 +139,24 @@ layout.update(view_spec: layout_spec(composite), history_items: [], user_items: 
 assert(form.fields[form.index].equal?(hand_field), "Composite transition lost hand focus")
 layout.update(view_spec: layout_spec(hand_spec(%w[A B C Z])), history_items: [], user_items: [], users_header: "")
 assert(layout.surface.fields.first.equal?(hand_field) && selected(layout.surface) == "Z", "Unwrapping lost hand state")
+
+# A temporary non-hand card list must not replace the remembered hand cursor.
+# UNO uses this exact transition after physically playing a Wild and before
+# returning from its separate colour choice.
+staged = GameRoomLayout::Screen.new(view_spec: layout_spec(hand_spec(%w[A B C D])), phase: :active)
+staged.surface.fields.first.index = 2
+colours = %w[red yellow green blue].map do |value|
+  GameSurfaces::Card.new(id: value, label: value, value: value, choices: [], sort_keys: {})
+end
+colour_choice = GameSurfaces::CardTableSpec.new(zones: [GameSurfaces::CardZoneSpec.new(
+  id: "colour_choice", header: "Choose a colour", cards: colours,
+  hand_order: nil, hand_epoch: nil, empty_label: "No colours")])
+staged.update(view_spec: layout_spec(colour_choice), history_items: [], user_items: [], users_header: "")
+staged.surface.fields.first.index = 3
+staged.update(view_spec: layout_spec(hand_spec(%w[A B D])), history_items: [], user_items: [], users_header: "")
+assert(selected(staged.surface) == "B", "A transient colour selector lost the predecessor of the played Wild")
+assert(staged.take_cursor_announcement == "B", "Returning from a colour selector did not announce the restored hand cursor")
+
 layout.update(view_spec: layout_spec(hand_spec(%w[A B])), history_items: [], user_items: [], users_header: "", phase: :finished)
 assert(layout.take_cursor_announcement == nil, "End of game spoke a hand card")
 

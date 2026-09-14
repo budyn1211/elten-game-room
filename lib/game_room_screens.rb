@@ -87,61 +87,83 @@ module GameRoomScreens
   end
 
   class Settings
-    def initialize(values)
+    INVITATION_POLICIES = %w[contacts nobody everyone].freeze
+
+    def initialize(values, games:)
       @values = values.to_h
+      @games = games.to_a
     end
 
     def wait
       action = nil
-      sections = ListBox.new([_("Lobby announcements")], header: _("Settings"), quiet: true)
-      open_button = Button.new(_("Open"))
-      back_button = Button.new(_("Back"))
-      form = Form.new([sections, open_button, back_button], quiet: true)
-      form.accept_button = open_button
-      form.cancel_button = back_button
-      form.hide(open_button)
-      form.hide(back_button)
-      open_button.on(:press) do
-        action = :lobby
-        form.resume
-      end
-      back_button.on(:press) do
-        action = :back
-        form.resume
-      end
-      form.wait
-      return nil if action != :lobby
-
-      updated = lobby_announcements
-      updated == nil ? nil : @values.merge(updated)
-    end
-
-    private
-
-    def lobby_announcements
-      legacy = @values["announce_lobby_changes"] != false
+      sections = ListBox.new(
+        [_("Lobby messages"), _("Notification settings"), _("Sounds"), _("Widget")],
+        header: _("Settings"), quiet: true
+      )
+      lobby_games = multiple_game_list(_("Games covered by lobby messages"), @values["lobby_games"])
       created = CheckBox.new(
         _("Announce when a table is created"),
-        checked: setting_enabled?("announce_table_created", legacy)
+        checked: setting_enabled?("announce_table_created")
       )
       joined = CheckBox.new(
         _("Announce when a player joins a table"),
-        checked: setting_enabled?("announce_player_joined", legacy)
+        checked: setting_enabled?("announce_player_joined")
       )
       left = CheckBox.new(
         _("Announce when a player leaves a table"),
-        checked: setting_enabled?("announce_player_left", legacy)
+        checked: setting_enabled?("announce_player_left")
       )
       computers = CheckBox.new(
         _("Announce when a computer is added or removed"),
-        checked: setting_enabled?("announce_computer_changes", legacy)
+        checked: setting_enabled?("announce_computer_changes")
+      )
+      invitation_policy = ListBox.new(
+        [_("From contacts"), _("From nobody"), _("From everyone")],
+        header: _("Show invitation notifications from"),
+        index: [INVITATION_POLICIES.index(@values["invitation_notifications"].to_s).to_i, 0].max,
+        quiet: true
+      )
+      game_sounds = CheckBox.new(
+        _("Game sounds"), checked: setting_enabled?("game_sounds")
+      )
+      room_sounds = CheckBox.new(
+        _("Sounds when someone enters or leaves a room"),
+        checked: setting_enabled?("room_membership_sounds")
+      )
+      chat_sounds = CheckBox.new(
+        _("Chat sounds"), checked: setting_enabled?("chat_sounds")
+      )
+      invitation_sounds = CheckBox.new(
+        _("Invitation and Game Room notification sounds"),
+        checked: setting_enabled?("invitation_sounds")
+      )
+      widget_enabled = CheckBox.new(
+        _("Show Game Room on the ELTEN main screen"),
+        checked: setting_enabled?("widget_enabled")
+      )
+      widget_games = multiple_game_list(_("Games shown on the main screen"), @values["widget_games"])
+      widget_unavailable = CheckBox.new(
+        _("Show full or unavailable tables"),
+        checked: setting_enabled?("widget_show_unavailable")
       )
       save_button = Button.new(_("Save"))
       cancel_button = Button.new(_("Cancel"))
-      form = Form.new([created, joined, left, computers, save_button, cancel_button], quiet: true)
+
+      groups = [
+        [lobby_games, created, joined, left, computers],
+        [invitation_policy],
+        [game_sounds, room_sounds, chat_sounds, invitation_sounds],
+        [widget_enabled, widget_games, widget_unavailable]
+      ]
+      form = Form.new([sections] + groups.flatten + [save_button, cancel_button], quiet: true)
       form.accept_button = save_button
       form.cancel_button = cancel_button
-      action = nil
+      refresh_section = lambda do
+        groups.flatten.each { |control| form.hide(control) }
+        groups[sections.index.to_i].to_a.each { |control| form.show(control) }
+      end
+      sections.on(:move) { refresh_section.call }
+      refresh_section.call
       save_button.on(:press) do
         action = :save
         form.resume
@@ -151,16 +173,45 @@ module GameRoomScreens
       return nil if action != :save
 
       {
+        "lobby_games" => selected_game_ids(lobby_games),
         "announce_table_created" => created.checked,
         "announce_player_joined" => joined.checked,
         "announce_player_left" => left.checked,
         "announce_computer_changes" => computers.checked,
-        "announce_lobby_changes" => [created, joined, left, computers].any?(&:checked)
+        "announce_lobby_changes" => [created, joined, left, computers].any?(&:checked),
+        "invitation_notifications" => INVITATION_POLICIES[invitation_policy.index.to_i] || "everyone",
+        "game_sounds" => game_sounds.checked,
+        "room_membership_sounds" => room_sounds.checked,
+        "chat_sounds" => chat_sounds.checked,
+        "invitation_sounds" => invitation_sounds.checked,
+        "widget_enabled" => widget_enabled.checked,
+        "widget_games" => selected_game_ids(widget_games),
+        "widget_show_unavailable" => widget_unavailable.checked
       }
     end
 
-    def setting_enabled?(key, fallback)
-      @values.key?(key) ? @values[key] != false : fallback
+    private
+
+    def multiple_game_list(header, selected)
+      control = ListBox.new(
+        @games.map { |game| game.fetch(:name).to_s },
+        header: header,
+        flags: ListBox::Flags::MultiSelection,
+        quiet: true
+      )
+      wanted = selected.to_a.map(&:to_s)
+      control.select_multiselection_indices(
+        @games.each_index.select { |index| wanted.include?(@games[index].fetch(:id).to_s) }
+      )
+      control
+    end
+
+    def selected_game_ids(control)
+      control.multiselections.filter_map { |index| @games[index]&.fetch(:id)&.to_s }
+    end
+
+    def setting_enabled?(key)
+      @values[key] != false
     end
   end
 

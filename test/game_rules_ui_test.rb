@@ -94,7 +94,7 @@ app.define_singleton_method(:update_json) do |file, default:, &block|
 end
 definitions = game.option_definitions
 switches = definitions.select { |definition| definition.kind == :boolean }
-saved = { "profile" => "custom", "hand_size" => 8, "makao_penalty" => 4 }
+saved = { "profile" => "custom", "hand_size" => 8, "makao_penalty" => 4, "bot_delay" => 3 }
 switches.each_with_index { |definition, index| saved[definition.key] = index.even? }
 Form.driver = lambda do |form|
   profile = form.fields.find { |field| field.is_a?(ListBox) && field.header == "Rule profile" }

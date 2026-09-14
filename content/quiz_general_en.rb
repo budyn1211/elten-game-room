@@ -7,13 +7,13 @@ GameRoomContent.registry.register_pack(GameRoomContent::Pack.new(
   set_id: "quiz.general",
   kind: :quiz,
   language_id: "en",
-  version: 1,
+  version: 4,
   title: _("General knowledge"),
   game_ids: ["quiz"],
   license: "CC-BY-SA-4.0",
   author: "OpenTriviaQA contributors",
-  entry_count: 28575,
-  checksum: "35aa0f738cfed6a10b2cdf8d09615e2232dfffa16e69b37cd0c10e77daea09f1",
+  entry_count: 13903,
+  checksum: "4f1cf5d680f8387506bf0b65e456404aa4a102591f1617540dc61c1ec1b09634",
   loader: lambda {
     require_relative "quiz_general_en_data"
     GameRoomContent::Pack0e7a79bfbaaded2145287ed3.load
