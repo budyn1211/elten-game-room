@@ -30,6 +30,6 @@ https://bundesliga.com/en/bundesliga/news/top-scorer-2020-21-lewandowski-haaland
 Bayern won the 2019/2020 UEFA Champions League; Robert Lewandowski was its top scorer with 15 goals:
 https://www.uefa.com/uefachampionsleague/news/025b-0ee5f2774f21-1dfc341952f8-1000--champions-league-final-meet-the-winners/
 
-No source prose is copied into the question pack. The sources are used only to verify short factual records and their answer choices. The corrected sport category contains 3001 questions.
+No source prose is copied into the question pack. The sources are used only to verify short factual records and their answer choices. This sport-only correction stage produced 3001 questions. The later full Polish general-set audit removed 684 additional unsafe sport questions, leaving 2317; see QUIZ_PL_GENERAL_AUDIT.md.
 
 The quiz.wikidata.pl entry in QUIZ_IMPORT_REPORT.json describes the historical base import from revision efa6e640a57901e7b01e5ac2158e84f1c3375435. The current entry count and checksum are stored in quiz_pl_wikidata.rb.

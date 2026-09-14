@@ -61,9 +61,9 @@ packs = %w[quiz.wikidata.pl quiz.witcher.pl quiz.general.en].map { |id| GameRoom
 assert(packs.all? { |pack| pack && !pack.verified? }, "rules/defaults/options eagerly loaded a question database")
 audit = JSON.parse(File.read(File.expand_path("../content/QUIZ_IMPORT_REPORT.json", __dir__), encoding: "UTF-8"))["packs"]
 polish_questions = polish_pack.data["questions"]
-assert(polish_questions.length == 15_428, "the Polish Wikidata question pack lost its questions")
+assert(polish_questions.length == 10_939, "the Polish Wikidata question pack lost its audited questions")
 sport_questions = polish_questions.select { |question| question["category"] == "sport" }
-assert(sport_questions.length == 3_001, "the corrected sport category fell below its target")
+assert(sport_questions.length == 2_317, "the audited sport category has the wrong size")
 undated_coach_questions = sport_questions.select do |question|
   prompt = question["prompt"]
   coach_relation = prompt.match?(/\b(?:trener\w*|prowadz\w*|szkoleniow\w*|selekcjoner\w*|menedżer\w*)\b/i) ||
@@ -79,7 +79,7 @@ reviewed_payload = reviewed.map do |question|
   [question["prompt"], question["correct"], question["wrong"], question["source_links"]]
 end.sort_by(&:first)
 reviewed_digest = Digest::SHA256.hexdigest(JSON.generate(reviewed_payload))
-assert(reviewed_digest == "fd7d0af0e4d90c33881a5c2fdb1b245ec3e636bd7e990a53310eda695913e264", "reviewed sport facts or sources changed")
+assert(reviewed_digest == "abdae78be5bcdd5ef85b4fe4f9f1547a9f070c44e7074b01988653ab30f709d9", "reviewed sport facts or sources changed")
 lewandowski_answers = {
   "W którym roku Robert Lewandowski strzelił pięć goli w dziewięć minut?" => "2015",
   "Przeciw któremu klubowi Robert Lewandowski strzelił pięć goli w dziewięć minut?" => "VfL Wolfsburg",
