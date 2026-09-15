@@ -37,5 +37,18 @@ module GameSurfaces
       end
       [cards, ids.index(target) || 0, target != nil && target != selected]
     end
+
+    def self.navigation_index(card_ids, current_index, playable_ids, direction)
+      allowed = playable_ids.to_a.each_with_object({}) { |id, result| result[id.to_s] = true }
+      candidates = card_ids.to_a.each_index.select { |index| allowed[card_ids[index].to_s] }
+      return nil if candidates.empty?
+
+      current = current_index.to_i
+      if direction.to_i < 0
+        candidates.reverse.find { |index| index < current } || candidates.last
+      else
+        candidates.find { |index| index > current } || candidates.first
+      end
+    end
   end
 end

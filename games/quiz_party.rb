@@ -20,6 +20,14 @@ module GameRoomGames
       "quiz"
     end
 
+    def save_game_error(_replay)
+      _("Saving is not supported for this game.")
+    end
+
+    def supports_saved_games?
+      false
+    end
+
     def name
       _("Quiz Party")
     end

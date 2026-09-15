@@ -33,12 +33,15 @@ class GameScreen
     send_chat: nil,
     layout: nil,
     manage_computer: nil,
-    manage_observer: nil
+    manage_observer: nil,
+    save_game: nil
   )
     @layout = layout
     @manage_computer = manage_computer
     @manage_observer = manage_observer
+    @save_game = save_game
     @program = program
+    @layout.form.game_room_program = program if @layout != nil
     @repository = repository
     @game = game
     @session = session
@@ -143,7 +146,7 @@ class GameScreen
         @automatic_recovery_pending = true
         @synchronizer.request_recovery!(delay: GameRoomSync::ERROR_BACKOFF) if !@synchronizer.recovery_pending?
         if @last_game_payload == nil
-          event = self.class.wait_for_connection(@synchronizer)
+          event = self.class.wait_for_connection(@synchronizer, program: @program)
           return :back if event == nil
           return :room_closed if event.kind == :closed
           if event.kind == :game_started
@@ -192,12 +195,12 @@ class GameScreen
         log_bot_confirmation(confirmation) if ![:idle, :cooldown, :waiting_for_confirmation].include?(confirmation)
       end
 
-      if !replay.finished? && !using_cached_payload && perform_automatic_action(replay)
+      if !@session["__frozen"] && !replay.finished? && !using_cached_payload && perform_automatic_action(replay)
         @suppress_surface_focus = true
         next
       end
       revision = @repository.events_revision(snapshot.events)
-      bot_actor = pending_bot_actor(replay)
+      bot_actor = @session["__frozen"] ? nil : pending_bot_actor(replay)
       if bot_actor != nil
         @bot_turn_controller.schedule_decision(
           session_id: @repository.session_id(@session), actor: bot_actor,
@@ -231,6 +234,9 @@ class GameScreen
       when :rules
         options = @game.options_from_json(@session["options"])
         GameRoomScreens::GameRules.new(@game.rule_book(options: options)).wait
+      when :save_game
+        return :saved if @save_game&.call(@table, @session, @game)
+        @suppress_surface_focus = true
       when :invite_online
         @invite_online&.call(@table)
       when :invite_contacts
@@ -261,9 +267,9 @@ class GameScreen
 
   # Used only when a screen has not received its first valid snapshot yet.
   # Timers consume existing recovery wake-ups; they never poll the server.
-  def self.wait_for_connection(synchronizer)
+  def self.wait_for_connection(synchronizer, program: nil)
     back = Button.new(_("Back"))
-    form = GameSurfaces::RefreshAwareForm.new([back], quiet: true)
+    form = GameSurfaces::RefreshAwareForm.new([back], program: program, quiet: true)
     result = nil
     back.on(:press) { form.resume }
     form.cancel_button = back
@@ -295,6 +301,7 @@ class GameScreen
         phase: phase,
         own_table: same_user?(@table_owner, Session.name)
       )
+      @layout.form.game_room_program = @program
     else
       @layout.update(
         view_spec: view_spec, history_items: history_items, user_items: user_items,
@@ -346,6 +353,7 @@ class GameScreen
     shortcuts = normalized_game_shortcuts(@game.game_shortcuts(replay, Session.name))
     handle_shortcut = lambda do |shortcut|
       next if action != nil
+      next if @session["__frozen"] && ![:announcement, :browse, :surface].include?(shortcut.kind)
       if bot_actor != nil && !@game.actions_during_bot_turn? && ![:announcement, :browse, :surface].include?(shortcut.kind)
         next
       end
@@ -353,7 +361,10 @@ class GameScreen
       active_shortcut = refreshed_announcement_shortcut(shortcut, replay, Session.name)
       selection = activate_game_shortcut(active_shortcut, surface, replay: replay)
       if selection == :surface_handled
-        layout.focus_game(silent: true) if active_shortcut.payload["focus_surface"] == true
+        if active_shortcut.payload["focus_surface"] == true
+          field_index = surface.respond_to?(:command_field_index) ? surface.command_field_index : 0
+          layout.focus_game(field_index: field_index || 0, silent: true)
+        end
         remember_position.call
         refresh_history_control(history, replay) if @game.history_presentation_depends_on_surface_state?
         next
@@ -365,7 +376,7 @@ class GameScreen
         form.resume
         next
       end
-      next if selection == nil
+      next if selection == nil || @session["__frozen"]
 
       remember_position.call
       @selected_surface_action = selection
@@ -393,6 +404,7 @@ class GameScreen
     end
     GameRoomParticipantMenu.bind(layout, available: -> do
       actions = [:rules, :leave]
+      actions << :save_game if @save_game != nil && same_user?(@table_owner, Session.name)
       actions << :invite_online if @invite_online != nil
       actions << :invite_contacts if @invite_contacts != nil
       if @manage_observer != nil
@@ -404,7 +416,9 @@ class GameScreen
         ))
       end
       actions
-    end) do |requested, participant|
+    end, read_options: -> {
+      speak(@game.table_options_announcement(@game.options_from_json(@session["options"])))
+    }) do |requested, participant|
       next if action != nil
 
       remember_position.call
@@ -422,6 +436,7 @@ class GameScreen
     end
     surface.on_action do |selection|
       next if action != nil
+      next if @session["__frozen"]
       next if bot_actor != nil && !@game.actions_during_bot_turn?
 
       cancel_bot_decision(bot_token, :human_surface_action)
@@ -466,6 +481,7 @@ class GameScreen
         cancel_bot_decision(bot_token, :chat)
         form.resume
       elsif submission.kind == :movement
+        next if @session["__frozen"]
         @selected_surface_action = submission.action
         @clear_chat_after_action = true
         action = :game_action
@@ -848,6 +864,11 @@ class GameScreen
       ["right", [:control, :shift]]
     ]
     form.history_navigation_signatures = signatures if form.respond_to?(:history_navigation_signatures=)
+    form.game_room_general_help_tips = [
+      _("Press Shift+Left or Shift+Right to select the previous or next history category."),
+      _("Press Ctrl+Left or Ctrl+Right to read the previous or next history message."),
+      _("Press Ctrl+Shift+Left or Ctrl+Shift+Right to read the first or last history message.")
+    ]
     {
       left: -1,
       right: 1
@@ -900,10 +921,12 @@ class GameScreen
         source: "shortcut:#{shortcut.key}"
       )
     when :surface
-      if surface != nil && surface.respond_to?(:handle_command) &&
-          surface.handle_command(shortcut.action_name, shortcut.payload)
-        :surface_handled
-      end
+      return nil if surface == nil || !surface.respond_to?(:handle_command)
+
+      result = surface.handle_command(shortcut.action_name, shortcut.payload)
+      return result if result.is_a?(GameSurfaces::Action)
+
+      result ? :surface_handled : nil
     else
       raise ArgumentError, "unsupported game shortcut kind: #{shortcut.kind}"
     end
@@ -1014,7 +1037,7 @@ class GameScreen
     )
     select_button = Button.new(_("Select"))
     cancel_button = Button.new(_("Cancel"))
-    form = Form.new([list, select_button, cancel_button], quiet: true)
+    form = GameRoomUI::Form.new([list, select_button, cancel_button], program: @program, quiet: true)
     form.accept_button = select_button
     form.cancel_button = cancel_button
     form.hide(select_button)
@@ -1058,7 +1081,7 @@ class GameScreen
     end
     submit = Button.new(_("Send proposal"))
     cancel = Button.new(_("Cancel"))
-    form = Form.new(bindings.map(&:last) + [submit, cancel], quiet: true)
+    form = GameRoomUI::Form.new(bindings.map(&:last) + [submit, cancel], program: @program, quiet: true)
     form.accept_button = submit
     form.cancel_button = cancel
     read_values = lambda do
@@ -1104,7 +1127,7 @@ class GameScreen
       quiet: true
     )
     back_button = Button.new(_("Back"))
-    form = Form.new([list, back_button], quiet: true)
+    form = GameRoomUI::Form.new([list, back_button], program: @program, quiet: true)
     form.cancel_button = back_button
     form.hide(back_button)
     back_button.on(:press) { form.resume }
@@ -1263,6 +1286,7 @@ class GameScreen
     latest_id = @repository.session_id(latest)
     current_id = @repository.session_id(@session)
     return [:new_session, latest_id] if latest_id > 0 && latest_id != current_id
+    return [:refresh, nil] if latest != nil && latest["__frozen"] != @session["__frozen"]
     return [:refresh, nil] if @repository.event_revision(@session, known_revision: revision) != revision
 
     [nil, nil]
@@ -1407,6 +1431,7 @@ class GameScreen
   end
 
   def pending_bot_actor(replay)
+    return nil if @session["__frozen"]
     return nil if connection_recovery_pending? || @new_session_id != nil
     return nil if !same_user?(@table_owner, Session.name)
 
@@ -1507,6 +1532,7 @@ class GameScreen
   end
 
   def perform_automatic_action(replay)
+    return false if @session["__frozen"]
     return false if connection_recovery_pending? || @new_session_id != nil
     return false if !@game.automatic_action_allowed?(
       replay,
@@ -1559,6 +1585,7 @@ class GameScreen
   end
 
   def automatic_action_due?(replay)
+    return false if @session["__frozen"]
     return false if connection_recovery_pending? || @new_session_id != nil
     return false if !@game.automatic_action_allowed?(
       replay,
@@ -1580,7 +1607,7 @@ class GameScreen
       table_id: table_id,
       hidden_submissions: @hidden_submissions,
       random_source: @random_source,
-      now: Time.now.to_i
+      now: (@session["__frozen_at"] || Time.now.to_i).to_i - @session["__clock_offset"].to_i
     )
   end
 
@@ -1784,7 +1811,7 @@ class GameScreen
   end
 
   def announce_due_timers(replay)
-    @game.timer_announcements(replay, Session.name, now: Time.now.to_i).to_a.each do |announcement|
+    @game.timer_announcements(replay, Session.name, now: action_context.now).to_a.each do |announcement|
       key, message = announcement.to_a
       next if key.to_s.empty? || message.to_s.empty? || @spoken_timer_announcements[key.to_s]
 
@@ -1822,6 +1849,13 @@ class GameScreen
     @synchronizer&.request_recovery!(delay: GameRoomSync::ERROR_BACKOFF)
     nil
   rescue StandardError => error
+    if error.is_a?(GameRoomNetworkErrors::GamePaused)
+      # A confirmed save boundary can arrive between choosing and sending a
+      # move. Refresh the pause, without reporting an outage or delaying 30s.
+      @automatic_recovery_pending = true
+      @synchronizer&.request_recovery!
+      return nil
+    end
     raise if !GameRoomNetworkErrors.expected?(error)
 
     @automatic_recovery_pending = true

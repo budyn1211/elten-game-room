@@ -230,6 +230,22 @@ module GameRoomGames
       end
     end
 
+    def playable_card_navigation(replay, viewer)
+      state = replay.state
+      return nil if state == nil || state[:phase] != :playing
+      return nil if !same_user?(state[:current_player], viewer)
+
+      actions = legal_actions(replay, viewer).select do |action|
+        action["kind"] == "card" && action["action"] == "select"
+      end
+      grouped = actions.group_by { |action| action["card"].to_s.split("|", 2).first }
+      card_navigation_spec(
+        hand_id: "hand",
+        card_actions: grouped,
+        automatic_card_ids: grouped.keys
+      )
+    end
+
     def action_for(selection, replay, actor, context: nil)
       state = replay.state
       return [:finished, nil] if replay.finished?

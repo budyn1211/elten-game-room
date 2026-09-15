@@ -243,10 +243,10 @@ check.call("a penalty does not restart the bot delay or alter confirmation revis
   assert(uno.bot_delay_revision(snapshot, [3, 3]) == [2, 3], "A genuine move failed to start a new waiting period")
 end
 
-check.call("only UNO opts in; the five-second gate remains nonblocking") do
+check.call("games with out-of-turn actions opt in; the five-second gate remains nonblocking") do
   EltenGameRoom::GAME_REGISTRY.ids.each do |id|
     game = EltenGameRoom::GAME_REGISTRY.build(id)
-    assert(game.actions_during_bot_turn? == (id == "uno"), "Unexpected exception for #{id}")
+    assert(game.actions_during_bot_turn? == ["uno", "makao"].include?(id), "Unexpected exception for #{id}")
     assert(game.bot_delay_revision(replay_of(position(uno)), [12, 20]) == [12, 20], "Pacing changed for #{id}") if id != "uno"
   end
   clock = 100.0

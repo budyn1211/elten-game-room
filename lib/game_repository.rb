@@ -35,6 +35,16 @@ class GameRepository
     end
   end
 
+  def restore_session(table:, game:, players:, options:, restore:)
+    raise ArgumentError, "Only the founder may restore the game" unless GameRoomParticipants.same?(table["owner"], Session.name)
+    @start_session_mutex ||= Mutex.new
+    @start_session_mutex.synchronize do
+      existing = session_for_table(table, force: true)
+      next existing if existing != nil
+      @transport.start_game(table: table, game: game, players: players, options: options, actor: Session.name, restore: restore)
+    end
+  end
+
   def session_for_table(table, force: false)
     table_id = row_id(table)
     return nil if table_id <= 0
@@ -109,6 +119,10 @@ class GameRepository
     return nil if players.empty?
 
     current = with_players(session, players)
+    if native_live_sessions?
+      refreshed = @transport.game_session(session_id(current), table: current["table_id"])
+      current = with_players(refreshed, players) if refreshed != nil
+    end
     events = events_for(current, force: force_events)
     GameSnapshot.new(session: current, events: events)
   end

@@ -50,7 +50,8 @@ module GameRoomGames
           _("Check means your king is attacked: your next move must remove that attack. Checkmate means there is no legal reply, and loses the game. No legal move while not in check is stalemate, a draw. The program also automatically draws on three repetitions of a position, insufficient mating material, or 50 moves by each side without a pawn move or capture. This implementation has no optional chess variants or chess clock.")),
         rule_section(:controls, _("Moving and inspecting pieces"),
           _("Arrow keys browse the board. Enter selects your piece, then Enter on the destination attempts the move. Promotion opens a choice list. V reads legal destinations for the inspected piece; E reads pieces attacking the inspected field, including an empty field; C identifies each player's colour."),
-          _("K, D, R, B, N and P jump between your kings, queens, rooks, bishops, knights and pawns respectively; Shift with the same letter visits the opponent's pieces. Ctrl+Shift+H rotates the view without renaming fields. T reads the turn. In chat, /e2 e4 attempts a move from E2 to E4; castling and promotion use the same rules and choices as board moves."))
+          _("K, D, R, B, N and P jump between your kings, queens, rooks, bishops, knights and pawns respectively; Shift with the same letter visits the opponent's pieces. Ctrl+Shift+H rotates the view without renaming fields. T reads the turn. In chat, /e2 e4 attempts a move from E2 to E4; castling and promotion use the same rules and choices as board moves."),
+          _("S reads the current number of kings, queens, rooks, bishops, knights and pawns belonging to each player."))
       ]
     end
 
@@ -283,6 +284,17 @@ module GameRoomGames
         )
       end
       shortcuts
+    end
+
+    def remaining_piece_counts(replay)
+      pieces = replay.board.flatten.compact
+      %w[w b].map do |colour|
+        _("kings: %{kings}, queens: %{queens}, rooks: %{rooks}, bishops: %{bishops}, knights: %{knights}, pawns: %{pawns}") % {
+          kings: pieces.count("#{colour}K"), queens: pieces.count("#{colour}Q"),
+          rooks: pieces.count("#{colour}R"), bishops: pieces.count("#{colour}B"),
+          knights: pieces.count("#{colour}N"), pawns: pieces.count("#{colour}P")
+        }
+      end
     end
 
     def bot_search_key(replay, actor)

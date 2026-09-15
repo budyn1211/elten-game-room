@@ -113,11 +113,11 @@ Form.class_eval do
     sections = fields[0]
     sections.index = 3
     sections.trigger(:move)
-    raise "widget controls were not shown together" if fields[11..13].any? { |control| hidden_controls.include?(control) }
+    raise "widget controls were not shown together" if fields[12..14].any? { |control| hidden_controls.include?(control) }
     raise "lobby controls remained visible in the widget category" if fields[1..5].any? { |control| !hidden_controls.include?(control) }
     fields[6].index = 1
-    fields[7].checked = false
-    fields[12].select_multiselection_indices([1])
+    fields[8].index = 0
+    fields[13].select_multiselection_indices([1])
     fields[-2].trigger(:press)
   end
 end
@@ -134,7 +134,7 @@ result = GameRoomScreens::Settings.new(
 ).wait
 assert(captured_form != nil, "settings form did not open")
 assert(result["invitation_notifications"] == "nobody", "notification policy was not saved")
-assert(result["game_sounds"] == false, "sound setting was not saved")
+assert(result["sound_volumes"]["game"] == 0, "sound setting was not saved")
 assert(result["widget_games"].sort == %w[makao uno], "multi-selection of widget games was not saved")
 
 # Restore the shared test form before exercising the main-tab control.

@@ -17,12 +17,14 @@ module GameRoomParticipantMenu
       Entry.new(action: :observe_next_game, label: _("Observe the next game"), menu_key: "O", help_key: "Ctrl+Shift+O"),
       Entry.new(action: :play_next_game, label: _("Play in the next game"), menu_key: "O", help_key: "Ctrl+Shift+O"),
       Entry.new(action: :rules, label: _("Game rules"), menu_key: :ctrl_f1, help_key: "Ctrl+F1"),
+      Entry.new(action: :table_options, label: _("Read the table variant and settings"), menu_key: "r", help_key: "Ctrl+R"),
+      Entry.new(action: :save_game, label: _("Save the game and close the table"), menu_key: "s", help_key: "Ctrl+S"),
       Entry.new(action: :leave, label: _("Leave"), menu_key: "")
     ]
   end
 
-  def management_actions(room:, game:, active:, viewer:, owner:)
-    return [] if room == nil || active || !GameRoomParticipants.same?(viewer, owner)
+  def management_actions(room:, game:, active:, viewer:, owner:, restoring: false)
+    return [] if room == nil || active || restoring || !GameRoomParticipants.same?(viewer, owner)
 
     actions = []
     maximum = game == nil ? 0 : [room.table["max_players"].to_i, game.maximum_players.to_i].min
@@ -38,14 +40,22 @@ module GameRoomParticipantMenu
     room.observer?(viewer) ? [:play_next_game] : [:observe_next_game]
   end
 
-  def bind(layout, available:, &dispatch)
+  def bind(layout, available:, read_options: nil, &dispatch)
+    supplied = available
+    available = -> { supplied.call + (read_options == nil ? [] : [:table_options]) }
     layout.form.bind_context do |menu|
       actions = available.call
       entries.each do |entry|
         next if !actions.include?(entry.action)
 
         menu.option(entry.label, nil, entry.menu_key) do
-          dispatch.call(entry.action, nil) if available.call.include?(entry.action)
+          next if !available.call.include?(entry.action)
+
+          if entry.action == :table_options
+            read_options.call
+          else
+            dispatch.call(entry.action, nil)
+          end
         end
       end
     end

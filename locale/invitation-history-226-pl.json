@@ -1,0 +1,4 @@
+{
+  "%{player} invited %{user}.": "%{player} zaprosił gracza %{user}.",
+  "%{user} declined %{player}'s invitation.": "%{user} odrzucił zaproszenie gracza %{player}."
+}

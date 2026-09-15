@@ -357,6 +357,29 @@ module GameRoomGames
       lines.empty? ? _("This table uses fixed rules with no configurable additions.") : lines.join("\r\n\r\n")
     end
 
+    def table_options_announcement(options)
+      "#{name}. #{rules_options_text(normalize_options(options)).gsub(/\r?\n+/, '. ')}"
+    end
+
+    # Increment when a rules change makes old event archives incompatible.
+    def saved_game_schema_version
+      1
+    end
+
+    def supports_saved_games?
+      true
+    end
+
+    # Most events use seat numbers or card/square identifiers. Games storing
+    # controller names inside values must remap only those documented fields.
+    def restored_event_value(event, _controller_mapping)
+      event["value"]
+    end
+
+    def save_game_error(replay)
+      replay.finished? ? _("This game has already finished.") : nil
+    end
+
     def selected_content_pack(options)
       return nil if content_pack_kind.to_s.empty?
 
@@ -528,7 +551,13 @@ module GameRoomGames
     end
 
     def shortcut_features
-      [:turn]
+      [:turn, :material]
+    end
+
+    # Board games supply counts from the current replay, never from a cached
+    # score or from the initial position. Unsupported games expose no shortcut.
+    def remaining_piece_counts(_replay)
+      nil
     end
 
     def shortcut_feature_data(feature, replay, viewer)
@@ -536,6 +565,14 @@ module GameRoomGames
       when :turn
         message = current_turn_shortcut_text(replay, viewer)
         message.to_s.empty? ? nil : { message: message }
+      when :material
+        counts = remaining_piece_counts(replay)
+        return nil if counts == nil
+
+        message = replay.players.each_with_index.map do |player, index|
+          _("%{player}: %{pieces}") % { player: participant_name(player), pieces: counts.fetch(index) }
+        end.join("; ")
+        { message: message }
       else
         nil
       end
@@ -572,13 +609,22 @@ module GameRoomGames
       []
     end
 
+    # Games with a real card hand may expose local navigation through the
+    # currently playable physical cards. The returned hash must contain a
+    # stable hand id, every distinct legal action grouped by Card#id, and the
+    # subset of cards which are safe to play without any further decision.
+    # Returning nil disables the feature for the current phase or variant.
+    def playable_card_navigation(_replay, _viewer)
+      nil
+    end
+
     def game_shortcuts(replay, viewer)
       shortcuts = GameRoomShortcuts.build(self, shortcut_features, replay, viewer)
       custom = custom_game_shortcuts(replay, viewer).to_a
       if custom.any? { |shortcut| !shortcut.is_a?(GameShortcut) }
         raise ArgumentError, "a custom game shortcut must be a GameShortcut"
       end
-      result = shortcuts + custom
+      result = shortcuts + custom + playable_card_shortcuts(replay, viewer)
       keys = result.map { |shortcut| [shortcut.key, shortcut.modifiers.to_a] }
       raise ArgumentError, "game shortcut keys must be unique" if keys.uniq.length != keys.length
 
@@ -728,6 +774,73 @@ module GameRoomGames
     end
 
     protected
+
+    def card_navigation_spec(hand_id:, card_actions:, automatic_card_ids: [])
+      {
+        hand_id: hand_id.to_s,
+        card_actions: card_actions,
+        automatic_card_ids: automatic_card_ids.to_a.map(&:to_s)
+      }
+    end
+
+    def playable_card_shortcuts(replay, viewer)
+      specification = playable_card_navigation(replay, viewer)
+      return [] if specification == nil
+      raise ArgumentError, "playable card navigation must be a hash" if !specification.respond_to?(:key?)
+
+      hand_id = option_source_value(specification, :hand_id).to_s
+      raise ArgumentError, "playable card navigation requires a hand id" if hand_id.empty?
+      source_actions = option_source_value(specification, :card_actions)
+      raise ArgumentError, "playable card navigation requires card actions" if !source_actions.respond_to?(:each_pair)
+
+      card_actions = {}
+      source_actions.each_pair do |card_id, actions|
+        id = card_id.to_s
+        raise ArgumentError, "a playable card requires a physical card id" if id.empty?
+        values = actions.to_a
+        if values.empty? || values.any? { |action| !action.respond_to?(:key?) }
+          raise ArgumentError, "a playable card requires legal action hashes"
+        end
+        card_actions[id] = values.map { |action| canonical_value(action) }
+      end
+      automatic_ids = option_source_value(specification, :automatic_card_ids).to_a.map(&:to_s).uniq
+      if (automatic_ids - card_actions.keys).any?
+        raise ArgumentError, "automatic playable cards must also be navigable"
+      end
+
+      auto_action = nil
+      auto_card_id = nil
+      if card_actions.length == 1
+        card_id, actions = card_actions.first
+        if automatic_ids.include?(card_id) && actions.length == 1
+          auto_card_id = card_id
+          auto_action = actions.first
+        end
+      end
+      common_payload = {
+        "hand_id" => hand_id,
+        "card_ids" => card_actions.keys,
+        "auto_card_id" => auto_card_id,
+        "auto_action" => auto_action,
+        "empty_message" => _("You have no playable card."),
+        "focus_surface" => true
+      }
+      [
+        surface_shortcut(
+          key: "z",
+          label: _("next playable card"),
+          command: "navigate_playable_card",
+          payload: common_payload.merge("direction" => 1, "shortcut" => "z")
+        ),
+        surface_shortcut(
+          key: "z",
+          modifiers: [:shift],
+          label: _("previous playable card"),
+          command: "navigate_playable_card",
+          payload: common_payload.merge("direction" => -1, "shortcut" => "shift+z")
+        )
+      ]
+    end
 
     def available_content_packs
       return [] if content_pack_kind.to_s.empty?

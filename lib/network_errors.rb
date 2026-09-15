@@ -4,9 +4,11 @@ module GameRoomNetworkErrors
   # An earlier move must be resolved before another plan can replace it.
   class PendingMove < StandardError; end
   class UncertainWrite < StandardError; end
+  class UnsupportedInvitation < StandardError; end
+  class GamePaused < StandardError; end
 
   def self.expected?(error)
-    error.is_a?(PendingMove) || error.is_a?(UncertainWrite) ||
+    error.is_a?(PendingMove) || error.is_a?(UncertainWrite) || error.is_a?(UnsupportedInvitation) || error.is_a?(GamePaused) ||
       (defined?(EltenLink::Error) && error.is_a?(EltenLink::Error)) ||
       (defined?(EltenAPI::LiveSessions::Error) && error.is_a?(EltenAPI::LiveSessions::Error))
   end

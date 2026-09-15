@@ -193,8 +193,11 @@ module GameRoomGames
         end
         accepted << event if applied
       end
+      state = state.merge(clock_offset: session["__clock_offset"].to_i) if session["__clock_offset"].to_i != 0
+      state = state.merge(frozen_at: session["__frozen_at"]) if session["__frozen_at"] != nil
       Replay.new(board: nil, players: players, current_player: state[:current_player], winner: state[:winner],
-        draw: false, accepted_events: accepted, history: history, state: state)
+        draw: false, accepted_events: accepted, history: history,
+        state: state)
     end
 
     def automatic_action(replay, actor, context: nil)
@@ -276,6 +279,24 @@ module GameRoomGames
       actions.concat(announcements)
       actions << { "kind" => "command", "action" => "challenge" } if state[:options]["bluff_challenge"] && state[:challenge_player] != nil
       actions
+    end
+
+    def playable_card_navigation(replay, viewer)
+      state = replay.state
+      return nil if state == nil || state[:phase] != :playing || state[:buzzer_active]
+      return nil if colour_choice_pending?(state) || !same_user?(state[:current_player], viewer)
+      return nil if %w[straights interceptions super_interceptions buzzers].any? { |key| state[:options][key] }
+
+      actions = legal_actions(replay, viewer).select do |action|
+        action["kind"] == "card" && action["action"] == "play" && !action["interception"] && !action["straight"]
+      end
+      grouped = actions.group_by { |action| action["card_id"].to_s }
+      automatic = grouped.keys.reject { |card_id| wild?(card_id) }
+      card_navigation_spec(
+        hand_id: "hand",
+        card_actions: grouped,
+        automatic_card_ids: automatic
+      )
     end
 
     def action_for(selection, replay, actor, context: nil)
@@ -401,8 +422,15 @@ module GameRoomGames
       announcement = super
       return announcement if announcement == nil || replay.finished? || replay.state[:turn_deadline].to_i <= 0
 
-      remaining = [replay.state[:turn_deadline].to_i - Time.now.to_i, 0].max
+      now = (replay.state[:frozen_at] || Time.now.to_i).to_i - replay.state.fetch(:clock_offset, 0).to_i
+      remaining = [replay.state[:turn_deadline].to_i - now, 0].max
       _("%{turn} %{seconds} seconds remain.") % { turn: announcement, seconds: remaining }
+    end
+
+    def save_game_error(replay)
+      return _("Choose the colour before saving the game.") if colour_choice_pending?(replay.state)
+
+      super
     end
 
     def custom_game_shortcuts(replay, viewer)

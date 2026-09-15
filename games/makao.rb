@@ -12,6 +12,7 @@ module GameRoomGames
     ].freeze
     SUITS = %w[C D H S].freeze
     RANKS = %w[2 3 4 5 6 7 8 9 T J Q K A].freeze
+    REQUEST_RANKS = %w[5 6 7 8 9 T].freeze
     SUIT_NAMES = { "C" => _("clubs"), "D" => _("diamonds"), "H" => _("hearts"), "S" => _("spades") }.freeze
     RANK_NAMES = { "T" => "10", "J" => _("jack"), "Q" => _("queen"), "K" => _("king"), "A" => _("ace") }.freeze
 
@@ -182,6 +183,10 @@ module GameRoomGames
       [[replay.state[:options]["bot_delay"].to_i, 1].max, 5].min
     end
 
+    def actions_during_bot_turn?
+      true
+    end
+
     def legal_actions(replay, actor, context: nil)
       state = replay.state
       return [] if replay.finished? || state[:phase] != :playing || player_key(state, actor) == nil
@@ -193,13 +198,8 @@ module GameRoomGames
           group = hand.select { |card| joker?(card) || card_rank(card) == rank }
           1.upto(group.length) do |count|
             group.combination(count) do |packet|
-              packet.each do |first|
-                ordered = [first] + (packet - [first])
-                choices = packet.any? { |card| joker?(card) } ? SUITS.map { |suit| "#{rank}#{suit}" } : card_choices_for(state, ordered.last)
-                if rank == "J" && state[:options]["jack_requests_rank"] && packet.any? { |card| !joker?(card) }
-                  choices += %w[5 6 7 8 9 T]
-                end
-                choices = [""] if choices.empty?
+              packet_orders(packet, distinguish_king_order: rank == "K" && state[:options]["attacking_kings"]).each do |ordered|
+                choices = packet_choices_for(state, ordered, rank)
                 choices.each do |choice|
                   next if validate_packet(state, actor, ordered, choice) != :ok
                   actions << { "kind" => "card_packet", "action" => "play", "cards" => JSON.generate(ordered), "choice" => choice }
@@ -219,6 +219,37 @@ module GameRoomGames
       actions << { "kind" => "command", "action" => "makao" } if hand_for(state, actor).length == 1 && !(state[:makao_declarations] || {})[player_key(state, actor)]
       actions << { "kind" => "command", "action" => "catch" } if catchable_player(state, actor) != nil
       actions.uniq
+    end
+
+    def playable_card_navigation(replay, viewer)
+      state = replay.state
+      return nil if replay.finished? || state[:phase] != :playing
+      return nil if !same_user?(state[:current_player], viewer)
+
+      packet_cards = []
+      grouped = legal_actions(replay, viewer).each_with_object({}) do |action, result|
+        next if action["kind"] != "card_packet" || action["action"] != "play"
+        cards = JSON.parse(action["cards"].to_s)
+        if cards.length > 1
+          packet_cards.concat(cards.map(&:to_s))
+          next
+        end
+        next if cards.length != 1
+
+        card_id = cards.first.to_s
+        (result[card_id] ||= []) << action
+      rescue JSON::ParserError
+        next
+      end
+      card_navigation_spec(
+        hand_id: "makao_hand",
+        card_actions: grouped,
+        # The shared packet control also represents a single card as an array.
+        # Only a real legal multi-card alternative or declaration blocks auto-play.
+        automatic_card_ids: grouped.keys.select do |card|
+          card_choices_for(state, card).empty? && !packet_cards.include?(card)
+        end
+      )
     end
 
     def active_actors(replay)
@@ -308,7 +339,9 @@ module GameRoomGames
     def bot_action_score(replay, actor, action, context: nil)
       return -500.0 if action["action"] == "draw"
       return -600.0 if action["action"] == "pass"
-      return 1_000.0 if action["action"] == "catch"
+      # Catching a missed declaration is free and does not consume the bot's
+      # ordinary turn.  It must therefore happen before every card play.
+      return 1_000_000.0 if action["action"] == "catch"
       return 500.0 if action["action"] == "makao"
       cards = JSON.parse(action["cards"].to_s) rescue []
       score = cards.length * 400.0
@@ -348,12 +381,26 @@ module GameRoomGames
     end
 
     def move_error_for(status, selection: nil, replay: nil, actor: nil)
+      cards = JSON.parse(selection["cards"].to_s) if selection != nil && selection["cards"] != nil
+      single_card = cards.is_a?(Array) && cards.length == 1
+      if single_card
+        return _("This card requires a valid declaration.") if status == :invalid_packet
+        return _("This card is not in your hand.") if status == :card_not_in_hand
+      end
       if status == :illegal_card && replay != nil
         state = replay.state
+        if single_card
+          return _("This card does not defend against the draw penalty.") if state[:draw_penalty].to_i > 0
+          return _("This card does not defend against the waiting penalty.") if state[:skip_penalty].to_i > 0
+          return _("This card does not satisfy the requested rank.") if state[:requested_rank] != nil
+          return _("This card cannot be played now.")
+        end
         return _("The first card in the packet does not defend against the draw penalty.") if state[:draw_penalty].to_i > 0
         return _("The first card in the packet does not defend against the waiting penalty.") if state[:skip_penalty].to_i > 0
         return _("The first card in the packet does not satisfy the requested rank.") if state[:requested_rank] != nil
       end
+      super
+    rescue JSON::ParserError
       super
     end
 
@@ -381,6 +428,42 @@ module GameRoomGames
         choices = [""] if choices.empty?
         choices.any? { |choice| validate_packet(state, actor, [card], choice) == :ok }
       end
+    end
+
+    # The first card decides whether a packet may start and the last card
+    # decides the resulting suit.  For attacking kings, reversing the middle
+    # also preserves both strategically distinct orders of the king of spades
+    # and the king of hearts without enumerating every factorial permutation.
+    def packet_orders(packet, distinguish_king_order: false)
+      cards = packet.to_a
+      return [cards] if cards.length <= 1
+
+      cards.each_index.flat_map do |first_index|
+        remaining = cards.dup
+        first = remaining.delete_at(first_index)
+        remaining.each_index.flat_map do |last_index|
+          middle = remaining.dup
+          last = middle.delete_at(last_index)
+          middles = distinguish_king_order ? [middle, middle.reverse].uniq : [middle]
+          middles.map { |items| [first, *items, last] }
+        end
+      end.uniq
+    end
+
+    # A joker at the end of a packet needs the declaration appropriate for
+    # the value it represents.  In particular, a joker used as a requesting
+    # jack needs both a suit and the requested rank.  If an ordinary card ends
+    # the packet, only that card's normal declaration is relevant.
+    def packet_choices_for(state, cards, rank)
+      if joker?(cards.last)
+        if rank == "J" && state[:options]["jack_requests_rank"]
+          return SUITS.flat_map { |suit| REQUEST_RANKS.map { |request| "J#{suit}:#{request}" } }
+        end
+        return SUITS.map { |suit| "#{rank}#{suit}" }
+      end
+
+      choices = card_choices_for(state, cards.last)
+      choices.empty? ? [""] : choices
     end
 
     def initial_state(players, options)
@@ -613,7 +696,7 @@ module GameRoomGames
         return SUITS
       end
       if card_rank(card) == "J" && state[:options]["jack_requests_rank"]
-        return %w[5 6 7 8 9 T]
+        return REQUEST_RANKS
       end
       []
     end
@@ -660,7 +743,7 @@ module GameRoomGames
     end
 
     def rank_request?(choice)
-      %w[5 6 7 8 9 T].include?(choice.to_s)
+      REQUEST_RANKS.include?(choice.to_s)
     end
 
     def apply_packet_effects(state, cards, effective)
@@ -791,6 +874,8 @@ module GameRoomGames
 
     def table_text(state)
       top = state[:discard].last
+      return _("No card has been dealt yet.") if top == nil
+
       _("Top card: %{card}; declared suit: %{suit}%{request}.") % {
         card: top == nil ? _("none") : joker?(top) ? _("joker as %{card}") % { card: makao_card_label("#{state[:declared_rank]}#{state[:declared_suit]}") } : makao_card_label(top),
         suit: SUIT_NAMES.fetch(state[:declared_suit], state[:declared_suit]),

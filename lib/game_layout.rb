@@ -174,6 +174,7 @@ module GameRoomLayout
       GameRoomContextHelp.replace(@form.fields, [], source: :game)
       @form.game_shortcut_signatures = []
       @form.history_navigation_signatures = []
+      @form.game_room_general_help_tips = []
     end
 
     def selected_participant
@@ -304,8 +305,8 @@ module GameRoomLayout
       @form.index = form_index_for_location([:users, 0])
     end
 
-    def focus_game(silent: false)
-      index = form_index_for_location([:game, 0])
+    def focus_game(field_index: 0, silent: false)
+      index = form_index_for_location([:game, field_index.to_i])
       return if @form.index.to_i == index
       field = @form.fields[index]
       field.suppress_next_focus! if silent && field.respond_to?(:suppress_next_focus!)

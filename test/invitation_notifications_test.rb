@@ -80,6 +80,7 @@ end
 require_relative "../__app"
 
 app = EltenGameRoom.allocate
+app.instance_variable_set(:@invitation_notifications, cleaner)
 transport = Object.new
 transport.define_singleton_method(:start) { true }
 app.instance_variable_set(:@transport, transport)
@@ -121,7 +122,7 @@ app.notification_action(:open_invitation, received)
 assert(calls.empty?, "cancelling a notification acted on the invitation")
 choices.delete_if { |choice| choice[:invitation].id == 7 }
 app.notification_action(:open_invitation, received)
-assert(calls == [[:revoke, 7, 42], [:alert, "This invitation is no longer available."]], "expired notification did not explain its removal")
+assert(calls == [[:revoke, 7, 42], [:alert, "This table is no longer available."]], "missing table was not distinguished from an expired invitation")
 
 # Joining from the ordinary table list must resolve any pending invitation for
 # that exact table and clear its notification without touching other tables.
@@ -148,7 +149,7 @@ join_invitations.define_singleton_method(:respond) do |invitation, recipient:, r
   join_calls << [:respond, invitation.id, recipient, response]
 end
 join_notifications = Object.new
-join_notifications.define_singleton_method(:revoke_for_table) do |table_id|
+join_notifications.define_singleton_method(:revoke_for_table) do |table_id, live_session_id: nil|
   join_calls << [:revoke_table, table_id]
   1
 end

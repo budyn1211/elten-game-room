@@ -698,10 +698,10 @@ class GameRoomTransport
     @live_store.create_room(**arguments)
   end
 
-  def discover_rooms(game: nil)
+  def discover_rooms(game: nil, include_private: false)
     raise "The native LiveSessions store is unavailable" if !live_store?
 
-    @live_store.discover_rooms(game: game)
+    @live_store.discover_rooms(game: game, include_private: include_private)
   end
 
   def current_room(user)
@@ -776,10 +776,21 @@ class GameRoomTransport
     @live_store.game_events(session, force: force)
   end
 
+  def freeze_game(session, frozen: true)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+
+    @live_store.freeze_game(session, frozen: frozen)
+  end
+
   def pending_invitations
     return [] if !live_store?
 
     @live_store.pending_invitations
+  end
+
+  def reject_discovered_invitation(table)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+    @live_store.reject_discovered_invitation(table)
   end
 
   def activate_table(table_id:, owner:, capacity:, user: nil)
@@ -809,9 +820,7 @@ class GameRoomTransport
         @mutex.synchronize { @newly_joined[[table_id.to_i, current_user.downcase]] = true } if accepted
         return accepted
       end
-      candidate = table || { "__id" => table_id, "owner" => owner, "max_players" => capacity }
-      status = @live_store.join_room(candidate, current_user)
-      @mutex.synchronize { @newly_joined[[table_id.to_i, current_user.downcase]] = true } if status == :joined
+      status = establish_membership_status(table_id: table_id, owner: owner, capacity: capacity, user: current_user, table: table)
       return [:joined, :already_here].include?(status)
     end
 
@@ -837,6 +846,14 @@ class GameRoomTransport
     reject_invitation(table_id: table_id, invitation_id: invitation_id) if invitation_id != nil
     deactivate_table(table_id: table_id)
     false
+  end
+
+  def establish_membership_status(table_id:, owner:, capacity:, user:, table: nil)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+    candidate = table || { "__id" => table_id, "owner" => owner, "max_players" => capacity }
+    status = @live_store.join_room(candidate, user.to_s)
+    @mutex.synchronize { @newly_joined[[table_id.to_i, user.to_s.downcase]] = true } if status == :joined
+    status
   end
 
   def request_membership(table_id:, owner:, user:)

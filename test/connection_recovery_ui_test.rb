@@ -40,6 +40,11 @@ def ui_fixture
   [h, screen, sync, clock]
 end
 
+h, paused_screen, paused_sync, _clock = ui_fixture
+result = paused_screen.send(:network_task, "move") { raise GameRoomNetworkErrors::GamePaused, "The game is being saved" }
+assert(result == nil && paused_sync.recovery_pending? && !paused_sync.waiting?, "save race crashed or imposed a network retry delay")
+assert(paused_screen.instance_variable_get(:@test_alerts).to_a.empty?, "save race announced a network error")
+
 h, screen, sync, clock = ui_fixture
 stage = 0
 reads = nil

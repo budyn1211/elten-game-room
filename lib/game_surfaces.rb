@@ -1,4 +1,5 @@
 require_relative "game_surfaces/card_hand_cursor"
+require_relative "game_room_ui"
 
 module GameSurfaces
   SHIFTED_DIGIT_CHARACTERS = {
@@ -9,6 +10,19 @@ module GameSurfaces
   MovementCommandResult = Struct.new(:action, :message, keyword_init: true)
 
   Action = Struct.new(:kind, :name, :payload, :source, keyword_init: true) do
+    def self.from_h(value, source: nil)
+      raise ArgumentError, "surface action must be a hash" if !value.respond_to?(:to_h)
+
+      normalized = {}
+      value.to_h.each { |key, item| normalized[key.to_s] = item }
+      kind = normalized.delete("kind")
+      name = normalized.delete("action") || normalized.delete("name")
+      inherited_source = normalized.delete("source")
+      raise ArgumentError, "surface action requires a kind and action" if kind.to_s.empty? || name.to_s.empty?
+
+      new(kind: kind, name: name, payload: normalized, source: source || inherited_source)
+    end
+
     def initialize(kind:, name:, payload: {}, source: nil)
       raise ArgumentError, "surface action payload must be a hash" if !payload.respond_to?(:to_h)
 
@@ -86,7 +100,7 @@ module GameSurfaces
   # normal wait loop without that re-entry announcement. Any one-shot focus
   # suppression left by older callers must be discarded here so it cannot
   # silence the user's next arrow movement.
-  class RefreshAwareForm < Form
+  class RefreshAwareForm < GameRoomUI::Form
     # Timer-driven maintenance replaces the surrounding form. Form#resume
     # performs an extra loop_update, which can consume the next typed character
     # after the active field has already been snapshotted. Leave that input for
@@ -342,6 +356,13 @@ module GameSurfaces
       super(index, count, header, spk)
     end
 
+    # Card navigation changes the selected option, not the surrounding form.
+    # Retain native focus/braille behaviour without repeating the hand caption.
+    # Other lists and ordinary focus transitions continue to use #focus.
+    def announce_current_card
+      focus(nil, nil, "", true)
+    end
+
     private
 
     def getkeychar(*arguments)
@@ -569,6 +590,8 @@ module GameSurfaces
   class CardTable
     include ActionEmitter
 
+    attr_reader :command_field_index
+
     def initialize(spec, state: {})
       @spec = spec
       @zones = @spec.zones.to_a
@@ -776,6 +799,10 @@ module GameSurfaces
     end
 
     def handle_command(command, payload = {})
+      @command_field_index = nil
+      if command.to_s == "navigate_playable_card"
+        return navigate_playable_card(payload)
+      end
       return false if command.to_s != "sort_cards" || !@pending_choices.empty?
 
       mode = (payload["mode"] || payload[:mode]).to_s
@@ -818,6 +845,43 @@ module GameSurfaces
     end
 
     private
+
+    def navigate_playable_card(payload)
+      zone_id = (payload["hand_id"] || payload[:hand_id]).to_s
+      zone_index = @zones.index { |zone| zone.id.to_s == zone_id }
+      return false if zone_index == nil
+      if @pending_choices.key?(zone_id)
+        speak(_("Finish or cancel the current card choice first."))
+        return true
+      end
+
+      cards = @cards.fetch(zone_id)
+      playable_ids = payload["card_ids"] || payload[:card_ids]
+      target = CardHandCursor.navigation_index(
+        cards.map { |card| card_id(card) },
+        @controls[zone_index].index,
+        playable_ids,
+        payload["direction"] || payload[:direction]
+      )
+      if target == nil
+        speak((payload["empty_message"] || payload[:empty_message] || _("You have no playable card.")).to_s)
+        return true
+      end
+
+      auto_card_id = (payload["auto_card_id"] || payload[:auto_card_id]).to_s
+      auto_action = payload["auto_action"] || payload[:auto_action]
+      if cards.length > 0 && playable_ids.to_a.map(&:to_s).uniq.length == 1 &&
+          card_id(cards[target]) == auto_card_id && auto_action.respond_to?(:to_h)
+        shortcut = payload["shortcut"] || payload[:shortcut]
+        return Action.from_h(auto_action, source: "shortcut:#{shortcut}")
+      end
+
+      control = @controls[zone_index]
+      control.index = target
+      control.announce_current_card
+      @command_field_index = zone_index
+      true
+    end
 
     def sorted_hand?
       !@card_sort_mode.empty? && @card_sort_mode != "none"

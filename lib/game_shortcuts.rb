@@ -4,6 +4,7 @@ module GameRoomShortcuts
   DEFINITIONS = {
     turn: ["t", _("read whose turn it is")],
     scores: ["s", _("read the scores")],
+    material: ["s", _("read the remaining pieces of each player")],
     hand: ["h", _("read your hand")],
     table_cards: ["c", _("read the cards on the table")],
     table_cards_list: ["c", _("browse the cards on the table"), [:control]],

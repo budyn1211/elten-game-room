@@ -1,17 +1,19 @@
 require_relative "context_help"
+require_relative "game_room_ui"
 
 module GameRoomScreens
   MenuResult = Struct.new(:action, :index, keyword_init: true)
 
   class Changelog
-    def initialize(items)
+    def initialize(items, program: nil)
+      @program = program
       @items = items.to_a.map(&:to_s)
     end
 
     def wait
       list = ListBox.new(@items, header: _("What's new"), index: 0, quiet: true)
       close_button = Button.new(_("Close"))
-      form = Form.new([list, close_button], quiet: true)
+      form = GameRoomUI::Form.new([list, close_button], program: @program, quiet: true)
       form.accept_button = close_button
       form.cancel_button = close_button
       form.hide(close_button)
@@ -21,7 +23,8 @@ module GameRoomScreens
   end
 
   class MainMenu
-    def initialize(options:, history_items: [], index: 0, invitations: false, refresh: nil)
+    def initialize(options:, history_items: [], index: 0, invitations: false, refresh: nil, program: nil)
+      @program = program
       @options = options
       @history_items = history_items.to_a.map(&:to_s)
       @index = index.to_i
@@ -46,7 +49,7 @@ module GameRoomScreens
       )
       open_button = Button.new(_("Open"))
       exit_button = Button.new(_("Exit"))
-      form = Form.new([options, history, open_button, exit_button], quiet: true)
+      form = GameRoomUI::Form.new([options, history, open_button, exit_button], program: @program, quiet: true)
       form.accept_button = open_button
       form.cancel_button = exit_button
       form.hide(open_button)
@@ -106,7 +109,8 @@ module GameRoomScreens
   class Settings
     INVITATION_POLICIES = %w[contacts nobody everyone].freeze
 
-    def initialize(values, games:)
+    def initialize(values, games:, program: nil)
+      @program = program
       @values = values.to_h
       @games = games.to_a
     end
@@ -140,20 +144,11 @@ module GameRoomScreens
         index: [INVITATION_POLICIES.index(@values["invitation_notifications"].to_s).to_i, 0].max,
         quiet: true
       )
-      game_sounds = CheckBox.new(
-        _("Game sounds"), checked: setting_enabled?("game_sounds")
-      )
-      room_sounds = CheckBox.new(
-        _("Sounds when someone enters or leaves a room"),
-        checked: setting_enabled?("room_membership_sounds")
-      )
-      chat_sounds = CheckBox.new(
-        _("Chat sounds"), checked: setting_enabled?("chat_sounds")
-      )
-      invitation_sounds = CheckBox.new(
-        _("Invitation and Game Room notification sounds"),
-        checked: setting_enabled?("invitation_sounds")
-      )
+      levels = GameRoomPreferences.sound_volumes(@values)
+      volume_fields = GameRoomPreferences::SOUND_GROUPS.to_h do |group|
+        [group, ListBox.new((0..100).map { |level| "#{level}%" },
+          header: _(GameRoomUI::VOLUME_LABELS.fetch(group)), index: levels.fetch(group), quiet: true)]
+      end
       widget_enabled = CheckBox.new(
         _("Show Game Room on the ELTEN main screen"),
         checked: setting_enabled?("widget_enabled")
@@ -169,10 +164,15 @@ module GameRoomScreens
       groups = [
         [lobby_games, created, joined, left, computers],
         [invitation_policy],
-        [game_sounds, room_sounds, chat_sounds, invitation_sounds],
+        volume_fields.values,
         [widget_enabled, widget_games, widget_unavailable]
       ]
-      form = Form.new([sections] + groups.flatten + [save_button, cancel_button], quiet: true)
+      form = GameRoomUI::Form.new([sections] + groups.flatten + [save_button, cancel_button], program: @program, quiet: true)
+      # Function-key edits in Settings affect the same staged values as the
+      # lists. Cancel discards both; Save persists them together, without I/O
+      # on every arrow movement.
+      form.game_room_volume_reader = -> { volume_fields.to_h { |group, field| [group, field.index.to_i] } }
+      form.game_room_volume_writer = ->(group, level) { volume_fields.fetch(group).index = level }
       form.accept_button = save_button
       form.cancel_button = cancel_button
       refresh_section = lambda do
@@ -189,7 +189,7 @@ module GameRoomScreens
       form.wait
       return nil if action != :save
 
-      {
+      @values.merge({
         "lobby_games" => selected_game_ids(lobby_games),
         "announce_table_created" => created.checked,
         "announce_player_joined" => joined.checked,
@@ -197,14 +197,11 @@ module GameRoomScreens
         "announce_computer_changes" => computers.checked,
         "announce_lobby_changes" => [created, joined, left, computers].any?(&:checked),
         "invitation_notifications" => INVITATION_POLICIES[invitation_policy.index.to_i] || "everyone",
-        "game_sounds" => game_sounds.checked,
-        "room_membership_sounds" => room_sounds.checked,
-        "chat_sounds" => chat_sounds.checked,
-        "invitation_sounds" => invitation_sounds.checked,
+        "sound_volumes" => form.game_room_volume_reader.call,
         "widget_enabled" => widget_enabled.checked,
         "widget_games" => selected_game_ids(widget_games),
         "widget_show_unavailable" => widget_unavailable.checked
-      }
+      })
     end
 
     private
@@ -233,7 +230,8 @@ module GameRoomScreens
   end
 
   class GameRules
-    def initialize(book)
+    def initialize(book, program: nil)
+      @program = program
       @book = book
       @documents = book.documents
       @section_index = 0
@@ -250,7 +248,7 @@ module GameRoomScreens
         )
         open_button = Button.new(_("Open"))
         back_button = Button.new(_("Back"))
-        form = Form.new([sections, open_button, back_button], quiet: true)
+        form = GameRoomUI::Form.new([sections, open_button, back_button], program: @program, quiet: true)
         form.accept_button = open_button
         form.cancel_button = back_button
         form.hide(open_button)
@@ -281,7 +279,7 @@ module GameRoomScreens
         quiet: true
       )
       back_button = Button.new(_("Back"))
-      form = Form.new([content, back_button], quiet: true)
+      form = GameRoomUI::Form.new([content, back_button], program: @program, quiet: true)
       form.cancel_button = back_button
       form.hide(back_button)
       back_button.on(:press) { form.resume }

@@ -1,6 +1,11 @@
 module GameRoomPreferences
   INVITATION_POLICIES = %w[contacts nobody everyone].freeze
   ROOM_SOUND_NAMES = %w[connect disconnect].freeze
+  SOUND_GROUPS = %w[all game room chat notifications].freeze
+  LEGACY_SOUND_KEYS = {
+    "game" => "game_sounds", "room" => "room_membership_sounds",
+    "chat" => "chat_sounds", "notifications" => "invitation_sounds"
+  }.freeze
 
   module_function
 
@@ -58,6 +63,10 @@ module GameRoomPreferences
       widget_enabled
       widget_show_unavailable
     ].each { |key| result[key] = result[key] != false }
+    result["sound_volumes"] = sound_volumes(source)
+    LEGACY_SOUND_KEYS.each do |group, key|
+      result[key] = result["sound_volumes"][group] > 0
+    end
     result
   end
 
@@ -75,12 +84,35 @@ module GameRoomPreferences
   end
 
   def sound_enabled?(values, name, game_ids = [])
-    settings = normalize(values, game_ids)
-    sound = name.to_s
-    return settings["chat_sounds"] if sound == "chatmsg"
-    return settings["room_membership_sounds"] if ROOM_SOUND_NAMES.include?(sound)
+    sound_volume(values, name) > 0
+  end
 
-    settings["game_sounds"]
+  def sound_group(name)
+    return "chat" if name.to_s == "chatmsg"
+    return "room" if ROOM_SOUND_NAMES.include?(name.to_s)
+    return "notifications" if name.to_s == "notice"
+
+    "game"
+  end
+
+  def sound_volumes(values)
+    source = values.is_a?(Hash) ? values : {}
+    stored = source["sound_volumes"].is_a?(Hash) ? source["sound_volumes"] : {}
+    SOUND_GROUPS.to_h do |group|
+      fallback = source[LEGACY_SOUND_KEYS[group]] == false ? 0 : 100
+      level = stored.key?(group) ? stored[group] : fallback
+      begin
+        level = [[Integer(level), 0].max, 100].min
+      rescue ArgumentError, TypeError
+        level = fallback
+      end
+      [group, level]
+    end
+  end
+
+  def sound_volume(values, name)
+    levels = sound_volumes(values)
+    levels["all"] * levels[sound_group(name)] / 10_000.0
   end
 
   def widget_enabled?(values, game_ids)

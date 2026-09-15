@@ -1,6 +1,7 @@
 require "json"
 require "securerandom"
 require "thread"
+require "digest"
 require_relative "game_participants"
 require_relative "network_errors"
 
@@ -11,9 +12,12 @@ require_relative "network_errors"
 class GameRoomLiveSessionStore
   KIND = "elten_game_room_table".freeze
   PROTOCOL = 2
+  FEATURE_DISCOVERY_PROTOCOL = 3
   MAX_CAPACITY = 8
   STACK_ENTRIES = 4_096
   STACK_ENTRY_BYTES = 16_384
+  ARCHIVE_EVENTS_PER_RECORD = 10
+  MAX_ARCHIVE_EVENTS = (STACK_ENTRIES - 8) * ARCHIVE_EVENTS_PER_RECORD
   STACK_PAGE_SIZE = 128
   EVENT_ID_MULTIPLIER = 100
   DISCOVERY_LIMIT = 100
@@ -56,18 +60,23 @@ class GameRoomLiveSessionStore
     true
   end
 
-  def create_room(name:, game:, owner:, game_options:, capacity: MAX_CAPACITY)
+  def create_room(name:, game:, owner:, game_options:, capacity: MAX_CAPACITY, private_table: false, resume_save_id: nil, bot_count: 0)
     start
     table_id = unused_identifier
     maximum = bounded_capacity(capacity)
     metadata = {
       "kind" => KIND,
-      "protocol" => PROTOCOL,
+      # Older clients must not join an archive they cannot replay, nor expose
+      # private-room activity using their old public lobby writer. Ordinary
+      # public tables retain the existing discovery/stack protocol.
+      "protocol" => private_table || !resume_save_id.to_s.empty? ? FEATURE_DISCOVERY_PROTOCOL : PROTOCOL,
       "table_id" => table_id,
       "owner" => owner.to_s,
       "name" => name.to_s,
       "game" => game.to_s,
       "game_options" => game_options.to_s,
+      "private" => private_table == true,
+      "resume_save_id" => resume_save_id.to_s,
       "created_at" => Time.now.to_i
     }
     discovery = metadata.dup
@@ -75,7 +84,7 @@ class GameRoomLiveSessionStore
       metadata: metadata,
       participant_metadata: participant_metadata(table_id),
       capacity: maximum,
-      visibility: :public,
+      visibility: private_table == true ? :private : :public,
       discovery_metadata: discovery,
       stack_entry_bytes: STACK_ENTRY_BYTES,
       stack_entries: STACK_ENTRIES,
@@ -89,7 +98,7 @@ class GameRoomLiveSessionStore
       "owner" => owner.to_s,
       "status" => "waiting",
       "max_players" => maximum,
-      "bot_count" => 0,
+      "bot_count" => [[bot_count.to_i, 0].max, maximum - 1].min,
       "game_options" => game_options.to_s,
       "created_at" => metadata["created_at"]
     }, actor: owner)
@@ -103,10 +112,10 @@ class GameRoomLiveSessionStore
     raise
   end
 
-  def discover_rooms(game: nil)
+  def discover_rooms(game: nil, include_private: false)
     start
     found = {}
-    discover_pages.each do |item|
+    discover_pages(sources: include_private ? [:created, :invited, :public] : [:public]).each do |item|
       metadata = item.discovery_metadata.to_h
       next if !supported_metadata?(metadata)
 
@@ -117,12 +126,14 @@ class GameRoomLiveSessionStore
       row = table_from_discovered(item, metadata)
       row = table_for(table_id, fallback: row) if active_session(table_id) != nil
       next if row == nil || (game != nil && row["game"].to_s != game.to_s)
+      next if row["private"] == true && !include_private
 
       found[table_id] = row
     end
     active_table_ids.each do |table_id|
       row = table_for(table_id)
       next if row == nil || (game != nil && row["game"].to_s != game.to_s)
+      next if row["private"] == true && !include_private
 
       found[table_id] = row
     end
@@ -213,15 +224,16 @@ class GameRoomLiveSessionStore
     table_id = table_identifier(table_or_id)
     return false if table_id == nil
 
-    session = @mutex.synchronize do
+    session = @mutex.synchronize { @sessions[table_id] }
+    return false if session == nil
+
+    session.owner? ? session.close : session.leave
+    @mutex.synchronize do
       @pending_moves.delete(table_id)
       @recovered_moves.delete(table_id)
       @native_session_ids.delete_if { |_native_id, id| id == table_id }
       @sessions.delete(table_id)
     end
-    return false if session == nil
-
-    session.owner? ? session.close : session.leave
     true
   end
 
@@ -235,16 +247,26 @@ class GameRoomLiveSessionStore
     []
   end
 
-  def append_activity(table:, kind:, actor:, message: "")
+  def append_activity(table:, kind:, actor:, message: "", subject: nil, invitation_id: nil)
     table_id = table_identifier(table)
     raise ArgumentError, "Invalid activity room" if table_id == nil
 
-    record = append_record(table_id, "room_activity", {
+    data = {
       "activity_kind" => kind.to_s,
       "message" => message.to_s,
       "owner" => table["owner"].to_s,
       "game" => table["game"].to_s
-    }, actor: actor)
+    }
+    message_id = nil
+    if %w[invited invitation_rejected].include?(kind.to_s)
+      data.merge!("subject" => subject.to_s, "invitation_id" => invitation_id.to_i)
+      # A lost HTTP reply must not duplicate a confirmed invitation activity.
+      hex = Digest::SHA256.hexdigest([table["__live_session_id"], actor.to_s.downcase, invitation_id, kind].join(":"))[0, 32]
+      hex[12] = "5"
+      hex[16] = "8"
+      message_id = [hex[0, 8], hex[8, 4], hex[12, 4], hex[16, 4], hex[20, 12]].join("-")
+    end
+    record = append_record(table_id, "room_activity", data, actor: actor, message_id: message_id)
     activity_record(record)
   end
 
@@ -258,9 +280,12 @@ class GameRoomLiveSessionStore
       .map { |record| activity_record(record) }
   end
 
-  def start_game(table:, game:, players:, options:, actor:)
+  def start_game(table:, game:, players:, options:, actor:, restore: nil)
     table_id = table_identifier(table)
     raise ArgumentError, "Invalid room" if table_id == nil
+    if restore != nil && restore.fetch(:events).length > MAX_ARCHIVE_EVENTS
+      raise ArgumentError, "The saved game is too large to restore safely"
+    end
 
     ensure_current(table_id, force: true)
     state = table_for(table_id)
@@ -287,6 +312,16 @@ class GameRoomLiveSessionStore
     checkpoint_state = state.slice("status", "bot_count", "game_options", "updated_at")
     checkpoint_state["observers"] = observer_users(table_id)
     checkpoint = append_record(table_id, "room_state", checkpoint_state, actor: actor)
+    archive_id = nil
+    if restore != nil
+      # A retried import may leave orphan archive chunks, but no published
+      # game. Retain this complete room checkpoint before uploading again.
+      trim_previous_games(table_id, checkpoint.sequence - 1) if game_sessions(table_id).empty?
+      archive_id = SecureRandom.uuid
+      restore.fetch(:events).each_slice(ARCHIVE_EVENTS_PER_RECORD).with_index do |events, index|
+        append_record(table_id, "game_archive", { "archive_id" => archive_id, "index" => index, "events" => events }, actor: actor)
+      end
+    end
     payload = {
       "session_id" => game_session_id,
       "game" => game.to_s,
@@ -294,6 +329,11 @@ class GameRoomLiveSessionStore
       "options" => options.to_s,
       "created_at" => Time.now.to_i
     }
+    if restore != nil
+      payload.merge!("archive_id" => archive_id, "archive_events" => restore.fetch(:events).length,
+        "event_id_base" => restore.fetch(:events).map { |event| event["id"] }.max.to_i,
+        "clock_offset" => restore[:game_time] == nil ? restore.fetch(:clock_offset).to_i : Time.now.to_i - restore[:game_time].to_i)
+    end
     record = append_record(table_id, "game_started", payload, actor: actor)
     trim_previous_games(table_id, checkpoint.sequence - 1) if record != nil && checkpoint != nil
     game_session_from(record)
@@ -321,6 +361,7 @@ class GameRoomLiveSessionStore
     table_id = positive_identifier(session["table_id"])
     session_id = positive_identifier(session["__id"] || session["id"])
     raise ArgumentError, "Invalid game" if table_id == nil || session_id == nil
+    raise GameRoomNetworkErrors::GamePaused, "The game is being saved" if game_frozen?(table_id, session_id)
 
     commands = events.to_a.map do |event|
       {
@@ -344,12 +385,40 @@ class GameRoomLiveSessionStore
     return [] if table_id == nil || session_id == nil
 
     ensure_current(table_id, force: force)
-    records_for(table_id).flat_map do |record|
+    frozen = false
+    imported = if !session["__archive_id"].to_s.empty?
+      game_record = records_for(table_id).find { |record| record.packet["kind"] == "game_started" && record.packet.dig("data", "session_id") == session_id }
+      (game_record == nil ? [] : archive_events_for(game_record).to_a).map do |event|
+            event.merge("__id" => event["id"], "session_id" => session_id, "table_id" => table_id,
+              "__insertion_user" => game_record.sender, "__controller" => true, "move_id" => "archive:#{game_record.message_id}:#{event['id']}")
+      end
+    else
+      []
+    end
+    current = records_for(table_id).flat_map do |record|
+      if record.packet["kind"] == "game_boundary" && record.packet.dig("data", "session_id") == session_id
+        frozen = record.packet.dig("data", "frozen") == true
+      end
       next [] if record.packet["kind"].to_s != "game_action"
       next [] if record.packet.dig("data", "session_id").to_i != session_id
+      next [] if frozen
 
       expand_game_action(record)
-    end.sort_by { |row| row["__id"].to_i }
+    end
+    (imported + current).sort_by { |row| row["__id"].to_i }
+  end
+
+  def freeze_game(session, frozen: true)
+    table_id = table_identifier(session["table_id"])
+    ensure_current(table_id, force: true)
+    boundary = append_record(table_id, "game_boundary", { "session_id" => session["__id"].to_i, "frozen" => frozen == true }, actor: endpoint.user)
+    game_events(session, force: true)
+    boundary
+  end
+
+  def game_frozen?(table_id, session_id)
+    boundary = records_for(table_id).reverse.find { |record| record.packet["kind"] == "game_boundary" && record.packet.dig("data", "session_id") == session_id.to_i }
+    boundary != nil && boundary.packet.dig("data", "frozen") == true
   end
 
   def consume_recovered_game_events(session)
@@ -370,7 +439,7 @@ class GameRoomLiveSessionStore
     # The current API accepts a participant identity for invitations, not just
     # the room owner's identity. Let it validate the actual membership.
     result = session.invite(user.to_s, metadata: metadata.to_h.merge("purpose" => "game_invitation"))
-    result != false
+    result
   end
 
   def pending_invitations
@@ -418,6 +487,20 @@ class GameRoomLiveSessionStore
   rescue StandardError
     restore_invitation(stored) if stored
     raise
+  end
+
+  # A notification may be opened by a brand-new endpoint. The native server
+  # invitation in fresh discovery, not another endpoint's queue, grants access.
+  def reject_discovered_invitation(table)
+    item = table["__discovered_session"]
+    data = item.respond_to?(:invitation) ? item.invitation : nil
+    raise GameRoomNetworkErrors::UnsupportedInvitation, "The server did not provide the private invitation identity" unless data.is_a?(Hash)
+    native_id = data["invitation_id"] || data["id"]
+    raise GameRoomNetworkErrors::UnsupportedInvitation, "The server did not provide the private invitation identity" if native_id.to_s.empty?
+
+    identity = Struct.new(:id, :invitation_id, :generation).new(item.id, native_id, data["generation"].to_i)
+    endpoint.reject_invitation(identity)
+    true
   end
 
   def wait_for_room(table_id, timeout: 10.0)
@@ -619,14 +702,14 @@ class GameRoomLiveSessionStore
     native_expiration.positive? ? [local_expiration, native_expiration].min : local_expiration
   end
 
-  def discover_pages
+  def discover_pages(sources: [:created, :invited, :public])
     return [] if !endpoint.respond_to?(:discover_sessions)
 
     result = []
     cursor = nil
     loop do
       page = endpoint.discover_sessions(
-        sources: [:created, :invited, :public],
+        sources: sources,
         limit: DISCOVERY_LIMIT,
         cursor: cursor
       )
@@ -738,11 +821,11 @@ class GameRoomLiveSessionStore
     raise
   end
 
-  def append_record(table_id, kind, data, actor:)
+  def append_record(table_id, kind, data, actor:, message_id: nil)
     session = active_session(table_id)
     raise ArgumentError, "The room is no longer active" if session == nil
 
-    message_id = SecureRandom.uuid
+    message_id ||= SecureRandom.uuid
     packet = {
       "version" => PROTOCOL,
       "kind" => kind.to_s,
@@ -869,7 +952,7 @@ class GameRoomLiveSessionStore
     case kind
     when "game_started"
       emit_change(table_id, :game_started, data["session_id"].to_i)
-    when "game_action"
+    when "game_action", "game_boundary"
       emit_change(table_id, :game, data["session_id"].to_i)
     else
       emit_change(table_id, :table, nil)
@@ -925,6 +1008,7 @@ class GameRoomLiveSessionStore
     row["__id"] = table_id
     row["id"] = table_id
     row["__insertion_user"] = row["owner"].to_s
+    row["private"] = session.respond_to?(:visibility) ? session.visibility.to_sym == :private : base["private"] == true
     row["max_players"] = bounded_capacity(row["max_players"] || session&.capacity)
     row["bot_count"] = [[row["bot_count"].to_i, 0].max, row["max_players"]].min
     row["player_count"] = connected_users(table_id).length + row["bot_count"].to_i
@@ -945,6 +1029,8 @@ class GameRoomLiveSessionStore
       "name" => metadata["name"].to_s,
       "game" => metadata["game"].to_s,
       "owner" => metadata["owner"].to_s,
+      "private" => metadata["private"] == true,
+      "resume_save_id" => metadata["resume_save_id"].to_s,
       "status" => "waiting",
       "max_players" => MAX_CAPACITY,
       "bot_count" => 0,
@@ -963,6 +1049,7 @@ class GameRoomLiveSessionStore
     row["max_players"] = bounded_capacity(item.capacity)
     row["player_count"] = item.participant_count.to_i
     row["__live_session_id"] = item.id.to_s
+    row["private"] = item.visibility.to_sym == :private if item.respond_to?(:visibility)
     row["__discovered_session"] = item
     row
   end
@@ -974,6 +1061,8 @@ class GameRoomLiveSessionStore
     players = data["players"].to_a.map(&:to_s)
     id = positive_identifier(data["session_id"])
     return nil if id == nil || players.empty?
+    return nil if data.key?("archive_id") && archive_events_for(record) == nil
+    clock = game_clock_state(record.table_id, id, data["clock_offset"].to_i)
 
     {
       "__id" => id,
@@ -992,8 +1081,42 @@ class GameRoomLiveSessionStore
       "options" => data["options"].to_s,
       "created_at" => data["created_at"].to_i,
       "updated_at" => data["created_at"].to_i,
-      "__stack_sequence" => record.sequence.to_i
+      "__stack_sequence" => record.sequence.to_i,
+      "__archive_id" => data["archive_id"], "__event_id_base" => data["event_id_base"].to_i,
+      "__clock_offset" => clock[:offset], "__frozen_at" => clock[:frozen_at],
+      "__frozen" => clock[:frozen_at] != nil
     }
+  end
+
+  def game_clock_state(table_id, session_id, offset)
+    frozen_at = nil
+    records_for(table_id).each do |item|
+      next unless item.packet["kind"] == "game_boundary" && item.packet.dig("data", "session_id") == session_id
+      if item.packet.dig("data", "frozen") == true
+        frozen_at ||= item.created_at.to_i
+      elsif frozen_at != nil
+        offset += [item.created_at.to_i - frozen_at, 0].max
+        frozen_at = nil
+      end
+    end
+    { offset: offset, frozen_at: frozen_at }
+  end
+
+  def archive_events_for(game_record)
+    data = game_record.packet["data"]
+    chunks = records_for(game_record.table_id).select do |item|
+      item.sequence < game_record.sequence && item.packet["kind"] == "game_archive" && item.packet.dig("data", "archive_id") == data["archive_id"]
+    end.sort_by { |item| item.packet.dig("data", "index") }
+    return nil unless chunks.each_with_index.all? { |item, index| item.packet.dig("data", "index") == index }
+    events = chunks.flat_map { |item| item.packet.dig("data", "events") }
+    return nil unless events.length == data["archive_events"] && events.map { |event| event["id"] }.max.to_i == data["event_id_base"]
+    previous = 0
+    return nil unless events.all? do |event|
+      valid = event["id"] > previous && GameRoomParticipants.includes?(data["players"], event["actor"])
+      previous = event["id"]
+      valid
+    end
+    events
   end
 
   def activity_record(record)
@@ -1009,6 +1132,8 @@ class GameRoomLiveSessionStore
       "table_owner" => data["owner"].to_s,
       "game" => data["game"].to_s,
       "message" => data["message"].to_s,
+      "subject" => data["subject"].to_s,
+      "invitation_id" => data["invitation_id"].to_i,
       "created_at" => record.created_at.to_i,
       "__insertion_user" => record.sender.to_s
     }
@@ -1022,10 +1147,12 @@ class GameRoomLiveSessionStore
     data = record.packet["data"].to_h
     table_id = table_id_for_record(record)
     actor = record.packet["actor"].to_s
+    game_record = records_for(table_id).reverse.find { |item| item.packet["kind"] == "game_started" && item.packet.dig("data", "session_id") == data["session_id"] }
+    id_base = game_record&.packet&.dig("data", "event_id_base").to_i
     Array(data["events"]).each_with_index.map do |command, offset|
       {
-        "__id" => record.sequence.to_i * EVENT_ID_MULTIPLIER + offset,
-        "id" => record.sequence.to_i * EVENT_ID_MULTIPLIER + offset,
+        "__id" => id_base + record.sequence.to_i * EVENT_ID_MULTIPLIER + offset,
+        "id" => id_base + record.sequence.to_i * EVENT_ID_MULTIPLIER + offset,
         "__insertion_user" => record.sender.to_s,
         "session_id" => data["session_id"].to_i,
         "table_id" => table_id,
@@ -1070,18 +1197,41 @@ class GameRoomLiveSessionStore
     when "room_role"
       same_user?(sender, actor) && data.keys == ["role"] && %w[player observer].include?(data["role"])
     when "room_activity"
+      if %w[invited invitation_rejected].include?(data["activity_kind"])
+        return false unless nonempty_text?(data["subject"]) && data["subject"].length <= 64 && positive_integer?(data["invitation_id"])
+      end
       same_user?(sender, actor) &&
-        %w[created joined left bot_added bot_removed chat].include?(data["activity_kind"]) &&
+        %w[created joined left bot_added bot_removed chat invited invitation_rejected].include?(data["activity_kind"]) &&
         %w[message owner game].all? { |key| data[key].is_a?(String) }
     when "game_started"
       return false if !same_user?(sender, owner) || !same_user?(actor, owner)
 
+      if data.key?("archive_id")
+        return false unless nonempty_text?(data["archive_id"]) && data["archive_id"].length <= 64 &&
+          integer_between?(data["archive_events"], 0, MAX_ARCHIVE_EVENTS) &&
+          data["event_id_base"].is_a?(Integer) && data["event_id_base"] >= 0 && data["clock_offset"].is_a?(Integer)
+      elsif %w[archive_events event_id_base clock_offset].any? { |key| data.key?(key) }
+        return false
+      end
       players = data["players"]
-      players.is_a?(Array) && players.all? { |player| nonempty_text?(player) } &&
+      players.is_a?(Array) && players.all? { |player| nonempty_text?(player) && player.length <= 64 } &&
         players.length.between?(1, MAX_CAPACITY) &&
         unique_users(players).length == players.length && positive_integer?(data["session_id"]) &&
         nonempty_text?(data["game"]) && json_object_text?(data["options"]) &&
         positive_integer?(data["created_at"])
+    when "game_archive"
+      return false unless same_user?(sender, owner) && same_user?(actor, owner)
+
+      events = data["events"]
+      nonempty_text?(data["archive_id"]) && data["archive_id"].length <= 64 && integer_between?(data["index"], 0, STACK_ENTRIES - 8) &&
+        events.is_a?(Array) && events.length.between?(1, ARCHIVE_EVENTS_PER_RECORD) && events.all? do |event|
+          event.is_a?(Hash) && positive_integer?(event["id"]) && event["sequence"].is_a?(Integer) && event["sequence"] >= 0 &&
+            nonempty_text?(event["actor"]) && event["actor"].length <= 64 && nonempty_text?(event["action"]) && event["action"].length <= 32 &&
+            event["value"].is_a?(String) && event["value"].length <= 64 && event["created_at"].is_a?(Integer) && event["created_at"] >= 0
+        end
+    when "game_boundary"
+      same_user?(sender, owner) && same_user?(actor, owner) && positive_integer?(data["session_id"]) &&
+        [true, false].include?(data["frozen"])
     when "game_action"
       valid_game_action_record?(table_id, sender, actor, data, owner)
     else
@@ -1179,7 +1329,7 @@ class GameRoomLiveSessionStore
   def supported_metadata?(metadata)
     metadata.is_a?(Hash) &&
       metadata["kind"].to_s == KIND &&
-      metadata["protocol"].to_i == PROTOCOL &&
+      [PROTOCOL, FEATURE_DISCOVERY_PROTOCOL].include?(metadata["protocol"].to_i) &&
       positive_identifier(metadata["table_id"]) != nil
   end
 

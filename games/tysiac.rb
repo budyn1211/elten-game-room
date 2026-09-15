@@ -174,6 +174,12 @@ module GameRoomGames
       _("to %{score} points") % { score: normalize_options(options)["score_limit"] }
     end
 
+    def restored_event_value(event, controller_mapping)
+      return super if event["action"] != "pass_card"
+      target, card = event["value"].split("|", 2)
+      "#{controller_mapping.fetch(target.downcase)}|#{card}"
+    end
+
     def replay(session, events, repository)
       players = repository.players_for(session)
       state = initial_state(players, options_from_json(session["options"]))
@@ -253,6 +259,25 @@ module GameRoomGames
       else
         []
       end
+    end
+
+    def playable_card_navigation(replay, viewer)
+      state = replay.state
+      return nil if state == nil || ![:passing, :playing].include?(state[:phase])
+      return nil if !same_user?(state[:current_player], viewer)
+
+      actions = legal_actions(replay, viewer).select do |action|
+        action["kind"] == "card" && action["action"] == "select"
+      end
+      grouped = actions.group_by do |action|
+        value = action["card"].to_s
+        state[:phase] == :playing ? value.split("|", 2).last : value
+      end
+      card_navigation_spec(
+        hand_id: "hand",
+        card_actions: grouped,
+        automatic_card_ids: grouped.keys
+      )
     end
 
     def action_for(selection, replay, actor, context: nil)

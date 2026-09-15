@@ -5,7 +5,7 @@ module GameRoomContextHelp
 
     def get_tips
       inherited = defined?(super) ? super.to_a : []
-      (inherited + game_room_context_help_tips.to_a + game_room_game_help_tips.to_a).uniq
+      (game_room_game_help_tips.to_a + game_room_context_help_tips.to_a + inherited).uniq
     end
   end
 

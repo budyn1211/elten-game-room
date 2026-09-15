@@ -81,6 +81,7 @@ module GameRoomRules
   def self.common_controls
     [
       _("Shared room controls: Tab and Shift+Tab move between fields. F1 gives help for the current field and available actions. Ctrl+F1 opens the rules, game shortcuts and current table settings. The room context menu contains the actions available to you at that moment."),
+      _("In Game Room, F1 opens a shortcuts list browsed with the arrow keys; Enter or Escape closes it. F2 lowers and F3 raises the selected sound group's volume by 10 percentage points. Shift+F2/F3 selects a sound group. All Game Room sounds is the master level; individual game, room, chat and notification levels remain separate. Speech and other ELTEN sounds are not affected."),
       _("Outside text entry, Shift+Left/Right chooses the history view: All, Game, Chat or Room events. Ctrl+Left/Right reads the previous or next entry in that view; Ctrl+Shift+Left/Right goes to its first or last entry. These combinations retain their normal editing meaning in a writable text field."),
       _("Type in the Chat field and press Enter to send. Ordinary letter shortcuts do not take letters away from text entry. In grid board games, a slash command uses the same move validation as Enter: for example /a1 places a piece, and /e2 e4 moves from one square to another. Draughts also accepts its square numbers. Begin with // to send a literal slash instead of a move command. Escape closes an opened list or dialog.")
     ]

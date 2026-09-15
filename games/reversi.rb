@@ -24,7 +24,8 @@ module GameRoomGames
           _("Lines count horizontally, vertically and diagonally. Every opposing disc enclosed by this move changes to your colour, in all qualifying directions at once. An empty space interrupts a line. At least one disc must turn for a move to be legal; you cannot simply place a disc beside your own."),
           _("If you have no legal move, the game announces and skips your turn automatically. You cannot pass voluntarily when a move exists. When neither player can move, the game counts the discs: more discs wins, equal numbers draw. The board need not be full. There are no optional variants; computers are supported.")),
         rule_section(:controls, _("Placing a disc"),
-          _("Use the Arrow keys to inspect the board and Enter to place a disc. T reads the turn. Entering /d3 in chat attempts the same move as Enter on D3 and applies the same enclosure rules."))
+          _("Use the Arrow keys to inspect the board and Enter to place a disc. T reads the turn. Entering /d3 in chat attempts the same move as Enter on D3 and applies the same enclosure rules."),
+          _("S reads the current number of discs belonging to each player."))
       ]
     end
 
@@ -71,6 +72,10 @@ module GameRoomGames
         row.map { |marker| marker == nil ? "" : _("%{player}'s disc") % { player: participant_name(replay.players[marker]) } }
       end
       GameSurfaces::GridSpec.new(width: SIZE, height: SIZE, header: game_field_header(replay, viewer), cells: cells, row_origin: :bottom)
+    end
+
+    def remaining_piece_counts(replay)
+      disc_counts(replay.board).map(&:to_s)
     end
 
     def legal_actions(replay, actor, context: nil)

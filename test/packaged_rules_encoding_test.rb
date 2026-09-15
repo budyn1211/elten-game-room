@@ -119,4 +119,95 @@ end
 metadata = BinaryRulesLoad.instance_variable_get(:@metadata) || JSON.parse(File.read(File.join(BinaryRulesLoad::ROOT, "manifest.json")))
 raise "Runtime build differs from package manifest" unless EltenGameRoom::GAME_ROOM_BUILD_ID.to_s == metadata.fetch("build_id").to_s
 raise "Runtime version differs from package manifest" unless EltenGameRoom::GAME_ROOM_VERSION == metadata.fetch("version")
-puts "Binary program loading, all 17 rule books and 19 Monopoly boards passed"
+current_changelog = GameRoomChangelog::ENTRIES.find { |entry| entry.build == EltenGameRoom::GAME_ROOM_BUILD_ID }
+raise "Binary changelog version differs" unless current_changelog && current_changelog.version == EltenGameRoom::GAME_ROOM_VERSION
+current_changelog.changes.each do |change|
+  translation = RULES_CATALOG[change.dup.force_encoding("UTF-8")]
+  raise "Untranslated binary changelog" unless translation && !translation.empty? && translation.valid_encoding?
+end
+raise "Missing binary invitation receipt handler" unless defined?(GameRoomInvitationReceipts::HistoryWriter) &&
+  EltenGameRoom.respond_to?(:notification_received)
+activity_repo = TableActivityRepository.new(server_tables: {})
+{"invited" => "Alice zaprosił gracza Bob.", "invitation_rejected" => "Bob odrzucił zaproszenie gracza Alice."}.each do |kind, expected|
+  entry = TableActivityRepository::Entry.new(kind: kind, actor: "Alice", subject: "Bob", owner: "Alice", game: "makao")
+  text = activity_repo.text_for(entry, game_name: ->(_id) { "Makao" })
+  raise "Wrong binary invitation history translation" unless text == expected && text.encoding == Encoding::UTF_8
+end
+
+# Smoke-check the release's new hooks from decoded binary sources, not a
+# second ordinary require of the checkout. No network or host UI is used.
+raise "Missing binary save engine" unless defined?(SavedGames) && SavedGames::FORMAT == 1
+raise "Missing binary saved games menu" unless EltenGameRoom::MAIN_OPTIONS.include?(_("Saved games"))
+raise "Wrong number of saveable games" unless registry.ids.count { |id| registry.build(id).supports_saved_games? } == 15
+%w[reversi checkers chess].each do |id|
+  game = registry.build(id)
+  session = { "__players" => %w[Alice Bob], "options" => JSON.generate(game.default_options) }
+  replay = game.replay(session, [], SavedGames::ReplayRepository.new)
+  raise "Missing binary material counter: #{id}" unless game.remaining_piece_counts(replay).length == 2
+  raise "Invalid binary settings summary: #{id}" unless game.table_options_announcement(game.default_options).valid_encoding?
+end
+monopoly = registry.build("monopoly")
+state = monopoly.send(:initial_state, %w[Alice Bob], monopoly.default_options)
+state.update(phase: :property_decision, current_player: "Bob")
+state[:positions]["Bob"] = 1
+state[:cash]["Bob"] = state[:board][1][:price] - 1
+purchase = GameRoomGames::Replay.new(players: %w[Alice Bob], current_player: "Bob", state: state)
+raise "Binary purchase refusal misses non-owner" unless monopoly.automatic_action_allowed?(purchase, "Bob", table_owner: "Alice")
+raise "Binary purchase requires Enter" unless monopoly.automatic_action(purchase, "Bob")["action"] == "decline"
+
+# Check the invitation fix from the decoded package, including the application
+# entry point, not just an ordinary require of the checkout's helper class.
+invitation_gateway = Object.new
+invitation_gateway.define_singleton_method(:list) { |*_arguments, **_keywords| [] }
+collector = InvitationNotifications.new(client: :binary_client, app_uuid: "binary-test", gateway: invitation_gateway)
+opened_notice = Struct.new(:id, :app_uuid, :revoked, :type, :metadata).new(
+  42, "binary-test", true, "game_room.invitation", {
+    "invitation_id" => 7, "table_id" => 12, "live_session_id" => "binary-session",
+    "sender" => "Alice", "expires_at" => Time.now.to_i + 300
+  })
+raise "Binary invitations revived read notices" unless collector.pending(recipient: "Bob").empty?
+invitation_app = EltenGameRoom.allocate
+invitation_app.instance_variable_set(:@invitation_notifications, collector)
+binary_transport = Object.new
+binary_transport.define_singleton_method(:start) { true }
+invitation_app.instance_variable_set(:@transport, binary_transport)
+invitation_app.define_singleton_method(:initialize_services) {}
+invitation_app.define_singleton_method(:check_server_table_access) {}
+invitation_app.define_singleton_method(:run_network_task) { |*_args, **_kwargs, &operation| operation.call }
+invitation_app.define_singleton_method(:load_pending_invitations) do
+  collector.pending(recipient: "Bob").map { |row| { invitation: Struct.new(:id).new(row["__id"]) } }
+end
+invitation_app.define_singleton_method(:select_notification_invitation_action) { :accept }
+invitation_app.define_singleton_method(:accept_pending_invitation) do |pending, notification_id:|
+  raise "Binary acceptance lost clicked invite" unless pending.id == 7 && notification_id == 42 && collector.pending(recipient: "Bob").length == 1
+  { "__id" => 12 }
+end
+opened_table = nil
+invitation_app.define_singleton_method(:run_program_interface) do |row|
+  raise "Binary invitation context leaked" unless collector.pending(recipient: "Bob").empty?
+  opened_table = row
+end
+invitation_app.define_singleton_method(:alert) { |message| raise "Binary invitation rejected: #{message}" }
+invitation_app.notification_action(:open_invitation, opened_notice)
+raise "Binary invitation did not open" unless opened_table && opened_table["__id"] == 12
+
+# Exercise translated UI strings through the same binary-source boundary.
+# No host window is opened: only the modal list construction is captured.
+help_dialog = nil
+Form.class_eval do
+  alias_method :binary_help_original_wait, :wait
+  define_method(:wait) { help_dialog = self }
+end
+parent_field = ListBox.new(["karta"], header: "Ręka", index: 0)
+parent = GameRoomUI::Form.new([parent_field], quiet: true)
+parent.show_game_room_help
+raise "Binary F1 is not a translated list" unless help_dialog.fields.first.header == "Skróty klawiszowe"
+raise "Binary F1 volume tips are untranslated" unless help_dialog.fields.first.options.any? { |tip| tip.start_with?("F2 zmniejsza") }
+help_dialog.fields.first.options.each do |tip|
+  raise "Binary help encoding" unless tip.encoding == Encoding::UTF_8 && tip.valid_encoding?
+end
+Form.class_eval do
+  alias_method :wait, :binary_help_original_wait
+  remove_method :binary_help_original_wait
+end
+puts "Binary program loading, opened invitation, all 17 rule books and 19 Monopoly boards passed"

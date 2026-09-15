@@ -12,6 +12,8 @@ module GameSurfaces
   class PacketCardSurface
     include ActionEmitter
 
+    attr_reader :command_field_index
+
     def initialize(spec, state: {})
       @spec = spec
       @cards = spec.cards.to_a
@@ -109,7 +111,11 @@ module GameSurfaces
       true
     end
 
-    def handle_command(command, _payload = {})
+    def handle_command(command, payload = {})
+      @command_field_index = nil
+      if command.to_s == "navigate_playable_card"
+        return navigate_playable_card(payload)
+      end
       if command.to_s == "announce_packet"
         prepared = @selected_ids.filter_map { |id| @cards.find { |card| card_id(card) == id } }
         speak(prepared.empty? ? _("No packet prepared.") : prepared.map { |card| card_label(card) }.join(", "))
@@ -125,6 +131,39 @@ module GameSurfaces
     end
 
     private
+
+    def navigate_playable_card(payload)
+      hand_id = (payload["hand_id"] || payload[:hand_id]).to_s
+      return false if hand_id != @spec.id.to_s
+      if @pending != nil || !@selected_ids.empty?
+        speak(_("Finish or clear the prepared packet first."))
+        return true
+      end
+
+      target = CardHandCursor.navigation_index(
+        @cards.map { |card| card_id(card) },
+        @control.index,
+        payload["card_ids"] || payload[:card_ids],
+        payload["direction"] || payload[:direction]
+      )
+      if target == nil
+        speak((payload["empty_message"] || payload[:empty_message] || _("You have no playable card.")).to_s)
+        return true
+      end
+
+      auto_card_id = (payload["auto_card_id"] || payload[:auto_card_id]).to_s
+      auto_action = payload["auto_action"] || payload[:auto_action]
+      if (payload["card_ids"] || payload[:card_ids]).to_a.map(&:to_s).uniq.length == 1 &&
+          card_id(@cards[target]) == auto_card_id && auto_action.respond_to?(:to_h)
+        shortcut = payload["shortcut"] || payload[:shortcut]
+        return Action.from_h(auto_action, source: "shortcut:#{shortcut}")
+      end
+
+      @control.index = target
+      @control.announce_current_card
+      @command_field_index = 0
+      true
+    end
 
     def activate(index)
       if @pending != nil

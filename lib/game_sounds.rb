@@ -5,6 +5,7 @@ module GameRoomSounds
     connect
     disconnect
     chatmsg
+    notice
     buzzer2
     ding
     shuffle
@@ -61,7 +62,14 @@ module GameRoomSounds
       return nil if !program.send(:game_room_sound_enabled?, name.to_s)
     end
 
-    program.play_sound_from_asset(name.to_s)
+    if program.respond_to?(:game_room_sound_volume, true)
+      volume = program.send(:game_room_sound_volume, name.to_s)
+      return nil if volume <= 0
+
+      program.play_sound_from_asset(name.to_s, volume: volume)
+    else
+      program.play_sound_from_asset(name.to_s)
+    end
   rescue Exception => error
     Log.warning("ELTEN Game Room sound #{name} failed: #{error.class}: #{error.message}") if defined?(Log)
     nil

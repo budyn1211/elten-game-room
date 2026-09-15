@@ -40,7 +40,7 @@ class NativeLiveSessionsBroker
   Core = Struct.new(
     :id, :metadata, :discovery_metadata, :capacity, :owner, :participants,
     :entries, :views, :closed, :last_seq, :trimmed_through, :stack_entries,
-    :stack_entry_bytes, :mutex, :dedup,
+    :stack_entry_bytes, :mutex, :dedup, :visibility, :invitations,
     keyword_init: true
   )
 
@@ -69,7 +69,9 @@ class NativeLiveSessionsBroker
     end
   end
 
-  def endpoint(user)
+  def endpoint(user, fresh: false)
+    return Endpoint.new(self, user) if fresh
+
     @endpoints[user] ||= Endpoint.new(self, user)
   end
 
@@ -99,14 +101,18 @@ class NativeLiveSessionsBroker
         closed: false, last_seq: 0, trimmed_through: 0,
         stack_entries: options.fetch(:stack_entries),
         stack_entry_bytes: options.fetch(:stack_entry_bytes),
-        mutex: Mutex.new, dedup: {}
+        mutex: Mutex.new, dedup: {}, visibility: visibility, invitations: {}
       )
       @broker.cores[id] = core
       add_view(core)
     end
 
-    def discover_sessions(**_options)
-      items = @broker.cores.values.reject(&:closed).map { |core| Discovery.new(self, core) }
+    def discover_sessions(sources: [:created, :invited, :public], **_options)
+      items = @broker.cores.values.reject(&:closed).select do |core|
+        (sources.include?(:public) && core.visibility == :public) ||
+          (sources.include?(:created) && core.owner.casecmp(@user) == 0) ||
+          (sources.include?(:invited) && core.invitations[@user.downcase].to_i > Time.now.to_i)
+      end.map { |core| Discovery.new(self, core) }
       Page.new(items: items, next_cursor: nil)
     end
 
@@ -121,6 +127,12 @@ class NativeLiveSessionsBroker
     def on_error(&block); @error_callbacks << block; end
     def report_error(error); @error_callbacks.each { |callback| callback.call(error) }; end
 
+    def reject_invitation(identity)
+      core = @broker.cores.fetch(identity.id)
+      core.invitations.delete(@user.downcase)
+      true
+    end
+
     def next_invitation(timeout: nil)
       @invitations.shift
     end
@@ -132,6 +144,9 @@ class NativeLiveSessionsBroker
 
     def add_view(core)
       raise EltenAPI::LiveSessions::SessionClosed if core.closed
+      if core.visibility == :private && core.owner.casecmp(@user) != 0 && core.invitations[@user.downcase].to_i <= Time.now.to_i
+        raise EltenLink::Error.new("not_invited")
+      end
       raise EltenLink::Error.new("full") if core.participants.length >= core.capacity
 
       view = View.new(self, core)
@@ -149,12 +164,14 @@ class NativeLiveSessionsBroker
   end
 
   class Discovery
-    attr_reader :id, :discovery_metadata, :capacity, :participant_count, :join_reason
+    attr_reader :id, :discovery_metadata, :capacity, :participant_count, :join_reason, :visibility, :invitation
 
     def initialize(endpoint, core)
       @endpoint = endpoint
       @core = core
       @id = core.id
+      @visibility = core.visibility
+      @invitation = { "invitation_id" => "server:#{core.id}:#{endpoint.user}", "expires_at" => core.invitations[endpoint.user.downcase], "generation" => 1 } if core.invitations[endpoint.user.downcase].to_i > Time.now.to_i
       @discovery_metadata = core.discovery_metadata
       @capacity = core.capacity
       @participant_count = core.participants.length
@@ -196,12 +213,14 @@ class NativeLiveSessionsBroker
 
     def reject
       @pending = false
+      @core.invitations.delete(@target.user.downcase)
       true
     end
   end
 
   class View
     attr_reader :id, :metadata, :capacity
+    def visibility; @core.visibility; end
     attr_accessor :fail_next_push, :fail_next_read, :fail_next_trim
     attr_reader :calls
 
@@ -344,8 +363,9 @@ class NativeLiveSessionsBroker
       raise EltenAPI::LiveSessions::SessionClosed if closed?
       target = @endpoint.broker.endpoint(user)
       invitation = Invitation.new(target, @core, @endpoint.user, metadata)
+      @core.invitations[user.downcase] = invitation.expires_at
       target.deliver_invitation(invitation)
-      true
+      { "expires_at" => invitation.expires_at }
     end
 
     def leave

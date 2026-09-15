@@ -82,7 +82,7 @@ end
 
 class ListBox < FakeControl
   attr_accessor :index, :header, :next_character, :options
-  attr_reader :last_focus_spoken
+  attr_reader :last_focus_spoken, :last_focus_header
 
   module Flags
     MultiSelection = 1
@@ -105,8 +105,9 @@ class ListBox < FakeControl
     @selected.each_index.select { |index| @selected[index] }
   end
 
-  def focus(_index = nil, _count = nil, _header = @header, spk = true)
+  def focus(_index = nil, _count = nil, header = @header, spk = true)
     @last_focus_spoken = spk
+    @last_focus_header = header
   end
 
   private

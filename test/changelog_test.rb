@@ -87,7 +87,7 @@ Form.class_eval do
 end
 
 shown = []
-GameRoomScreens::Changelog.define_singleton_method(:new) do |items|
+GameRoomScreens::Changelog.define_singleton_method(:new) do |items, **_options|
   shown << items
   Object.new.tap { |screen| screen.define_singleton_method(:wait) { true } }
 end
@@ -96,6 +96,15 @@ app = EltenGameRoom.new
 app.send(:show_update_changelog)
 state = app.read_json(GameRoomChangelog::STORAGE_FILE, default: {})
 current_entry = GameRoomChangelog::ENTRIES.find { |entry| entry.build == EltenGameRoom::GAME_ROOM_BUILD_ID }
+assert(current_entry.version == EltenGameRoom::GAME_ROOM_VERSION, "current changelog version differs from runtime")
+entry_226 = entries.find { |entry| entry.build == 226 }
+assert(entry_226.version == "1.1.10" && entry_226.changes.length == 9, "build 226 does not contain the agreed release notes")
+assert(entry_226.changes.last.include?("empty notification entry"), "build 226 lacks invitation history correction")
+assert(GameRoomChangelog.pending_entries(225, 226).map(&:build) == [226], "build 226 repeats already-read changes")
+entry_224 = entries.find { |entry| entry.build == 224 }
+entry_225 = entries.find { |entry| entry.build == 225 }
+assert(entry_225.changes.take(3) == entry_224.changes.take(3), "build 225 dropped the agreed previous changelog")
+assert(entry_225.changes.last.include?("announced during a bot's turn"), "build 225 does not explicitly mention Makao during bot turns")
 expected_current_rows = current_entry.changes.length + 1
 assert(shown.length == 1 && shown.first.length == expected_current_rows, "the current changelog was not shown on first launch")
 assert(state[GameRoomChangelog::LAST_SEEN_BUILD_KEY] == EltenGameRoom::GAME_ROOM_BUILD_ID, "closing the changelog did not mark the build as read")
@@ -124,6 +133,13 @@ catalog = count.times.to_h do |index|
 end
 translations.each do |source, translation|
   assert(catalog[source] == translation, "uncompiled changelog translation: #{source}")
+end
+assert(catalog[entry_225.changes.last].to_s.include?("powiedzieć również w trakcie tury bota"),
+  "the Polish changelog does not explicitly mention Makao during bot turns")
+release_translations = JSON.parse(File.read(File.expand_path("../locale/changelog-build-226-pl.json", __dir__), encoding: "UTF-8"))
+assert(release_translations.keys == entry_226.changes, "release notes and Polish translation differ")
+release_translations.each do |source, translation|
+  assert(catalog[source] == translation, "uncompiled build 226 translation: #{source}")
 end
 
 puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage and main menu"

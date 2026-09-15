@@ -10,13 +10,15 @@ class TableActivityRepository
     :owner,
     :game,
     :message,
+    :subject,
+    :invitation_id,
     :created_at,
     keyword_init: true
   )
 
   TABLE_NAME = "table_activity".freeze
-  KINDS = %w[created joined left bot_added bot_removed chat].freeze
-  GLOBAL_KINDS = (KINDS - ["chat"]).freeze
+  KINDS = %w[created joined left bot_added bot_removed chat invited invitation_rejected].freeze
+  GLOBAL_KINDS = %w[created joined left bot_added bot_removed].freeze
   TABLE_LIMIT = 2_000
   GLOBAL_LIMIT = 200
   MESSAGE_MAX_LENGTH = 400
@@ -26,7 +28,7 @@ class TableActivityRepository
     @transport = transport
   end
 
-  def append(table:, kind:, message: nil, actor: Session.name)
+  def append(table:, kind:, message: nil, actor: Session.name, subject: nil, invitation_id: nil)
     normalized_kind = kind.to_s
     raise ArgumentError, "Invalid table activity kind" if !KINDS.include?(normalized_kind)
 
@@ -41,15 +43,21 @@ class TableActivityRepository
 
     clean_message = normalized_kind == "chat" ? normalize_message(message) : ""
     raise ArgumentError, "A chat message cannot be empty" if normalized_kind == "chat" && clean_message.empty?
+    invitation_activity = %w[invited invitation_rejected].include?(normalized_kind)
+    if invitation_activity && (subject.to_s.strip.empty? || subject.to_s.length > 64 || invitation_id.to_i <= 0)
+      raise ArgumentError, "Invalid invitation activity"
+    end
 
     if native_live_sessions?
-      inserted = @transport.append_activity(
+      arguments = {
         table: table,
         kind: normalized_kind,
         actor: author,
         message: clean_message
-      )
-      persist_global_activity(table, normalized_kind, author) if GLOBAL_KINDS.include?(normalized_kind)
+      }
+      arguments.merge!(subject: subject.to_s, invitation_id: invitation_id.to_i) if invitation_activity
+      inserted = @transport.append_activity(**arguments)
+      persist_global_activity(table, normalized_kind, author) if GLOBAL_KINDS.include?(normalized_kind) && table["private"] != true
       return entry_from(inserted, table)
     end
 
@@ -60,6 +68,8 @@ class TableActivityRepository
       "table_owner" => owner,
       "game" => game,
       "message" => clean_message,
+      "subject" => invitation_activity ? subject.to_s : "",
+      "invitation_id" => invitation_activity ? invitation_id.to_i : 0,
       "created_at" => Time.now.to_i
     )
     entry_from(inserted, table)
@@ -169,6 +179,10 @@ class TableActivityRepository
         _("%{player} removed a computer.") % { player: player }
       when "chat"
         _("%{player}: %{message}") % { player: player, message: entry.message }
+      when "invited"
+        _("%{player} invited %{user}.") % { player: player, user: GameRoomParticipants.display_name(entry.subject) }
+      when "invitation_rejected"
+        _("%{user} declined %{player}'s invitation.") % { player: player, user: GameRoomParticipants.display_name(entry.subject) }
       end
     end
   end
@@ -253,6 +267,9 @@ class TableActivityRepository
 
     message = row["kind"].to_s == "chat" ? normalize_message(row["message"]) : ""
     return nil if row["kind"].to_s == "chat" && message.empty?
+    if %w[invited invitation_rejected].include?(row["kind"].to_s)
+      return nil if row["subject"].to_s.empty? || row["subject"].to_s.length > 64 || row["invitation_id"].to_i <= 0
+    end
 
     Entry.new(
       id: row_id(row),
@@ -262,6 +279,8 @@ class TableActivityRepository
       owner: table_owner(table),
       game: table["game"].to_s,
       message: message,
+      subject: row["subject"].to_s,
+      invitation_id: row["invitation_id"].to_i,
       created_at: row["created_at"].to_i
     )
   end

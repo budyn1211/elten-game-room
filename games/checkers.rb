@@ -110,7 +110,8 @@ module GameRoomGames
           _("You win when the opponent has no pieces or no legal move. Three repetitions or 80 individual moves without capture or promotion give a draw. Numbered notation labels only playable fields: 1–32, 1–50 or 1–72 depending on board size. Chess notation labels the full grid. Changing notation or rotating the board is local presentation only; it changes neither the legal moves nor the other player's view.")),
         rule_section(:controls, _("Board commands"),
           _("Arrow keys inspect every field. In numbered notation the light, unplayable fields make a sound without a spoken name. Enter selects a piece; another Enter chooses its destination. V reads possible moves. K visits your kings and Shift+K the opponent's kings. C reads colours; T reads the turn."),
-          _("Ctrl+H switches numbered and chess notation, including movement announcements and displayed history. Ctrl+Shift+H rotates the board without renaming fields. In chat use /21 17 or /a3 b4 as appropriate for the chosen fields. A multiple capture is entered one jump at a time, just like Enter on the board."))
+          _("Ctrl+H switches numbered and chess notation, including movement announcements and displayed history. Ctrl+Shift+H rotates the board without renaming fields. In chat use /21 17 or /a3 b4 as appropriate for the chosen fields. A multiple capture is entered one jump at a time, just like Enter on the board."),
+          _("S reads the current number of men and kings belonging to each player."))
       ]
     end
 
@@ -398,6 +399,15 @@ module GameRoomGames
           command: "toggle_orientation"
         )
       ]
+    end
+
+    def remaining_piece_counts(replay)
+      pieces = replay.board.flatten.compact
+      [0, 1].map do |marker|
+        _("men: %{men}, kings: %{kings}") % {
+          men: pieces.count("#{marker}m"), kings: pieces.count("#{marker}k")
+        }
+      end
     end
 
     def bot_search_key(replay, actor)

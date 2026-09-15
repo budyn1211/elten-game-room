@@ -106,7 +106,7 @@ class LobbyRepository
     TableSnapshot.new(table: current, members: names, bots: bots_for(current))
   end
 
-  def create_table(name:, game:, owner:, game_options: "{}")
+  def create_table(name:, game:, owner:, game_options: "{}", private_table: false, resume_save_id: nil, bot_count: 0)
     clean_name = normalized_name(name)
     raise ArgumentError, "Invalid table name" if !valid_table_name?(clean_name)
 
@@ -119,11 +119,14 @@ class LobbyRepository
         game: game,
         owner: owner,
         game_options: game_options,
-        capacity: DEFAULT_ROOM_CAPACITY
+        capacity: DEFAULT_ROOM_CAPACITY,
+        private_table: private_table, resume_save_id: resume_save_id, bot_count: bot_count
       )
       append_activity(table, "created", actor: owner, table_users: [owner])
       return CreateResult.new(table: table, created: true)
     end
+
+    raise ArgumentError, "Private tables require native LiveSessions" if private_table
 
     tables = open_tables
     members = active_member_rows

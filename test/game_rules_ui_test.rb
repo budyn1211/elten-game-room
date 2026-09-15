@@ -35,8 +35,8 @@ class Form
   end
 
   def wait
-    raise "Unexpected form" unless self.class.driver
-    self.class.driver.call(self)
+    raise "Unexpected form" unless Form.driver
+    Form.driver.call(self)
   end
 
   def resume; end

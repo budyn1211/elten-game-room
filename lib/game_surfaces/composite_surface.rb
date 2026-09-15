@@ -5,6 +5,8 @@ module GameSurfaces
   class CompositeSurface
     include ActionEmitter
 
+    attr_reader :command_field_index
+
     def initialize(spec, state: {}, previous: nil)
       @spec = spec
       @parts = @spec.parts.to_a
@@ -88,9 +90,20 @@ module GameSurfaces
     end
 
     def handle_command(command, payload = {})
-      @surfaces.any? do |surface|
-        surface.respond_to?(:handle_command) && surface.handle_command(command, payload)
+      @command_field_index = nil
+      offset = 0
+      @surfaces.each do |surface|
+        if surface.respond_to?(:handle_command)
+          result = surface.handle_command(command, payload)
+          if result
+            child_index = surface.respond_to?(:command_field_index) ? surface.command_field_index : nil
+            @command_field_index = offset + (child_index || 0)
+            return result
+          end
+        end
+        offset += surface.fields.length
       end
+      false
     end
 
     private

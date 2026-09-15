@@ -53,6 +53,14 @@ module GameRoomGames
       "categories"
     end
 
+    def save_game_error(_replay)
+      _("Saving is not supported for this game.")
+    end
+
+    def supports_saved_games?
+      false
+    end
+
     def name
       _("Countries and cities")
     end

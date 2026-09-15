@@ -8,6 +8,12 @@ module GameRoomGames
       "monopoly"
     end
 
+    def save_game_error(replay)
+      return _("Wait until the auction ends before saving the game.") if replay.state[:phase] == :auction
+
+      super
+    end
+
     def name
       _("Monopoly")
     end
@@ -153,9 +159,15 @@ module GameRoomGames
       replay.current_player == nil ? [] : [replay.current_player]
     end
 
+    def automatic_action_allowed?(replay, actor, table_owner:)
+      super || (!replay.finished? && same_user?(actor, replay.current_player) && unaffordable_purchase?(replay.state))
+    end
+
     def automatic_action_due?(replay, actor, context: nil)
       state = replay.state
-      return false if replay.finished? || !same_user?(actor, replay.players.first)
+      return false if replay.finished?
+      return true if same_user?(actor, replay.current_player) && unaffordable_purchase?(state)
+      return false if !same_user?(actor, replay.players.first)
       return true if unavoidable_bankruptcy?(state)
       state[:phase] == :auction &&
         state[:auction_deadline].to_i > 0 && context&.now != nil && context.now.to_i >= state[:auction_deadline].to_i
@@ -163,6 +175,7 @@ module GameRoomGames
 
     def automatic_action(replay, actor, context: nil)
       return nil if replay.finished? || !automatic_action_due?(replay, actor, context: context)
+      return { "kind" => "command", "action" => "decline" } if same_user?(actor, replay.current_player) && unaffordable_purchase?(replay.state)
       return { "kind" => "command", "action" => "bankrupt_auto" } if unavoidable_bankruptcy?(replay.state)
       { "kind" => "command", "action" => "auction_timeout" }
     end
@@ -839,6 +852,13 @@ module GameRoomGames
         state[:phase] = :awaiting_roll
       end
       true
+    end
+
+    def unaffordable_purchase?(state)
+      return false if state[:phase] != :property_decision || state[:current_player] == nil
+      player = player_key(state, state[:current_player])
+      square = current_square(state, player)
+      square != nil && state[:owners][square[:index]] == nil && state[:cash][player] < square[:price].to_i
     end
 
     def unavoidable_bankruptcy?(state)
@@ -1617,10 +1637,28 @@ module GameRoomGames
         group = colour_group_squares(state, square[:group])
         others = group.reject { |property| property[:index] == index }
         owned = others.count { |property| same_user?(state[:owners][property[:index]], player) }
+        # Even a solitary deed retains an option to build a group. Its face
+        # price is not its liquidation value in a negotiated player trade.
+        value += square[:price].to_i / 3
         value += owned * square[:price] / 2
         value += square[:price] if owned == others.length
+        rivals = others.filter_map do |property|
+          owner = state[:owners][property[:index]]
+          owner if owner != nil && !same_user?(owner, player)
+        end
+        largest_rival_group = rivals.group_by { |owner| owner.to_s.downcase }.values.map(&:length).max.to_i
+        if !others.empty? && largest_rival_group == others.length
+          # This is the last block against an opponent's monopoly, not a
+          # generic markup. Re-evaluating after the offer also credits the
+          # specific buyer's newly completed group in trade_gain.
+          value += group.sum { |property| property[:price].to_i } / 2
+        end
       elsif square[:type] == :railroad
+        value += square[:price].to_i / 4
         value += owned_squares(state, player).count { |property| property[:type] == :railroad && property[:index] != index } * money(state, 50)
+      elsif square[:type] == :utility
+        value += square[:price].to_i / 4
+        value += square[:price].to_i / 2 if owned_squares(state, player).any? { |property| property[:type] == :utility && property[:index] != index }
       end
       value
     end
