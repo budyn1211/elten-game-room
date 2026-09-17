@@ -1,0 +1,269 @@
+require "json"
+require_relative "game_room_background"
+require_relative "network_errors"
+
+# Public interests, not saved games. Identity always comes from the server's
+# immutable insertion author. A forged username can never subscribe somebody.
+module GameRoomTableWatch
+  TYPE = "game_room.table_created".freeze
+  TABLE = "table_watch_preferences".freeze
+  SCHEMA = {
+    "visibility" => "public",
+    "columns" => { "username" => "string:64", "format" => "integer", "games" => "string:2048" },
+    "permissions" => %w[select insert update delete],
+    "indexes" => [["username"]], "limits" => { "max_select_limit" => 1000 }
+  }.freeze
+
+  # Read the host's already-received server timestamp, never HTTP from a
+  # presentation callback. Monotonic elapsed time keeps expiration advancing
+  # between status updates and during a connection gap. Use wall time only
+  # until the host has supplied its first timestamp (also useful offline).
+  class Clock
+    def initialize(sample: -> {
+      EltenAPI::NotificationService.server_time if defined?(EltenAPI::NotificationService) && EltenAPI::NotificationService.respond_to?(:server_time)
+    }, elapsed: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, fallback: -> { Time.now.to_f })
+      @sample, @elapsed, @fallback = sample, elapsed, fallback
+      @mutex = Mutex.new
+    end
+
+    def call
+      @mutex.synchronize do
+        tick = @elapsed.call.to_f
+        sample = @sample.call.to_f
+        if sample > 0 && sample != @last_sample
+          @anchor = [sample, tick]
+          @last_sample = sample
+        end
+        @anchor ||= [@fallback.call.to_f, tick]
+        @anchor.first + tick - @anchor.last
+      end
+    end
+  end
+
+  class Preferences
+    def initialize(table, games:)
+      @table, @games = table, games.map(&:to_s)
+    end
+
+    def all
+      rows, offset = [], 0
+      loop do
+        page = @table.select(order: [["__id", "asc"]], limit: 1000, offset: offset).to_a
+        rows.concat(page)
+        break if page.size < 1000
+        offset += page.size
+      end
+      canonical(rows).values
+    end
+
+    def load(user)
+      row = own_rows(user).first
+      row ? selected(row) : []
+    end
+
+    def save(user, games)
+      wanted = Array(games).map(&:to_s).uniq.sort & @games
+      values = { "username" => user.to_s, "format" => 1, "games" => JSON.generate(wanted) }
+      raise ArgumentError, "Too many watched games" if values["games"].bytesize > 2048
+      rows = own_rows(user)
+      if rows.empty?
+        @table.insert(values)
+        # Concurrent first registrations are reconciled by the same minimum ID.
+        rows = own_rows(user)
+      end
+      raise IOError, "Table notification preferences could not be saved" if rows.empty?
+      main = rows.first
+      changes = values.reject { |key, value| main[key].to_s == value.to_s }
+      @table.update(main["__id"].to_i, changes) unless changes.empty?
+      rows.drop(1).each { |row| @table.delete(row["__id"].to_i) }
+      wanted
+    end
+
+    def recipients(game, online:, sender:)
+      present = online.to_a.to_h { |name| [name.to_s.downcase, name.to_s] }
+      all.filter_map do |row|
+        user = row["__insertion_user"].to_s
+        present[user.downcase] if !user.casecmp?(sender.to_s) && selected(row).include?(game.to_s)
+      end.uniq(&:downcase)
+    end
+
+    private
+
+    def own_rows(user)
+      # Account spelling is canonical on ELTEN. Never trust the supplied name
+      # alone when changing/deleting a row, including duplicate cleanup.
+      rows = @table.select(where: { "username" => user.to_s }, order: [["__id", "asc"]], limit: 1000).to_a
+      rows.select { |row| valid_identity?(row) && row["__insertion_user"].casecmp?(user.to_s) }.sort_by { |row| row["__id"].to_i }
+    end
+
+    def canonical(rows)
+      rows.sort_by { |row| row["__id"].to_i }.each_with_object({}) do |row, result|
+        next unless valid_identity?(row)
+        result[row["__insertion_user"].downcase] ||= row
+      end
+    end
+
+    def valid_identity?(row)
+      row.is_a?(Hash) && row["__id"].to_i > 0 && !row["__insertion_user"].to_s.empty? &&
+        row["username"].to_s.casecmp?(row["__insertion_user"].to_s)
+    end
+
+    def selected(row)
+      return [] unless row["format"].to_i == 1 && row["games"].to_s.bytesize <= 2048
+      value = JSON.parse(row["games"].to_s)
+      value.is_a?(Array) ? value.grep(String).uniq & @games : []
+    rescue JSON::ParserError
+      []
+    end
+  end
+
+  # No HTTP in presentation/visibility callbacks. Bounded account-specific
+  # receipt memory suppresses duplicate deliveries, including after restart.
+  class Receiver
+    attr_accessor :games
+    attr_reader :user
+
+    def initialize(user:, games:, uuid:, stored: {}, persist: ->(_data) {}, clock: nil)
+      @user, @allowed, @uuid, @persist, @clock = user.to_s, games.map(&:to_s), uuid.to_s, persist, clock || Clock.new
+      @games = nil # Unknown until the one startup server read completes.
+      @seen = stored.is_a?(Hash) ? stored.fetch("seen", {}).dup : {}
+      @resolved = stored.is_a?(Hash) ? stored.fetch("resolved", {}).dup : {}
+      @seen = {} unless @seen.is_a?(Hash)
+      @resolved = {} unless @resolved.is_a?(Hash)
+      trim
+    end
+
+    def data(notification)
+      return nil unless notification.type.to_s == TYPE && notification.app_uuid.to_s.casecmp?(@uuid)
+      value = notification.metadata
+      return nil unless value.is_a?(Hash) && value["format"] == 1 && @allowed.include?(value["game"])
+      # The server returns opaque URL-safe tokens (including '-' and '_'),
+      # not UUIDs. Bound and validate the target without guessing its layout;
+      # opening still verifies the exact session, table, owner and visibility.
+      session_id = value["live_session_id"]
+      return nil unless session_id.is_a?(String) && session_id.match?(/\A[A-Za-z0-9_-]{1,256}\z/)
+      return nil unless value["table_id"].is_a?(Integer) && value["table_id"] > 0
+      expiry, created = value["expires_at"], value["created_at"]
+      return nil unless expiry.is_a?(Integer) && created.is_a?(Integer) && expiry - created == 300 &&
+        expiry > @clock.call && created <= @clock.call + 60
+      sender = notification.sender.to_s
+      return nil if sender.empty? || sender.length > 64 || sender.match?(/[\x00-\x1f]/) || sender.casecmp?(@user)
+      value
+    end
+
+    def visible?(notification)
+      value = data(notification)
+      return false unless value
+      return false if @games && !@games.include?(value["game"])
+      key = value["live_session_id"]
+      return false if @resolved[key].to_i > @clock.call
+      entry = @seen[key]
+      !entry.is_a?(Hash) || entry["id"].to_i == notification.id.to_i
+    end
+
+    def received?(notification)
+      value = data(notification)
+      value && @seen[value["live_session_id"]].is_a?(Hash)
+    end
+
+    def receive(notification)
+      return false unless visible?(notification) && !received?(notification)
+      value = data(notification)
+      @seen[value["live_session_id"]] = { "id" => notification.id.to_i, "expires" => value["expires_at"] }
+      save
+      true
+    end
+
+    def resolve(session_id)
+      @resolved[session_id.to_s] = @clock.call + 300
+      save
+    end
+
+    private
+
+    def trim
+      @seen = @seen.select { |_key, value| value.is_a?(Hash) && value["expires"].to_i > @clock.call }.to_a.last(1024).to_h
+      @resolved = @resolved.select { |_key, expiry| expiry.to_i > @clock.call }.to_a.last(1024).to_h
+    end
+
+    def save
+      trim
+      @persist.call({ "seen" => @seen, "resolved" => @resolved })
+    rescue StandardError => error
+      Log.warning("Game Room table notice receipt could not be saved: #{error.class}") if defined?(Log)
+    end
+  end
+
+  # A single paced queue for this app/account. Each finite HTTP operation runs
+  # off the UI thread. Uncertain writes are never retried as successful delivery
+  # is unknowable; only an explicit 429 may be retried after backoff.
+  class Sender
+    def initialize(user:, repository:, online:, send_notice:, worker: nil, current_user: -> { Session.name }, clock: nil)
+      @user, @repository, @online, @send_notice = user.to_s, repository, online, send_notice
+      @worker = worker || GameRoomBackground::Work.new(runtime: defined?(Programs) ? Programs.current_runtime : nil)
+      @current_user, @clock, @queue, @seen = current_user, clock || Clock.new, [], {}
+      @next_at = 0.0
+    end
+
+    def enqueue(row)
+      return false unless row.is_a?(Hash) && row["owner"].to_s.casecmp?(@user) && row["status"] == "waiting"
+      return false if row["private"] == true || !row["resume_save_id"].to_s.empty?
+      key = row["__live_session_id"].to_s
+      return false if key.empty? || @seen[key] || @queue.length >= 4
+      @seen[key] = @clock.call
+      @seen.delete_if { |_id, at| @clock.call - at > 600 }
+      now = @clock.call.to_i
+      @queue << { metadata: { "format" => 1, "game" => row["game"], "table_id" => row["__id"].to_i,
+        "live_session_id" => key, "created_at" => now, "expires_at" => now + 300 }, recipients: nil }
+      true
+    end
+
+    def cancel(session_id)
+      @queue.reject! { |job| job[:metadata]["live_session_id"] == session_id.to_s }
+    end
+
+    def tick
+      return close unless @current_user.call.to_s.casecmp?(@user)
+      if (result = @worker.take)
+        value, error = result
+        if error
+          @next_at = @clock.call + GameRoomNetworkErrors.retry_delay(error, normal: 15, rate_limit: 60)
+          limited = error.respond_to?(:status) && error.status.to_i == 429
+          limited ||= error.respond_to?(:code) && error.code.to_s == "rate_limits.exceeded"
+          if @operation && limited && @operation[:kind] == :send && @operation[:attempt].to_i < 1 && @queue.include?(@operation[:job])
+            @operation[:job][:recipients].unshift([@operation[:recipient], 1])
+          elsif @operation && @operation[:kind] == :load
+            @queue.delete(@operation[:job])
+          end
+          Log.warning("Game Room table notices failed: #{error.class}") if defined?(Log)
+        elsif @operation && @operation[:kind] == :load && @queue.include?(@operation[:job])
+          @operation[:job][:recipients] = value.map { |name| [name, 0] }
+        end
+        @operation = nil
+      end
+      return if @worker.closed? || @worker.busy? || @clock.call < @next_at
+      @queue.reject! { |job| job[:metadata]["expires_at"] <= @clock.call || job[:recipients] == [] }
+      job = @queue.first
+      return unless job
+      if job[:recipients] == nil
+        @operation = { kind: :load, job: job }
+        @worker.start { @repository.recipients(job[:metadata]["game"], online: @online.call, sender: @user) }
+      else
+        recipient, attempt = job[:recipients].shift
+        @operation = { kind: :send, job: job, recipient: recipient, attempt: attempt }
+        @next_at = @clock.call + 0.5
+        @worker.start do
+          # Queue cancellation or account change can race the worker dispatch.
+          if @queue.include?(job) && @current_user.call.to_s.casecmp?(@user)
+            @send_notice.call(recipient, job[:metadata], [job[:metadata]["expires_at"] - @clock.call.to_i, 0].max)
+          end
+        end
+      end
+    end
+
+    def close
+      @queue.clear
+      @worker.close
+    end
+  end
+end

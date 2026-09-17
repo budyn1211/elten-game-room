@@ -35,7 +35,7 @@ module GameRoomGames
     end
 
     def name
-      _("Ninety-nine")
+      "99"
     end
 
     def rule_sections

@@ -62,6 +62,7 @@ module GameRoomGames
           _("An exact roll is required to reach the finish: on by default. A roll going past the finish cannot move that pawn. When disabled, an excessive roll also brings it to the finish. Three consecutive sixes lose the turn: on by default; the third six ends the turn without moving a pawn for that roll, but does not undo previous moves."),
           _("Two pawns of one player form a blockade: on by default. Disable it to remove blockade restrictions. These settings do not change the length of the shared track or private home lanes.")),
         rule_section(:controls, _("Choosing and finding pawns"),
+          _("D reads the current die without rolling or moving a pawn. Before the roll it announces that the die has not been rolled."),
           _("Enter rolls or confirms the selected legal pawn move. Arrow keys browse available moves. V opens your pawn list; Shift+V opens all pawns with owners and positions. These are inspection lists, not movement choices."),
           _("P summarizes your positions and Shift+P the opponents' positions. Pawns in the base are included; finished pawns are omitted from these summaries. T reads the turn."))
       ]
@@ -231,6 +232,13 @@ module GameRoomGames
           choices: all_pawn_browse_choices(replay.state)
         )
       ]
+    end
+
+    def shortcut_features; super + [:last_roll]; end
+    def shortcut_feature_data(feature, replay, viewer)
+      return super unless feature == :last_roll
+      roll = replay.state[:roll]
+      { message: roll == nil ? _("The dice have not been rolled.") : _("Last roll: %{dice}.") % { dice: roll } }
     end
 
     private

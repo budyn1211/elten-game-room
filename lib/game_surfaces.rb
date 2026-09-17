@@ -630,7 +630,7 @@ module GameSurfaces
           header = choice_header(pending[:card])
           index = pending[:choice_index]
         end
-        control = RefreshAwareListBox.new(
+        control = card_list_control_class.new(
           labels,
           header: header,
           index: index,
@@ -638,6 +638,7 @@ module GameSurfaces
           empty_label: zone.empty_label.to_s
         )
         control.on(:select) do |params|
+          next if respond_to?(:intercept_card_selection, true) && intercept_card_selection(zone_id, params.to_a[0].to_i)
           zone = @zones.find { |item| item.id.to_s == zone_id }
           cards = @cards.fetch(zone_id)
           selected_index = params.to_a[0].to_i
@@ -845,6 +846,10 @@ module GameSurfaces
     end
 
     private
+
+    def card_list_control_class
+      RefreshAwareListBox
+    end
 
     def navigate_playable_card(payload)
       zone_id = (payload["hand_id"] || payload[:hand_id]).to_s
@@ -1069,6 +1074,10 @@ module GameSurfaces
   require_relative "game_surfaces/dice_tray"
   require_relative "game_surfaces/roll_and_score"
   require_relative "game_surfaces/packet_cards"
+  require_relative "game_surfaces/meld_cards"
+  require_relative "game_surfaces/tile_hand"
+  require_relative "game_surfaces/word_board"
+  require_relative "game_surfaces/taboo_surface"
   require_relative "game_surfaces/question_surface"
   require_relative "game_surfaces/answer_sheet"
   require_relative "game_surfaces/review_surface"
@@ -1080,6 +1089,8 @@ module GameSurfaces
       spec.zones.any? { |zone| zone.hand_order != nil }
     when PacketCardSpec
       spec.hand_order != nil
+    when MeldHandSpec, TileHandSpec
+      true
     when CompositeSpec
       spec.parts.any? { |part| hand_surface?(part.surface) }
     else
@@ -1099,10 +1110,18 @@ module GameSurfaces
 
   def self.build(spec, state: {})
     case spec
+    when TabooSpec
+      TabooSurface.new(spec, state: state)
+    when WordBoardSpec
+      WordBoardSurface.new(spec, state: state)
     when GridSpec
       GridBoard.new(spec, state: state)
     when CardTableSpec
       CardTable.new(spec, state: state)
+    when MeldHandSpec
+      MeldHandSurface.new(spec, state: state)
+    when TileHandSpec
+      TileHandSurface.new(spec, state: state)
     when CommandPanelSpec
       CommandPanel.new(spec, state: state)
     when PawnTrackSpec

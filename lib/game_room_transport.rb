@@ -734,6 +734,16 @@ class GameRoomTransport
     @live_store.update_room(table_or_id, changes, actor: actor)
   end
 
+  def change_game_options(**arguments)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+    @live_store.change_game_options(**arguments)
+  end
+
+  def abort_game(session)
+    raise "The native LiveSessions store is unavailable" if !live_store?
+    @live_store.abort_game(session)
+  end
+
   def append_activity(**arguments)
     raise "The native LiveSessions store is unavailable" if !live_store?
 

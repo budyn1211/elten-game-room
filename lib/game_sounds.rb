@@ -109,6 +109,20 @@ module GameRoomSounds
   def action_cue(game:, event:, before_replay:, after_replay:, repository:, viewer:)
     action = event["action"].to_s
     case game.id.to_s
+    when "biblios"
+      kinds = history_for_event(after_replay, event, repository).map(&:kind)
+      return "shuffle" if kinds.include?(:deal)
+      return "draw" if kinds.include?(:take)
+      return "play" if (kinds & [:allocate, :pay, :church, :scriptorium]).any?
+    when "taboo"
+      kinds = history_for_event(after_replay, event, repository).map(&:kind)
+      { taboo_start: "shuffle", taboo_correct: "replay", taboo_skipped: "skip",
+        taboo_buzzed: "buzzer2", taboo_timeout: "ding" }.select { |kind,_| kinds.include?(kind) }.values
+    when "scrabble"
+      kinds = history_for_event(after_replay, event, repository).map(&:kind)
+      return "shuffle" if kinds.include?(:deal)
+      return "play" if kinds.include?(:play)
+      return "draw" if kinds.include?(:exchange)
     when "spades"
       return "shuffle" if action == "deal"
       return nil if action != "play"
@@ -158,6 +172,18 @@ module GameRoomSounds
         event_history = history_for_event(after_replay, event, repository)
         return "buzzer2" if event_history.any? { |entry| entry.key.to_s.start_with?("makao:") }
       end
+    when "rummy", "domino", "mexican_train"
+      entries = history_for_event(after_replay, event, repository)
+      cues = []
+      cues << "shuffle" if entries.any? { |entry| entry.kind == :deal }
+      cues << "draw" if entries.any? { |entry| entry.kind == :draw }
+      cues << "play" if entries.any? { |entry| entry.kind == :play }
+      result = entries.find { |entry| entry.kind == :round_result }
+      if result && !result.actor.to_s.empty? && GameRoomParticipants.includes?(after_replay.players, viewer)
+        winners = result.value.is_a?(Array) ? result.value : [result.actor]
+        cues << (winners.any? { |p| GameRoomParticipants.same?(p, viewer) } ? "win1" : "lose1")
+      end
+      cues
     when "poker"
       return "shuffle" if action == "deal"
       return "draw" if action == "exchange" && !event["value"].to_s.empty?

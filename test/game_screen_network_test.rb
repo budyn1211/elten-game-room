@@ -99,7 +99,7 @@ assert(
 )
 
 history_handlers = {}
-history_form = Object.new
+history_form = GameRoomUI::Form.new([])
 history_signatures = nil
 history_form.define_singleton_method(:history_navigation_signatures=) { |value| history_signatures = value }
 history_form.define_singleton_method(:on) { |event, &handler| history_handlers[event] = handler }
@@ -113,6 +113,7 @@ assert(
   "shared history navigation mapped arrow modifiers incorrectly"
 )
 assert(history_signatures.length == 6, "the form did not receive all shared history-navigation combinations")
+assert(history_form.game_room_general_help_tips.length == 3, "history help is not registered on the actual form")
 
 surface_calls = []
 surface = Object.new

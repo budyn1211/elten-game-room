@@ -17,8 +17,9 @@ class TableActivityRepository
   )
 
   TABLE_NAME = "table_activity".freeze
-  KINDS = %w[created joined left bot_added bot_removed chat invited invitation_rejected].freeze
+  KINDS = %w[created joined left bot_added bot_removed chat invited invitation_rejected game_aborted options_changed].freeze
   GLOBAL_KINDS = %w[created joined left bot_added bot_removed].freeze
+  BOT_KINDS = %w[bot_added bot_removed].freeze
   TABLE_LIMIT = 2_000
   GLOBAL_LIMIT = 200
   MESSAGE_MAX_LENGTH = 400
@@ -43,6 +44,13 @@ class TableActivityRepository
 
     clean_message = normalized_kind == "chat" ? normalize_message(message) : ""
     raise ArgumentError, "A chat message cannot be empty" if normalized_kind == "chat" && clean_message.empty?
+    if BOT_KINDS.include?(normalized_kind) && !subject.to_s.empty?
+      # This existing field carries the stable bot ID, not a translated
+      # sentence. It works in both the native log and the lobby table without
+      # another request or a server-column migration.
+      clean_message = bot_subject(subject, table_id)
+      raise ArgumentError, "Invalid activity computer" if clean_message.empty?
+    end
     invitation_activity = %w[invited invitation_rejected].include?(normalized_kind)
     if invitation_activity && (subject.to_s.strip.empty? || subject.to_s.length > 64 || invitation_id.to_i <= 0)
       raise ArgumentError, "Invalid invitation activity"
@@ -57,7 +65,7 @@ class TableActivityRepository
       }
       arguments.merge!(subject: subject.to_s, invitation_id: invitation_id.to_i) if invitation_activity
       inserted = @transport.append_activity(**arguments)
-      persist_global_activity(table, normalized_kind, author) if GLOBAL_KINDS.include?(normalized_kind) && table["private"] != true
+      persist_global_activity(table, normalized_kind, author, message: clean_message) if GLOBAL_KINDS.include?(normalized_kind) && table["private"] != true
       return entry_from(inserted, table)
     end
 
@@ -110,9 +118,10 @@ class TableActivityRepository
   end
 
   def global_entries(tables: nil, limit: GLOBAL_LIMIT)
+    # Named bot records use message for their identity. An empty-message
+    # filter would hide them; the kind allowlist below still excludes chat.
     activity_table
       .select(
-        where: { "message" => "" },
         order: [["created_at", "desc"]],
         limit: GLOBAL_LIMIT
       )
@@ -136,7 +145,6 @@ class TableActivityRepository
 
   def latest_global_id
     rows = activity_table.select(
-      where: { "message" => "" },
       order: [["created_at", "desc"]],
       limit: 20
     ).to_a.select { |row| GLOBAL_KINDS.include?(row["kind"].to_s) }
@@ -152,6 +160,7 @@ class TableActivityRepository
     player = GameRoomParticipants.display_name(entry.actor)
     owner = GameRoomParticipants.display_name(entry.owner)
     game = game_name.call(entry.game).to_s
+    bot = GameRoomParticipants.display_name(entry.subject) if !entry.subject.to_s.empty?
     if global
       case entry.kind
       when "created"
@@ -161,8 +170,10 @@ class TableActivityRepository
       when "left"
         _("%{player} left %{owner}'s table for %{game}.") % { player: player, owner: owner, game: game }
       when "bot_added"
+        return _("Added %{bot} at %{owner}'s table for %{game}.") % { bot: bot, owner: owner, game: game } if bot != nil
         _("%{player} added a computer at %{owner}'s table for %{game}.") % { player: player, owner: owner, game: game }
       when "bot_removed"
+        return _("Removed %{bot} from %{owner}'s table for %{game}.") % { bot: bot, owner: owner, game: game } if bot != nil
         _("%{player} removed a computer from %{owner}'s table for %{game}.") % { player: player, owner: owner, game: game }
       end
     else
@@ -174,8 +185,10 @@ class TableActivityRepository
       when "left"
         _("%{player} left the room.") % { player: player }
       when "bot_added"
+        return _("Added %{bot}.") % { bot: bot } if bot != nil
         _("%{player} added a computer.") % { player: player }
       when "bot_removed"
+        return _("Removed %{bot}.") % { bot: bot } if bot != nil
         _("%{player} removed a computer.") % { player: player }
       when "chat"
         _("%{player}: %{message}") % { player: player, message: entry.message }
@@ -183,6 +196,10 @@ class TableActivityRepository
         _("%{player} invited %{user}.") % { player: player, user: GameRoomParticipants.display_name(entry.subject) }
       when "invitation_rejected"
         _("%{user} declined %{player}'s invitation.") % { player: player, user: GameRoomParticipants.display_name(entry.subject) }
+      when "game_aborted"
+        _("%{player} ended the game. The table remains open.") % { player: player }
+      when "options_changed"
+        _("%{player} changed the settings for the next game.") % { player: player }
       end
     end
   end
@@ -219,14 +236,14 @@ class TableActivityRepository
     @transport.respond_to?(:live_store?) && @transport.live_store?
   end
 
-  def persist_global_activity(table, kind, actor)
+  def persist_global_activity(table, kind, actor, message: "")
     activity_table.insert(
       "table_id" => row_id(table),
       "kind" => kind.to_s,
       "actor" => actor.to_s,
       "table_owner" => table_owner(table),
       "game" => table["game"].to_s,
-      "message" => "",
+      "message" => message,
       "created_at" => Time.now.to_i
     )
   rescue StandardError => error
@@ -267,6 +284,11 @@ class TableActivityRepository
 
     message = row["kind"].to_s == "chat" ? normalize_message(row["message"]) : ""
     return nil if row["kind"].to_s == "chat" && message.empty?
+    subject = row["subject"].to_s
+    if BOT_KINDS.include?(row["kind"].to_s)
+      subject = bot_subject(row["message"], row_id(table))
+      return nil if !row["message"].to_s.empty? && subject.empty?
+    end
     if %w[invited invitation_rejected].include?(row["kind"].to_s)
       return nil if row["subject"].to_s.empty? || row["subject"].to_s.length > 64 || row["invitation_id"].to_i <= 0
     end
@@ -279,7 +301,7 @@ class TableActivityRepository
       owner: table_owner(table),
       game: table["game"].to_s,
       message: message,
-      subject: row["subject"].to_s,
+      subject: subject,
       invitation_id: row["invitation_id"].to_i,
       created_at: row["created_at"].to_i
     )
@@ -294,6 +316,14 @@ class TableActivityRepository
       .gsub(/\s+/, " ")
       .slice(0, MESSAGE_MAX_LENGTH)
       .to_s
+  end
+
+  def bot_subject(value, table_id)
+    candidate = value.to_s
+    return "" unless candidate.length <= 64 && GameRoomParticipants.bot?(candidate)
+    return "" unless candidate.start_with?("bot:#{table_id}:") && GameRoomParticipants.bot_number(candidate).between?(1, 8)
+
+    candidate
   end
 
   def table_owner(row)

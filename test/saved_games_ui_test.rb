@@ -51,12 +51,12 @@ broker = NativeLiveSessionsBroker.new
 app = SaveAppDriver.new(broker)
 $game_room_test_user = "Alice"
 game = GameRoomGames::Uno.new
-created = app.lobby.create_table(name: "Saved UNO", game: game.id, owner: "Alice", game_options: "{}", bot_count: 1)
+created = app.lobby.create_table(name: "Saved UNO", game: game.id, owner: "Alice", game_options: "{}", bot_count: 1, bot_names: ["pl20"])
 table = created.table
 bob = GameRoomTransport.new(ProgramDouble.new(broker.endpoint("Bob")))
 selected = bob.discover_rooms.first
 assert(bob.establish_membership(table_id: table["__id"], owner: "Alice", capacity: 8, user: "Bob", table: selected), "Bob cannot join original game")
-players = %w[Alice Bob] + GameRoomParticipants.bots_for(table["__id"], 1)
+players = %w[Alice Bob] + GameRoomParticipants.bots_for(table["__id"], 1, names: ["pl20"])
 session = app.games.start_session(table: table, game: game.id, players: players, options: JSON.generate(game.default_options))
 env = GameRoomSimulation::Environment.new_game(game: game, players: players, seed: 11)
 env.events.each { |event| app.games.append_events(session: session, sequence: event["sequence"], events: [GameRoomGames::EventCommand.new(action: event["action"], value: event["value"])], actor: event["actor"], controller: true) }
@@ -76,8 +76,9 @@ assert(app.transport.current_room("Alice") == nil && broker.cores.values.first.c
 saved = app.send(:saved_games).list.first
 new_table = app.send(:create_saved_game_table, saved)
 assert(new_table && new_table["resume_save_id"] == saved["id"], "saved game did not create a continuation room")
-assert(broker.cores[new_table["__live_session_id"]].metadata["protocol"] == 3, "legacy clients can join an unsupported archive")
+assert(broker.cores[new_table["__live_session_id"]].metadata["protocol"] == 5, "legacy clients can join an unsupported archive")
 assert(new_table["bot_count"] == 1, "original bots were not restored before waiting")
+assert(new_table["bot_names"] == ["pl20"], "restoration lost the saved computer name")
 assert(app.notices.any? { |notice| notice.is_a?(Array) && notice[0] == "Bob" && notice[2]["continuation"] == true }, "original human did not receive continuation invitation")
 state = app.room_state(new_table)
 assert(app.send(:resume_saved_game_at_table, new_table, state) == nil, "resume silently replaced missing original human")
@@ -88,7 +89,7 @@ bob = GameRoomTransport.new(ProgramDouble.new(broker.endpoint("Bob", fresh: true
 selected = bob.discover_rooms.first
 assert(bob.establish_membership(table_id: new_table["__id"], owner: "Alice", capacity: 8, user: "Bob", table: selected), "original human cannot enter continuation room")
 resumed = app.send(:resume_saved_game_at_table, new_table, app.room_state(new_table))
-assert(resumed && app.games.players_for(resumed) == %w[Alice Bob] + GameRoomParticipants.bots_for(new_table["__id"], 1), "continuation changed original seats")
+assert(resumed && app.games.players_for(resumed) == %w[Alice Bob] + GameRoomParticipants.bots_for(new_table["__id"], 1, names: ["pl20"]), "continuation changed original seats")
 assert(game.replay(resumed, app.games.snapshot_for(resumed).events, app.games).accepted_events.length == saved["events"].length, "UI continuation did not replay all saved events")
 assert(app.send(:saved_games).list.include?(saved), "resume deleted the only archive")
 assert(app.send(:start_new_game, new_table, state: app.room_state(new_table))["__id"] == resumed["__id"], "active continuation restarted instead of opening")

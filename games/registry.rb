@@ -1,3 +1,4 @@
+# encoding: UTF-8
 module GameRoomGames
   class Registry
     def initialize(game_types)
@@ -15,7 +16,18 @@ module GameRoomGames
     end
 
     def ids
-      @game_types.keys.dup
+      @game_types.keys.sort_by { |id| [self.class.sort_key(name(id)),id] }
+    end
+
+    # Polish letters have their own positions, rather than sorting after Z.
+    # The same alphabet also retains the usual order of English names.
+    SORT_ALPHABET = (('0'..'9').to_a + %w[a ą b c ć d e ę f g h i j k l ł m n ń o ó p q r s ś t u v w x y z ź ż]).freeze
+    def self.sort_key(label)
+      text = label.to_s.dup
+      text.force_encoding(Encoding::UTF_8) if text.encoding == Encoding::ASCII_8BIT
+      text = text.encode(Encoding::UTF_8, invalid: :replace, undef: :replace).downcase
+      text = UnicodeNormalize.normalize(text,:nfc) if defined?(UnicodeNormalize)
+      text.each_char.map { |char| char == ' ' ? 0 : (SORT_ALPHABET.index(char) || 1000+char.ord)+1 }
     end
 
     def build(id)

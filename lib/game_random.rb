@@ -1,6 +1,18 @@
 require "securerandom"
 
 module GameRoomRandom
+  # ELTEN overrides Array#shuffle with a no-argument, unseeded method.
+  # Keep event replay independent of that host override. Descending
+  # Fisher-Yates preserves MRI's seeded order and subsequent RNG state.
+  def self.shuffle(values, random:)
+    shuffled = values.to_a.dup
+    (shuffled.length - 1).downto(1) do |index|
+      other = random.rand(index + 1)
+      shuffled[index], shuffled[other] = shuffled[other], shuffled[index]
+    end
+    shuffled
+  end
+
   Roll = Struct.new(:values, :sides, :source, :proof, keyword_init: true)
 
   class Source

@@ -1,5 +1,534 @@
 # Instrukcje dla agentów pracujących nad ELTEN Game Room
 
+## Komunikaty dodania/usunięcia nazwanych botów — 17 września 2026
+
+Po ręcznym zgłoszeniu stwierdzono, że poprzednia paczka z imionami nadal
+zapisywała bezimienne zdarzenie „dodano komputer”. Poprawiono wspólną
+historię i odczyt: „Dodano Maślana.” / „Usunięto Maślana.”, bez słowa
+„komputer” i dodatkowego wskazania dodającego w komunikacie stołu.
+Globalne lobby zachowuje właściciela/rodzaj gry. Zdarzenie przechowuje
+stabilne ID bota w istniejącym polu message; nie odtwarzać imienia
+z bieżącego numeru miejsca, zwłaszcza po usunięciu innego bota.
+Bez nowych kolumn, dodatkowych żądań i ujawniania prywatnych stołów.
+Nie tworzyć migracji starych historii. Użytkownik polecił ponownie
+przebudować i podpisać 2.0/build 227 z tym samym changelogiem. Wyniki
+celowanych testów i kontrola artefaktu: ../diagnostics/bot-name-activity-227/.
+Nie instalować i nie publikować. Starsze opisy dotyczą poprzednich paczek.
+
+## Imiona botów i zgoda na przebudowanie 227 — 17 września 2026
+
+Użytkownik przekazał listy 24 PL i 26 EN oraz polecił po tej zmianie
+przebudować i podpisać ponownie 2.0/build 227. To zastępuje wcześniejsze
+wstrzymanie pakowania. Changelog zachować, z punktami Biblios i imion botów
+w PL/EN. Imię wybierane przy dodaniu, według interfejsu dodającego; bez
+powtórzeń przy stole i ponownego losowania przy odświeżaniu. Wszyscy
+widzą to samo imię, także po zapisaniu i wznowieniu nowej partii.
+Użytkownik potwierdził brak starych zapisów: nie dorabiać ich migracji.
+Stałych kodów imion w lib/bot_names.rb nie przestawiać ani nie używać
+ponownie dla innych imion. Nowe pokoje używają discovery protocol 5,
+aby starszy klient nie uznał nazwanego bota za człowieka. Bez zmian tabel
+serwera. Testy celowane; punkt wznowienia: docs/POST_227_IMPLEMENTATION.md,
+wyniki poza repo w ../diagnostics/bot-names-227/. Nie instalować ani
+publikować; GitHub i rzeczywiste klienty bez zmian.
+
+## Scrabble, Mexican Train i Biblios wdrożone; paczka wstrzymana — 17 września 2026
+
+Na polecenie użytkownika wdrożono POST_227_GAME_CHANGES_PLAN w źródłach:
+Scrabble Enter/lista/Enter, Backspace pod kursorem, cyfry tylko czytają,
+bez H/V/N i skrótów układających litery; Mexican Train pokazuje wszystkie
+pociągi, wyjaśnia odmowę, Z/Shift+Z tylko wskazuje legalne kostki.
+Biblios z PR #7 dawidpieper zintegrowano lokalnie, bez scalania na GitHubie.
+Naprawiono obsługę zdarzeń, duże płatności, prywatność i heurystyki bota,
+dodano PL oraz dźwięki. Użytkownik wyraźnie polecił zachować talię i wariant
+PR: 87 kart, w tym 45 kategorii/18 złota/24 kościelne. Nie zastępować ich
+składem pudełkowej edycji. Rejestr ma 23 gry.
+
+25/25 celowanych skryptów, składnia 37 Ruby, diff check i binarne wczytanie
+bieżących źródeł z API tasowania hosta poprawne. Bez pełnego runnera
+i ręcznych partii rzeczywistych klientów. Numery 2.0/227 bez zmian;
+changelog PL/EN ma jeden dodatkowy punkt Biblios, pozostałe zachowane.
+Raport: `docs/POST_227_VERIFICATION.md`; punkt wznowienia:
+`docs/POST_227_IMPLEMENTATION.md`. Logi poza repo:
+`../diagnostics/post-227-plan/`.
+
+**Najnowsze polecenie wstrzymuje pakowanie i podpisywanie:** użytkownik
+zapowiedział jeszcze jedną poprawkę. Czekać na nią i nowe polecenie
+budowania. Nie instalować, nie publikować, nie zmieniać serwera.
+Dotychczasowa paczka 227 c8dd0b8c… niezmieniona i nie zawiera tych zmian
+ani wcześniejszych niewydanych poprawek Rummy. Starsze wpisy „tylko plan”
+poniżej są historyczne; źródła wdrożone, wydanie nadal wstrzymane.
+
+## Kolejny plan Scrabble, Mexican Train i Biblios — 17 września 2026
+
+Użytkownik zaakceptował uproszczenie Scrabble (Enter/lista/Enter, Backspace
+pod kursorem, 1–7 odczyt, bez formularza słowa, menu i H/V/N) oraz Mexican
+Train: lista wszystkich pociągów, także zamkniętych, wyjaśnienia odmowy,
+pierwszeństwo obowiązku dubletu. Z/Shift+Z tylko wskazuje legalne kostki,
+bez automatycznego ruchu. Nowy PR dawidpieper #7 dodaje Biblios, bota,
+zasady i testy; tłumaczenia PL do uzupełnienia. Head eee45867b29b9926026499159301cc3e4e038d88.
+Pełny zakres: `docs/POST_227_GAME_CHANGES_PLAN.md`. To tylko plan;
+PR otwarty, niescalony, bez pełnego audytu/testów. Nie wdrażać, nie budować,
+nie podpisywać ani publikować bez kolejnego polecenia. Zachować wszystkie
+wcześniejsze niewydane poprawki oraz istniejącą paczkę 2.0/227 bez zmian.
+
+## Naprawy audytu interfejsu i przełącznik stron Domino — 17 września 2026
+
+Użytkownik doprecyzował G/D jako zapamiętany wybór strony, a następnie
+polecił „i popraw od razu resztę”. Osiem punktów poprzedniego audytu
+obsłużono w źródłach. Domino: G lewo/D prawo bez ruchu; Enter przy obu
+końcach używa preferencji bez pytania, przy jednym gra legalnie bez zmiany
+preferencji. Domyślnie prawo. Stan lokalny zachowany po odświeżeniu,
+podglądzie, odtworzeniu kontrolki i między rozdaniami. Z bez zmiany.
+Mexican Train nadal ma wybór pociągu. Oba podglądy używają ID kostek/
+pociągów; nowa runda zamyka stary podgląd. C/V nie blokuje wybór celu:
+zostaje bezpiecznie anulowany. Nie czytać ukrytej ręki; Escape z wyboru
+czyta samą kostkę. Scrabble: Backspace wraca na pole usuniętej płytki,
+pusty szkic prosi o co najmniej jedną płytkę, a nie dwie nowe litery.
+Zasady, boty i zdarzenia bez zmian. PL/EN, pomoc i projekt uaktualnione.
+16/16 celowanych skryptów przeszło, w tym 15 nowych scenariuszy oraz
+binarne ładowanie bieżących źródeł pod symulowanym API hosta. Bez pełnego
+runnera, żywych klientów, serwera, wersji/changelogu i pakowania. Raport:
+`docs/NEW_GAMES_INTERACTION_AUDIT_227.md`; wyniki poza repo w
+`diagnostics/new-games-interaction-fixes-227/`. Paczka 2.0/227 o SHA
+c8dd0b8c… nadal nie zawiera tych zmian ani wcześniejszych poprawek Rummy.
+Nie budować/podpisywać/instalować/publikować bez nowego polecenia.
+
+## Rummy i audyt interfejsu nowych gier — 17 września 2026
+
+Nowsze niż paczka c8dd0b8c…: poprawiono źródła Rummy, D jako odczyt bez
+listy, Shift+D bez dodatkowego Entera przy jednej legalnej możliwości,
+widoczność tylko wierzchniej karty w single discard. Naprawiono również
+menu, utrzymywanie wyborów po odświeżeniu, kursor i odczyty oraz publiczne
+komunikaty; polskie tłumaczenia i zasady uaktualnione. Nie zmieniać stosu
+potrzebnego do recyklingu tylko po to, żeby ukryć starsze odrzuty.
+23 nowe scenariusze Rummy i łącznie 19 celowanych skryptów przechodzą.
+
+Na dodatkowe polecenie „poszukaj” zbadano Domino, Mexican Train, Scrabble
+i Taboo. Osiem nowych problemów UI/komunikatów odtworzono w diagnostyce;
+NIE wdrażano ich napraw bez polecenia. Osobno użytkownik polecił skrócić
+Mexican Train: C ma nagłówek „Pociągi”, bez stacji, a wiersze i wybory
+celów np. „papierek, 9, otwarty”, bez słowa „koniec”. Wdrożono PL/EN,
+bez zmian stacji w regułach i szczegółach; dublety i otwartość zachowane.
+Taboo bez nowego potwierdzonego
+błędu w zbadanych scenariuszach. Szczegóły, przyczyny, propozycje i zakres:
+`docs/NEW_GAMES_INTERACTION_AUDIT_227.md`. Nie ogłaszać gwarancji bezbłędności.
+Bez pełnego runnera, żywych klientów, wersji, changelogu, serwera, nowej
+paczki, instalacji i publikacji. Podpisana 2.0/227 z c8dd0b8c… NIE zawiera
+tych najnowszych poprawek Rummy ani opisów Mexican Train. Nie przebudowywać
+bez nowego polecenia.
+
+## Tasowanie i powrót na widget — źródła po 227, 17 września 2026
+
+Naprawiono wywołania `Array#shuffle(random: ...)` w rozdaniu i wymianie
+liter Scrabble oraz dobieraniu nowej talii Taboo. Wspólny
+`GameRoomRandom.shuffle(values, random: rng)` działa bez nadpisanego przez
+ELTEN-a Array#shuffle i zachowuje dotychczasową kolejność oraz stan RNG.
+Test z zerową liczbą argumentów hosta odtwarzał błąd także z ostatniej
+podpisanej paczki. Obowiązkowa reguła zgodności tasowania jest niżej.
+
+Na kolejne zgłoszenie porównano widget ze źródłem sprzed zmian (HEAD,
+build 226). Przywrócono kolejność przy wejściu: zadanie ELTEN-a pobiera
+listę, dopiero potem natywny fokus ją odczytuje. Strzałki nie pobierają;
+co 5 sekund tylko na aktywnym widgecie nadal działa cicha operacja w tle.
+Wynik rozpoczęty przed ponownym wejściem nie nadpisuje nowszej listy.
+Żądania są szeregowane; błąd wejścia nie odczytuje starego stołu.
+Użytkownik następnie polecił przebudować i podpisać ponownie 2.0/build 227,
+bez zmiany changelogu. Wynik kontroli gotowego artefaktu, jego SHA i rozmiar:
+`../diagnostics/shuffle-widget-entry-227/PACKAGE.json`. Poprzednia paczka
+z SHA f5097d11… nie zawiera tych poprawek i jest zachowywana osobno.
+Nie instalować ani nie publikować bez nowego polecenia.
+
+## Powiadomienia i widget po 227 — 17 września 2026
+
+Naprawiono odrzucanie prawdziwych tokenów LiveSessions przez filtr UUID
+powiadomień o nowych stołach. Zamiast pustego tekstu niedostępne ogłoszenie
+ma wyciszoną treść zastępczą. Widget rozróżnia wczytywanie, brak wyników
+i błąd; ogłasza pierwszy wynik na aktywnej pustej liście, zachowując ciszę
+odświeżenia okresowego i bieżący kursor. Regresje najpierw odtworzyły błędy.
+Szczegóły: `docs/NOTIFICATIONS_WIDGET_227_FIXES.md`. Użytkownik polecił
+podpisać ponownie ten sam build 227, bez zmiany changelogu. Wyniki paczki
+i testów: `../diagnostics/table-notice-widget-227/`. Jedna osobno zatwierdzona
+próba powiadomienia na obu kontach została sprzątnięta; schemat, preferencje,
+inne powiadomienia i zainstalowany program niezmienione. Nie instalować
+ani nie publikować bez nowego polecenia.
+
+## Poprawki po ręcznym teście 227 — 17 września 2026
+
+W źródłach naprawiono brak odczytywania publicznych ruchów pięciu nowych
+gier oraz wyjątek UTF-8/ASCII-8BIT w Mexican Train i wspólnych nazwach
+kostek. Dodatkowy przegląd, zakres i ograniczenia: `docs/NEW_GAMES_227_FIXES.md`.
+24 skrypty celowane, składnia 12 Ruby i diff check przeszły. Nie użyto
+pełnego runnera ani rzeczywistych klientów. Moduł publicznych ogłoszeń jest
+opt-in; nie włączać go dla historii zawierających prywatne dane gracza.
+Wersja nadal 2.0/227. Następnie użytkownik polecił przebudować i podpisać
+ten sam build z tym samym changelogiem oraz sprawdzić schemat serwera
+i ustawić protected false. Wynik gotowej paczki i kontroli serwera:
+`../diagnostics/new-games-227-postrelease/`. Bez instalacji i publikacji.
+
+## Źródła 2.0/build 227 — trzy plany wdrożone, 17 września 2026
+
+Scrabble (PL SJP/EN Wordnik, bez botów), Taboo (500 kart PL i 500 EN,
+bez botów, zewnętrzna rozmowa) i siedem punktów NEXT_FIXES_PLAN wdrożono.
+Zachowano Rummy, Domino, Mexican Train i poprzednie poprawki wspólne.
+Farkle kończy bieżący obieg po limicie, stare zapisy mają starą regułę;
+boty oceniają lidera i pozostałe tury bez zwiększania budżetu wyszukiwania.
+Ctrl+X edytuje następną partię, Ctrl+Q trwale przerywa konkretną bieżącą,
+bez zamknięcia stołu. Nowe pokoje mają discovery protocol 4 i wymagają 2.0.
+Master-obserwator rozpoznawany niezależnie od pierwszego grającego miejsca;
+Taboo nadal sprawdza rzeczywistego autora decyzji moderatora.
+
+Changelog EN/PL: `docs/CHANGELOG_2_0.md`, 14 punktów pod jednym nagłówkiem.
+Kontrola: `docs/RELEASE_2_0_VERIFICATION.md`, punkt wznowienia:
+`docs/RELEASE_2_0_PROGRESS.md`. 48 celowanych skryptów, składnia 98 Ruby,
+git diff --check i binarne wczytanie źródeł poprawne. Bez pełnego runnera
+i ręcznych partii na rzeczywistych klientach. Wyniki gotowej podpisanej
+paczki są zapisywane poza repo w `diagnostics/release-2-0/` obok projektu.
+Nie instalowano ani nie publikowano. Starsze akapity „tylko plan” oraz
+„wydanie wstrzymane” poniżej są historią wcześniejszych ustaleń.
+
+## Wdrożenie trzech planów i wydanie 2.0 — 17 września 2026
+
+Użytkownik polecił wdrożyć docs/SCRABBLE_DESIGN.md, docs/TABOO_DESIGN.md
+i docs/NEXT_FIXES_PLAN.md, następnie zbudować i podpisać wersję 2.0
+z changelogiem PL/EN. Starsze ograniczenia planowania/wstrzymania wydania
+nie blokują tego polecenia. Zachować wcześniejsze lokalne wdrożenia.
+Bez instalacji ani publikacji. Bieżąca kontrola: docs/RELEASE_2_0_PROGRESS.md.
+Testy celowane, bez pełnego runnera. Nie deklarować niewykonanych etapów.
+
+## Trzeci plan poprawek — zbieranie wymagań, 17 września 2026
+
+Użytkownik zapowiedział kolejny plan po Scrabble i Taboo. Punkt wznowienia:
+`docs/NEXT_FIXES_PLAN.md`. Nowe punkty: D odczytuje kości; Yahtzee V/Shift+V
+otwiera własną/cudzą kartę punktacji; gry alfabetycznie według lokalizowanych
+nazw; nazwa „99”, z zachowaniem ID `ninety_nine` i zapisów.
+D już działa w Farkle. Użytkownik potwierdził dodanie odczytu w Yahtzee
+i Chińczyku, zachowanie w Farkle i pozostawienie Monopoly bez zmian
+(D oznacza tam niekupione nieruchomości).
+Użytkownik zatwierdził PR #6 dawidpieper jako punkt 5 planu wraz
+z dostosowaniem botów i tłumaczeniami. Dokończenie bieżącego obiegu
+po osiągnięciu limitu, najwyższy wynik/remis, nie dodatkowa tura każdego.
+Bot ma oceniać lidera i pozostałe tury; sam limit nie oznacza wygranej.
+Poprawić strategię, pomocnicze oceny i pamięć wyników bez istotnego
+zwiększania kosztu. Uzupełnić tłumaczenia PL i zgodne zasady EN.
+Szczegóły, commit, przyszłe testy i zgodność zapisów w planie.
+Wyłącznie akceptacja planu: PR niescalony, kod/boty/tłumaczenia nadal
+niezmienione, bez testów gry. Czekać na osobne polecenie wdrożenia.
+Punkty 6–7 w planie: Ctrl+X edytuje aktualne ustawienia dla następnej
+partii, tylko master i poza aktywną grą. W polach tekstu nadal wycinanie.
+Ctrl+Shift+X/zmiana gry poza zakresem. Ctrl+Q przerywa obecną partię
+przez mastera, bez zamknięcia stołu, wyrzucania ludzi czy fikcyjnego wyniku.
+Trwała, wspólna granica dla ID partii blokuje późniejsze ruchy, timeouty
+i wyniki botów; wszyscy wracają do oczekiwania. Potem można zmienić
+opcje i ręcznie zacząć od nowa w tej samej LiveSession. Krótkie pytanie
+potwierdzające Ctrl+Q jest propozycją zabezpieczenia. Nie utożsamiać
+tego z odwracalnym zamrożeniem Ctrl+S. Zachować czat, role i boty;
+sam status stołu nie wystarczy. Szczegóły i przyszłe testy w planie.
+Nadal tylko dokumentacja, bez zmian kodu, testów gry i wydania.
+Nie zgadywać dalszego zakresu ani nie przywracać starych pomysłów.
+Nie mylić go z już wdrożonym planem widgetu/powiadomień/Reversi/botów.
+Tylko planowanie, bez kodu funkcji, serwera, testów gry i wydania.
+
+## Taboo — plan gotowy do wdrożenia, 17 września 2026
+
+Patrz `docs/TABOO_DESIGN.md`. Wyłącznie gra głosowa przez zewnętrzną
+rozmowę/konferencję lub na żywo ze słuchawkami. Użytkownik potwierdził
+4/6/8 ludzi i dwie równe drużyny, talie PL/EN docelowo po 500 sprawdzonych
+kart oraz zatwierdzanie rozliczenia każdej tury przez mastera z korektami.
+Wymaga wzorowania kart na istniejących zestawach. Adaptacje dopiero po
+kontroli pochodzenia, licencji i każdej karty; zachować autorów i źródła.
+Dotychczas odczytano tylko próbki tabooo/Taboo-Data, nie pełne audyty.
+Nie zaimportowano ani nie przygotowano jeszcze docelowych zestawów.
+Użytkownik zatwierdził następnie cały plan jako gotowy do wdrożenia.
+Obejmuje to dźwięki: buzzer2 na brzęczyk, shuffle na start tury, replay na odgadnięcie, skip na
+pominięcie, ding na koniec czasu, win2/lose3 na wynik całej partii według
+drużyny. Bez sygnału każdej nowej karty i tykania zegara. Plan gotowy, ale
+gra, talie i ich testy jeszcze niewykonane. Nie obiecywać rozpoznawania
+mowy czy integracji konferencji.
+Karta Taboo nie jest ręką karcianki: bez automatycznego Z i jej kursora.
+Oznaczenie planu jako gotowego nie jest poleceniem implementacji.
+Teraz użytkownik chce przygotować trzeci plan kolejnych poprawek.
+Ten krok wyłącznie dokumentacyjny, bez testów gry, serwera, kodu funkcji,
+zmiany wersji 1.1.10/226, paczki i publikacji. Scrabble nadal osobnym planem.
+
+## Scrabble — zaakceptowany plan, bez wdrażania, 17 września 2026
+
+Patrz `docs/SCRABBLE_DESIGN.md`. Użytkownik zaakceptował projekt po
+usunięciu botów i wyborze PL/EN: jedna gra, 2–4 graczy, pierwszy wybór
+języka w ustawieniach stołu, niezależny od języka interfejsu. Wykorzystać
+profile content/languages.rb i dane content, nie duplikować silnika.
+Akceptacja planu nie jest poleceniem wdrożenia. Solo i 5–8 osób poza zakresem.
+
+Sprawdzono na jego polecenie końcowe rozliczenie PFS: odjąć wartości
+stojaków, przy wyjściu dodać ich sumę kończącemu, przy blokadzie bez premii,
+blank 0. Nie zmieniać innych reguł QC przy okazji tej korekty; remisy
+wspólne są wyborem naszego planu, nie potwierdzeniem reguły QC.
+Nowa rekomendacja EN po badaniu to otwarta lista Wordnika na MIT
+2021-07-29: 198 422 wpisy, 194 152 po filtrze 2–15 liter. Dokument zawiera
+źródło, commit, SHA i ograniczenia (nie NWL/Collins/QC, brak części form
+brytyjskich). W pamięci sprawdzono strukturę całości i próbkę, nie pełną
+merytorykę; nie dodano danych do gry. Porównany starszy ENABLE2K ma
+braki m.in. qi/za/blog. Wordnik pozostaje rekomendacją, nie osobno
+zatwierdzonym wyborem. Polski SJP nie jest OSPS; całej listy PL jeszcze
+nie pobrano. Nie testowano żywego QC. Poprzednie cztery plany ukończone,
+wydanie wstrzymane. Ten krok tylko dokumentacja; bez kodu gry, serwera,
+testów gry, zmiany wersji 1.1.10/226, paczki i publikacji.
+
+## Cztery plany wdrożone lokalnie — 17 września 2026
+
+Dokończono Rummy, poprawki wspólne, Domino i Mexican Train. 48/48
+celowanych skryptów, składnia 53 Ruby i git diff --check przeszły;
+bez pełnego runnera. Kontrola punkt po punkcie i granice testów:
+`docs/IMPLEMENTATION_2_0_VERIFICATION.md`. Bieżący punkt wznowienia:
+`docs/IMPLEMENTATION_2_0.md`. Próba preferencji/powiadomienia na dwóch
+kontach jest zakończona, dane testowe usunięte, nowa pusta tabela
+`table_watch_preferences` pozostaje. Nie testowano jeszcze ręcznie
+rozgrywki nowych gier na dwóch rzeczywistych klientach.
+Użytkownik chce najpierw dodać następne gry. Wersja/manifest/changelog
+pozostają 1.1.10/build 226, poprzednia podpisana paczka ma niezmieniony
+hash. Nie budować, nie podpisywać, nie instalować ani nie publikować
+bez nowego polecenia; nie zgadywać kolejnych gier. Starsze ograniczenia
+„tylko plan” niżej są historią, nie powodem do cofania wdrożenia.
+
+## Wydanie wstrzymane — najnowsza decyzja, 17 września 2026
+
+Użytkownik polecił jeszcze nie budować nowego buildu, ponieważ chce dodać
+kolejne gry. Doprecyzował: dokończyć obecne cztery plany i ich weryfikację,
+a wstrzymać tylko zmianę wersji, budowanie i podpisywanie. Wersja pozostaje
+1.1.10/build 226, bez instalacji i publikacji. Zakres kolejnych gier poda
+użytkownik. Punkt wznowienia: docs/IMPLEMENTATION_2_0.md.
+
+## Wdrożenie wersji 2.0 — bieżące polecenie, 17 września 2026
+
+Użytkownik zatwierdził wdrożenie czterech planów, kolejno: Rummy,
+SAVES_WIDGET_NOTIFICATIONS_PLAN (cztery punkty bez chmury), Domino,
+Mexican Train. Następnie zbudować i podpisać wersję 2.0, bez instalacji
+i publikacji. Starsze zapisy „bez wdrażania” poniżej są historyczne.
+Stan prac i lista kontroli: docs/IMPLEMENTATION_2_0.md. Nie oznaczać
+niezakończonych funkcji/testów jako ukończonych.
+
+
+## Reversi — warianty zapisane w planie, 17 września 2026
+
+Punkt 4 `docs/SAVES_WIDGET_NOTIFICATIONS_PLAN.md`: Allow passing oraz
+Mandatory capture, oba domyślnie zaznaczone według opisu użytkownika.
+Pierwsze dopuszcza dobrowolny pas mimo ruchu; wyłączenie nie blokuje
+przymusowego pasa przy jego braku. Drugie wymaga odwrócenia pionka;
+wyłączone pozwala postawić bez bicia, ale tylko obok istniejącego pionka,
+na pustym polu. Plan przyjmuje osiem kierunków i dowolny kolor sąsiada;
+nie jest to osobno sprawdzona reguła QC. Możliwe bicie nadal odwraca pionki.
+Uwzględnić oba warianty w całym planerze bota, legalności, ocenie pozycji,
+kluczach pamięci, replayu i zakończeniu gry. Stare archiwa bez opcji muszą
+zachować poprzednie zasady. Użytkownik rozstrzygnął: P pomija własną turę,
+gdy pas jest dozwolony, bez limitu kolejnych własnych tur. Dwa i więcej
+dobrowolnych pasów nie kończą partii przy nadal legalnych postawieniach.
+Rzeczywisty brak postawień u obu graczy nadal kończy grę. Zabezpieczenie
+planera przed cyklami nie może wprowadzać remisu ani limitu pasów do zasad.
+P nie przechwytuje czatu i nie pozwala pomijać tury przeciwnika.
+Zmiany tylko w dokumentacji, bez kodu, testów gry, serwera i wydania.
+
+## Opóźnienie botów — plan dla wszystkich gier, 17 września 2026
+
+Użytkownik dopisał trzeci punkt do `docs/SAVES_WIDGET_NOTIFICATIONS_PLAN.md`:
+wspólne opóźnienie bota 0–5 sekund we wszystkich grach z botami, również
+przyszłych. 0 wyłącza celową pauzę, nie bota. UNO/Makao domyślnie 1;
+dla pozostałych 0 zapisano jako propozycję. Zachować istniejące wartości,
+uwzględnić thinking time i wyjątki faz. Wspólna definicja i planowanie,
+bez blokowania UI, synchronizacji, reakcji ludzi i bez dodatkowych żądań.
+Nie zmieniać strategii ani budżetu obliczeń. Obecny szkielet już planuje
+oczekiwanie, ale UNO/Makao mają własne minimum 1 także przy wykonaniu.
+Nowy plan zastępuje starsze propozycje opóźnienia w projektach Rummy,
+Domino i Mexican Train; pozostały zakres tych dokumentów bez zmian.
+Starsze wzmianki o dwóch punktach planu widgetu/powiadomień są historyczne.
+Wyłącznie dokumentacja; nie wdrażać, nie zmieniać serwera, wersji ani wydania.
+
+## Mexican Train — projekt do uzgodnienia, 17 września 2026
+
+Ostatnia wcześniej nienazwana gra to Mexican Train. Użytkownik przekazał
+opis QC; zapisano nowy `docs/MEXICAN_TRAIN_DESIGN.md`, bez implementacji.
+Domino pozostaje zakończonym planem, Rummy i widget/powiadomienia bez zmian.
+Nie zmieniać serwera, limitów, wersji ani nie budować/podpisywać/publikować.
+
+Oddzielić reguły Mexican Train od Domino: stacja Double 12 schodzi co
+rozdanie do 0 i wraca do 12; osobiste i publiczny pociąg; dodatkowe ruchy
+po dubletach, stos obowiązków zamykania od ostatniego; ostatni dublet
+kończy rozdanie, 0–0 zawsze daje 10. Nie przenosić automatycznie 11 zestawów,
+drużyn ani opcji dobierania. Można współdzielić neutralne elementy kostek
+i ręki przy przyszłym wdrożeniu, nie udawać gotowej implementacji Domino.
+Interfejs, bot i 2–8 osób są propozycjami w dokumencie.
+Użytkownik doprecyzował rozdanie: 2–5 osób po 15, 6–7 po 12, 8 po 10.
+„17 graczy” odczytano jawnie jako literówkę „i 7”, bez osobnego
+potwierdzenia i bez zmiany limitu 8. Pojemność z jedną stacją sprawdzono;
+tabela w projekcie podaje pozostałości stosu dla 2–8 osób. Brakuje
+startera i części wyjątków kontynuacji dubletów; nie przedstawiać
+propozycji jako potwierdzonych reguł QC.
+Użytkownik zatwierdził: we własnej serii wolno zamknąć starszy dublet,
+zostawiając nowszy; następni zamykają pozostałe od ostatniego. Usunąć
+z listy obowiązków konkretny zamknięty dublet, nie zawsze ostatni.
+Pusty stos i brak ruchu otwierają własny pociąg z automatycznym pasem.
+Limit punktów domyślnie 100, dodatkowa opcja dobierania mimo legalnej
+kostki domyślnie wyłączona. Nie kopiować innych wariantów Domino.
+Następstwo dobrowolnego dobrania przy nadal legalnej starej kostce
+oznaczono jako propozycję do doprecyzowania, nie zatwierdzoną regułę.
+Zmieniono wyłącznie dokumentację; nie uruchamiano testów nieistniejącej gry.
+
+## Domino — zakończony plan, 17 września 2026
+
+Pierwszą z dwóch zapowiedzianych nowych gier jest Domino. Użytkownik
+przekazał opis Dominos z QC; w `docs/DOMINO_DESIGN.md` zapisano reguły,
+interfejs, boty i wszystkie późniejsze doprecyzowania. Użytkownik uznał
+plan za zakończony i przechodzi do ostatniej gry, nadal nienazwanej.
+Nie jest to zgoda na implementację ani powód do dalszego rozwijania teraz
+Domino. Nierozstrzygniętych wyjątków nie przedstawiać jako faktów z QC.
+Nie wdrażać, nie zmieniać wersji, serwera ani limitów graczy, nie budować
+i nie publikować. Użytkownik następnie zatwierdził pozostawienie limitu
+8 osób, otwieranie dowolną kostką (nie tylko dubletem) oraz wygraną
+najniższego łącznego wyniku przy jednoczesnym odpadnięciu wszystkich,
+ze wspólnym zwycięstwem remisujących na najniższym wyniku. Nie rozszerzać
+do większej liczby osób ani przywracać obowiązku otwarcia dubletem.
+Zatwierdzenie tych punktów nie jest zgodą na wdrożenie.
+
+Następnie użytkownik dodał 11 zestawów, opcje dobierania, kończenie całą
+drużyną oraz thinking time i zażądał nazwy „kostki”. Po 7 w pojedynczym
+Double 6 (maks. 4 osoby), w innych po 10. Na pytanie o za małe zestawy
+potwierdził limit 5 osób w Double 9 i 2× Double 6, bez rozdania po 9;
+pozostałe zestawy obsługują do 8 osób. Każda kostka z 2×/4× ma własne ID.
+Domyślnie dobieranie mimo pasującej kostki jest włączone; zakaz, dobieranie
+do skutku, drużyny i kończenie całą drużyną wyłączone. Zakaz dobierania
+wyłącza i ukrywa oba zależne pola, a kończenie całą drużyną działa tylko
+w drużynach. Jedno dobieranie w turze jest potwierdzone jako jedna akcja:
+w trybie do skutku Spacja pobiera automatycznie do pierwszej pasującej
+albo wyczerpania stosu, bez drugiej serii. Plan obejmuje blokadę mimo
+niepustego stosu przy zakazie i pomijanie pustych rąk w kończeniu całą
+drużyną. Wyjątki timeoutu, dobrowolnego dobrania, wybór startera w nowych
+przypadkach i część UI nadal są propozycjami, nie faktami z QC.
+Rummy, widget i powiadomienia pozostają odrębnymi, niezmienionymi planami.
+
+Całe dobieranie do skutku ma być jednym krótkim zdarzeniem i jednym
+zapisem ruchu, nie żądaniem dla każdej kostki. Klienci odtwarzają serię
+lokalnie z ustalonego stosu. Standardowe odczyty/ponowienia transportu
+pozostają, bez mnożenia żądań przez długość serii. Zaplanowano test
+liczby wywołań i braku podwójnego dobrania, również dla zestawu 364 kostek.
+
+Użytkownik doprecyzował, że dobieranie drużyn ma wykorzystywać istniejący
+wspólny ekran ze Spades, nie nowy formularz. Potwierdzono ogólny
+`GameRoomTeams::Assignment` oraz `configure_team_assignment`: automatyczny
+skład, ręczna zmiana ludzi/botów i kontrola liczebności. Domino określa
+własne dopuszczalne konfiguracje i przeplataną kolejność tur także po
+ręcznym przydziale; nie kopiować ograniczeń ani punktowania Spades.
+To uzupełnienie dokumentacji, bez implementacji.
+
+## Aktualny zakres: widget i powiadomienia, 17 września 2026
+
+Użytkownik usunął z bieżącego planu zapisy partii na serwerze. Nie wdrażać
+chmury ani nie kontynuować prób magazynu; obecne lokalne zapisy, tabelę
+diagnostyczną i raporty pozostawić. Projekt Rummy pozostaje bez zmian.
+Plan `docs/SAVES_WIDGET_NOTIFICATIONS_PLAN.md` zawiera teraz widget
+oraz dopracowany projekt powiadomień o nowych publicznych stołach.
+Użytkownik zaakceptował go jako plan, w tym osobną tabelę z jednym małym
+rekordem subskrypcji na konto, nadal bez zgody na implementację lub zmiany
+serwera. Zapowiedział planowanie dwóch kolejnych, jeszcze nienazwanych
+gier. Czekać na ich zakres; nie tworzyć kodu na podstawie tej zapowiedzi.
+
+Aktualny kod ELTEN-a odczytany przez MCP potwierdza Apps.notify do jednego
+konta, odbiór poza aktywnym oknem gry i zbiorczą listę online. Projekt:
+jeden mały rekord preferencji na konto, odczyt przez klienta zakładającego
+stół, lokalny wybór zainteresowanych/online i ograniczona kolejka wysłań.
+To nie serwerowa subskrypcja ani jeden broadcast. Preferencje będą czytelne
+dla rozsyłających klientów; starsze wersje i wyłączenie nadawcy ograniczają
+dostawę. Nie odpytywać stołów okresowo w celu powiadomień i nie używać
+Signals. Szczegóły, jawne propozycje i testy są w planie. Bez zmian kodu,
+schematu serwera, rzeczywistych powiadomień, wersji i wydania. Historyczne
+plany zapisu serwerowego poniżej nie są już bieżącym zakresem.
+
+## Próba magazynu plików aplikacji, 17 września 2026
+
+Na osobne polecenie sprawdzono `AppResources` dla zapisów partii.
+API plików istnieje i nie podlega limitowi tekstowego pola tabeli, ale
+Game Room ma `maxsize: 0`. Sztuczny plik 128 bajtów odrzucono jako HTTP 422
+`apps.resources.quota_exceeded` / `App resource storage limit exceeded`.
+Zwykły klient maskował tę odmowę jako `network_error`; dokładną odpowiedź
+uzyskano oddzielnym klientem diagnostycznym bez globalnej zmiany transportu.
+Przed i po próbach zero zasobów, zero zajętego miejsca; nic nie pozostało.
+Nie zmieniano limitu, schematu, kodu funkcji ani paczki. Wariant plikowy
+wymaga przydzielenia miejsca po stronie serwera, a następnie kontroli
+uprawnień, pobrania i odtworzenia. Nie uznawać zera za brak ograniczeń.
+Raport: `docs/SAVED_GAME_STORAGE_FEASIBILITY.md`, szczegółowy wynik poza repo
+w `diagnostics/server-save-feasibility-2026-09-17/server-file-resource-results.json`.
+
+## Próba serwerowych zapisów i sprzątanie, 17 września 2026
+
+Użytkownik następnie zatwierdził utworzenie tabeli próbnej, testy i usunięcie
+starych tabel. Jawnie potwierdził konto deweloperskie `papierek` i wykluczył
+kopię usuwanych danych. Usunięto `tables`, `table_members`, `game_sessions`,
+`game_events`, `invitations`, `invitation_responses`; API potwierdza not_found.
+Pozostają nienaruszone `game_room_users`, `table_activity` i pusta
+`saved_games_capacity_probe`. Nie przywracać usuniętych tabel z dawnych notatek.
+Brak kopii usuniętych rekordów. Nie dotykano lokalnych zapisów ani LiveSessions.
+
+W próbie `string:4096` działa, `string:4097` i większe deklaracje odrzucono.
+11/15 syntetycznych legalnych archiwów przeszło rzeczywisty zapis/odczyt/replay;
+Spades, UNO, Farkle, Monopoly przekroczyły jedno pole. Trzy pola pomieściły
+12 288 znaków w jednym rekordzie i odtworzyły Monopoly. Cztery duże pola
+z metadanymi oraz 256 pól wywołują błąd wewnętrzny; nie uznawać tego za
+udokumentowany globalny limit. Nie powtarzać wielkich migracji na danych.
+Nieudana szeroka migracja zepsuła tylko pustą tabelę diagnostyczną; usunięto
+ją i utworzono poprawnie ponownie. Wszystkie syntetyczne rekordy sprzątnięto.
+Nie wdrażać jednego rekordu dla dowolnej partii na podstawie tego testu.
+Raport: `docs/SAVED_GAME_STORAGE_FEASIBILITY.md`, wyniki i skrypt poza repo
+w `diagnostics/server-save-feasibility-2026-09-17/`. Duża seria trafiła na
+limit żądań: dokończona po przerwie, nie powtarzać bez ograniczenia tempa.
+Użytkownik mówi o `protected: true/false`, nie osobnym trybie private;
+serwerowe `tables_protected: false` pozostawiono bez zmian. Nie testowano
+prywatności z drugiego konta. Bez zmian kodu aplikacji, wersji 226, paczek,
+publikacji i wdrożenia Rummy/widgetu/powiadomień. Starsze wpisy poniżej
+o braku zgody dotyczą etapu przed tym eksperymentem.
+
+## Zapis na koncie, widget i nowe stoły — tylko plan, 17 września 2026
+
+Trzy nowe propozycje użytkownika zapisano w
+`docs/SAVES_WIDGET_NOTIFICATIONS_PLAN.md`: dostęp do zapisanych partii
+z innego komputera, usunięcie pobierania widgetu przy strzałkach oraz
+powiadomienia o nowych publicznych stołach wybranych gier. Dokument
+rozróżnia wymagania, potwierdzoną przyczynę widgetu i propozycje wymagające
+sprawdzenia możliwości serwera. To nie jest zgoda na wdrożenie ani wydanie.
+Nie zmienia projektu Rummy ani obecnego działania zapisów i powiadomień.
+Później użytkownik zaakceptował odświeżanie widgetu przy wejściu i pod R
+oraz zapytał o cykl co 5 sekund tylko na aktywnym widgecie. W planie
+opisano ten wykonalny wariant, bez odpytywania po opuszczeniu kontrolki,
+z zachowaniem bieżącego kursora i bez blokowania interfejsu. Wcześniejsza
+propozycja 30-sekundowej ważności danych przy wejściu jest zastąpiona.
+Zapis serwerowy opisano jako prywatny rekord jednej partii z obecnym
+archiwum JSON; możliwości prywatności i limitów API nadal do potwierdzenia.
+Użytkownik następnie wykluczył lokalne kopie zabezpieczające: docelowy
+trwały zapis wyłącznie na serwerze, bez lokalnego trybu awaryjnego.
+Nie jest to zgoda na usunięcie dotychczasowych plików. W kodzie potwierdzono,
+że obecne wznowienie tworzy nową LiveSession i importuje samowystarczalne
+archiwum, więc nie wymaga istnienia starej sesji. Tabela ma przechowywać
+zapis, nie zastępować transport bieżącej partii. Nadal tylko plan.
+
+Na pytanie o pojemność wykonano offline pomiar archiwów wszystkich 15
+obsługiwanych gier i odczyt rzeczywistego schematu przez świeżą sesję MCP.
+Raport: `docs/SAVED_GAME_STORAGE_FEASIBILITY.md`; skrypt i liczby poza
+repozytorium w `diagnostics/server-save-feasibility-2026-09-17/`.
+15/15 próbek przeszło bezstratną kompresję, walidację i odtworzenie.
+Spades 815 zdarzeń: 13 748 bajtów po zlib+Base64; UNO 801: 12 976;
+Monopoly 300: 6 512. Sztuczne historie 40 880 zdarzeń: około 608–756 KB,
+nie legalne pełne partie ani gwarantowana granica. Globalnego limitu
+pola/wiersza/żądania nie podaje odczytany schemat ani dokumentacja klienta;
+nie ogłaszać, że każda partia mieści się w jednym rekordzie. Odczytane
+`tables_protected` było false mimo true w źródłowej deklaracji; nie zmieniono
+tego. Ochrona pieczęcią i widoczność własnych rekordów to odrębne ustawienia.
+Bez zmian kodu aplikacji, schematu, rekordów, wersji i paczki. Próba zapisu
+w tabeli testowej wymaga osobnej zgody i sprawdzenia konta właściciela.
+
+## Rummy — projekt do dalszych ustaleń, 17 września 2026
+
+Pełny projekt pod hasłem „rummy”, wraz ze wszystkimi późniejszymi korektami
+użytkownika, znajduje się w `docs/RUMMY_DESIGN.md`. To dokument planistyczny,
+nie gotowa implementacja. Użytkownik nadal zgłasza propozycje; aktualizować
+ten dokument zgodnie z kolejnymi uzgodnieniami. Sama akceptacja i zapisanie
+planu nie są poleceniem wdrożenia, zmiany wersji ani wydania paczki.
+
 ## Stan bazowy
 
 Gałąź `main` zaczyna się od opublikowanego ELTEN Game Room 1.1.0, build 176.
@@ -17,6 +546,20 @@ definicje co rzeczywiste skróty (`GameRoomContextHelp`), nie dopisuj na stałe
 tipsów zależnych od fazy. Szczegóły: `docs/VOLUME_AND_HELP_224.md`.
 
 - Najpierw odtwórz problem i wskaż warstwę, która jest jego właścicielem.
+- Tasowanie musi być zgodne z ELTEN-em: host nadpisuje `Array#shuffle`
+  i `shuffle!` metodami bez argumentów. Nie używaj ich w kodzie partii ani
+  planerów, zwłaszcza `shuffle(random: ...)`. Dla nowych wywołań stosuj
+  `GameRoomRandom.shuffle(values, random: Random.new(seed))`, przekazując
+  wspólne ziarno zapisane w zdarzeniu, nie nowy losowy seed podczas replaya.
+  Zachowuj istniejące deterministyczne pomocniki (`CardGame#shuffled_cards`,
+  `GameRoomDominoTiles.shuffle`, pomocniki planerów) i ich konwersję ziarna;
+  nie migruj starych gier przy okazji, jeśli zmieniłoby to zapisane partie.
+  Nie naprawiaj zgodności usunięciem argumentu random, `srand`, globalnym
+  `rand` ani zmianą klasy Array w działającym ELTEN-ie. Testuj z
+  `test/support/elten_array_shuffle.rb`, kontrolując rozdanie, ponowne
+  tasowanie/wymianę, replay oraz kolejne użycie tego samego RNG. Sam test
+  na zwykłym Rubym poza hostem nie wystarcza. Przy pakowaniu uruchom również
+  binarne wczytanie z tą symulacją API; źródła i gotową paczkę rozróżniaj.
 - Wprowadzaj małe, spójne poprawki i dodawaj celowany test regresji.
 - Korzystaj z nowego, event-driven API ELTEN-a. Nie pisz ręcznych pętli UI.
 - Rozszerzaj wspólny szkielet, gdy zachowanie jest wspólne dla rodziny gier;

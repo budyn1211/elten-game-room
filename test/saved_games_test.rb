@@ -42,8 +42,9 @@ types.each do |type|
   repo = GameRepository.new(ProgramDouble.new(broker.endpoint("Alice")), transport: owner, server_tables: {})
   $game_room_test_user = "Alice"
   count = [game.minimum_players, [3, game.maximum_players].min].max
-  table = owner.create_room(name: "Archive #{game.id}", game: game.id, owner: "Alice", game_options: "{}", bot_count: count - 2)
-  players = %w[Alice Bob] + GameRoomParticipants.bots_for(table["__id"], count - 2)
+  bot_names = %w[pl20 en03 pl24 en26].first(count - 2)
+  table = owner.create_room(name: "Archive #{game.id}", game: game.id, owner: "Alice", game_options: "{}", bot_count: count - 2, bot_names: bot_names)
+  players = %w[Alice Bob] + GameRoomParticipants.bots_for(table["__id"], count - 2, names: bot_names)
   public_row = bob.discover_rooms.first
   assert(bob.establish_membership(table_id: table["__id"], owner: "Alice", capacity: 8, user: "Bob", table: public_row), "Bob could not join")
   session = repo.start_session(table: table, game: game.id, players: players, options: JSON.generate(game.default_options))
@@ -91,11 +92,12 @@ types.each do |type|
   storage.ignore_write = false
   owner.deactivate_table(table_id: table["__id"])
   $game_room_test_user = "Alice"
-  restored_table = owner.create_room(name: table["name"], game: game.id, owner: "Alice", game_options: row["options"], bot_count: count - 2, resume_save_id: row["id"])
+  restored_table = owner.create_room(name: table["name"], game: game.id, owner: "Alice", game_options: row["options"], bot_count: count - 2, bot_names: bot_names, resume_save_id: row["id"])
   bob = GameRoomTransport.new(ProgramDouble.new(broker.endpoint("Bob", fresh: true)))
   selected = bob.discover_rooms.first
   assert(bob.establish_membership(table_id: restored_table["__id"], owner: "Alice", capacity: 8, user: "Bob", table: selected), "Bob could not enter restoration room")
   restoration = saves.restored_data(row, game: game, table_id: restored_table["__id"], now: row["saved_at"] + 86_400)
+  assert(restoration[:players].map { |player| GameRoomParticipants.display_name(player) } == players.map { |player| GameRoomParticipants.display_name(player) }, "#{game.id}: restoring changed computer names")
   restored = repo.restore_session(table: restored_table, game: game.id, players: restoration[:players], options: row["options"], restore: restoration)
   snapshot = repo.snapshot_for(restored, force_events: true)
   after = game.replay(snapshot.session, snapshot.events, repo)

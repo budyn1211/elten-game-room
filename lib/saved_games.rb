@@ -109,7 +109,7 @@ class SavedGames
     mapping = row["players"].to_h do |player|
       replacement = if GameRoomParticipants.bot?(player)
         bot_number += 1
-        "bot:#{table_id}:#{bot_number}"
+        GameRoomParticipants.bot_id(table_id, bot_number, name_token: GameRoomParticipants.bot_name_token(player))
       else
         player
       end

@@ -144,6 +144,7 @@ module GameRoomScreens
         index: [INVITATION_POLICIES.index(@values["invitation_notifications"].to_s).to_i, 0].max,
         quiet: true
       )
+      watched_games = multiple_game_list(_("Notify me about new public tables (preferences are visible to table creators)"), @values["table_watch_games"])
       levels = GameRoomPreferences.sound_volumes(@values)
       volume_fields = GameRoomPreferences::SOUND_GROUPS.to_h do |group|
         [group, ListBox.new((0..100).map { |level| "#{level}%" },
@@ -163,7 +164,7 @@ module GameRoomScreens
 
       groups = [
         [lobby_games, created, joined, left, computers],
-        [invitation_policy],
+        [invitation_policy, watched_games],
         volume_fields.values,
         [widget_enabled, widget_games, widget_unavailable]
       ]
@@ -197,6 +198,7 @@ module GameRoomScreens
         "announce_computer_changes" => computers.checked,
         "announce_lobby_changes" => [created, joined, left, computers].any?(&:checked),
         "invitation_notifications" => INVITATION_POLICIES[invitation_policy.index.to_i] || "everyone",
+        "table_watch_games" => selected_game_ids(watched_games),
         "sound_volumes" => form.game_room_volume_reader.call,
         "widget_enabled" => widget_enabled.checked,
         "widget_games" => selected_game_ids(widget_games),

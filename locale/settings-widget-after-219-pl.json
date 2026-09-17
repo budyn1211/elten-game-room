@@ -23,6 +23,7 @@
   "Game Room tables": "Stoły Game Roomu",
   "No matching Game Room tables": "Brak pasujących stołów Game Roomu",
   "Loading Game Room tables": "Wczytywanie stołów Game Roomu",
+  "Game Room tables could not be loaded. Press R to retry.": "Nie udało się wczytać stołów Game Roomu. Naciśnij R, aby spróbować ponownie.",
   "%{game}, %{owner}": "%{game}, %{owner}",
   "%{table}, unavailable": "%{table}, niedostępny",
   "The table could not be opened. Please try again.": "Nie udało się otworzyć stołu. Spróbuj ponownie."

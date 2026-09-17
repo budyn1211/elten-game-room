@@ -33,6 +33,8 @@ module GameRoomGames
     :hidden_submissions,
     :random_source,
     :now,
+    :options,
+    :table_owner,
     keyword_init: true
   )
 
@@ -55,7 +57,7 @@ module GameRoomGames
     keyword_init: true
   ) do
     KINDS = [:announcement, :browse, :number_input, :choice, :staged_form, :form, :action, :surface].freeze
-    NAMED_KEYS = ["space"].freeze
+    NAMED_KEYS = ["space", "delete", "backspace"].freeze
 
     def initialize(
       key:,
@@ -184,6 +186,20 @@ module GameRoomGames
     end
   end
 
+  # Opt in only when the replay history contains public information. Private
+  # hands/answers need their own viewer-aware descriptions. GameScreen already
+  # handles turn transitions and the final result, so do not repeat them here.
+  module PublicHistoryAnnouncements
+    def describe_event(event, repository, replay, _viewer)
+      event_id = repository.event_id(event).to_i
+      replay.history.to_a.filter_map do |entry|
+        next unless entry.event_id.to_i == event_id
+        next if [:start, :turn, :result].include?(entry.kind)
+        entry.text unless entry.text.to_s.empty?
+      end
+    end
+  end
+
   class Base
     PLAYROOM_SUIT_ORDER = %w[H S D C].freeze
     PLAYROOM_RANK_ORDER = %w[2 3 4 5 6 7 8 9 T J Q K A].freeze
@@ -219,7 +235,8 @@ module GameRoomGames
       book = GameRoomRules::Book.new(
         game_id: id,
         title: name,
-        sections: rule_sections
+        sections: rule_sections + (supports_bots? ? [rule_section(:bot_pacing, _("Computer move timing"),
+          _("Bot move delay ranges from 0 to 5 seconds. Zero disables the intentional pause, not the computer. UNO and Makao default to one second; other games default to zero. This is a table setting, preserved in saved games. Waiting does not block human actions or synchronization and is shortened near a time limit."))] : [])
       )
       return book if options == nil
 
@@ -246,12 +263,21 @@ module GameRoomGames
       nil
     end
 
+    # Word games with one dictionary/deck per language do not need a redundant
+    # one-item set picker. Quiz keeps its existing independent set selector.
+    def single_content_set?
+      false
+    end
+
     def content_registry
       GameRoomContent.registry
     end
 
     def effective_option_definitions(selected = {})
       definitions = content_option_definitions(selected) + option_definitions.to_a
+      if supports_bots?
+        definitions << OptionDefinition.new(key: "bot_delay", label: _("Bot move delay in seconds (0 to 5); zero disables the pause"), kind: :integer, default: default_bot_move_delay)
+      end
       keys = definitions.map { |definition| definition.key.to_s }
       raise ArgumentError, "game option keys must be unique" if keys.uniq.length != keys.length
 
@@ -260,6 +286,10 @@ module GameRoomGames
 
     def default_options
       normalize_options({})
+    end
+
+    def new_game_options(values)
+      normalize_options(values)
     end
 
     # Games declare dependencies between options, while the shared table
@@ -310,8 +340,28 @@ module GameRoomGames
       nil
     end
 
+    # A variant may change a dependent default in the editor, but must retain
+    # a value which the user has already customized. Replay never calls this.
+    def option_editor_changes(_previous, _current)
+      {}
+    end
+
     def validation_error(options, player_count: nil)
-      content_options_error(options) || options_error(options, player_count: player_count)
+      content_options_error(options) || bot_delay_options_error(options) || options_error(options, player_count: player_count)
+    end
+
+    def default_bot_move_delay; 0; end
+
+    def bot_delay_options_error(options)
+      return nil unless supports_bots?
+      values = normalize_options(options)
+      return _("Bot move delay must be from 0 to 5 seconds.") unless values["bot_delay"].between?(0, 5)
+      limits = %w[thinking_time answer_time round_time auction_decision_time].filter_map do |key|
+        value = values[key].to_i
+        value if value > 0
+      end
+      return _("Bot move delay cannot exceed thinking time.") if limits.any? { |limit| values["bot_delay"] > limit }
+      nil
     end
 
     def options_summary(_options)
@@ -437,6 +487,16 @@ module GameRoomGames
       same_user?(actor, table_owner)
     end
 
+    # Explicit moderation uses the existing authenticated controller route.
+    # This never grants an observer the right to make ordinary player moves.
+    def moderator_action?(_selection)
+      false
+    end
+
+    def automatic_actor(replay, viewer, table_owner:)
+      !GameRoomParticipants.includes?(replay.players, viewer) && same_user?(viewer,table_owner) ? replay.players.first : viewer
+    end
+
     # The game screen uses this pure predicate to wake a form for a deadline.
     # It must not consume randomness or mutate local game state.
     def automatic_action_due?(_replay, _actor, context: nil)
@@ -499,8 +559,18 @@ module GameRoomGames
     end
 
     # Optional local pacing; human actions and network synchronization do not wait.
-    def bot_move_delay(_replay, _actor, context: nil)
-      0.0
+    def bot_move_delay(replay, _actor, context: nil)
+      options = context&.options || replay.state[:options] || {}
+      delay = [[normalize_options(options)["bot_delay"].to_f, 0.0].max, 5.0].min
+      state = replay.state
+      deadline = state[:turn_deadline].to_f
+      deadline = state[:deadline].to_f if state[:phase] == :answering
+      deadline = state[:auction_deadline].to_f if state[:phase] == :auction
+      if deadline > 0
+        now = context&.now || Time.now.to_f
+        delay = [delay, [deadline - now.to_f - 1.0, 0.0].max].min
+      end
+      delay
     end
 
     # This key controls only the local waiting period, never submission or
@@ -902,6 +972,7 @@ module GameRoomGames
           label: _("Game content set"),
           kind: :choice,
           default: default_content_set_id(language_id),
+          visible_if: single_content_set? ? ->(_options) { false } : nil,
           choices: pack_sets.map do |pack_set|
             OptionChoice.new(value: pack_set.id, label: content_set_choice_label(pack_set, language_id))
           end

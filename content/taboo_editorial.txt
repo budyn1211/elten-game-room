@@ -1,0 +1,502 @@
+# Cards 001–500. Each line: Polish target|five forbidden words separated by semicolons|English target|five forbidden words.
+# Authored and edited for Game Room. See TABOO_CONTENT_NOTICE.md. Stable ID = one-based data-line index.
+Rower|koło;pedał;kierownica;siodełko;jechać|Bicycle|wheel;pedal;handlebar;saddle;ride
+Biblioteka|książka;czytać;wypożyczać;czytelnik;półka|Library|book;read;borrow;librarian;shelf
+Latarka|światło;bateria;ciemność;świecić;żarówka|Flashlight|light;battery;dark;beam;torch
+Parasol|deszcz;otwierać;moknąć;rączka;ochrona|Umbrella|rain;open;wet;handle;shelter
+Lodówka|zimno;jedzenie;kuchnia;zamrażarka;drzwi|Refrigerator|cold;food;kitchen;freezer;door
+Pralka|ubrania;prać;bęben;proszek;wirować|Washing machine|clothes;laundry;drum;detergent;spin
+Odkurzacz|kurz;dywan;sprzątać;rura;worek|Vacuum cleaner|dust;carpet;clean;hose;bag
+Żelazko|prasować;ubranie;gorące;para;deska|Iron|press;clothes;hot;steam;wrinkle
+Czajnik|woda;gotować;herbata;gwizdek;wrzątek|Kettle|water;boil;tea;whistle;spout
+Toster|chleb;grzanka;śniadanie;opiekacz;ciepły|Toaster|bread;toast;breakfast;heat;slice
+Mikrofalówka|podgrzewać;jedzenie;kuchenka;talerz;fale|Microwave|heat;food;oven;plate;radiation
+Zmywarka|naczynia;myć;talerze;tabletka;kuchnia|Dishwasher|dishes;wash;plates;detergent;kitchen
+Piekarnik|piec;ciasto;kuchnia;temperatura;blacha|Oven|bake;cake;kitchen;temperature;tray
+Patelnia|smażyć;olej;jajko;uchwyt;kuchnia|Frying pan|fry;oil;egg;handle;stove
+Garnek|gotować;zupa;pokrywka;kuchnia;woda|Saucepan|cook;soup;lid;kitchen;boil
+Widelec|jeść;zęby;nóż;sztućce;talerz|Fork|eat;prongs;knife;cutlery;plate
+Łyżka|zupa;jeść;sztućce;chochla;mieszać|Spoon|soup;eat;cutlery;ladle;stir
+Nóż|kroić;ostrze;widelec;ostry;rękojeść|Knife|cut;blade;fork;sharp;handle
+Talerz|jedzenie;okrągły;naczynie;stół;porcelana|Plate|food;round;dish;table;china
+Kubek|pić;ucho;herbata;kawa;naczynie|Mug|drink;handle;tea;coffee;cup
+Szklanka|pić;woda;szkło;napój;przezroczysta|Drinking glass|drink;water;transparent;cup;tumbler
+Butelka|korek;napój;szkło;szyjka;zakrętka|Bottle|cork;drink;glass;neck;cap
+Słoik|zakrętka;przetwory;szkło;dżem;ogórki|Jar|lid;preserves;glass;jam;pickles
+Sitko|cedzić;dziurki;herbata;makaron;odcedzać|Strainer|drain;holes;tea;pasta;sieve
+Tarka|ser;ścierać;oczka;marchew;metal|Grater|cheese;shred;holes;carrot;metal
+Wałek do ciasta|wałkować;piec;drewno;mąka;rozpłaszczać|Rolling pin|dough;pastry;wood;flour;flatten
+Deska do krojenia|nóż;kuchnia;warzywa;drewno;plasterki|Chopping board|knife;kitchen;vegetables;wood;slice
+Otwieracz|puszka;butelka;korek;wieczko;kapsel|Bottle opener|cap;beer;remove;drink;lever
+Termos|gorący;napój;herbata;trzymać;temperatura|Thermos|hot;drink;tea;keep;temperature
+Serwetka|usta;wycierać;stół;papier;obiad|Napkin|mouth;wipe;table;paper;meal
+Obrus|stół;nakrywać;plama;tkanina;jadalnia|Tablecloth|table;cover;stain;fabric;dining
+Krzesło|siedzieć;oparcie;nogi;stół;mebel|Chair|sit;backrest;legs;table;furniture
+Fotel|siedzieć;oparcie;salon;wygodny;podłokietnik|Armchair|sit;backrest;living room;comfortable;arms
+Kanapa|sofa;salon;siedzieć;poduszka;mebel|Sofa|couch;living room;sit;cushion;furniture
+Łóżko|spać;materac;poduszka;sypialnia;kołdra|Bed|sleep;mattress;pillow;bedroom;blanket
+Poduszka|głowa;spać;miękka;łóżko;poszewka|Pillow|head;sleep;soft;bed;case
+Kołdra|spać;ciepło;łóżko;przykrywać;pościel|Duvet|sleep;warm;bed;cover;feathers
+Koc|przykrywać;ciepły;wełna;kanapa;zimno|Blanket|cover;warm;wool;sofa;cold
+Szafa|ubrania;drzwi;wieszak;półka;mebel|Wardrobe|clothes;doors;hanger;shelf;furniture
+Komoda|szuflada;mebel;ubrania;blat;schować|Chest of drawers|drawer;furniture;clothes;storage;bedroom
+Biurko|pisać;praca;komputer;szuflada;blat|Desk|write;work;computer;drawer;office
+Półka|książki;ściana;deska;regał;przechowywać|Shelf|books;wall;board;bookcase;storage
+Lustro|odbicie;szkło;twarz;przeglądać;łazienka|Mirror|reflection;glass;face;look;bathroom
+Dywan|podłoga;miękki;odkurzać;chodnik;salon|Carpet|floor;soft;vacuum;rug;room
+Zasłona|okno;materiał;ciemność;karnisz;firanka|Curtain|window;fabric;dark;rail;drape
+Roleta|okno;zwijać;słońce;zasłaniać;sznurek|Window blind|window;roll;sun;shade;cord
+Lampa|światło;żarówka;świecić;abażur;włączać|Lamp|light;bulb;shine;shade;switch
+Świeca|płomień;wosk;knot;zapalić;świecznik|Candle|flame;wax;wick;light;holder
+Zapałki|ogień;pudełko;potrzeć;drewienko;zapalić|Matches|fire;box;strike;stick;light
+Zapalniczka|ogień;płomień;gaz;papieros;iskra|Lighter|fire;flame;gas;cigarette;spark
+Zegar|czas;wskazówki;godzina;tykać;tarcza|Clock|time;hands;hour;tick;face
+Budzik|rano;dzwonić;spać;wstawać;alarm|Alarm clock|morning;ring;sleep;wake;time
+Kalendarz|data;miesiąc;rok;dzień;termin|Calendar|date;month;year;day;schedule
+Wazon|kwiaty;woda;bukiet;naczynie;stół|Vase|flowers;water;bouquet;container;table
+Doniczka|roślina;ziemia;kwiat;podlewać;parapet|Flowerpot|plant;soil;flower;water;windowsill
+Kosz na śmieci|odpadki;wyrzucać;worek;segregacja;pojemnik|Rubbish bin|waste;throw;bag;recycling;container
+Miotła|zamiatać;podłoga;czarownica;trzonek;kurz|Broom|sweep;floor;witch;handle;dust
+Mop|podłoga;myć;wiadro;woda;szmata|Mop|floor;wash;bucket;water;rag
+Wiadro|woda;uchwyt;pojemnik;studnia;nosić|Bucket|water;handle;container;well;carry
+Gąbka|myć;naczynia;woda;chłonąć;miękka|Sponge|wash;dishes;water;absorb;soft
+Ręcznik|wycierać;mokry;łazienka;prysznic;suszyć|Towel|wipe;wet;bathroom;shower;dry
+Mydło|myć;ręce;piana;czystość;kostka|Soap|wash;hands;foam;clean;bar
+Szampon|włosy;myć;piana;głowa;butelka|Shampoo|hair;wash;foam;head;bottle
+Szczoteczka do zębów|pasta;myć;usta;włosie;dentysta|Toothbrush|paste;clean;mouth;bristles;dentist
+Grzebień|włosy;czesać;zęby;fryzura;szczotka|Comb|hair;brush;teeth;style;tangle
+Suszarka|włosy;powietrze;ciepło;dmuchać;mokre|Hair dryer|hair;air;heat;blow;wet
+Wanna|kąpiel;woda;łazienka;piana;kran|Bathtub|bath;water;bathroom;bubbles;tap
+Prysznic|woda;myć;łazienka;strumień;kabina|Shower|water;wash;bathroom;spray;cubicle
+Umywalka|ręce;kran;łazienka;myć;odpływ|Washbasin|hands;tap;bathroom;wash;drain
+Kran|woda;odkręcać;ciec;zlew;kurek|Tap|water;turn;drip;sink;faucet
+Toaleta|sedes;łazienka;spłukiwać;papier;ubikacja|Toilet|bathroom;flush;paper;seat;lavatory
+Drzwi|otwierać;klamka;wejście;zamek;zawiasy|Door|open;handle;entrance;lock;hinges
+Klucz|zamek;otwierać;drzwi;metal;dorabiać|Key|lock;open;door;metal;copy
+Kłódka|klucz;zamek;zamknąć;łańcuch;zabezpieczyć|Padlock|key;lock;close;chain;secure
+Dzwonek|drzwi;dźwięk;naciskać;gość;dzwonić|Doorbell|door;sound;press;visitor;ring
+Okno|szyba;patrzeć;otwierać;parapet;zasłona|Window|glass;look;open;sill;curtain
+Schody|stopnie;piętro;wchodzić;poręcz;góra|Stairs|steps;floor;climb;handrail;up
+Winda|piętro;przycisk;budynek;jechać;schody|Lift|floor;button;building;elevator;stairs
+Balkon|mieszkanie;barierka;na zewnątrz;piętro;taras|Balcony|flat;railing;outside;floor;terrace
+Dach|dom;deszcz;dachówka;komin;pokrycie|Roof|house;rain;tile;chimney;cover
+Komin|dym;dach;piec;kominiarz;sadza|Chimney|smoke;roof;fire;soot;sweep
+Płot|ogród;ogrodzenie;deski;granica;brama|Fence|garden;boundary;wood;gate;barrier
+Brama|wjazd;otwierać;ogrodzenie;samochód;furtka|Gate|entrance;open;fence;car;barrier
+Garaż|samochód;parkować;drzwi;budynek;warsztat|Garage|car;park;door;building;workshop
+Piwnica|podziemie;dom;schody;ciemno;przetwory|Cellar|underground;house;stairs;dark;storage
+Strych|dach;dom;góra;stare rzeczy;schody|Attic|roof;house;upstairs;storage;loft
+Sypialnia|spać;łóżko;pokój;szafa;noc|Bedroom|sleep;bed;room;wardrobe;night
+Kuchnia|gotować;jedzenie;piec;zlew;lodówka|Kitchen|cook;food;oven;sink;fridge
+Łazienka|myć;wanna;prysznic;umywalka;toaleta|Bathroom|wash;bath;shower;basin;toilet
+Salon|kanapa;telewizor;pokój;goście;fotel|Living room|sofa;television;room;guests;armchair
+Ogród|rośliny;kwiaty;trawa;podlewać;grządka|Garden|plants;flowers;grass;water;beds
+Kosiarka|trawa;kosić;ogród;silnik;ostrze|Lawn mower|grass;cut;garden;engine;blade
+Grabie|liście;trawa;zęby;ogród;zbierać|Rake|leaves;grass;teeth;garden;gather
+Łopata|kopać;ziemia;szpadel;trzonek;śnieg|Shovel|dig;soil;spade;handle;snow
+Wąż ogrodowy|woda;podlewać;guma;kran;strumień|Garden hose|water;plants;rubber;tap;spray
+Konewka|podlewać;woda;kwiaty;uchwyt;sitko|Watering can|water;plants;flowers;handle;spout
+Młotek|gwóźdź;wbijać;narzędzie;uderzać;trzonek|Hammer|nail;hit;tool;strike;handle
+Śrubokręt|śruba;kręcić;narzędzie;płaski;krzyżak|Screwdriver|screw;turn;tool;flat;Phillips
+Wiertarka|otwór;ściana;wiertło;narzędzie;wiercić|Drill|hole;wall;bit;tool;bore
+Drabina|szczebel;wchodzić;wysokość;opierać;malować|Ladder|rung;climb;height;lean;paint
+Chleb|bochenek;piec;mąka;kanapka;kromka|Bread|loaf;bake;flour;sandwich;slice
+Bułka|pieczywo;piekarnia;śniadanie;okrągła;kanapka|Bread roll|bakery;flour;round;sandwich;crust
+Masło|smarować;chleb;mleko;tłuszcz;kostka|Butter|spread;bread;milk;fat;churn
+Ser|mleko;żółty;plaster;mysz;dojrzewać|Cheese|milk;yellow;slice;mouse;ripe
+Jogurt|mleko;owoce;kubeczek;łyżeczka;bakterie|Yoghurt|milk;fruit;pot;spoon;bacteria
+Jajko|kura;skorupka;żółtko;białko;omlet|Egg|hen;shell;yolk;white;omelette
+Mleko|krowa;pić;białe;wapń;nabiał|Milk|cow;drink;white;calcium;dairy
+Miód|pszczoła;słodki;ul;słoik;nektar|Honey|bee;sweet;hive;jar;nectar
+Dżem|owoce;słoik;chleb;słodki;przetwory|Jam|fruit;jar;bread;sweet;preserve
+Cukier|słodki;kryształki;herbata;burak;trzcina|Sugar|sweet;crystals;tea;beet;cane
+Sól|słony;przyprawa;morze;kryształki;solniczka|Salt|salty;seasoning;sea;crystals;sodium
+Pieprz|ostry;przyprawa;młynek;czarny;ziarno|Pepper|hot;seasoning;mill;black;corns
+Mąka|zboże;piec;biała;ciasto;młyn|Flour|grain;bake;white;dough;mill
+Ryż|ziarno;Azja;biały;gotować;sushi|Rice|grain;Asia;white;boil;sushi
+Makaron|spaghetti;Włochy;gotować;nitki;sos|Pasta|spaghetti;Italy;boil;noodles;sauce
+Ziemniak|frytki;bulwa;obierać;warzywo;puree|Potato|chips;tuber;peel;vegetable;mash
+Pomidor|czerwony;ketchup;warzywo;sałatka;sos|Tomato|red;ketchup;salad;fruit;sauce
+Ogórek|zielony;kiszonka;mizeria;warzywo;szklarnia|Cucumber|green;pickle;salad;vegetable;greenhouse
+Marchew|pomarańczowy;królik;korzeń;warzywo;surówka|Carrot|orange;rabbit;root;vegetable;crunch
+Cebula|łzy;kroić;warstwy;warzywo;obierać|Onion|tears;chop;layers;vegetable;peel
+Czosnek|ząbek;zapach;wampir;przyprawa;główka|Garlic|clove;smell;vampire;seasoning;bulb
+Kapusta|główka;liście;kiszona;bigos;warzywo|Cabbage|head;leaves;sauerkraut;coleslaw;vegetable
+Sałata|liście;zielona;kanapka;główka;warzywo|Lettuce|leaves;green;sandwich;head;salad
+Dynia|pomarańczowa;Halloween;pestki;lampion;zupa|Pumpkin|orange;Halloween;seeds;lantern;soup
+Papryka|warzywo;kolorowa;ostra;nadziewana;strąk|Bell pepper|vegetable;colour;stuffed;seeds;sweet
+Brokuł|zielony;różyczki;kalafior;warzywo;gotować|Broccoli|green;florets;cauliflower;vegetable;boil
+Kalafior|biały;różyczki;brokuł;warzywo;gotować|Cauliflower|white;florets;broccoli;vegetable;boil
+Kukurydza|kolba;żółta;ziarna;popcorn;pole|Corn|cob;yellow;kernels;popcorn;field
+Groszek|zielony;kulki;strąk;warzywo;konserwa|Peas|green;round;pod;vegetable;tinned
+Fasola|strąk;ziarna;roślina;zupa;białko|Beans|pod;seeds;plant;soup;protein
+Jabłko|owoc;sad;ogryzek;szarlotka;drzewo|Apple|fruit;orchard;core;pie;tree
+Gruszka|owoc;drzewo;sad;słodka;ogonek|Pear|fruit;tree;orchard;sweet;stalk
+Śliwka|pestka;owoc;fioletowa;powidła;suszona|Plum|stone;fruit;purple;jam;prune
+Wiśnia|czerwona;pestka;kwaśna;owoc;kompot|Cherry|red;stone;tree;fruit;stalk
+Truskawka|czerwona;owoc;szypułka;lato;śmietana|Strawberry|red;fruit;seeds;summer;cream
+Malina|owoc;czerwona;krzak;syrop;kolce|Raspberry|fruit;red;bush;jam;canes
+Jagoda|las;fioletowa;owoc;krzaczek;bułka|Blueberry|blue;fruit;bush;muffin;berry
+Winogrono|kiść;wino;owoc;pestki;rodzynka|Grape|bunch;wine;fruit;seed;raisin
+Banan|żółty;skórka;małpa;owoc;zakrzywiony|Banana|yellow;peel;monkey;fruit;curved
+Pomarańcza|owoc;cytrus;sok;skórka;pestki|Orange|fruit;citrus;juice;peel;segments
+Cytryna|kwaśna;żółta;herbata;cytrus;sok|Lemon|sour;yellow;tea;citrus;juice
+Arbuz|pestki;lato;zielony;czerwony;owoc|Watermelon|seeds;summer;green;red;fruit
+Ananas|owoc;kolczasty;tropikalny;korona;plaster|Pineapple|fruit;spiky;tropical;crown;slice
+Kokos|palma;orzech;mleko;wiórki;skorupa|Coconut|palm;nut;milk;flakes;shell
+Orzech|skorupka;łupać;wiewiórka;włoski;laskowy|Nut|shell;crack;squirrel;walnut;hazelnut
+Lody|zimne;rożek;gałka;deser;lato|Ice cream|cold;cone;scoop;dessert;summer
+Czekolada|kakao;słodka;tabliczka;mleczna;deser|Chocolate|cocoa;sweet;bar;milk;dessert
+Ciasto|piec;deser;mąka;słodkie;piekarnik|Cake|bake;dessert;flour;sweet;oven
+Tort|urodziny;świeczki;krem;warstwy;kroić|Birthday cake|candles;party;icing;slice;celebration
+Pączek|nadzienie;lukier;tłusty czwartek;smażony;ciasto|Doughnut|filling;icing;ring;fried;dough
+Naleśnik|patelnia;ciasto;zwijać;nadzienie;smażyć|Pancake|pan;batter;roll;filling;fry
+Pierogi|ciasto;farsz;lepić;gotować;ruskie|Dumplings|dough;filling;boil;steam;fold
+Pizza|Włochy;ser;sos;ciasto;okrągła|Pizza|Italy;cheese;sauce;dough;round
+Hamburger|bułka;mięso;kotlet;fast food;ser|Hamburger|bun;meat;patty;fast food;cheese
+Frytki|ziemniak;smażyć;olej;ketchup;fast food|French fries|potato;fry;oil;ketchup;fast food
+Zupa|łyżka;garnek;płyn;rosół;obiad|Soup|spoon;pot;liquid;broth;meal
+Sałatka|warzywa;mieszać;miska;sos;pokroić|Salad|vegetables;mix;bowl;dressing;chop
+Kanapka|chleb;masło;ser;śniadanie;kromka|Sandwich|bread;butter;cheese;lunch;slice
+Omlet|jajka;patelnia;smażyć;śniadanie;nadzienie|Omelette|eggs;pan;fry;breakfast;filling
+Kiełbasa|mięso;grill;wędlina;osłonka;wędzona|Sausage|meat;grill;skin;butcher;smoked
+Szynka|wieprzowina;kanapka;wędlina;plaster;mięso|Ham|pork;sandwich;cured;slice;meat
+Stek|wołowina;mięso;wysmażony;krwisty;grill|Steak|beef;meat;well done;rare;grill
+Sushi|Japonia;ryż;ryba;wodorosty;pałeczki|Sushi|Japan;rice;fish;seaweed;chopsticks
+Popcorn|kukurydza;kino;prażyć;ziarno;chrupać|Popcorn|corn;cinema;pop;kernels;snack
+Kawa|kofeina;filiżanka;ziarna;ekspres;pić|Coffee|caffeine;cup;beans;machine;drink
+Herbata|liście;filiżanka;zaparzać;wrzątek;torebka|Tea|leaves;cup;brew;boiling;bag
+Sok|owoce;wyciskać;napój;pić;miąższ|Juice|fruit;squeeze;drink;pulp;orange
+Lemoniada|cytryna;napój;woda;cukier;orzeźwienie|Lemonade|lemon;drink;water;sugar;refreshing
+Kakao|czekolada;proszek;mleko;napój;brązowe|Cocoa|chocolate;powder;milk;drink;brown
+Piwo|chmiel;alkohol;piana;browar;kufel|Beer|hops;alcohol;foam;brewery;pint
+Wino|winogrona;alkohol;kieliszek;winnica;korek|Wine|grapes;alcohol;glass;vineyard;cork
+Pies|szczekać;smycz;kot;ogon;kość|Dog|bark;lead;cat;tail;bone
+Kot|miauczeć;mruczeć;wąsy;pazury;mysz|Cat|meow;purr;whiskers;claws;mouse
+Koń|kopyto;siodło;jeździć;grzywa;stajnia|Horse|hoof;saddle;ride;mane;stable
+Krowa|mleko;wymię;pastwisko;rogi;cielę|Cow|milk;moo;pasture;horns;calf
+Świnia|chlew;ryj;różowa;wieprzowina;prosię|Pig|sty;snout;pink;pork;piglet
+Owca|wełna;stado;beczeć;jagnię;pastwisko|Sheep|wool;flock;bleat;lamb;pasture
+Koza|rogi;broda;mleko;beczeć;górska|Goat|horns;beard;milk;bleat;mountain
+Kura|jajko;gdakać;kogut;pióra;kurnik|Hen|egg;cluck;rooster;feathers;coop
+Kaczka|kwakać;staw;dziób;pływać;ptak|Duck|quack;pond;beak;swim;bird
+Gęś|gęgać;pióra;szyja;ptak;stado|Goose|honk;feathers;neck;bird;flock
+Indyk|ptak;wachlarz;korale;mięso;gulgotać|Turkey|bird;tail;wattle;meat;gobble
+Królik|uszy;marchew;futro;skakać;nora|Rabbit|ears;carrot;fur;hop;burrow
+Chomik|gryzoń;klatka;kołowrotek;policzki;ziarno|Hamster|rodent;cage;wheel;cheeks;seeds
+Mysz|gryzoń;ser;kot;ogon;pułapka|Mouse|rodent;cheese;cat;tail;trap
+Szczur|gryzoń;ogon;kanał;mysz;laboratorium|Rat|rodent;tail;sewer;mouse;laboratory
+Wiewiórka|orzech;ogon;drzewo;ruda;gryzoń|Squirrel|nut;tail;tree;red;rodent
+Jeż|kolce;zwijać;igły;ssak;hibernacja|Hedgehog|spines;curl;prickly;mammal;hibernate
+Kret|ziemia;kopiec;ryć;tunel;łapy|Mole|soil;mound;dig;tunnel;paws
+Lis|rudy;ogon;chytry;las;nora|Fox|red;tail;cunning;forest;den
+Wilk|stado;wyć;las;drapieżnik;pies|Wolf|pack;howl;forest;predator;dog
+Niedźwiedź|hibernacja;łapy;futro;miód;gawra|Bear|hibernate;paws;fur;honey;den
+Jeleń|poroże;las;sarna;ryk;byk|Deer|antlers;forest;doe;stag;herd
+Łoś|poroże;bagno;duży;jeleń;łopaty|Moose|antlers;swamp;large;deer;elk
+Żubr|Puszcza Białowieska;rogi;stado;ssak;byk|Bison|horns;herd;buffalo;plains;mammal
+Zebra|paski;czarny;biały;Afryka;koń|Zebra|stripes;black;white;Africa;horse
+Żyrafa|szyja;wysoka;plamy;Afryka;liście|Giraffe|neck;tall;spots;Africa;leaves
+Słoń|trąba;kły;duży;uszy;ssak|Elephant|trunk;tusks;large;ears;mammal
+Lew|grzywa;ryczeć;Afryka;kot;król|Lion|mane;roar;Africa;cat;king
+Tygrys|paski;kot;Azja;drapieżnik;pomarańczowy|Tiger|stripes;cat;Asia;predator;orange
+Małpa|banan;drzewo;człekokształtna;ogon;naczelne|Monkey|banana;tree;ape;tail;primate
+Goryl|małpa;duży;Afryka;naczelne;srebrzysty grzbiet|Gorilla|ape;large;Africa;primate;silverback
+Kangur|torba;Australia;skakać;ogon;ssak|Kangaroo|pouch;Australia;jump;tail;mammal
+Koala|Australia;eukaliptus;torbacz;drzewo;szary|Koala|Australia;eucalyptus;marsupial;tree;grey
+Panda|bambus;Chiny;czarny;biały;niedźwiedź|Panda|bamboo;China;black;white;bear
+Wielbłąd|garb;pustynia;karawana;piasek;dromader|Camel|hump;desert;caravan;sand;dromedary
+Hipopotam|rzeka;Afryka;duży;paszcza;ssak|Hippopotamus|river;Africa;large;mouth;mammal
+Nosorożec|róg;Afryka;skóra;duży;ssak|Rhinoceros|horn;Africa;skin;large;mammal
+Krokodyl|gad;rzeka;zęby;paszcza;łuski|Crocodile|reptile;river;teeth;jaws;scales
+Żółw|skorupa;wolny;gad;pancerz;morze|Turtle|shell;slow;reptile;tortoise;sea
+Wąż|pełzać;gad;jad;łuski;syczeć|Snake|slither;reptile;venom;scales;hiss
+Jaszczurka|gad;ogon;słońce;łuski;cztery nogi|Lizard|reptile;tail;sun;scales;legs
+Żaba|kumkać;staw;zielona;płaz;kijanka|Frog|croak;pond;green;amphibian;tadpole
+Pingwin|ptak;lód;Antarktyda;pływać;czarny|Penguin|bird;ice;Antarctica;swim;black
+Sowa|noc;puchacz;ptak;huczeć;oczy|Owl|night;hoot;bird;eyes;silent
+Orzeł|ptak;godło;szpony;skrzydła;drapieżny|Eagle|bird;emblem;talons;wings;predator
+Bocian|dziób;gniazdo;żaba;długie nogi;ptak|Stork|beak;nest;frog;long legs;bird
+Łabędź|biały;jezioro;szyja;ptak;brzydkie kaczątko|Swan|white;lake;neck;bird;ugly duckling
+Papuga|mówić;kolorowa;ptak;dziób;powtarzać|Parrot|talk;colourful;bird;beak;repeat
+Paw|ogon;wachlarz;pióra;ptak;oczka|Peacock|tail;fan;feathers;bird;eyes
+Flaming|różowy;ptak;noga;dziób;jezioro|Flamingo|pink;bird;leg;beak;lake
+Nietoperz|noc;skrzydła;ssak;jaskinia;echolokacja|Bat|night;wings;mammal;cave;echolocation
+Delfin|morze;ssak;pływać;skakać;echolokacja|Dolphin|sea;mammal;swim;jump;echolocation
+Wieloryb|morze;duży;ssak;płetwa;fiszbin|Whale|sea;large;mammal;fin;blowhole
+Rekin|zęby;płetwa;morze;ryba;drapieżnik|Shark|teeth;fin;sea;fish;predator
+Ośmiornica|macki;osiem;morze;atrament;mięczak|Octopus|tentacles;eight;sea;ink;mollusc
+Meduza|parzyć;morze;galareta;czułki;pływać|Jellyfish|sting;sea;jelly;tentacles;float
+Krab|szczypce;morze;skorupiak;pancerz;bokiem|Crab|claws;sea;crustacean;shell;sideways
+Ślimak|muszla;wolny;śluz;czułki;mięczak|Snail|shell;slow;slime;tentacles;mollusc
+Motyl|skrzydła;gąsienica;owad;kolorowy;kwiat|Butterfly|wings;caterpillar;insect;colourful;flower
+Pszczoła|miód;ul;żądło;kwiat;owad|Bee|honey;hive;sting;flower;insect
+Osa|żądło;żółta;paski;gniazdo;owad|Wasp|sting;yellow;stripes;nest;insect
+Mrówka|mrowisko;owad;robotnica;kolonia;królowa|Ant|anthill;insect;worker;colony;queen
+Komar|kąsać;krew;swędzieć;brzęczeć;owad|Mosquito|bite;blood;itch;buzz;insect
+Biedronka|kropki;czerwona;owad;mszyce;skrzydła|Ladybird|spots;red;insect;aphids;wings
+Pająk|sieć;osiem;noga;jad;pajęczak|Spider|web;eight;legs;arachnid;silk
+Skorpion|żądło;ogon;pustynia;szczypce;jad|Scorpion|sting;tail;desert;claws;venom
+Drzewo|pień;liście;korzenie;gałęzie;las|Tree|trunk;leaves;roots;branches;forest
+Dąb|żołądź;drzewo;liść;drewno;las|Oak|acorn;tree;leaf;wood;forest
+Brzoza|biała;kora;drzewo;liście;pień|Birch|white;bark;tree;leaves;trunk
+Sosna|igły;szyszka;drzewo;las;żywica|Pine|needles;cone;tree;forest;resin
+Wierzba|płacząca;gałęzie;drzewo;witki;bazie|Willow|weeping;branches;tree;water;catkins
+Róża|kolce;kwiat;bukiet;miłość;płatki|Rose|thorns;flower;bouquet;love;petals
+Tulipan|kwiat;Holandia;cebula;wiosna;płatki|Tulip|flower;Netherlands;bulb;spring;petals
+Słonecznik|nasiona;żółty;kwiat;olej;słońce|Sunflower|seeds;yellow;flower;oil;sun
+Kaktus|kolce;pustynia;roślina;woda;doniczka|Cactus|spines;desert;plant;water;pot
+Trawa|zielona;trawnik;kosić;łąka;źdźbło|Grass|green;lawn;mow;meadow;blade
+Grzyb|kapelusz;las;trzon;zbierać;zarodniki|Mushroom|cap;forest;stem;pick;spores
+Mech|zielony;las;miękki;wilgoć;roślina|Moss|green;forest;soft;damp;plant
+Las|drzewa;zwierzęta;grzyby;leśniczy;ścieżka|Forest|trees;animals;mushrooms;ranger;path
+Rzeka|woda;płynąć;brzeg;źródło;ujście|River|water;flow;bank;source;mouth
+Jezioro|woda;brzeg;słodka;pływać;ryby|Lake|water;shore;freshwater;swim;fish
+Morze|słone;plaża;fale;woda;wybrzeże|Sea|salt;beach;waves;water;coast
+Ocean|woda;kontynent;Atlantyk;Pacyfik;głęboki|Ocean|water;continent;Atlantic;Pacific;deep
+Góra|szczyt;wysoka;wspinaczka;dolina;stok|Mountain|peak;high;climb;valley;slope
+Wulkan|lawa;erupcja;krater;popiół;magma|Volcano|lava;eruption;crater;ash;magma
+Jaskinia|skała;podziemie;ciemność;stalaktyt;nietoperz|Cave|rock;underground;dark;stalactite;bat
+Pustynia|piasek;sucho;upał;oaza;wydma|Desert|sand;dry;heat;oasis;dune
+Wyspa|woda;morze;otoczona;ląd;archipelag|Island|water;sea;surrounded;land;archipelago
+Wodospad|woda;spadać;rzeka;skała;Niagara|Waterfall|water;fall;river;rock;Niagara
+Plaża|piasek;morze;opalanie;wakacje;brzeg|Beach|sand;sea;sunbathe;holiday;shore
+Burza|piorun;grzmot;deszcz;błyskawica;chmura|Thunderstorm|lightning;thunder;rain;cloud;storm
+Tęcza|kolory;deszcz;słońce;łuk;niebo|Rainbow|colours;rain;sun;arc;sky
+Śnieg|biały;zima;płatki;zimno;bałwan|Snow|white;winter;flakes;cold;snowman
+Lód|zamarznąć;woda;zimny;ślisko;topnieć|Ice|freeze;water;cold;slippery;melt
+Mgła|widoczność;biała;powietrze;kropelki;chmura|Fog|visibility;white;air;droplets;cloud
+Wiatr|wiać;powietrze;podmuch;żagiel;huragan|Wind|blow;air;gust;sail;hurricane
+Słońce|gwiazda;ciepło;dzień;światło;niebo|Sun|star;heat;day;light;sky
+Księżyc|noc;satelita;pełnia;Ziemia;krater|Moon|night;satellite;full;Earth;crater
+Gwiazda|niebo;noc;świecić;kosmos;konstelacja|Star|sky;night;shine;space;constellation
+Planeta|orbita;kosmos;Ziemia;Słońce;Mars|Planet|orbit;space;Earth;Sun;Mars
+Kometa|warkocz;kosmos;lód;orbita;Halley|Comet|tail;space;ice;orbit;Halley
+Samochód|koła;silnik;jechać;kierownica;droga|Car|wheels;engine;drive;steering;road
+Autobus|pasażer;przystanek;bilet;kierowca;komunikacja|Bus|passenger;stop;ticket;driver;transport
+Tramwaj|szyny;miasto;bilet;przystanek;motorniczy|Tram|rails;city;ticket;stop;electric
+Pociąg|szyny;wagon;lokomotywa;dworzec;kolej|Train|rails;carriage;locomotive;station;railway
+Metro|podziemie;pociąg;miasto;stacja;tunel|Underground railway|subway;train;city;station;tunnel
+Samolot|skrzydła;pilot;latać;lotnisko;pasażer|Aeroplane|wings;pilot;fly;airport;passenger
+Helikopter|wirnik;pilot;latać;śmigło;lądować|Helicopter|rotor;pilot;fly;blades;land
+Statek|morze;kapitan;port;pływać;pokład|Ship|sea;captain;port;sail;deck
+Łódź podwodna|zanurzać;peryskop;morze;torpeda;okręt|Submarine|dive;periscope;sea;torpedo;vessel
+Żaglówka|żagiel;wiatr;maszt;jezioro;pływać|Sailboat|sail;wind;mast;lake;boat
+Kajak|wiosło;rzeka;spływ;łódka;woda|Kayak|paddle;river;canoe;boat;water
+Motocykl|dwa koła;silnik;kask;jechać;motor|Motorcycle|two wheels;engine;helmet;ride;bike
+Hulajnoga|kierownica;koła;odpychać;elektryczna;podest|Scooter|handlebar;wheels;kick;electric;deck
+Ciężarówka|ładunek;towar;droga;kierowca;naczepa|Truck|load;goods;road;driver;trailer
+Traktor|pole;rolnik;ciągnik;orać;koła|Tractor|field;farmer;plough;wheels;engine
+Karetka|pogotowie;syrena;szpital;ratownik;pacjent|Ambulance|emergency;siren;hospital;paramedic;patient
+Taksówka|kierowca;opłata;pasażer;samochód;kurs|Taxi|driver;fare;passenger;car;cab
+Rakieta|kosmos;start;astronauta;silnik;paliwo|Rocket|space;launch;astronaut;engine;fuel
+Balon|powietrze;hel;latać;nadmuchać;sznurek|Balloon|air;helium;fly;inflate;string
+Spadochron|skok;samolot;lądować;czasza;linki|Parachute|jump;plane;land;canopy;cords
+Sygnalizacja świetlna|czerwone;zielone;skrzyżowanie;droga;światła|Traffic lights|red;green;junction;road;signals
+Most|rzeka;przeprawa;brzeg;przejść;konstrukcja|Bridge|river;crossing;bank;span;structure
+Tunel|podziemie;przejazd;góra;ciemny;drążyć|Tunnel|underground;passage;mountain;dark;dig
+Lotnisko|samolot;terminal;pas;odlot;bagaż|Airport|plane;terminal;runway;departure;luggage
+Dworzec|pociąg;peron;bilet;kolej;odjazd|Railway station|train;platform;ticket;tracks;departure
+Port|statek;morze;dok;cumować;nabrzeże|Harbour|ship;sea;dock;moor;quay
+Przystanek|autobus;czekać;rozkład jazdy;pasażer;tramwaj|Bus stop|bus;wait;timetable;passenger;shelter
+Walizka|bagaż;podróż;pakować;uchwyt;kółka|Suitcase|luggage;travel;pack;handle;wheels
+Paszport|podróż;granica;dokument;zdjęcie;obywatelstwo|Passport|travel;border;document;photo;citizenship
+Bilet|wejście;przejazd;kupić;kontrola;kasa|Ticket|entry;journey;buy;inspect;fare
+Mapa|droga;kraj;skala;kierunek;plan|Map|road;country;scale;direction;chart
+Kompas|północ;igła;kierunek;magnes;orientacja|Compass|north;needle;direction;magnet;navigate
+Namiot|kemping;spać;biwak;śledź;płótno|Tent|camp;sleep;peg;canvas;pitch
+Śpiwór|spać;biwak;ciepło;namiot;suwak|Sleeping bag|sleep;camp;warm;tent;zip
+Plecak|plecy;szelki;szkoła;wycieczka;pakować|Backpack|back;straps;school;hike;pack
+Hotel|pokój;recepcja;nocleg;gość;rezerwacja|Hotel|room;reception;stay;guest;booking
+Restauracja|kelner;menu;jeść;rachunek;stolik|Restaurant|waiter;menu;eat;bill;table
+Kawiarnia|kawa;ciasto;stolik;barista;napój|Cafe|coffee;cake;table;barista;drink
+Piekarnia|chleb;bułka;piec;piekarz;mąka|Bakery|bread;roll;oven;baker;flour
+Apteka|lekarstwo;recepta;farmaceuta;tabletka;zdrowie|Pharmacy|medicine;prescription;pharmacist;pill;health
+Szpital|lekarz;pacjent;choroba;łóżko;operacja|Hospital|doctor;patient;illness;bed;operation
+Szkoła|uczeń;nauczyciel;lekcja;klasa;tablica|School|pupil;teacher;lesson;class;blackboard
+Uniwersytet|student;profesor;studia;wykład;dyplom|University|student;professor;degree;lecture;campus
+Przedszkole|dzieci;zabawki;maluch;opiekunka;leżakowanie|Nursery school|children;toys;young;teacher;play
+Muzeum|eksponat;wystawa;historia;zwiedzać;zabytek|Museum|exhibit;display;history;visit;artefact
+Teatr|scena;aktor;kurtyna;spektakl;widownia|Theatre|stage;actor;curtain;play;audience
+Kino|film;ekran;bilet;popcorn;seans|Cinema|film;screen;ticket;popcorn;movie
+Stadion|sport;kibic;trybuny;boisko;mecz|Stadium|sport;fan;stands;pitch;match
+Basen|woda;pływać;chlor;tor;ratownik|Swimming pool|water;swim;chlorine;lane;lifeguard
+Siłownia|ćwiczyć;mięśnie;ciężary;trener;sztanga|Gym|exercise;muscles;weights;trainer;barbell
+Park|drzewa;spacer;ławka;miasto;zieleń|Park|trees;walk;bench;city;green
+Zoo|zwierzęta;klatka;wybieg;ogród;zwiedzać|Zoo|animals;cage;enclosure;keeper;visit
+Cyrk|klaun;namiot;akrobata;arena;występ|Circus|clown;tent;acrobat;ring;show
+Wesołe miasteczko|karuzela;kolejka;zabawa;atrakcja;bilet|Amusement park|carousel;roller coaster;fun;ride;ticket
+Zamek|król;wieża;mur;fosa;rycerz|Castle|king;tower;wall;moat;knight
+Pałac|król;rezydencja;bogaty;komnata;monarcha|Palace|king;residence;rich;room;monarch
+Kościół|msza;ksiądz;ołtarz;modlitwa;dzwon|Church|service;priest;altar;prayer;bell
+Ratusz|miasto;burmistrz;rada;urząd;rynek|Town hall|town;mayor;council;office;municipal
+Bank|pieniądze;konto;kredyt;wpłata;oszczędności|Bank|money;account;loan;deposit;savings
+Poczta|list;znaczek;paczka;wysyłać;listonosz|Post office|letter;stamp;parcel;send;mail
+Sklep|kupować;produkt;kasa;sprzedawca;klient|Shop|buy;product;till;seller;customer
+Targ|stragan;kupować;warzywa;handel;plac|Market|stall;buy;vegetables;trade;square
+Fabryka|produkcja;robotnik;maszyna;hala;przemysł|Factory|production;worker;machine;plant;industry
+Kopalnia|węgiel;górnik;podziemie;szyb;wydobywać|Mine|coal;miner;underground;shaft;extract
+Lekarz|pacjent;leczyć;szpital;diagnoza;recepta|Doctor|patient;treat;hospital;diagnosis;prescription
+Dentysta|zęby;wiercić;plomba;fotel;gabinet|Dentist|teeth;drill;filling;chair;surgery
+Pielęgniarka|szpital;pacjent;zastrzyk;opieka;lekarz|Nurse|hospital;patient;injection;care;doctor
+Weterynarz|zwierzę;leczyć;pies;kotek;gabinet|Vet|animal;treat;dog;cat;clinic
+Strażak|ogień;pożar;wąż;drabina;hełm|Firefighter|fire;hose;ladder;helmet;rescue
+Policjant|prawo;mundur;złodziej;mandat;kajdanki|Police officer|law;uniform;thief;fine;handcuffs
+Nauczyciel|szkoła;uczeń;lekcja;tablica;ocena|Teacher|school;pupil;lesson;board;mark
+Kucharz|gotować;kuchnia;potrawa;restauracja;przepis|Chef|cook;kitchen;dish;restaurant;recipe
+Kelner|restauracja;stolik;zamówienie;taca;napiwek|Waiter|restaurant;table;order;tray;tip
+Fryzjer|włosy;nożyczki;strzyc;salon;grzebień|Hairdresser|hair;scissors;cut;salon;comb
+Krawiec|szyć;igła;ubranie;materiał;miara|Tailor|sew;needle;clothes;fabric;measure
+Szewc|but;naprawa;podeszwa;obcas;skóra|Cobbler|shoe;repair;sole;heel;leather
+Stolarz|drewno;meble;piła;deska;warsztat|Carpenter|wood;furniture;saw;board;workshop
+Hydraulik|rura;woda;kran;wyciek;naprawiać|Plumber|pipe;water;tap;leak;repair
+Elektryk|prąd;kabel;gniazdko;napięcie;instalacja|Electrician|current;wire;socket;voltage;install
+Mechanik|samochód;naprawa;silnik;warsztat;narzędzia|Mechanic|car;repair;engine;garage;tools
+Rolnik|pole;uprawa;traktor;zboże;gospodarstwo|Farmer|field;crops;tractor;grain;farm
+Ogrodnik|roślina;kwiat;ogród;podlewać;przycinać|Gardener|plant;flower;garden;water;prune
+Rybak|ryby;sieć;łódź;łowić;morze|Fisherman|fish;net;boat;catch;sea
+Żeglarz|żagiel;morze;wiatr;maszt;jacht|Sailor|sail;sea;wind;mast;boat
+Pilot|samolot;latać;kokpit;lotnisko;sterować|Pilot|plane;fly;cockpit;airport;controls
+Astronauta|kosmos;rakieta;skafander;Księżyc;stacja|Astronaut|space;rocket;suit;Moon;station
+Kierowca|samochód;jechać;kierownica;prawo jazdy;droga|Driver|car;drive;wheel;licence;road
+Listonosz|list;poczta;doręczyć;torba;adres|Postman|letter;mail;deliver;bag;address
+Dziennikarz|wiadomości;gazeta;reportaż;wywiad;media|Journalist|news;newspaper;report;interview;media
+Fotograf|zdjęcie;aparat;obiektyw;portret;robić|Photographer|picture;camera;lens;portrait;shoot
+Aktor|film;rola;teatr;scena;grać|Actor|film;role;theatre;stage;perform
+Piosenkarz|śpiewać;mikrofon;piosenka;koncert;głos|Singer|sing;microphone;song;concert;voice
+Muzyk|instrument;grać;nuty;koncert;melodia|Musician|instrument;play;notes;concert;melody
+Dyrygent|orkiestra;batuta;muzyka;tempo;prowadzić|Conductor|orchestra;baton;music;tempo;lead
+Malarz|farba;pędzel;obraz;płótno;sztuka|Painter|paint;brush;picture;canvas;art
+Rzeźbiarz|dłuto;kamień;posąg;drewno;sztuka|Sculptor|chisel;stone;statue;wood;art
+Pisarz|książka;pisać;powieść;autor;czytelnik|Writer|book;write;novel;author;reader
+Poeta|wiersz;rym;strofa;pisać;literatura|Poet|poem;rhyme;verse;write;literature
+Tłumacz|język;przekład;obcy;słownik;tekst|Translator|language;translate;foreign;dictionary;text
+Programista|kod;komputer;aplikacja;program;błąd|Programmer|code;computer;application;software;bug
+Architekt|budynek;projekt;plan;rysować;dom|Architect|building;design;plan;draw;house
+Naukowiec|badania;laboratorium;eksperyment;odkrycie;teoria|Scientist|research;laboratory;experiment;discovery;theory
+Sędzia|sąd;wyrok;prawo;rozprawa;toga|Judge|court;verdict;law;trial;robe
+Prawnik|prawo;adwokat;sąd;klient;obrona|Lawyer|law;barrister;court;client;defence
+Detektyw|śledztwo;tajemnica;dowód;przestępstwo;trop|Detective|investigation;mystery;evidence;crime;clue
+Magik|sztuczka;iluzja;kapelusz;królik;różdżka|Magician|trick;illusion;hat;rabbit;wand
+Klaun|cyrk;śmiech;nos;makijaż;zabawny|Clown|circus;laugh;nose;makeup;funny
+Sportowiec|trening;zawody;medal;forma;rywal|Athlete|training;competition;medal;fitness;rival
+Trener|sport;ćwiczenia;drużyna;zawodnik;trening|Coach|sport;exercise;team;player;training
+Ratownik|pomoc;życie;niebezpieczeństwo;akcja;uratować|Rescuer|help;life;danger;save;emergency
+Księgowy|rachunki;firma;podatki;liczyć;finanse|Accountant|accounts;company;tax;calculate;finance
+Sprzedawca|sklep;klient;towar;kasa;handel|Shop assistant|shop;customer;goods;till;sales
+Bibliotekarz|książka;wypożyczać;katalog;czytelnik;regał|Librarian|book;borrow;catalogue;reader;shelf
+Archeolog|wykopaliska;starożytność;zabytek;ziemia;odkrycie|Archaeologist|dig;ancient;artefact;soil;discovery
+Strażnik|pilnować;ochrona;brama;patrol;bezpieczeństwo|Guard|watch;security;gate;patrol;protect
+Prezydent|państwo;wybory;głowa;kadencja;polityka|President|country;election;head;term;politics
+Król|korona;monarcha;tron;królowa;pałac|King|crown;monarch;throne;queen;palace
+Rycerz|zbroja;miecz;zamek;średniowiecze;koń|Knight|armour;sword;castle;medieval;horse
+Pirat|statek;morze;skarb;opaska;abordaż|Pirate|ship;sea;treasure;eyepatch;raid
+Czarodziej|magia;różdżka;zaklęcie;szata;eliksir|Wizard|magic;wand;spell;robe;sorcerer
+Smok|ogień;skrzydła;łuski;bestia;jaskinia|Dragon|fire;wings;scales;beast;cave
+Syrena|rybi ogon;morze;postać;śpiew;kobieta|Mermaid|fish tail;sea;woman;song;myth
+Wampir|kły;krew;noc;czosnek;trumna|Vampire|fangs;blood;night;garlic;coffin
+Wilkołak|wilk;pełnia;przemiana;człowiek;noc|Werewolf|wolf;full moon;transform;human;night
+Duch|nawiedzać;zmarły;przezroczysty;straszyć;zjawa|Ghost|haunt;dead;transparent;scare;spirit
+Olbrzym|duży;wysoki;bajka;mały;wielkolud|Giant|huge;tall;fairy tale;small;enormous
+Krasnoludek|mały;broda;bajka;czapka;Śnieżka|Dwarf|small;beard;fairy tale;hat;Snow White
+Jednorożec|róg;koń;magiczny;biały;baśń|Unicorn|horn;horse;magic;white;legend
+Piłka nożna|bramka;kopać;boisko;mecz;gol|Football|goal;kick;pitch;match;ball
+Koszykówka|kosz;piłka;kozłować;rzut;boisko|Basketball|basket;ball;dribble;shoot;court
+Siatkówka|siatka;piłka;serwis;odbijać;boisko|Volleyball|net;ball;serve;hit;court
+Tenis|rakieta;piłka;kort;siatka;serwis|Tennis|racket;ball;court;net;serve
+Badminton|lotka;rakieta;siatka;odbijać;kort|Badminton|shuttlecock;racket;net;hit;court
+Hokej|krążek;kij;lód;bramka;łyżwy|Hockey|puck;stick;ice;goal;skates
+Golf|kij;dołek;piłeczka;pole;uderzyć|Golf|club;hole;ball;course;swing
+Boks|rękawice;ring;cios;walka;nokaut|Boxing|gloves;ring;punch;fight;knockout
+Szermierka|szpada;floret;szabla;maska;pojedynek|Fencing|epee;foil;sabre;mask;duel
+Łucznictwo|łuk;strzała;tarcza;celować;cięciwa|Archery|bow;arrow;target;aim;string
+Pływanie|woda;basen;kraul;żabka;styl|Swimming|water;pool;freestyle;breaststroke;stroke
+Narciarstwo|narty;śnieg;stok;kijki;zjazd|Skiing|skis;snow;slope;poles;downhill
+Łyżwiarstwo|lód;łyżwy;ślizgać;lodowisko;piruet|Ice skating|ice;skates;glide;rink;spin
+Kolarstwo|rower;wyścig;pedał;koło;kask|Cycling|bicycle;race;pedal;wheel;helmet
+Bieganie|nogi;wyścig;maraton;tempo;trucht|Running|legs;race;marathon;pace;jog
+Wspinaczka|góra;lina;ściana;szczyt;uprząż|Climbing|mountain;rope;wall;summit;harness
+Kręgle|kula;tor;zbijać;dziesięć;strike|Bowling|ball;lane;pins;ten;strike
+Bilard|bila;kij;stół;łuza;uderzać|Billiards|ball;cue;table;pocket;strike
+Szachy|król;szachownica;mat;pionek;hetman|Chess|king;board;checkmate;pawn;queen
+Warcaby|pionek;bicie;damka;plansza;przekątna|Draughts|piece;capture;king;board;diagonal
+Domino|kostka;oczka;dopasować;dublet;łańcuch|Dominoes|tile;spots;match;double;chain
+Poker|karty;blef;żetony;stawka;pas|Poker|cards;bluff;chips;bet;fold
+Puzzle|układanka;obrazek;kawałek;dopasować;brzeg|Jigsaw puzzle|picture;piece;fit;edge;assemble
+Krzyżówka|hasło;kratka;litera;definicja;rozwiązać|Crossword|clue;square;letter;definition;solve
+Sudoku|cyfra;dziewięć;kratka;logika;rozwiązać|Sudoku|digit;nine;grid;logic;solve
+Kostka Rubika|kolory;obracać;sześcian;układać;ścianki|Rubik's cube|colours;twist;cube;solve;faces
+Gitara|struny;grać;szarpać;akord;pudło|Guitar|strings;play;pluck;chord;body
+Fortepian|klawisze;grać;pedał;struny;instrument|Piano|keys;play;pedal;strings;instrument
+Skrzypce|smyczek;struny;grać;instrument;orkiestra|Violin|bow;strings;play;instrument;orchestra
+Bęben|uderzać;pałeczki;rytm;membrana;perkusja|Drum|hit;sticks;rhythm;skin;percussion
+Trąbka|dmuchać;ustnik;mosiądz;zawory;instrument|Trumpet|blow;mouthpiece;brass;valves;instrument
+Flet|dmuchać;otwory;instrument;melodia;usta|Flute|blow;holes;instrument;melody;mouth
+Akordeon|miech;klawisze;guziki;instrument;rozciągać|Accordion|bellows;keys;buttons;instrument;squeeze
+Mikrofon|głos;śpiewać;dźwięk;wzmacniać;scena|Microphone|voice;sing;sound;amplify;stage
+Słuchawki|uszy;muzyka;dźwięk;przewód;słuchać|Headphones|ears;music;sound;cable;listen
+Głośnik|dźwięk;muzyka;głośno;wzmacniacz;membrana|Loudspeaker|sound;music;loud;amplifier;cone
+Radio|audycja;fale;stacja;słuchać;antena|Radio|broadcast;waves;station;listen;antenna
+Telewizor|ekran;program;oglądać;pilot;obraz|Television|screen;programme;watch;remote;picture
+Komputer|klawiatura;ekran;program;mysz;procesor|Computer|keyboard;screen;program;mouse;processor
+Klawiatura|klawisz;pisać;komputer;litera;spacja|Keyboard|key;type;computer;letter;spacebar
+Mysz komputerowa|kursor;klikać;przycisk;przewód;komputer|Computer mouse|cursor;click;button;cable;computer
+Monitor|ekran;komputer;obraz;wyświetlać;piksel|Monitor|screen;computer;image;display;pixel
+Drukarka|papier;drukować;tusz;toner;komputer|Printer|paper;print;ink;toner;computer
+Skaner|dokument;obraz;kopiować;komputer;szyba|Scanner|document;image;copy;computer;glass
+Telefon|dzwonić;rozmowa;numer;komórka;słuchawka|Telephone|call;talk;number;mobile;handset
+Aparat fotograficzny|zdjęcie;obiektyw;migawka;fotograf;flesz|Camera|photo;lens;shutter;photographer;flash
+Internet|sieć;strona;przeglądarka;online;łącze|Internet|network;website;browser;online;connection
+Hasło|logowanie;tajne;konto;znaki;bezpieczeństwo|Password|login;secret;account;characters;security
+E-mail|wiadomość;adres;wysłać;skrzynka;internet|Email|message;address;send;inbox;internet
+Bateria|energia;prąd;ładować;plus;minus|Battery|energy;electricity;charge;positive;negative
+Ładowarka|bateria;prąd;telefon;kabel;gniazdko|Charger|battery;electricity;phone;cable;socket
+Robot|maszyna;program;automat;metal;człowiek|Robot|machine;program;automatic;metal;human
+Teleskop|gwiazdy;niebo;obiektyw;astronomia;powiększać|Telescope|stars;sky;lens;astronomy;magnify
+Mikroskop|powiększać;komórka;szkiełko;laboratorium;obiektyw|Microscope|magnify;cell;slide;laboratory;lens
+Termometr|temperatura;gorączka;stopień;mierzyć;rtęć|Thermometer|temperature;fever;degrees;measure;mercury
+Waga|ciężar;kilogram;szalka;mierzyć;gram|Scales|weight;kilogram;balance;measure;gram
+Magnes|przyciągać;żelazo;biegun;metal;pole|Magnet|attract;iron;pole;metal;field
+Kalkulator|liczyć;cyfry;wynik;działanie;przycisk|Calculator|calculate;digits;answer;arithmetic;button
+Linijka|mierzyć;centymetr;prosta;długość;rysować|Ruler|measure;centimetre;straight;length;draw
+Nożyczki|ciąć;papier;ostrza;uchwyty;ostre|Scissors|cut;paper;blades;handles;sharp
+Ołówek|pisać;grafit;temperować;gumka;rysować|Pencil|write;graphite;sharpen;eraser;draw
+Długopis|pisać;tusz;wkład;papier;notować|Ballpoint pen|write;ink;refill;paper;note
+Gumka|wymazywać;ołówek;błąd;ścierać;papier|Eraser|erase;pencil;mistake;rubber;paper
+Zeszyt|kartka;pisać;szkoła;linie;kratka|Notebook|page;write;school;lines;squares
+Książka|czytać;strona;autor;okładka;rozdział|Book|read;page;author;cover;chapter
+Gazeta|wiadomości;artykuł;papier;dziennikarz;czytać|Newspaper|news;article;paper;journalist;read
+Koperta|list;papier;adres;znaczek;wysłać|Envelope|letter;paper;address;stamp;send
+Klej|przyklejać;łączyć;papier;tubka;lepki|Glue|stick;join;paper;tube;sticky
+Taśma klejąca|przyklejać;rolka;pakować;przezroczysta;odrywać|Sticky tape|stick;roll;pack;transparent;tear
+Spinacz|papier;kartka;łączyć;metal;biuro|Paperclip|paper;sheet;join;metal;office
+Urodziny|tort;świeczka;prezent;wiek;życzenia|Birthday|cake;candle;present;age;wish
+Wesele|ślub;para;taniec;goście;przyjęcie|Wedding reception|marriage;couple;dance;guests;party
+Wakacje|lato;wolne;podróż;szkoła;urlop|Holiday|summer;break;travel;school;vacation
+Sylwester|północ;rok;fajerwerki;szampan;impreza|New Year's Eve|midnight;year;fireworks;champagne;party
+Boże Narodzenie|choinka;prezent;Wigilia;grudzień;kolęda|Christmas|tree;present;December;carol;Santa
+Wielkanoc|jajko;zając;wiosna;koszyk;zmartwychwstanie|Easter|egg;rabbit;spring;basket;resurrection
+Prezent|podarunek;opakowanie;urodziny;niespodzianka;dać|Gift|present;wrapping;birthday;surprise;give
+Fajerwerki|niebo;wybuch;kolor;noc;Sylwester|Fireworks|sky;explosion;colour;night;celebration
+Medal|złoto;srebro;brąz;zawody;podium|Medal|gold;silver;bronze;competition;podium
+Puchar|zwycięstwo;trofeum;sport;zdobyć;nagroda|Trophy|win;cup;sport;award;prize
+Przyjaźń|przyjaciel;zaufanie;pomoc;bliskość;relacja|Friendship|friend;trust;help;close;relationship
+Miłość|kochać;serce;uczucie;para;romans|Love|heart;feeling;couple;romance;affection
+Radość|szczęście;uśmiech;cieszyć się;uczucie;wesoły|Joy|happiness;smile;delight;feeling;cheerful
+Smutek|płacz;łzy;przykro;uczucie;żal|Sadness|cry;tears;unhappy;feeling;sorrow
+Strach|bać się;lęk;zagrożenie;panika;odwaga|Fear|afraid;anxiety;danger;panic;courage
+Złość|gniew;krzyk;irytacja;uczucie;wściekły|Anger|rage;shout;irritation;feeling;furious
+Wstyd|rumieniec;zażenowanie;ukrywać;ocena;uczucie|Embarrassment|blush;awkward;hide;judgement;feeling
+Zazdrość|rywal;uczucie;posiadać;porównywać;zawiść|Jealousy|rival;feeling;possess;compare;envy
+Nadzieja|przyszłość;wierzyć;oczekiwać;lepiej;optymizm|Hope|future;believe;expect;better;optimism
+Cierpliwość|czekać;spokój;czas;wytrzymałość;pośpiech|Patience|wait;calm;time;endurance;hurry
+Odwaga|strach;bohater;ryzyko;dzielny;śmiałość|Courage|fear;hero;risk;brave;boldness
+Uczciwość|prawda;kłamstwo;oszustwo;zasady;szczerość|Honesty|truth;lie;cheat;principles;sincerity
+Tajemnica|sekret;ukrywać;wiedzieć;zdradzić;zagadka|Secret|hide;know;reveal;mystery;confidential
+Kłamstwo|prawda;oszustwo;nieprawda;mówić;Pinokio|Lie|truth;deceit;false;say;Pinocchio
+Marzenie|pragnienie;sen;przyszłość;spełnić;wyobraźnia|Dream|wish;sleep;future;fulfil;imagination
+Pamięć|wspomnienie;zapominać;mózg;zapamiętać;przeszłość|Memory|remember;forget;brain;recall;past
+Pomysł|idea;wymyślić;rozwiązanie;głowa;twórczy|Idea|thought;invent;solution;mind;creative
+Żart|śmiech;dowcip;zabawny;opowiadać;puenta|Joke|laugh;funny;tell;punchline;humour
+Niespodzianka|zaskoczenie;nieoczekiwane;prezent;sekret;przygotować|Surprise|unexpected;gift;secret;shock;prepare
+Zwycięstwo|wygrać;porażka;sukces;rywal;nagroda|Victory|win;defeat;success;opponent;prize

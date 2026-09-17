@@ -34,12 +34,16 @@ class GameScreen
     layout: nil,
     manage_computer: nil,
     manage_observer: nil,
-    save_game: nil
+    save_game: nil,
+    edit_options: nil,
+    abort_game: nil
   )
     @layout = layout
     @manage_computer = manage_computer
     @manage_observer = manage_observer
     @save_game = save_game
+    @edit_options = edit_options
+    @abort_game = abort_game
     @program = program
     @layout.form.game_room_program = program if @layout != nil
     @repository = repository
@@ -173,6 +177,7 @@ class GameScreen
       @room_snapshot = next_room_snapshot
       @activity_entries = next_activity_entries.to_a
       @session = snapshot.session
+      return :game_aborted if @session["__aborted"]
       replay_started_at = monotonic_time
       replay = @game.replay(@session, snapshot.events, @repository)
       synchronize_table_status(replay) if !using_cached_payload
@@ -232,10 +237,25 @@ class GameScreen
       when :new_session
         switch_to_new_session
       when :rules
-        options = @game.options_from_json(@session["options"])
+        source = replay.finished? ? @room_snapshot&.table.to_h["game_options"] : @session["options"]
+        options = @game.options_from_json(source)
         GameRoomScreens::GameRules.new(@game.rule_book(options: options)).wait
       when :save_game
+        surface = @layout&.surface
+        if surface.respond_to?(:save_game_error) && (error = surface.save_game_error)
+          speak(error)
+          @suppress_surface_focus = true
+          next
+        end
         return :saved if @save_game&.call(@table, @session, @game)
+        @suppress_surface_focus = true
+      when :edit_options
+        @edit_options&.call(@table)
+        @room_snapshot = nil
+        @activity_entries = nil
+        @suppress_surface_focus = true
+      when :abort_game
+        return :game_aborted if @abort_game&.call(@table, @session)
         @suppress_surface_focus = true
       when :invite_online
         @invite_online&.call(@table)
@@ -330,6 +350,7 @@ class GameScreen
       silent_entry = true
     end
     surface = layout.surface
+    surface.program = @program if surface.respond_to?(:program=)
     surface.sound_player = ->(name) { GameRoomSounds.play(@program, name) } if surface.respond_to?(:sound_player=)
     history = layout.history
     users = layout.users
@@ -405,6 +426,11 @@ class GameScreen
     GameRoomParticipantMenu.bind(layout, available: -> do
       actions = [:rules, :leave]
       actions << :save_game if @save_game != nil && same_user?(@table_owner, Session.name)
+      compatible = !@table.key?("__discovery_protocol") || @table["__discovery_protocol"].to_i >= GameRoomLiveSessionStore::CURRENT_DISCOVERY_PROTOCOL
+      if compatible && same_user?(@table_owner, Session.name) && !@session["__frozen"]
+        actions << :edit_options if replay.finished? && @edit_options != nil
+        actions << :abort_game if !replay.finished? && @abort_game != nil
+      end
       actions << :invite_online if @invite_online != nil
       actions << :invite_contacts if @invite_contacts != nil
       if @manage_observer != nil
@@ -417,7 +443,8 @@ class GameScreen
       end
       actions
     end, read_options: -> {
-      speak(@game.table_options_announcement(@game.options_from_json(@session["options"])))
+      source = replay.finished? ? @room_snapshot&.table.to_h["game_options"] : @session["options"]
+      speak(@game.table_options_announcement(@game.options_from_json(source)))
     }) do |requested, participant|
       next if action != nil
 
@@ -1131,6 +1158,13 @@ class GameScreen
     form.cancel_button = back_button
     form.hide(back_button)
     back_button.on(:press) { form.resume }
+    list.on(:select) do
+      choice = choices[list.index.to_i]
+      children = choice&.value
+      next unless children.is_a?(Array) && !children.empty? && children.all? { |child| child.is_a?(GameRoomGames::ShortcutChoice) }
+      nested = GameRoomGames::GameShortcut.new(key: shortcut.key, kind: :browse, label: choice.label, prompt: choice.label, choices: children)
+      browse_shortcut_choices(nested)
+    end
     form.wait
     EltenAPI::KeyboardState.clear_current_frame if defined?(EltenAPI::KeyboardState)
   end
@@ -1157,10 +1191,11 @@ class GameScreen
 
     selection = @selected_surface_action
     @selected_surface_action = nil
+    actor = selected_action_actor(selection, replay)
     status, plan = @game.action_for(
       selection,
       replay,
-      Session.name,
+      actor,
       context: action_context
     )
     if status != :ok
@@ -1177,7 +1212,8 @@ class GameScreen
         sequence: @repository.next_sequence(@session, replay.accepted_events),
         events: plan.events,
         recipients: recipients,
-        actor: Session.name
+        actor: actor,
+        controller: !same_user?(actor, Session.name)
       )
     end
     return false if inserted == nil || inserted.empty?
@@ -1220,6 +1256,14 @@ class GameScreen
       return nil
     end
     [updated, inserted]
+  end
+
+  def selected_action_actor(selection, replay)
+    if same_user?(@table_owner, Session.name) && @game.moderator_action?(selection)
+      replay.players.first
+    else
+      Session.name
+    end
   end
 
   def switch_to_new_session
@@ -1286,6 +1330,7 @@ class GameScreen
     latest_id = @repository.session_id(latest)
     current_id = @repository.session_id(@session)
     return [:new_session, latest_id] if latest_id > 0 && latest_id != current_id
+    return [:refresh, nil] if latest != nil && latest["__aborted"] != @session["__aborted"]
     return [:refresh, nil] if latest != nil && latest["__frozen"] != @session["__frozen"]
     return [:refresh, nil] if @repository.event_revision(@session, known_revision: revision) != revision
 
@@ -1607,16 +1652,14 @@ class GameScreen
       table_id: table_id,
       hidden_submissions: @hidden_submissions,
       random_source: @random_source,
+      options: @game.options_from_json(@session["options"]),
+      table_owner: @table_owner,
       now: (@session["__frozen_at"] || Time.now.to_i).to_i - @session["__clock_offset"].to_i
     )
   end
 
   def automatic_actor_for(replay)
-    if !GameRoomParticipants.includes?(replay.players, Session.name) && same_user?(@table_owner, Session.name)
-      replay.players.first
-    else
-      Session.name
-    end
+    @game.automatic_actor(replay, Session.name, table_owner: @table_owner)
   end
 
   def bot_search_seed(replay)

@@ -19,6 +19,7 @@ module GameRoomLifecycle
 
     def phase
       return :waiting if @game_snapshot == nil
+      return :waiting if session["__aborted"] == true
       return :unavailable if @game == nil || @replay == nil
 
       @replay.finished? ? :finished : :active

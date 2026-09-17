@@ -33,6 +33,9 @@ module GameRoomInvitationReceipts
           if hidden && row.revoked != true
             program.receive_invitation_receipt(Programs.app_notification_from(row))
           end
+          if program != nil && type == "game_room.table_created" && program.respond_to?(:table_notice_visible?)
+            hidden ||= !program.table_notice_visible?(Programs.app_notification_from(row))
+          end
           hidden
         end
         super(visible, **options)

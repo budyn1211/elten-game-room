@@ -1,24 +1,29 @@
+# encoding: UTF-8
+require_relative "bot_names"
+
 module GameRoomParticipants
   BOT_PREFIX = "bot:".freeze
-  BOT_PATTERN = /\Abot:(\d+):(\d+)\z/
+  BOT_PATTERN = /\Abot:(\d+):(\d+)(?::((?:pl|en)\d{2}))?\z/
 
   module_function
 
-  def bot_id(table_id, number)
+  def bot_id(table_id, number, name_token: nil)
     table = table_id.to_i
     index = number.to_i
     raise ArgumentError, "a bot requires a table id" if table <= 0
     raise ArgumentError, "a bot number must be positive" if index <= 0
+    raise ArgumentError, "unknown computer name" if name_token != nil && GameRoomBotNames.name_for(name_token) == nil
 
-    "#{BOT_PREFIX}#{table}:#{index}"
+    "#{BOT_PREFIX}#{table}:#{index}" + (name_token == nil ? "" : ":#{name_token}")
   end
 
-  def bots_for(table_id, count)
-    Array.new([count.to_i, 0].max) { |index| bot_id(table_id, index + 1) }
+  def bots_for(table_id, count, names: nil)
+    Array.new([count.to_i, 0].max) { |index| bot_id(table_id, index + 1, name_token: names.to_a[index]) }
   end
 
   def bot?(participant)
-    BOT_PATTERN.match?(participant.to_s)
+    match = BOT_PATTERN.match(participant.to_s)
+    match != nil && (match[3] == nil || GameRoomBotNames.name_for(match[3]) != nil)
   end
 
   def human?(participant)
@@ -30,7 +35,14 @@ module GameRoomParticipants
     match == nil ? nil : match[2].to_i
   end
 
+  def bot_name_token(participant)
+    BOT_PATTERN.match(participant.to_s)&.[](3)
+  end
+
   def display_name(participant)
+    name = GameRoomBotNames.name_for(bot_name_token(participant))
+    return name if name != nil
+
     number = bot_number(participant)
     return participant.to_s if number == nil
 

@@ -124,6 +124,11 @@ class GameRepository
       current = with_players(refreshed, players) if refreshed != nil
     end
     events = events_for(current, force: force_events)
+    # A terminal boundary can have arrived in the event read just completed.
+    if native_live_sessions?
+      refreshed = @transport.game_session(session_id(current), table: current["table_id"])
+      current = with_players(refreshed, players) if refreshed != nil
+    end
     GameSnapshot.new(session: current, events: events)
   end
 
@@ -555,12 +560,16 @@ class GameRepository
   def valid_session_for_table?(session, table, players: persisted_players_for(session))
     owner = insertion_user(table, "owner")
     creator = insertion_user(session, "player_one")
+    # LiveSessions authenticates the author independently of the playing seats.
+    # The table master may be an observer (including a Taboo moderator).
+    valid_first_seat = native_live_sessions? ?
+      session["player_one"].to_s.casecmp(players.first.to_s) == 0 :
+      session["player_one"].to_s.casecmp(owner) == 0 && players.first.to_s.casecmp(owner) == 0
     session["table_id"].to_i == row_id(table) &&
       session["game"].to_s == table["game"].to_s &&
       creator.casecmp(owner) == 0 &&
-      session["player_one"].to_s.casecmp(owner) == 0 &&
       !players.empty? &&
-      players.first.to_s.casecmp(owner) == 0
+      valid_first_seat
   end
 
   def unique_users(users)

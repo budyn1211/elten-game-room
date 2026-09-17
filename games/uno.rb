@@ -74,7 +74,7 @@ module GameRoomGames
           _("Straights is off by default. When enabled, a player may start a straight only during their own turn by playing a number card. They may then quickly add consecutive number cards of the same colour, in ascending or descending order. Every card is a separate visible play. The sequence ends as soon as another player plays or intercepts; there is no separate straight timer."),
           _("With interceptions enabled, pressing Enter on a nonmatching card during another player's turn announces Too late and adds 3 penalty points to your total. The card stays in your hand and the turn does not change. This applies against people and computers, including during the bot's delay. There is no accidental-key exception. Wrong cards on your own turn, disabled interceptions and buzzer response windows do not incur this penalty. Elimination at the score limit is checked at the end of the round."),
           _("Zero and seven hand swapping is off by default. Seven exchanges your hand with a selected opponent. Zero passes every active hand along the direction of play. Buzzer cards is also off: it adds eight universal cards to Classic or No Mercy, not Flip. After one is played, all active players press B; the last draws two. Anything can be played after a buzzer."),
-          _("Thinking time is 0 by default, meaning unlimited, or 1–300 seconds. Expiry takes the pending penalty, or one card if there is none, and ends the turn. Buzzer responses pause this countdown. Bot move delay is 1–5 seconds, default 1; it cannot exceed a nonzero thinking time. The pause is shortened near expiry so a bot can submit. It does not delay humans or synchronization.")),
+          _("Thinking time is 0 by default, meaning unlimited, or 1–300 seconds. Expiry takes the pending penalty, or one card if there is none, and ends the turn. Buzzer responses pause this countdown. The shared bot delay defaults to one second. There is no extra pause before a bot chooses a wild card's colour.")),
         rule_section(:controls, _("Playing, sorting and checking the state"),
           _("Arrow keys browse your hand; Enter plays a card and opens colour or opponent choices when needed. Space draws. C reads the top card, V the current colour, E reads every player's card count, S the scores, T the turn, U declares or catches UNO, F challenges Wild Draw Four, B responds to a buzzer and G reads the pending penalty."),
           _("Shift+C toggles ascending/descending colour order. Shift+H toggles ascending/descending card-value order. Shift+D restores deal order. Sorting changes your local hand view, not anyone's cards or the turn."))
@@ -104,8 +104,7 @@ module GameRoomGames
         OptionDefinition.new(key: "draw_until_playable", label: _("Draw until a playable card"), kind: :boolean, default: false),
         OptionDefinition.new(key: "no_mercy_limit", label: _("No Mercy card limit; zero disables it"), kind: :integer, default: 25,
           visible_if: NO_MERCY_DECK),
-        OptionDefinition.new(key: "thinking_time", label: _("Thinking time in seconds; zero means no limit"), kind: :integer, default: 0),
-        OptionDefinition.new(key: "bot_delay", label: _("Bot move delay in seconds (1 to 5)"), kind: :integer, default: 1)
+        OptionDefinition.new(key: "thinking_time", label: _("Thinking time in seconds; zero means no limit"), kind: :integer, default: 0)
       ]
     end
 
@@ -125,16 +124,14 @@ module GameRoomGames
         return _("The No Mercy card limit must be zero or from 10 to 100.")
       end
       return _("Thinking time must be from 0 to 300 seconds.") if !values["thinking_time"].to_i.between?(0, 300)
-      return _("Bot move delay must be from 1 to 5 seconds.") if !values["bot_delay"].to_i.between?(1, 5)
-      if values["thinking_time"].to_i > 0 && values["bot_delay"].to_i > values["thinking_time"].to_i
-        return _("Bot move delay cannot exceed thinking time.")
-      end
-      nil
+      bot_delay_options_error(values)
     end
 
     def actions_during_bot_turn?
       true
     end
+
+    def default_bot_move_delay; 1; end
 
     def bot_delay_revision(replay, _revision)
       penalties = replay.history.to_a.each_with_object({}) do |entry, ids|
@@ -149,15 +146,7 @@ module GameRoomGames
       state = replay.state
       return 0.0 if colour_choice_pending?(state) && same_user?(state[:colour_choice_player], actor)
 
-      delay = [[state[:options]["bot_delay"].to_i, 1].max, 5].min
-      deadline = state[:turn_deadline].to_i
-      if same_user?(state[:current_player], actor) && deadline > 0
-        # Deadlines have whole-second precision. Leave one second to submit;
-        # equal settings (including 1/1) must not turn every bot move into timeout.
-        now = context&.now || Time.now.to_f
-        delay = [delay, [deadline - now.to_f - 1.0, 0.0].max].min
-      end
-      delay
+      super
     end
 
     def options_summary(options)

@@ -84,7 +84,7 @@ game = GameRoomGames::Makao.new
 end
 
 # Makao's existing custom profile must retain every agreed checkbox and both
-# numeric values locally. Use real configuration and persistence methods,
+# numeric values, including the common bot delay, locally. Use real configuration and persistence methods,
 # replacing only the host's UI and JSON store.
 app = EltenGameRoom.allocate
 store = {}
@@ -92,7 +92,7 @@ app.define_singleton_method(:read_json) { |file, default:| store.fetch(file, def
 app.define_singleton_method(:update_json) do |file, default:, &block|
   store[file] = block.call(store.fetch(file, default))
 end
-definitions = game.option_definitions
+definitions = game.effective_option_definitions
 switches = definitions.select { |definition| definition.kind == :boolean }
 saved = { "profile" => "custom", "hand_size" => 8, "makao_penalty" => 4, "bot_delay" => 3 }
 switches.each_with_index { |definition, index| saved[definition.key] = index.even? }

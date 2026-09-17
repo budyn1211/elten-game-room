@@ -385,7 +385,7 @@ makao = GameRoomGames::Makao.new
 assert(makao.supports_bots?, "Makao has no bot")
 assert(makao.default_options["profile"] == "simple" && !makao.default_options["jokers"], "Makao does not default to the simple profile")
 assert(makao.default_options["bot_delay"] == 1, "Makao does not default to a one-second bot delay")
-assert(makao.options_error(makao.default_options.merge("bot_delay" => 0)) != nil, "Makao accepted a bot delay below one second")
+assert(makao.options_error(makao.default_options.merge("bot_delay" => 0)) == nil, "Makao rejected disabled intentional delay")
 assert(makao.options_error(makao.default_options.merge("bot_delay" => 6)) != nil, "Makao accepted a bot delay above five seconds")
 makao_definitions = makao.option_definitions.to_h { |definition| [definition.key, definition] }
 assert(!makao.option_visible?(makao_definitions["jokers"], makao.default_options),

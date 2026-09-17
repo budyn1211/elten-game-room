@@ -58,6 +58,7 @@ module GameRoomGames
         rule_section(:sheets, _("Length of the game"),
           _("Number of matches is 1 by default, from 1 to 10. Each match means a fresh complete sheet, and the final result is the combined score. Pair, two pairs and misery is on by default: it expands a sheet from 13 to 16 categories and therefore adds three turns per player. All four scoring checkboxes can be switched independently.")),
         rule_section(:controls, _("Selecting dice and writing a score"),
+          _("D reads the rolled values without changing selections. V opens your score sheet; Shift+V opens another player's sheet, with a player choice when needed. Filled zeroes differ from unfilled categories; bonuses and totals are included. These are read-only lists, also available outside your turn."),
           _("Enter always operates the roll field: before the first roll it rolls all dice; afterwards it rerolls selected dice. If none are selected, or the third roll has been used, Enter opens the scoring list. Arrow keys choose a category and Enter saves it; Escape cancels the choice."),
           _("Keys 1 through 6 select one kept die showing that value, not a die at that position. Repeat to select more equal dice. !, @, #, $, % and ^ (Shift with 1 through 6) keep one selected die of the corresponding value. Each change announces what you keep and reroll. Space repeats that state without changing it. S reads scores; T reads the turn."))
       ]
@@ -217,10 +218,46 @@ module GameRoomGames
           command: "unselect_die", payload: { "value" => value }
         )
       end
+      owner = player_key(replay.state, viewer)
+      if owner
+        shortcuts << browse_shortcut(key: "v", label: _("view your score sheet"), prompt: score_sheet_title(replay.state,owner), choices: score_sheet_choices(replay.state,owner))
+      end
+      others = replay.players.reject { |player| same_user?(player,viewer) }
+      unless others.empty?
+        choices = others.length == 1 ? score_sheet_choices(replay.state,others.first) : others.map do |player|
+          ShortcutChoice.new(label: participant_name(player), value: score_sheet_choices(replay.state,player))
+        end
+        shortcuts << browse_shortcut(key: "v", modifiers: [:shift], label: _("view another player's score sheet"),
+          prompt: others.length == 1 ? score_sheet_title(replay.state,others.first) : _("Choose a player's score sheet"), choices: choices)
+      end
       shortcuts + [
         surface_shortcut(key: "space", label: _("read the dice and their selection state"), command: "announce_dice"),
         announcement_shortcut(key: "s", label: _("read the scores"), message: scores_text(replay.state))
       ]
+    end
+
+    def shortcut_features; super + [:last_roll]; end
+    def shortcut_feature_data(feature, replay, viewer)
+      return super unless feature == :last_roll
+      { message: dice_text(replay.state) }
+    end
+
+    def score_sheet_title(state,player)
+      _("%{player}'s score sheet, match %{match}") % { player: participant_name(player), match: state[:match] }
+    end
+    def score_sheet_choices(state,player)
+      sheet = state[:sheets].fetch(player)
+      labels = [score_sheet_title(state,player)] + categories(state).map do |category|
+        value = sheet.key?(category) ? sheet[category].to_s : _("not filled")
+        "#{CATEGORY_LABELS.fetch(category)}: #{value}"
+      end
+      upper = %w[ones twos threes fours fives sixes].sum { |c| sheet[c].to_i }
+      labels << (_("Upper section: %{points} of 63.") % { points: upper })
+      labels << (_("Upper-section bonus: %{points}.") % { points: upper >= 63 ? 35 : 0 }) if state[:options]["upper_bonus"]
+      labels << (_("Additional Yahtzee bonuses: %{points}.") % { points: state[:yahtzee_bonuses][player].to_i }) if state[:options]["yahtzee_bonus"]
+      labels << (_("This sheet: %{points}.") % { points: sheet_total(state,player) })
+      labels << (_("Total across matches: %{points}.") % { points: total_score(state,player) })
+      labels.map { |label| ShortcutChoice.new(label: label,value: nil) }
     end
 
     def bot_observation(replay, actor)

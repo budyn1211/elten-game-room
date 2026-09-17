@@ -3,6 +3,7 @@ require_relative "support/native_live_sessions"
 class Program
   def self.server_app(**_options); end
   def self.app_runtime; nil; end
+  def self.server_app_uuid; "test-app"; end
 end
 require_relative "../__app"
 

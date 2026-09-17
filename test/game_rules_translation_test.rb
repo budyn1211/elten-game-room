@@ -17,14 +17,15 @@ def _(text)
   value || text
 end
 
-files = %w[tic_tac_toe four_in_a_row spades farkle ninety_nine tysiac categories chess checkers reversi ludo monopoly yahtzee uno poker makao]
+files = %w[tic_tac_toe four_in_a_row spades farkle ninety_nine tysiac categories chess checkers reversi ludo monopoly yahtzee uno poker makao rummy domino mexican_train scrabble taboo biblios]
 require_relative "../games/base"
 files.each { |file| require_relative "../games/#{file}" }
 types = [GameRoomGames::TicTacToe, GameRoomGames::FourInARow, GameRoomGames::Spades,
   GameRoomGames::Farkle, GameRoomGames::NinetyNine, GameRoomGames::Tysiac,
   GameRoomGames::Categories, GameRoomGames::Chess, GameRoomGames::Checkers,
   GameRoomGames::Reversi, GameRoomGames::Ludo, GameRoomGames::Monopoly,
-  GameRoomGames::Yahtzee, GameRoomGames::Uno, GameRoomGames::Poker, GameRoomGames::Makao]
+  GameRoomGames::Yahtzee, GameRoomGames::Uno, GameRoomGames::Poker, GameRoomGames::Makao,
+  GameRoomGames::Rummy, GameRoomGames::Domino, GameRoomGames::MexicanTrain, GameRoomGames::Scrabble, GameRoomGames::Taboo, GameRoomGames::Biblios]
 types.each do |type|
   game = type.new
   documents = game.rule_book(options: game.default_options).documents
@@ -46,4 +47,4 @@ proper_names = GameRoomContent::MonopolyRegionalData::PROFILES.values.flat_map d
 end
 missing = $missing_rules_translations.uniq - proper_names
 abort "Missing translations:\n#{missing.join("\n")}" unless missing.empty?
-puts "Polish rules and settings translations passed for all 16 games"
+puts "Polish rules and settings translations passed for #{types.length} games"

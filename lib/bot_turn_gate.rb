@@ -63,6 +63,10 @@ module GameRoomBots
         if key != @decision_key
           @decision_key = key
           @decision_ready_at = @clock.call + [delay.to_f, 0.0].max
+        else
+          # An approaching/corrected authoritative deadline may shorten the
+          # wait. Ordinary UI refreshes must never postpone the same decision.
+          @decision_ready_at = [@decision_ready_at, @clock.call + [delay.to_f, 0.0].max].min
         end
       end
     end

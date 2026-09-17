@@ -13,7 +13,7 @@ Replay = Struct.new(:players, :winner, :draw, :state, :history, keyword_init: tr
     winner != nil || draw == true
   end
 end
-History = Struct.new(:event_id, :kind, :key, keyword_init: true)
+History = Struct.new(:event_id, :kind, :key, :actor, :value, keyword_init: true)
 
 class SoundGame
   attr_reader :id
@@ -43,6 +43,20 @@ def cue(game_id, event, before, after, repository, viewer)
 end
 
 playing = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: {}, history: [])
+%w[rummy domino mexican_train].each do |game_id|
+  event = { "id" => 8000, "action" => game_id, "value" => "compact" }
+  %i[deal draw play].zip(%w[shuffle draw play]).each do |kind, sound|
+    after = playing.dup
+    after.history = [History.new(event_id: 8000, kind: kind)]
+    assert(cue(game_id, event, playing, after, repository, viewer) == sound, "#{game_id} missing #{kind} sound")
+  end
+  after = playing.dup
+  after.history = [History.new(event_id: 8000, kind: :play), History.new(event_id: 8000, kind: :round_result, actor: "Bob", value: ["Bob", "Alice"])]
+  assert(cue(game_id, event, playing, after, repository, viewer) == %w[play win1], "#{game_id} team round winner sound")
+  after.history.last.value = ["Bob"]
+  assert(cue(game_id, event, playing, after, repository, viewer) == %w[play lose1], "#{game_id} round loser sound")
+  assert(cue(game_id, event, playing, after, repository, "Observer") == "play", "observer receives a result meant for players")
+end
 assert(cue("spades", { "id" => 1, "action" => "deal" }, playing, playing, repository, viewer) == "shuffle", "Spades did not shuffle on a deal")
 assert(cue("spades", { "id" => 2, "action" => "play", "value" => "AS" }, playing, playing, repository, viewer) == ["play", "draw2"], "Spades trump did not layer draw2 over the card sound")
 assert(cue("spades", { "id" => 3, "action" => "play", "value" => "AH" }, playing, playing, repository, viewer) == "play", "ordinary Spades card did not use play")

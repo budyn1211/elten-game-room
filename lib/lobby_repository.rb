@@ -106,7 +106,7 @@ class LobbyRepository
     TableSnapshot.new(table: current, members: names, bots: bots_for(current))
   end
 
-  def create_table(name:, game:, owner:, game_options: "{}", private_table: false, resume_save_id: nil, bot_count: 0)
+  def create_table(name:, game:, owner:, game_options: "{}", private_table: false, resume_save_id: nil, bot_count: 0, bot_names: nil)
     clean_name = normalized_name(name)
     raise ArgumentError, "Invalid table name" if !valid_table_name?(clean_name)
 
@@ -120,7 +120,7 @@ class LobbyRepository
         owner: owner,
         game_options: game_options,
         capacity: DEFAULT_ROOM_CAPACITY,
-        private_table: private_table, resume_save_id: resume_save_id, bot_count: bot_count
+        private_table: private_table, resume_save_id: resume_save_id, bot_count: bot_count, bot_names: bot_names
       )
       append_activity(table, "created", actor: owner, table_users: [owner])
       return CreateResult.new(table: table, created: true)
@@ -349,15 +349,15 @@ class LobbyRepository
   end
 
   def bots_for(row)
-    GameRoomParticipants.bots_for(table_id(row), bot_count(row))
+    GameRoomParticipants.bots_for(table_id(row), bot_count(row), names: row["bot_names"])
   end
 
   def add_bot(row, snapshot: nil)
     update_bot_count(row, 1, snapshot: snapshot)
   end
 
-  def remove_bot(row, snapshot: nil)
-    update_bot_count(row, -1, snapshot: snapshot)
+  def remove_bot(row, snapshot: nil, participant: nil)
+    update_bot_count(row, -1, snapshot: snapshot, participant: participant)
   end
 
   def set_observer(row, user, observing)
@@ -576,7 +576,7 @@ class LobbyRepository
     row
   end
 
-  def update_bot_count(row, difference, snapshot: nil)
+  def update_bot_count(row, difference, snapshot: nil, participant: nil)
     id = table_id(row)
     raise ArgumentError, "Invalid table row" if id <= 0
     raise ArgumentError, "Only the table owner may manage computers" if owner_of(row).casecmp(Session.name.to_s) != 0
@@ -590,7 +590,24 @@ class LobbyRepository
       return bot_update_result(:none, current_snapshot) if requested < 0
       return bot_update_result(:full, current_snapshot) if current_snapshot.members.length + requested > capacity_of(current)
 
-      updated = @transport.update_room(current, { "bot_count" => requested }, actor: Session.name)
+      if difference > 0 && current["__discovery_protocol"].to_i < GameRoomLiveSessionStore::CURRENT_DISCOVERY_PROTOCOL
+        return bot_update_result(:old_room, current_snapshot)
+      end
+      bot_names = Array.new(current_count) { |index| current["bot_names"].to_a[index] }
+      activity_subject = nil
+      if difference > 0
+        occupied = current_snapshot.participants.map { |person| GameRoomParticipants.display_name(person) }
+        bot_names << GameRoomBotNames.pick(occupied: occupied)
+        activity_subject = GameRoomParticipants.bot_id(id, requested, name_token: bot_names.last)
+      else
+        index = participant == nil ? current_count - 1 : bots_for(current).index(participant)
+        return bot_update_result(:stale, current_snapshot) if index == nil
+        activity_subject = bots_for(current)[index]
+        bot_names.delete_at(index)
+      end
+      changes = { "bot_count" => requested }
+      changes["bot_names"] = bot_names if current["__discovery_protocol"].to_i >= GameRoomLiveSessionStore::CURRENT_DISCOVERY_PROTOCOL
+      updated = @transport.update_room(current, changes, actor: Session.name)
       row.replace(updated) if row.is_a?(Hash)
       current_snapshot.table.replace(updated)
       current_snapshot.bots = bots_for(updated)
@@ -598,6 +615,7 @@ class LobbyRepository
         updated,
         difference.to_i > 0 ? "bot_added" : "bot_removed",
         actor: Session.name,
+        subject: activity_subject,
         table_users: current_snapshot.members
       )
       return bot_update_result(:updated, current_snapshot, activity: activity)
@@ -665,8 +683,10 @@ class LobbyRepository
     users.to_a.map { |user| user.to_s.downcase }.reject(&:empty?).uniq.sort
   end
 
-  def append_activity(row, kind, actor:, table_users: [])
-    @activity_repository&.append_safely(table: row, kind: kind, actor: actor)
+  def append_activity(row, kind, actor:, table_users: [], subject: nil)
+    arguments = { table: row, kind: kind, actor: actor }
+    arguments[:subject] = subject if subject != nil
+    @activity_repository&.append_safely(**arguments)
   end
 
   def status_rank(row)

@@ -16,6 +16,12 @@ class ListBox
   def sayoption
     @sayoption_count = @sayoption_count.to_i + 1
   end
+
+  def update
+    # The actual host focuses the selected row while processing arrows.
+    focus if $game_room_widget_arrow
+    super
+  end
 end
 
 class Program
@@ -113,11 +119,11 @@ Form.class_eval do
     sections = fields[0]
     sections.index = 3
     sections.trigger(:move)
-    raise "widget controls were not shown together" if fields[12..14].any? { |control| hidden_controls.include?(control) }
+    raise "widget controls were not shown together" if fields[13..15].any? { |control| hidden_controls.include?(control) }
     raise "lobby controls remained visible in the widget category" if fields[1..5].any? { |control| !hidden_controls.include?(control) }
     fields[6].index = 1
-    fields[8].index = 0
-    fields[13].select_multiselection_indices([1])
+    fields[9].index = 0
+    fields[14].select_multiselection_indices([1])
     fields[-2].trigger(:press)
   end
 end
@@ -144,6 +150,23 @@ Form.class_eval do
 end
 
 WidgetSnapshot = Struct.new(:table, :members, keyword_init: true)
+class WidgetManualWorker
+  def start(&operation); return false if busy?; @operation = operation; true; end
+  def busy?; @operation != nil || @result != nil; end
+  def closed?; @closed == true; end
+  def finish
+    @result = [@operation.call, nil]
+    @operation = nil
+  rescue StandardError => error
+    @result = [nil, error]
+    @operation = nil
+  end
+  def take; value = @result; @result = nil; value; end
+  def close; @closed = true; end
+end
+worker = WidgetManualWorker.new
+now = 0.0
+active = true
 loads = 0
 opened = []
 rows = [
@@ -158,22 +181,58 @@ widget = GameRoomWidget::TableList.new(
   loader: -> { loads += 1; rows },
   opener: ->(snapshot) { opened << snapshot.table["__id"] },
   labeler: ->(snapshot) { "#{snapshot.table["game"]}, #{snapshot.table["owner"]}" },
-  id_for: ->(snapshot) { snapshot.table["__id"] }
+  id_for: ->(snapshot) { snapshot.table["__id"] },
+  worker: worker, clock: -> { now }, active: -> { active }
 )
 widget.focus
+assert(loads == 1 && !worker.busy?, "focus did not fetch through its foreground task before reading")
+widget.update
 assert(loads == 1 && widget.options == ["uno, Alice", "makao, Bob"], "main tab did not load concise rows on focus")
 widget.update
 assert(loads == 1, "main tab polled tables while it was merely being updated")
+$game_room_widget_arrow = true
+100.times { widget.update }
+$game_room_widget_arrow = false
+assert(!worker.busy? && loads == 1, "arrow focus caused extra requests")
 widget.index = 1
 rows = rows.reverse
 widget.refresh
+worker.finish
+widget.update
 assert(widget.index == 0 && widget.options.first == "makao, Bob", "main tab did not preserve the selected table across refresh")
 widget.trigger(:select)
+worker.finish
+widget.update
 assert(opened == [2], "Enter did not open the selected main-tab table")
 $game_room_widget_r = true
 widget.update
 $game_room_widget_r = false
-assert(loads >= 4 && widget.sayoption_count.to_i == 1, "R did not refresh and announce the main-tab row")
+worker.finish
+widget.update
+assert(loads >= 4 && widget.sayoption_count.to_i == 1, "R did not announce the main-tab row once, or focus was announced twice")
+before = loads
+active = false
+now = 20.0
+widget.update
+widget.focus
+assert(!worker.busy? && loads == before, "an inactive widget fetched data")
+active = true
+widget.focus
+widget.refresh
+widget.index = 1
+rows = rows.reverse
+worker.finish
+widget.update
+assert(widget.index == 0 && widget.options.first == "uno, Alice", "slow response restored an obsolete cursor")
+assert(widget.sayoption_count == 1, "background refresh interrupted speech")
+now += 4.9
+widget.update
+assert(!worker.busy?, "timer polled earlier than five seconds")
+now += 0.1
+widget.update
+assert(worker.busy?, "focused five-second refresh did not start")
+worker.finish
+widget.update
 
 lobby = Object.new
 lobby.define_singleton_method(:owner_of) { |row| row["owner"] }
@@ -185,6 +244,22 @@ available = WidgetSnapshot.new(table: { "__id" => 3, "owner" => "Bob", "game" =>
 assert(app.send(:table_join_label, available) == "Bob", "the per-game join list still exposes misleading details")
 assert(app.send(:game_lobby_label, "uno") == "UNO", "the game picker still exposes an unreliable table count")
 assert(app.send(:widget_table_label, available) == "UNO, Bob", "the main-tab row is not concise")
+
+# Tab entry must use the same host task as before the asynchronous-widget
+# changes, then allow native focus to read the fresh list exactly once.
+entry_tasks = []
+app.define_singleton_method(:initialize_services) {}
+app.define_singleton_method(:widget_active?) { true }
+app.define_singleton_method(:load_widget_table_snapshots) { [available] }
+app.define_singleton_method(:run_network_task) do |title, **options, &operation|
+  entry_tasks << [title, options]
+  operation.call
+end
+entry_widget = app.send(:build_widget_control)
+entry_widget.focus
+assert(entry_tasks == [["Loading Game Room tables", { silent: true }]], "entry bypassed the host task")
+assert(entry_widget.options == ["UNO, Bob"] && entry_widget.sayoption_count.to_i == 0, "entry did not read current rows through native focus")
+entry_widget.close
 unavailable_session = Object.new
 unavailable_session.define_singleton_method(:can_join?) { false }
 unavailable = WidgetSnapshot.new(
@@ -219,6 +294,9 @@ assert(filter_app.send(:load_widget_table_snapshots) == [available, unavailable]
 # supplied by the main scene instead of creating a new list on every update.
 captured_tab = nil
 extension_builder = Object.new
+extension_builder.define_singleton_method(:start) { |&_block| }
+extension_builder.define_singleton_method(:tick) { |**_options, &_block| }
+extension_builder.define_singleton_method(:stop) { |&_block| }
 extension_builder.define_singleton_method(:main_tab) do |key, label:, visible:, &callback|
   captured_tab = { key: key, label: label, visible: visible, callback: callback }
 end

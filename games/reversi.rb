@@ -17,12 +17,30 @@ module GameRoomGames
       _("Reversi")
     end
 
+    def option_definitions
+      [
+        OptionDefinition.new(key: "allow_passing", label: _("Allow passing even when a move exists"), kind: :boolean, default: true),
+        OptionDefinition.new(key: "mandatory_capture", label: _("Mandatory capture — a move must turn a disc"), kind: :boolean, default: true)
+      ]
+    end
+
+    # Missing flags identify old sessions/archives, not a newly configured
+    # table. Keep their original rules when replaying or restoring them.
+    def options_from_json(value)
+      parsed = value.to_s.empty? ? {} : JSON.parse(value.to_s)
+      parsed = {} unless parsed.is_a?(Hash)
+      normalize_options({ "allow_passing" => false, "mandatory_capture" => true }.merge(parsed))
+    rescue JSON::ParserError
+      normalize_options("allow_passing" => false, "mandatory_capture" => true)
+    end
+
     def rule_sections
       [
         rule_section(:turning, _("Enclosing and turning discs"),
           _("Two players use an 8 by 8 board with four discs in the centre. The first player is black and starts; the second is white. Place a disc on an empty field so that it encloses a continuous line of one or more opposing discs between the new disc and one of your existing discs."),
-          _("Lines count horizontally, vertically and diagonally. Every opposing disc enclosed by this move changes to your colour, in all qualifying directions at once. An empty space interrupts a line. At least one disc must turn for a move to be legal; you cannot simply place a disc beside your own."),
-          _("If you have no legal move, the game announces and skips your turn automatically. You cannot pass voluntarily when a move exists. When neither player can move, the game counts the discs: more discs wins, equal numbers draw. The board need not be full. There are no optional variants; computers are supported.")),
+          _("Lines count horizontally, vertically and diagonally. Every opposing disc enclosed by this move changes to your colour, in all qualifying directions at once. An empty space interrupts a line."),
+          _("Mandatory capture is on by default: each move must turn at least one disc. When disabled, you may also place beside any existing disc, in any of the eight directions, without turning a disc. Isolated and occupied fields are still forbidden. Any enclosed discs must still turn."),
+          _("Allow passing is on by default. P gives your turn to the opponent even if you can place a disc. There is no limit on voluntary passes and repeated passes do not end the game. When passing is disabled, a turn is skipped only if no placement is possible. A full board or no possible placement for either player ends the game: more discs wins, equal numbers draw. Old saved games retain their original rules.")),
         rule_section(:controls, _("Placing a disc"),
           _("Use the Arrow keys to inspect the board and Enter to place a disc. T reads the turn. Entering /d3 in chat attempts the same move as Enter on D3 and applies the same enclosure rules."),
           _("S reads the current number of discs belonging to each player."))
@@ -43,7 +61,7 @@ module GameRoomGames
 
     def replay(session, events, repository)
       players = repository.players_for(session)
-      state = { board: initial_board, players: players, current_player: players[0], winner: nil, draw: false }
+      state = { board: initial_board, players: players, current_player: players[0], winner: nil, draw: false, options: options_from_json(session["options"]) }
       accepted = []
       history = [starting_history(players)]
       apply_events!(state, events, repository, session, accepted, history)
@@ -81,14 +99,24 @@ module GameRoomGames
     def legal_actions(replay, actor, context: nil)
       return [] if replay.finished? || !same_user?(replay.current_player, actor)
 
-      available_fields(replay.board, player_index(replay.players, actor)).map do |x, y|
+      actions = available_fields(replay.board, player_index(replay.players, actor), replay.state[:options]).map do |x, y|
         { "kind" => "grid", "action" => "select", "x" => x, "y" => y }
       end
+      actions << { "kind" => "command", "action" => "pass" } if passing_allowed?(replay.state)
+      actions
+    end
+
+    def custom_game_shortcuts(replay, viewer)
+      return [] if replay.finished? || !same_user?(replay.current_player, viewer) || !passing_allowed?(replay.state)
+      [GameShortcut.new(key: "p", label: _("pass your turn"), kind: :action, action_kind: "command", action_name: "pass", payload: {})]
     end
 
     def action_for(selection, replay, actor, context: nil)
       return [:finished, nil] if replay.finished?
       return [:not_your_turn, nil] if !same_user?(replay.current_player, actor)
+      if selection["kind"].to_s == "command" && selection["action"].to_s == "pass"
+        return passing_allowed?(replay.state) ? [:ok, event_plan("pass", "")] : [:invalid_move, nil]
+      end
       return [:invalid, nil] if selection["kind"].to_s != "grid" || selection["action"].to_s != "select"
 
       x = selection_value(selection, "x")
@@ -96,7 +124,7 @@ module GameRoomGames
       marker = player_index(replay.players, actor)
       return [:invalid_move, nil] if !inside?(x, y)
       return [:occupied, nil] if replay.board[y][x] != nil
-      return [:invalid_move, nil] if flips_for(replay.board, x, y, marker).empty?
+      return [:invalid_move, nil] unless legal_placement?(replay.board, x, y, marker, replay.state[:options])
 
       [:ok, event_plan("place", "#{x},#{y}")]
     end
@@ -109,6 +137,9 @@ module GameRoomGames
     end
 
     def move_error_for(status, selection: nil, replay: nil, actor: nil)
+      if status == :invalid_move && replay && replay.state[:options]&.[]("mandatory_capture") == false
+        return _("Place on an empty field beside an existing disc.")
+      end
       if status == :occupied && selection != nil
         x = selection_value(selection, "x")
         y = selection_value(selection, "y")
@@ -120,10 +151,11 @@ module GameRoomGames
 
     def bot_search_key(replay, actor)
       board = replay.board.flatten.map { |cell| cell == nil ? "-" : cell }.join
-      "#{player_index(replay.players, actor)}:#{player_index(replay.players, replay.current_player)}:#{board}"
+      "#{player_index(replay.players, actor)}:#{player_index(replay.players, replay.current_player)}:#{rules_key(replay.state[:options])}:#{board}"
     end
 
     def bot_action_score(replay, actor, action, context: nil)
+      return 0.0 if action["action"] == "pass"
       x = selection_value(action, "x")
       y = selection_value(action, "y")
       marker = player_index(replay.players, actor)
@@ -139,8 +171,8 @@ module GameRoomGames
 
       marker = player_index(replay.players, actor)
       opponent = marker == 0 ? 1 : 0
-      own_moves = available_fields(replay.board, marker).length
-      other_moves = available_fields(replay.board, opponent).length
+      own_moves = available_fields(replay.board, marker, replay.state[:options]).length
+      other_moves = available_fields(replay.board, opponent, replay.state[:options]).length
       corners = [[0, 0], [7, 0], [0, 7], [7, 7]]
       corner_score = corners.sum do |x, y|
         replay.board[y][x] == marker ? 1 : (replay.board[y][x] == opponent ? -1 : 0)
@@ -158,7 +190,7 @@ module GameRoomGames
           danger[cell] += 1 if dangerous_corner_neighbor?(replay.board, x, y)
         end
       end
-      parity = if empty <= 12
+      parity = if empty <= 12 && rules_key(replay.state[:options]) == [false, true]
         reversi_odd_regions(replay.board) * (same_user?(replay.current_player, actor) ? 2 : -2)
       else
         0
@@ -168,6 +200,21 @@ module GameRoomGames
     end
 
     private
+
+    def rules_key(options)
+      values = options || {}
+      [values["allow_passing"] == true, values["mandatory_capture"] != false]
+    end
+
+    def passing_allowed?(state)
+      rules_key(state[:options])[0] || available_fields(state[:board], player_index(state[:players], state[:current_player]), state[:options]).empty?
+    end
+
+    def legal_placement?(board, x, y, marker, options)
+      return false unless marker && inside?(x, y) && board[y][x] == nil
+      return !flips_for(board, x, y, marker).empty? if rules_key(options)[1]
+      DIRECTIONS.any? { |dx, dy| inside?(x + dx, y + dy) && board[y + dy][x + dx] != nil }
+    end
 
     def reversi_stable_edges(board)
       stable = []
@@ -206,14 +253,22 @@ module GameRoomGames
     def apply_events!(state, events, repository, session, accepted, history)
       events.each do |event|
         break if state[:winner] != nil || state[:draw]
-        next if event["action"].to_s != "place"
+        next unless %w[place pass].include?(event["action"].to_s)
 
         actor = repository.actor_of(event, session)
         next if !same_user?(actor, state[:current_player])
+        if event["action"] == "pass"
+          next unless event["value"].to_s.empty? && passing_allowed?(state)
+          accepted << event
+          event_id = repository.event_id(event)
+          history << HistoryEntry.new(key: "move:#{event_id}", text: _("%{player} passes.") % { player: participant_name(actor) }, event_id: event_id, actor: actor, kind: :pass)
+          advance_turn!(state, actor, event_id, history)
+          next
+        end
         position = parse_position(event["value"])
         marker = player_index(state[:players], actor)
-        flips = position == nil ? [] : flips_for(state[:board], position[0], position[1], marker)
-        next if flips.empty?
+        next unless position && legal_placement?(state[:board], position[0], position[1], marker, state[:options])
+        flips = flips_for(state[:board], position[0], position[1], marker)
 
         x, y = position
         state[:board][y][x] = marker
@@ -229,10 +284,16 @@ module GameRoomGames
           },
           event_id: event_id, actor: actor, kind: :move, field: field, value: flips.length
         )
+        advance_turn!(state, actor, event_id, history)
+      end
+    end
+
+    def advance_turn!(state, actor, event_id, history)
+        marker = player_index(state[:players], actor)
         other = other_player(state[:players], actor)
-        state[:current_player] = if !available_fields(state[:board], player_index(state[:players], other)).empty?
+        state[:current_player] = if !available_fields(state[:board], player_index(state[:players], other), state[:options]).empty?
           other
-        elsif !available_fields(state[:board], marker).empty?
+        elsif !available_fields(state[:board], marker, state[:options]).empty?
           history << HistoryEntry.new(
             key: "pass:#{event_id}",
             text: _("%{player} has no legal move; the turn is passed.") % { player: participant_name(other) },
@@ -250,7 +311,6 @@ module GameRoomGames
             history << result_history(event_id: event_id, winner: state[:winner])
           end
         end
-      end
     end
 
     def initial_board
@@ -262,15 +322,15 @@ module GameRoomGames
       board
     end
 
-    def available_fields(board, marker)
+    def available_fields(board, marker, options = nil)
       return [] if marker == nil
 
-      key = [board.flatten.map { |cell| cell == nil ? "-" : cell }.join, marker]
+      key = [board.flatten.map { |cell| cell == nil ? "-" : cell }.join, marker, rules_key(options)]
       @reversi_moves_cache ||= {}
       return @reversi_moves_cache[key] if @reversi_moves_cache.key?(key)
       @reversi_moves_cache.clear if @reversi_moves_cache.length >= 8_000
       @reversi_moves_cache[key] = (0...SIZE).flat_map do |y|
-        (0...SIZE).filter_map { |x| [x, y] if !flips_for(board, x, y, marker).empty? }
+        (0...SIZE).filter_map { |x| [x, y] if legal_placement?(board, x, y, marker, options) }
       end
     end
 

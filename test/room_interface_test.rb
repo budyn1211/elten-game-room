@@ -157,7 +157,7 @@ Form.driver = lambda do |form|
 end
 app.send(:show_table_screen, row)
 assert(waiting_step == 4 && sent_invitations == [:online, :contacts], "waiting-room invitation menus lost their invite source")
-assert(opened_rules == [[game.id, {}]], "waiting-room rules button did not open the current game rules")
+assert(opened_rules == [[game.id, game.options_from_json(row["game_options"])]], "waiting-room rules button did not open the current game rules")
 
 # Drive the real active-game form twice, checking focus, menu dispatch and
 # preservation of the shell across a game refresh.
@@ -335,7 +335,8 @@ match_repository.define_singleton_method(:confirmed_event_ids) { |_current| matc
 match_repository.define_singleton_method(:events_revision) { |events| [events.length, events.last.to_h["id"].to_i] }
 match_repository.define_singleton_method(:next_sequence) { |_current, events| events.length + 1 }
 writes = 0
-match_repository.define_singleton_method(:append_events) do |session:, sequence:, events:, recipients:, actor:|
+match_repository.define_singleton_method(:append_events) do |session:, sequence:, events:, recipients:, actor:, controller: false|
+  assert(!controller, "human interface action used the computer controller")
   writes += 1
   inserted = events.map.with_index do |event, index|
     { "id" => sequence + index, "actor" => actor, "action" => event.action, "value" => event.value }
@@ -405,14 +406,13 @@ assert(writes == 1 && match_events.length == 7, "a finished-game action wrote ex
 assert(match_alerts == ["The game has already ended."], "finished-game action did not announce its rejection")
 assert(match_controls.first.instance_variable_get(:@timers).empty?, "finished game left a timer running")
 
-# Delete on a middle computer uses the unchanged repository operation and
-# count-only wire data. The UI keeps a valid row as the numbering contracts.
-bot_table = row.merge("game" => "farkle", "bot_count" => 3)
+# The UI keeps a valid row as slots contract. Named seats use the same path.
+bot_table = row.merge("game" => "farkle", "bot_count" => 3, "__discovery_protocol" => 5)
 bot_updates = []
 bot_transport = Object.new
 bot_transport.define_singleton_method(:live_store?) { true }
 bot_transport.define_singleton_method(:room_snapshot) do |_table|
-  { table: bot_table.dup, members: ["Alice"], bots: GameRoomParticipants.bots_for(7, bot_table["bot_count"]) }
+  { table: bot_table.dup, members: ["Alice"], bots: GameRoomParticipants.bots_for(7, bot_table["bot_count"], names: bot_table["bot_names"]) }
 end
 bot_transport.define_singleton_method(:update_room) do |_table, changes, actor:|
   assert(actor == "Alice", "computer update lost its owner")
@@ -445,7 +445,7 @@ bot_layout.users.context(bot_delete_menu, false)
 bot_global_menu = FakeMenu.new
 bot_layout.form.context(bot_global_menu, false)
 bot_delete_menu.options.find { |option| option[2] == :del }[3].call
-assert(bot_updates == [{ "bot_count" => 2 }], "Delete changed the protocol instead of decrementing the bot count")
+assert(bot_updates == [{ "bot_count" => 2, "bot_names" => [nil, nil] }], "Delete did not update computer slots atomically")
 bot_layout.update_users(rows_for_bots.call)
 assert(bot_layout.users.index == 2 && bot_layout.selected_participant == "bot:7:2", "middle-computer Delete moved the list position")
 bot_manager.send(:change_room_computer, bot_table, :remove_bot, "bot:7:2")

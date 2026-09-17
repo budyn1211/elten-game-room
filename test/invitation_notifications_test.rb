@@ -69,6 +69,7 @@ require_relative "support/ui"
 
 class Program
   def self.server_app(**_options); end
+  def self.server_app_uuid; "468f59c5-c9d7-47cd-80f1-1a6fbfd1aa80"; end
 end
 
 module Session

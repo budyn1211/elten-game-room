@@ -96,6 +96,13 @@ class InvitationNotifications
 
   def matching_table_notification_id(notification, table_id, live_session_id)
     metadata = invitation_metadata(notification)
+    if metadata == nil && same_app?(notification) && defined?(GameRoomTableWatch)
+      payload = notification.respond_to?(:payload) ? notification.payload : nil
+      if payload.is_a?(Hash) && hash_value(payload, "type") == GameRoomTableWatch::TYPE
+        value = hash_value(payload, "metadata")
+        metadata = value if value.is_a?(Hash) && !live_session_id.to_s.empty? && hash_value(value, "live_session_id").to_s == live_session_id.to_s
+      end
+    end
     return nil if metadata == nil
     return nil if hash_value(metadata, "table_id").to_i != table_id
     native_id = hash_value(metadata, "live_session_id").to_s

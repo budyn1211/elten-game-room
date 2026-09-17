@@ -242,7 +242,7 @@ module GameRoomLayout
         previous = new_game || reset_surface ? nil : @surface
         @surface = if view_spec.surface == nil
           nil
-        elsif hand_update
+        elsif hand_update || view_spec.surface.is_a?(GameSurfaces::WordBoardSpec) || view_spec.surface.is_a?(GameSurfaces::TabooSpec)
           GameSurfaces.reconcile(view_spec.surface, previous: previous, state: state)
         else
           GameSurfaces.build(view_spec.surface, state: state)

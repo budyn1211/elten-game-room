@@ -161,9 +161,12 @@ driver = lambda do |current|
   app.instance_variable_set(:@game_room_volume_group, 0)
   current.fields[0].index = 2
   current.fields[0].trigger(:move)
-  assert(current.fields[7..11].all? { |control| control.is_a?(ListBox) && !current.hidden_controls.include?(control) }, "sound levels are not five lists")
+  sound_fields = GameRoomPreferences::SOUND_GROUPS.map do |group|
+    current.fields.find { |control| control.header == GameRoomUI::VOLUME_LABELS.fetch(group) }
+  end
+  assert(sound_fields.all? { |control| control.is_a?(ListBox) && !current.hidden_controls.include?(control) }, "sound levels are not five lists")
   EltenAPI::QuickActions.hotkey_actions(3).each(&:call)
-  assert(current.fields[7].index == settings_before["sound_volumes"]["all"] + 10, "settings keys/list disagree")
+  assert(sound_fields.first.index == settings_before["sound_volumes"]["all"] + 10, "settings keys/list disagree")
   current.cancel_button.trigger(:press)
 end
 assert(GameRoomScreens::Settings.new(state, games: [], program: app).wait == nil, "Cancel did not close settings")

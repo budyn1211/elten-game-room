@@ -58,7 +58,7 @@ module GameRoomGames
           _("Simple Makao is the default: no jokers, mixing two/three penalties, cumulative fours, suit-changing aces and playing a drawn card are enabled; jack requests, universal queens and attacking kings are disabled. Polish extended Makao adds those three features, still without jokers. Makao with jokers adds two jokers and attacking kings to the simple profile, fixes the deal at five cards, and leaves jack requests and universal queens off."),
           _("Custom rules exposes every special-rule switch described above: jokers, mixed twos/threes, cumulative fours, ace suit changes, jack requests, universal queens, attacking kings and playing a drawn card. These values are remembered locally for the next custom table, not imposed on other people's tables. Cards dealt to each player can be 3–15, default 5, except in the fixed joker profile. The chosen player count and hand size must leave a card for the table."),
           _("Cards drawn for missing Makao defaults to 1, from 1 to 10, in every profile. Say Makao once your hand contains one card. Another player may catch the omission before your next turn and make you draw this many cards. Playing your last card ends the game; there is no points-elimination tournament in this implementation."),
-          _("Bot move delay is 1–5 seconds, default 1. It delays only computer decisions; it does not delay human moves or synchronization.")),
+          _("The shared bot move delay defaults to one second in Makao. You may announce or catch Makao during the computer's turn, including its waiting time.")),
         rule_section(:controls, _("Preparing and playing a packet"),
           _("Arrow keys browse your hand. Enter plays the current card, or the prepared packet, opening any required declaration list. Shift+Enter adds or removes a card from the packet in selection order; Enter also includes the current card if it is not selected yet. P reads the prepared packet in selection order; Shift+P clears it. Space draws, or ends the turn after an ordinary draw. If you cannot defend against a draw or waiting penalty, the game accepts it automatically."),
           _("C reads the table card and declaration, G the pending penalty, T the turn, E card counts and D your hand. U says Makao, Shift+U catches another player. A declaration or catch does not require your ordinary turn."))
@@ -87,8 +87,7 @@ module GameRoomGames
           visible_if: custom_rules),
         OptionDefinition.new(key: "draw_responses", label: _("A drawn playable card may be played immediately"), kind: :boolean, default: true,
           visible_if: custom_rules),
-        OptionDefinition.new(key: "makao_penalty", label: _("Cards drawn for missing Makao"), kind: :integer, default: 1),
-        OptionDefinition.new(key: "bot_delay", label: _("Bot move delay in seconds (1 to 5)"), kind: :integer, default: 1)
+        OptionDefinition.new(key: "makao_penalty", label: _("Cards drawn for missing Makao"), kind: :integer, default: 1)
       ]
     end
 
@@ -121,7 +120,8 @@ module GameRoomGames
       values = normalize_options(options)
       return _("The hand size must be from 3 to 15.") if !values["hand_size"].to_i.between?(3, 15)
       return _("The Makao penalty must be from 1 to 10.") if !values["makao_penalty"].to_i.between?(1, 10)
-      return _("Bot move delay must be from 1 to 5 seconds.") if !values["bot_delay"].to_i.between?(1, 5)
+      delay_error = bot_delay_options_error(values)
+      return delay_error if delay_error
       if player_count && player_count.to_i * values["hand_size"].to_i >= (values["jokers"] ? 54 : 52)
         return _("There are not enough cards to deal this many cards to every player.")
       end
@@ -179,9 +179,7 @@ module GameRoomGames
       super
     end
 
-    def bot_move_delay(replay, _actor, context: nil)
-      [[replay.state[:options]["bot_delay"].to_i, 1].max, 5].min
-    end
+    def default_bot_move_delay; 1; end
 
     def actions_during_bot_turn?
       true

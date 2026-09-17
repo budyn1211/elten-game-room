@@ -11,6 +11,16 @@ module Session
   end
 end
 
+class EditBox
+  module Flags
+    Numbers = 8
+  end
+
+  def select_all
+    @index, @check = 0, text.length
+  end
+end
+
 class Static < FakeControl
   attr_reader :text
 
@@ -138,4 +148,56 @@ multiple_options = app.send(:configure_game_options, multiple_choice_game)
 assert(multiple_step == 2, "the multiple-choice option test did not rebuild the form")
 assert(multiple_options["topics"] == 3, "the rebuilt form lost its multiple-choice mask")
 
+class CheckBox < FakeControl
+  attr_accessor :checked
+  def initialize(label, checked: false)
+    super()
+    @header, @checked = label, checked
+  end
+end
+
+# Exercise dependent defaults and visibility through the actual shared editor,
+# not only by calling each game's normalization method in isolation.
+rummy = GameRoomGames::Rummy.new
+Form.driver = lambda do |form|
+  field = ->(key) { form.fields.find { |control| control.header == rummy.effective_option_definitions.find { |d| d.key == key }.label } }
+  assert(form.fields.count { |control| control.is_a?(ListBox) } == 1, "Rummy added a list besides discard mode")
+  elimination, limit = field.call("elimination"), field.call("score_limit")
+  assert(limit.text == "1000", "normal Rummy limit")
+  elimination.checked = true
+  elimination.trigger(:change)
+  assert(limit.text == "500", "elimination did not update the default limit in the editor")
+  limit.text = "1500"
+  elimination.checked = false
+  elimination.trigger(:change)
+  assert(limit.text == "1500", "variant change overwrote a custom limit")
+  form.accept_button.trigger(:press)
+end
+assert(app.send(:configure_game_options, rummy)["score_limit"] == 1500, "Rummy editor lost customized value")
+
+domino = GameRoomGames::Domino.new
+Form.driver = lambda do |form|
+  field = ->(key) { form.fields.find { |control| control.header == domino.effective_option_definitions.find { |d| d.key == key }.label } }
+  dependencies = %w[allow_playable_draw draw_until].map { |key| field.call(key) }
+  assert(dependencies.none? { |control| form.hidden_controls.include?(control) }, "drawing options hidden before prohibition")
+  assert(form.hidden_controls.include?(field.call("whole_team")), "whole team visible in individual play")
+  field.call("forbid_draw").checked = true
+  field.call("forbid_draw").trigger(:change)
+  assert(dependencies.all? { |control| form.hidden_controls.include?(control) }, "forbidden drawing leaves dependent options visible")
+  field.call("teams").checked = true
+  field.call("teams").trigger(:change)
+  assert(!form.hidden_controls.include?(field.call("whole_team")), "team variant hides team finish")
+  form.accept_button.trigger(:press)
+end
+domino_options = app.send(:configure_game_options, domino)
+assert(domino_options["forbid_draw"] && !domino_options["draw_until"] && !domino_options["allow_playable_draw"], "hidden drawing options affect actual rules")
+
+Form.driver = lambda do |form|
+  limit = form.fields.find { |control| control.header == rummy.option_definitions.find { |d| d.key == 'score_limit' }.label }
+  assert(limit.text == '1700', 'editing a table starts from its current values')
+  assert(form.accept_button.label == 'Save changes', 'editing must not say Create table')
+  form.accept_button.trigger(:press)
+end
+edited = app.send(:configure_game_options, rummy, initial_options: rummy.normalize_options('score_limit' => 1700), submit_label: 'Save changes')
+assert(edited['score_limit'] == 1700, 'save replaced the current options with remembered defaults')
 puts "Game option form tests passed"

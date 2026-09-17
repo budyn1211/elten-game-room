@@ -18,6 +18,8 @@ module GameRoomParticipantMenu
       Entry.new(action: :play_next_game, label: _("Play in the next game"), menu_key: "O", help_key: "Ctrl+Shift+O"),
       Entry.new(action: :rules, label: _("Game rules"), menu_key: :ctrl_f1, help_key: "Ctrl+F1"),
       Entry.new(action: :table_options, label: _("Read the table variant and settings"), menu_key: "r", help_key: "Ctrl+R"),
+      Entry.new(action: :edit_options, label: _("Change settings for the next game"), menu_key: "x", help_key: "Ctrl+X"),
+      Entry.new(action: :abort_game, label: _("End the current game without closing the table"), menu_key: "q", help_key: "Ctrl+Q"),
       Entry.new(action: :save_game, label: _("Save the game and close the table"), menu_key: "s", help_key: "Ctrl+S"),
       Entry.new(action: :leave, label: _("Leave"), menu_key: "")
     ]
@@ -40,6 +42,12 @@ module GameRoomParticipantMenu
     room.observer?(viewer) ? [:play_next_game] : [:observe_next_game]
   end
 
+  def lifecycle_actions(active:, viewer:, owner:, restoring: false, frozen: false, compatible: true)
+    return [] unless GameRoomParticipants.same?(viewer, owner)
+    return [] if restoring || frozen || !compatible
+    active ? [:abort_game] : [:edit_options]
+  end
+
   def bind(layout, available:, read_options: nil, &dispatch)
     supplied = available
     available = -> { supplied.call + (read_options == nil ? [] : [:table_options]) }
@@ -48,7 +56,11 @@ module GameRoomParticipantMenu
       entries.each do |entry|
         next if !actions.include?(entry.action)
 
-        menu.option(entry.label, nil, entry.menu_key) do
+        # Ctrl+X belongs to the text editor while typing. The same command is
+        # still available by selecting its context-menu item with the arrows.
+        focused = layout.form.fields[layout.form.index.to_i]
+        key = entry.action == :edit_options && focused.is_a?(EditBox) ? "" : entry.menu_key
+        menu.option(entry.label, nil, key) do
           next if !available.call.include?(entry.action)
 
           if entry.action == :table_options

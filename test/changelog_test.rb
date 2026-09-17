@@ -142,4 +142,10 @@ release_translations.each do |source, translation|
   assert(catalog[source] == translation, "uncompiled build 226 translation: #{source}")
 end
 
+entry_227 = entries.find { |entry| entry.build == 227 }
+release_2 = JSON.parse(File.read(File.expand_path('../locale/changelog-build-227-pl.json', __dir__), encoding: 'UTF-8'))
+assert(entry_227.version == '2.0' && entry_227.changes == release_2.keys, '2.0 changelog and translations differ')
+release_2.each { |source, translation| assert(catalog[source] == translation, "uncompiled 2.0 translation: #{source}") }
+assert(GameRoomChangelog.pending_entries(226, 227).map(&:build) == [227], '2.0 duplicates old build headings')
+
 puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage and main menu"

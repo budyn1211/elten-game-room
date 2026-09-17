@@ -74,6 +74,13 @@ module FarklePlanning
       limit = state[:options]["score_limit"].to_i
       minimum = banked.zero? ? state[:options]["entry_minimum"].to_i : state[:options]["turn_minimum"].to_i
       leader = state[:scores].reject { |candidate, _| candidate == player }.values.max.to_i
+      @new_rules = state[:options]["farkle_rules_version"].to_i >= 2
+      @leader = leader
+      @remaining_turns = state[:players].length - state[:players].index(player).to_i - 1
+      @last_player = @remaining_turns == 0
+      @final_round = state[:final_round] == true
+      @terminal_race = @new_rules && @last_player && (@final_round || banked + state[:turn_points].to_i >= limit)
+      @race_key = [@new_rules,@leader,@remaining_turns,@final_round,@terminal_race]
       # A small curvature changes risk preference, not the amount of searching.
       # No giant bonus for a remote hypothetical winning roll.
       @risk_exponent = if leader >= limit * 0.8 && leader > banked
@@ -105,7 +112,7 @@ module FarklePlanning
       winning = actions.select do |action|
         details = game.bot_keep_details(replay, action)
         total = details && replay.state[:turn_points].to_i + details[:points]
-        total && total >= minimum && banked + total >= limit
+        total && total >= minimum && guaranteed_win?(banked + total,limit)
       end
       return winning.max_by { |action| game.bot_keep_details(replay, action)[:points] } unless winning.empty?
 
@@ -129,9 +136,12 @@ module FarklePlanning
     def choose_roll_or_bank(actions, state, banked, limit, minimum)
       bank = actions.find { |action| action["action"].to_s == "bank" }
       roll = actions.find { |action| action["action"].to_s == "roll" }
-      return bank if bank != nil && banked + state[:turn_points].to_i >= limit
+      return bank if bank != nil && guaranteed_win?(banked + state[:turn_points].to_i,limit)
       return roll if bank == nil
       return bank if roll == nil
+      # Banking a known loss cannot improve on a legal chance to catch up,
+      # even when doing so needs more rolls than our finite search horizon.
+      return roll if @terminal_race && banked + state[:turn_points].to_i < @leader
 
       bank_value = bank_payoff(state[:turn_points].to_i, banked, limit)
       roll_value = expected_roll_value(
@@ -146,12 +156,13 @@ module FarklePlanning
     end
 
     def decision_value(dice, turn_points, banked, limit, minimum, depth)
-      key = [dice, turn_points, banked, limit, minimum, depth, @risk_exponent]
+      key = [dice, turn_points, banked, limit, minimum, depth, @risk_exponent, @race_key]
       cached = @memo[key]
       return cached if cached != nil
 
       can_bank = turn_points >= minimum
       bank_value = can_bank ? bank_payoff(turn_points, banked, limit) : -Float::INFINITY
+      return @memo[key] = bank_value if can_bank && guaranteed_win?(banked+turn_points,limit)
       if depth <= 0
         return @memo[key] = (can_bank ? bank_value : 0.0)
       end
@@ -166,7 +177,7 @@ module FarklePlanning
       denominator = 6**dice.to_i
       total_value = @catalog.for_dice(dice).sum do |outcome|
         value = if outcome.choices.empty?
-          0.0
+          @terminal_race ? bank_payoff(0,banked,limit) : 0.0
         else
           outcome.choices.map do |points, kept|
             remaining = dice.to_i - kept.to_i
@@ -187,9 +198,28 @@ module FarklePlanning
     end
 
     def bank_payoff(turn_points, banked, limit)
+      if @terminal_race
+        total = banked + turn_points
+        return 1.0 if total > @leader
+        return 0.5 if total == @leader
+        return 0.0
+      end
       needed = [limit - banked, 1].max.to_f
-      progress = [[turn_points / needed, 0.0].max, 1.0].min
-      needed * progress**(@risk_exponent || 1.0)
+      progress = [turn_points / needed, 0.0].max
+      progress = [progress,1.0].min unless @new_rules
+      value = needed * progress**(@risk_exponent || 1.0)
+      # Above the threshold points still protect a lead against players who
+      # have not taken their turn yet. This does not add search branches.
+      if @new_rules && @final_round
+        before = [banked-@leader,0].max
+        after = [banked+turn_points-@leader,0].max
+        value += (after-before).to_f / (@remaining_turns+1)
+      end
+      value
+    end
+
+    def guaranteed_win?(total,limit)
+      total >= limit && (!@new_rules || (@last_player && total > @leader))
     end
   end
 end

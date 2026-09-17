@@ -81,7 +81,7 @@ class GridBox < FakeControl
 end
 
 class ListBox < FakeControl
-  attr_accessor :index, :header, :next_character, :options
+  attr_accessor :index, :header, :next_character, :options, :empty_label
   attr_reader :last_focus_spoken, :last_focus_header
 
   module Flags
@@ -94,6 +94,7 @@ class ListBox < FakeControl
     @header = header
     @index = index
     @flags = flags
+    @empty_label = empty_label
     @selected = Array.new(options.length, false)
   end
 
