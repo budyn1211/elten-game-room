@@ -1,4 +1,4 @@
-# Game Room 2.0 — build 227
+# Game Room 2.0 — build 228
 
 ## Polski
 
@@ -34,6 +34,8 @@
 
 - Nowe stoły wymagają Game Roomu 2.0 u wszystkich uczestników, aby każdy korzystał z tych samych zasad i poleceń pokoju. Dotychczasowe lokalne zapisy partii pozostają dostępne.
 
+- Poprawiono kodowanie tekstów w ustawieniach gier, w tym błąd pól wyboru Reversi występujący przy różnych językach interfejsu Game Roomu i ELTEN-a.
+
 ## English
 
 - Five new games: Rummy, Domino, Mexican Train, Scrabble and Taboo. Each has detailed rules and keyboard help in Polish and English.
@@ -67,3 +69,5 @@
 - Game lists are sorted alphabetically using names in the interface language. Ninety-nine is now displayed as 99.
 
 - New tables require Game Room 2.0 for all participants, so everyone uses the same game rules and table controls. Existing local saved games are retained.
+
+- Fixed text encoding in game settings, including a Reversi checkbox crash when Game Room and ELTEN use different interface languages.

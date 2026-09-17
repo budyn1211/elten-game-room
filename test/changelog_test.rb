@@ -148,4 +148,23 @@ assert(entry_227.version == '2.0' && entry_227.changes == release_2.keys, '2.0 c
 release_2.each { |source, translation| assert(catalog[source] == translation, "uncompiled 2.0 translation: #{source}") }
 assert(GameRoomChangelog.pending_entries(226, 227).map(&:build) == [227], '2.0 duplicates old build headings')
 
-puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage and main menu"
+entry_228 = entries.find { |entry| entry.build == 228 }
+release_228 = JSON.parse(File.read(File.expand_path("../locale/changelog-build-228-pl.json", __dir__), encoding: "UTF-8"))
+assert(entry_228.version == "2.0" && entry_228.changes == release_228.keys, "build 228 changelog and translations differ")
+assert(entry_228.changes[0...-1] == entry_227.changes, "build 228 changed the copied changelog")
+assert(entry_228.changes.length == entry_227.changes.length + 1 && entry_228.changes.last.include?("text encoding"),
+  "build 228 must add only the encoding correction")
+release_228.each { |source, translation| assert(catalog[source] == translation, "uncompiled build 228 translation: #{source}") }
+assert(GameRoomChangelog.pending_entries(227, 228).map(&:build) == [228], "build 228 repeats already-read build headings")
+current_lines = GameRoomChangelog.list_items(GameRoomChangelog.pending_entries(227, 228))
+assert(current_lines.first == "Version 2.0, build 228" && current_lines.length == entry_228.changes.length + 1,
+  "build 228 must have one version heading")
+document = File.read(File.expand_path("../docs/CHANGELOG_2_0.md", __dir__), encoding: "UTF-8")
+assert(document.start_with?("# Game Room 2.0 — build 228"), "release document has a stale build heading")
+polish, english = document.split("## English", 2)
+assert(polish.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } == release_228.values,
+  "Polish release document differs from the in-game changelog")
+assert(english.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } == entry_228.changes,
+  "English release document differs from the in-game changelog")
+
+puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, main menu and build 228 notes"

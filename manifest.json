@@ -3,7 +3,7 @@
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
   "version": "2.0",
-  "build_id": "227",
+  "build_id": "228",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": [

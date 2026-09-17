@@ -1,5 +1,23 @@
 # Instrukcje dla agentów pracujących nad ELTEN Game Room
 
+## Build 228 — kodowanie ustawień, 17 września 2026
+
+Użytkownik polecił zbudować i podpisać 2.0/build 228, kopiując cały changelog
+227 i dopisując tylko poprawkę kodowania w PL/EN. Następnie, po pozytywnej
+weryfikacji gotowej paczki, wysłać źródła na GitHub. Bez instalacji
+i publikacji na ELTEN-ie; poprzednią paczkę 227 pozostawić bez zmian.
+Naprawa wspólnych OptionDefinition/OptionChoice normalizuje etykiety
+do UTF-8. Brak tłumaczenia angielskiej etykiety z myślnikiem pozostawiał
+ASCII-8BIT; rosyjski opis stanu CheckBox wywoływał wyjątek. Nie zmieniać
+reguł Reversi, wartości opcji ani globalnych kontrolek/gettext hosta.
+Źródłowe testy regresji objęły 23 gry, 72 formularze i 276 stanów pól;
+dodatkowo sprawdzono rzeczywisty kod CheckBox. Dotychczasowa paczka 227
+odtwarza błąd. Nową sprawdzić również przez
+`test/game_option_encoding_test.rb PACZKA`, kontrolę podpisu i zgodności
+źródeł. Tylko testy celowane, bez pełnego runnera. Raport przygotowania
+i wynik końcowy poza repo: `../diagnostics/option-encoding-228/`.
+Poniższe wpisy 227 opisują poprzednie etapy, nie bieżący numer wydania.
+
 ## Komunikaty dodania/usunięcia nazwanych botów — 17 września 2026
 
 Po ręcznym zgłoszeniu stwierdzono, że poprzednia paczka z imionami nadal
@@ -546,6 +564,24 @@ definicje co rzeczywiste skróty (`GameRoomContextHelp`), nie dopisuj na stałe
 tipsów zależnych od fazy. Szczegóły: `docs/VOLUME_AND_HELP_224.md`.
 
 - Najpierw odtwórz problem i wskaż warstwę, która jest jego właścicielem.
+- Kodowanie tekstów UI sprawdzaj również w paczce: ELTEN może wczytać źródła
+  jako ASCII-8BIT, a brak tłumaczenia w `_()` pozostawia taki tekst bez zmiany.
+  Nawet angielska etykieta z myślnikiem „—”, znakiem „×” lub innym znakiem
+  spoza ASCII może wtedy wywołać Encoding::CompatibilityError przy doklejeniu
+  przez kontrolkę polskiego/rosyjskiego opisu roli lub stanu. Teksty i etykiety
+  przekazywane do kontrolek oraz składane komunikaty normalizuj do UTF-8 przez
+  `GameRoomContent.utf8`, przed łączeniem/formatowaniem. Nie zmieniaj ID,
+  wartości opcji ani binarnych danych, nie nadpisuj globalnego gettext ani
+  kontrolek ELTEN-a i nie maskuj problemu usuwaniem znaków diakrytycznych.
+  Etykiety `OptionDefinition` i `OptionChoice` normalizuje wspólny szkielet;
+  nowe ustawienia mają go używać. Test musi przejść przez rzeczywiste
+  tworzenie formularza i odczyt fokusu/stanu, także brakujące tłumaczenie
+  Game Roomu obok tłumaczenia hosta. Nie wymuszaj UTF-8 w atrapach `_()` lub
+  kontrolek, jeśli host tego nie robi — ukrywa to regresje. Używaj
+  `test/game_option_encoding_test.rb` (źródła binarne; EN, PL oraz angielski
+  tekst z rosyjskim hostem), a przy kolejnym pakowaniu także argumentu
+  ze ścieżką gotowej paczki. Sam zwykły `require` albo test wyłącznie PL
+  nie wystarcza do potwierdzenia zgodności.
 - Tasowanie musi być zgodne z ELTEN-em: host nadpisuje `Array#shuffle`
   i `shuffle!` metodami bez argumentów. Nie używaj ich w kodzie partii ani
   planerów, zwłaszcza `shuffle(random: ...)`. Dla nowych wywołań stosuj

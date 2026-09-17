@@ -4,7 +4,7 @@
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
   "version": "2.0",
-  "build_id": "227",
+  "build_id": "228",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -99,7 +99,7 @@ require_relative "games/registry"
 class EltenGameRoom < Program
   extend GameRoomTableWatchRuntime
   GAME_ROOM_VERSION = "2.0".freeze
-  GAME_ROOM_BUILD_ID = 227
+  GAME_ROOM_BUILD_ID = 228
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
   NOTIFICATION_CONTACT_CACHE_SECONDS = 5 * 60
