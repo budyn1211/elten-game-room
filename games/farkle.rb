@@ -30,9 +30,13 @@ module GameRoomGames
         rule_section(:banking, GameRoomRules.translate("When you can stop, and when the game ends"),
           GameRoomRules.translate("The first bank has its own minimum, normally 50 points. Until you have a positive saved score, you must collect at least that much in a single turn to bank. Later turns use the ordinary banking minimum, normally 30. Both settings can be changed at the table."),
           GameRoomRules.translate("The winning score defaults to 1000. Reaching it with unbanked points is not enough: you must bank them. Once someone banks enough, the current circuit continues through the last player in seating order. Players who have already played in that circuit do not receive another turn. The highest score then wins; equal highest scores give a draw. Older saved games may retain the earlier immediate-win rule.")),
-        rule_section(:controls, GameRoomRules.translate("Rolling, keeping and banking"),
-          GameRoomRules.translate("Up and Down: browse scoring combinations, Roll and Bank in one list. Enter: perform the selected action."),
-          GameRoomRules.translate("D: latest roll. C: turn points and required minimum. S: all scores. T: whose turn it is."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: browse scoring combinations, Roll and Bank."),
+          GameRoomRules.translate("Enter: perform the selected action."),
+          GameRoomRules.translate("D: read the latest roll."),
+          GameRoomRules.translate("C: read turn points and the required minimum."),
+          GameRoomRules.translate("S: read scores."),
+          GameRoomRules.translate("T: read whose turn it is."))
       ]
     end
 
@@ -358,7 +362,7 @@ module GameRoomGames
       state = replay.state
       case feature.to_sym
       when :scores
-        { message: scores_text(state) }
+        { message: scores_text(state, sorted: true) }
       when :current_total
         { message: current_total_text(state, viewer) }
       when :last_roll
@@ -662,8 +666,9 @@ module GameRoomGames
       index == nil ? nil : players[(index + 1) % players.length]
     end
 
-    def scores_text(state)
-      values = state[:players].map do |player|
+    def scores_text(state, sorted: false)
+      players = sorted ? score_announcement_order(state[:players], state[:scores]) : state[:players]
+      values = players.map do |player|
         _("%{player}: %{score}") % {
           player: participant_name(player),
           score: state[:scores].fetch(player, 0)

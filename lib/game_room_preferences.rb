@@ -26,11 +26,13 @@ module GameRoomPreferences
       "announce_computer_changes" => true,
       "lobby_games" => games,
       "invitation_notifications" => "everyone",
+      "table_watch_contacts_only" => false,
       "game_sounds" => true,
       "room_membership_sounds" => true,
       "chat_sounds" => true,
       "invitation_sounds" => true,
       "widget_enabled" => true,
+      "widget_contacts_only" => false,
       "widget_games" => games.dup,
       "widget_known_games" => games.dup,
       "widget_show_unavailable" => false
@@ -63,6 +65,7 @@ module GameRoomPreferences
     result["lobby_games"] = selected_games(source, "lobby_games", allowed_games)
     result["widget_games"], result["widget_known_games"] = widget_selection(source, allowed_games)
     result["invitation_notifications"] = normalized_invitation_policy(result["invitation_notifications"])
+    %w[widget_contacts_only table_watch_contacts_only].each { |key| result[key] = source[key] == true }
     %w[
       game_sounds
       room_membership_sounds

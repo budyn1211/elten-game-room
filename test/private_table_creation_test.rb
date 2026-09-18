@@ -67,7 +67,9 @@ begin
       forms += 1
       assert(forms == 1, "creating a table opened another dialog after game settings")
       privacy = privacy_field(form)
-      assert(form.fields[form.index].equal?(privacy), "creation should focus privacy before game options")
+      assert(form.index == 0 && form.fields.first.is_a?(Static), "creation must focus the opening instructions")
+      assert(form.fields.first.text.start_with?("Choose game options"), "opening instructions were replaced")
+      assert(form.fields[1].equal?(privacy), "first Tab must still lead from instructions to privacy")
       assert(privacy.checked == false, "new tables should default to public")
       assert(form.fields.length > 5, "privacy was displayed without the game options")
       privacy.checked = private_table
@@ -111,6 +113,7 @@ ids.each do |id|
       waits += 1
       assert(waits == 1, "#{id}: extra creation window")
       privacy = privacy_field(form)
+      assert(form.index == 0 && form.fields.first.is_a?(Static), "#{id}: creation skipped the opening instructions")
       assert(privacy.checked == false, "#{id}: remembered privacy changed the next table")
       privacy.checked = private_table
       form.accept_button.trigger(:press)

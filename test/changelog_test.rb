@@ -170,10 +170,20 @@ assert(english.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } =
 entry_229 = entries.find { |entry| entry.build == 229 }
 release_229 = JSON.parse(File.read(File.expand_path("../locale/changelog-build-229-pl.json", __dir__), encoding: "UTF-8"))
 assert(entry_229.version == "2.0.1" && entry_229.changes == release_229.keys, "2.0.1 changelog and translations differ")
-assert(entry_229.changes.length == 14, "2.0.1 must retain its eleven notes and add privacy, widget defaults and domino sounds")
-assert(entry_229.changes[-3].include?("Private table checkbox") &&
-  entry_229.changes[-2].include?("New games are selected in the widget") &&
-  entry_229.changes[-1].include?("Domino and Mexican Train"), "2.0.1 is missing its latest corrections")
+assert(entry_229.changes.length == 29 && entry_229.changes.uniq.length == 29,
+  "2.0.1 must preserve twenty-eight notes and append only Krowa")
+assert(entry_229.changes[27].include?("Ctrl+F1"), "2.0.1 lacks the empty shortcut-list correction")
+assert(entry_229.changes.last.include?("Krowa by paulinux"), "Krowa or its requested author credit missing")
+assert(entry_229.changes[24].include?("random or manual") && entry_229.changes[25].include?("rocket-launch") &&
+  entry_229.changes[26].include?("opening instructions"), "2.0.1 lacks the latest agreed improvements")
+assert(entry_229.changes[22].include?("Battleship") && entry_229.changes[23].include?("Mancala"),
+  "new board games missing from release notes")
+assert(entry_229.changes[11].include?("Private table checkbox") &&
+  entry_229.changes[12].include?("New games are selected in the widget") &&
+  entry_229.changes[13].include?("Domino and Mexican Train"), "2.0.1 lost its earlier corrections")
+%w[contacts Turn-time token Poker Ctrl+R Keyboard Reshuffling Score].each_with_index do |topic, index|
+  assert(entry_229.changes[14 + index].include?(topic), "2.0.1 is missing #{topic}")
+end
 release_229.each { |source, translation| assert(catalog[source] == translation, "uncompiled 2.0.1 translation: #{source}") }
 assert(GameRoomChangelog.pending_entries(228, 229).map(&:build) == [229], "2.0.1 repeats already-read updates")
 assert(GameRoomChangelog.pending_entries(nil, 229).map(&:build) == [229], "first 2.0.1 launch repeats past updates")

@@ -88,10 +88,31 @@ module GameRoomGames
               houses: board[:bank_houses], hotels: board[:bank_hotels]
             }
           end),
-        rule_section(:controls, GameRoomRules.translate("Monopoly keys"),
-          GameRoomRules.translate("Arrows and Enter: choose the current action. I: player positions and field numbers. T: turn and phase. C: your cash. S: finances. F: current deed."),
-          GameRoomRules.translate("D: unowned properties. Shift+D: the board. V: your holdings. Shift+V: others' holdings. H: build. Shift+H: sell buildings. K: mortgage. Shift+K: unmortgage. Enter confirms in a list; Escape closes it."),
-          GameRoomRules.translate("E: prepare a trade. A: accept an incoming offer. R: reject it. During an auction, B enters your own bid and G accepts the suggested bid. Space: request rent when manual collection is awaiting your decision. P: pay to leave jail. J: use a jail card."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: choose the current action or property."),
+          GameRoomRules.translate("Enter: confirm the selected action."),
+          GameRoomRules.translate("Escape: close the current list."),
+          GameRoomRules.translate("I: read player positions and field numbers."),
+          GameRoomRules.translate("T: read the turn and phase."),
+          GameRoomRules.translate("C: read your cash."),
+          GameRoomRules.translate("S: read player finances."),
+          GameRoomRules.translate("F: read the current property's deed."),
+          GameRoomRules.translate("D: browse unowned properties."),
+          GameRoomRules.translate("Shift+D: browse the board."),
+          GameRoomRules.translate("V: browse your properties."),
+          GameRoomRules.translate("Shift+V: browse other players' properties."),
+          GameRoomRules.translate("H: build houses or hotels."),
+          GameRoomRules.translate("Shift+H: sell buildings."),
+          GameRoomRules.translate("K: mortgage properties."),
+          GameRoomRules.translate("Shift+K: unmortgage properties."),
+          GameRoomRules.translate("E: prepare a trade."),
+          GameRoomRules.translate("A: accept an incoming offer."),
+          GameRoomRules.translate("R: reject an incoming offer."),
+          GameRoomRules.translate("B: during an auction, enter your own total bid."),
+          GameRoomRules.translate("G: during an auction, accept the suggested bid."),
+          GameRoomRules.translate("Space: request rent when manual collection is available."),
+          GameRoomRules.translate("P: pay to leave jail."),
+          GameRoomRules.translate("J: use a get-out-of-jail card."))
       ]
     end
 
@@ -107,6 +128,7 @@ module GameRoomGames
         OptionDefinition.new(key: "automatic_rent", label: _("Pay rents automatically"), kind: :boolean, default: true),
         OptionDefinition.new(key: "auction_unsold", label: _("Put unsold properties up for auction"), kind: :boolean, default: false),
         OptionDefinition.new(key: "auction_decision_time", label: _("Auction decision time in seconds; 0 means no limit"), kind: :integer, default: 0,
+          summary_label: _("Auction decision time"), summary_unit: :seconds, omit_zero: true,
           visible_if: { "auction_unsold" => true })
       ]
     end
@@ -1740,7 +1762,8 @@ module GameRoomGames
     end
 
     def finances_text(state)
-      state[:players].map { |player| _("%{player}: cash %{cash}, net worth %{value}") % { player: participant_name(player), cash: state[:cash][player], value: net_worth(state, player) } }.join("; ")
+      worth = state[:players].to_h { |player| [player, net_worth(state, player)] }
+      score_announcement_order(state[:players], worth, eliminated: state[:bankrupt]).map { |player| _("%{player}: cash %{cash}, net worth %{value}") % { player: participant_name(player), cash: state[:cash][player], value: worth[player] } }.join("; ")
     end
 
     def deed_text(state, square)

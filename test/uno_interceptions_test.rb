@@ -246,7 +246,8 @@ end
 check.call("games with out-of-turn actions opt in; the five-second gate remains nonblocking") do
   EltenGameRoom::GAME_REGISTRY.ids.each do |id|
     game = EltenGameRoom::GAME_REGISTRY.build(id)
-    assert(game.actions_during_bot_turn? == ["uno", "makao"].include?(id), "Unexpected exception for #{id}")
+    # Taboo also accepts the moderator's out-of-turn buzzer; it has no bots.
+    assert(game.actions_during_bot_turn? == ["uno", "makao", "taboo"].include?(id), "Unexpected exception for #{id}")
     assert(game.bot_delay_revision(replay_of(position(uno)), [12, 20]) == [12, 20], "Pacing changed for #{id}") unless %w[uno rummy domino mexican_train].include?(id)
   end
   clock = 100.0

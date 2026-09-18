@@ -25,8 +25,9 @@ module GameRoomGames
           GameRoomRules.translate("Each turn consists of choosing one column. Your piece falls to the lowest empty square in that column. You cannot leave it suspended higher up: if the column is empty, it lands at the bottom; if it already holds two pieces, yours rests on top of them. A full column cannot accept another piece."),
           GameRoomRules.translate("A winning line may be horizontal, vertical or diagonal. All its pieces must touch: a gap or an opponent's piece breaks the line. Completing a line ends the game immediately. If all 42 squares fill up without a winner, the game is drawn."),
           GameRoomRules.translate("There are no optional board sizes or alternative placement rules in this game. Either player can be a bot.")),
-        rule_section(:controls, GameRoomRules.translate("Choosing a column"),
-          GameRoomRules.translate("Arrow keys: inspect the board. Enter: drop a piece into the selected column, regardless of the row you are inspecting."),
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: browse the board."),
+          GameRoomRules.translate("Enter: drop a piece into the selected column."),
           GameRoomRules.translate("T: read whose turn it is."))
       ]
     end

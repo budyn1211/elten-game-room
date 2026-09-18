@@ -66,6 +66,7 @@ read_string = lambda do |offset|
 end
 catalog = count.times.to_h { |i| [read_string.call(originals + i * 8), read_string.call(translated + i * 8)] }
 catalog.merge!(translations)
+catalog.merge!(JSON.parse(File.read(File.join(root, "locale/krowa-pl.json"), encoding: "UTF-8")))
 keys = catalog.keys.sort
 start = 28 + keys.length * 16
 blob = "".b

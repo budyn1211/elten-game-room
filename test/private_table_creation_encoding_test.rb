@@ -24,7 +24,10 @@ Form.option_encoding_driver = lambda do |form|
   fields = form.fields.select { |field| field.is_a?(CheckBox) && field.label == label }
   raise "Private table checkbox missing/duplicated" unless fields.length == 1
   field = fields.first
-  raise "Creation focus is not privacy" unless form.fields[form.index].equal?(field)
+  raise "Creation did not focus its opening instructions" unless form.index == 0 && form.fields.first.is_a?(Static)
+  raise "First Tab no longer leads to privacy" unless form.fields[1].equal?(field)
+  instruction = form.fields.first.text
+  raise "Opening instructions have incompatible encoding" unless (instruction + " Флажок").valid_encoding?
   raise "Privacy default changed" unless field.checked == false
   [false, true].each do |checked|
     native_checkbox.new(field.label, checked: checked).focus

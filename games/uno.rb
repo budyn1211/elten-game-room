@@ -84,12 +84,26 @@ module GameRoomGames
           GameRoomRules.translate("With interceptions enabled, trying a nonmatching card during someone else's turn says Too late and adds three penalty points. The card stays in your hand. This also applies during a bot's pause, without a special exemption for mistaken key presses. It does not apply to ordinary wrong moves on your own turn or to buzzer response windows. Score-limit elimination is checked at the round's end."),
           GameRoomRules.translate("Straights, off by default, lets you follow your own number-card play with consecutive numbers of the same colour, going up or down. For example, red eight, seven, six. Each card is a separate play. You can continue only until another player plays or intercepts; there is no separate timed straight window, and you cannot start the sequence out of turn."),
           GameRoomRules.translate("Zero and seven hand swapping is off by default. A seven exchanges your hand with a chosen opponent; a zero passes all active hands in the direction of play. Buzzer cards, also off, adds eight universal buzzer cards to Classic or No Mercy, not Flip. After a buzzer, everyone still active responds with B and the last responder draws two. Any card may follow a buzzer."),
-          GameRoomRules.translate("Thinking time is unlimited at zero, or can be set from one to 300 seconds. Expiry takes the pending drawing penalty, or one card if there is no penalty, then ends the turn. Buzzer responses and colour selection pause the timer. The game does not interrupt play with automatic time-remaining announcements.")),
-        rule_section(:controls, GameRoomRules.translate("Hand and reactions"),
-          GameRoomRules.translate("Z and Shift+Z can visit legal cards on your own turn in the basic game. This assistance is disabled with straights, interceptions or buzzer cards. A Wild requiring a colour choice is not played automatically by navigation."),
-          GameRoomRules.translate("Arrows and Enter: choose and play a card, then a colour or player if required. Space: draw. U: announce or catch UNO. B: respond to a buzzer. F: challenge Wild Draw Four."),
-          GameRoomRules.translate("C: top card. V: current colour. E: each player's card count. G: pending penalty. S: scores. T: whose turn it is."),
-          GameRoomRules.translate("Shift+C: toggle colour order. Shift+H: toggle value order. Shift+D or Shift+M: acquisition order. These only change your own view."))
+          GameRoomRules.translate("Thinking time is unlimited at zero, or can be set from one to 300 seconds. Expiry takes the pending drawing penalty, or one penalty card if there is no pending penalty, then ends the turn. This penalty also applies when you have already drawn voluntarily. Buzzer responses and colour selection pause the timer. The game does not interrupt play with automatic time-remaining announcements.")),
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: browse cards or colour choices."),
+          GameRoomRules.translate("Enter: play the card, or confirm the requested colour or player."),
+          GameRoomRules.translate("Space: draw a card or accept the pending draw penalty."),
+          GameRoomRules.translate("U: say UNO or catch a missing UNO."),
+          GameRoomRules.translate("B: respond to the buzzer."),
+          GameRoomRules.translate("F: challenge Wild Draw Four."),
+          GameRoomRules.translate("C: read the top card."),
+          GameRoomRules.translate("V: read the current colour."),
+          GameRoomRules.translate("E: read each player's card count."),
+          GameRoomRules.translate("G: read the pending penalty."),
+          GameRoomRules.translate("Z: next legal card on your turn; disabled with straights, interceptions or buzzer cards."),
+          GameRoomRules.translate("Shift+Z: previous legal card on your turn; disabled with straights, interceptions or buzzer cards."),
+          GameRoomRules.translate("Shift+D: restore acquisition order."),
+          GameRoomRules.translate("S: read scores."),
+          GameRoomRules.translate("T: read whose turn it is."),
+          GameRoomRules.translate("Shift+C: sort by suit or colour; press again to reverse the order."),
+          GameRoomRules.translate("Shift+H: sort by rank or value; press again to reverse the order."),
+          GameRoomRules.translate("Shift+M: restore the order in which cards were received."))
       ]
     end
 
@@ -116,7 +130,7 @@ module GameRoomGames
         OptionDefinition.new(key: "draw_until_playable", label: _("Draw until a playable card"), kind: :boolean, default: false),
         OptionDefinition.new(key: "no_mercy_limit", label: _("No Mercy card limit; zero disables it"), kind: :integer, default: 25,
           visible_if: NO_MERCY_DECK),
-        OptionDefinition.new(key: "thinking_time", label: _("Thinking time in seconds; zero means no limit"), kind: :integer, default: 0)
+        thinking_time_option
       ]
     end
 
@@ -135,7 +149,7 @@ module GameRoomGames
       if NO_MERCY_DECK.call(values) && mercy != 0 && !mercy.between?(10, 100)
         return _("The No Mercy card limit must be zero or from 10 to 100.")
       end
-      return _("Thinking time must be from 0 to 300 seconds.") if !values["thinking_time"].to_i.between?(0, 300)
+      return thinking_time_options_error(values) if thinking_time_options_error(values)
       bot_delay_options_error(values)
     end
 
@@ -144,6 +158,7 @@ module GameRoomGames
     end
 
     def default_bot_move_delay; 1; end
+    def thinking_time_range; 1..300; end
 
     def bot_delay_revision(replay, _revision)
       penalties = replay.history.to_a.each_with_object({}) do |entry, ids|
@@ -179,6 +194,7 @@ module GameRoomGames
       events.each do |event|
         break if state[:winner] != nil
         actor = repository.actor_of(event, session)
+        previous_recycle = state[:recycle]
         applied = case event["action"].to_s
         when "deal" then apply_deal(state, event, actor, repository, history)
         when "play" then apply_play(state, event, actor, repository, history)
@@ -192,7 +208,10 @@ module GameRoomGames
         when "buzz" then apply_buzz(state, event, actor, repository, history)
         else false
         end
-        accepted << event if applied
+        if applied
+          record_deck_reshuffle(history, previous_recycle, state[:recycle], repository.event_id(event))
+          accepted << event
+        end
       end
       state = state.merge(clock_offset: session["__clock_offset"].to_i) if session["__clock_offset"].to_i != 0
       state = state.merge(frozen_at: session["__frozen_at"]) if session["__frozen_at"] != nil
@@ -446,7 +465,7 @@ module GameRoomGames
         announcement_shortcut(key: "c", label: _("read the top card"), message: top_card_text(state)),
         announcement_shortcut(key: "v", label: _("read the current colour"), message: colour_text(state)),
         announcement_shortcut(key: "e", label: _("read card counts"), message: card_counts_text(state)),
-        announcement_shortcut(key: "s", label: _("read the scores"), message: scores_text(state)),
+        announcement_shortcut(key: "s", label: _("read the scores"), message: scores_text(state, sorted: true)),
         GameShortcut.new(key: "u", label: _("declare or catch UNO"), kind: :action, action_kind: "command", action_name: hand_for(state, viewer).length == 1 && !(state[:uno_declarations] || {})[player_key(state, viewer)] ? "uno" : (catchable_player(state, viewer) ? "catch" : "uno")),
         GameShortcut.new(key: "f", label: _("challenge Wild Draw Four"), kind: :action, action_kind: "command", action_name: "challenge"),
         announcement_shortcut(key: "g", label: _("read the draw obligation"), message: penalty_text(state)),
@@ -1491,8 +1510,9 @@ module GameRoomGames
       _("Current colour: %{colour}.") % { colour: COLOR_NAMES.fetch(colour, colour) }
     end
 
-    def scores_text(state)
-      state[:players].map { |player| _("%{player}: %{score}") % { player: participant_name(player), score: state[:scores][player] } }.join("; ")
+    def scores_text(state, sorted: false)
+      players = sorted ? score_announcement_order(state[:players], state[:scores], eliminated: state[:eliminated]) : state[:players]
+      players.map { |player| _("%{player}: %{score}") % { player: participant_name(player), score: state[:scores][player] } }.join("; ")
     end
 
     def card_counts_text(state)

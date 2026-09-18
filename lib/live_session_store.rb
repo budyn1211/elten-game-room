@@ -4,6 +4,7 @@ require "thread"
 require "digest"
 require_relative "game_participants"
 require_relative "network_errors"
+require_relative "game_session_clock"
 
 # The authoritative, ephemeral state of one Game Room table lives in one
 # discoverable LiveSession.  Every mutation is appended to the session stack;
@@ -14,7 +15,8 @@ class GameRoomLiveSessionStore
   PROTOCOL = 2
   FEATURE_DISCOVERY_PROTOCOL = 3
   LIFECYCLE_DISCOVERY_PROTOCOL = 4
-  CURRENT_DISCOVERY_PROTOCOL = 5
+  NAMED_SEATS_DISCOVERY_PROTOCOL = 5
+  CURRENT_DISCOVERY_PROTOCOL = 6
   MAX_CAPACITY = 8
   STACK_ENTRIES = 4_096
   STACK_ENTRY_BYTES = 16_384
@@ -32,6 +34,7 @@ class GameRoomLiveSessionStore
     :sender,
     :packet,
     :created_at,
+    :estimated_time,
     keyword_init: true
   )
 
@@ -53,6 +56,7 @@ class GameRoomLiveSessionStore
     @discovered = {}
     @pending_invitations = {}
     @resolved_invitations = {}
+    @private_game_messages = Hash.new { |hash, key| hash[key] = [] }
     @mutex = Mutex.new
   end
 
@@ -62,14 +66,35 @@ class GameRoomLiveSessionStore
     true
   end
 
+  # Private live messages never enter the public stack or replay. Consumers
+  # still validate the sender, game/round and commitment at the game layer.
+  def send_private_game(table_id:, session_id:, recipient:, payload:, message_id:)
+    session = active_session(table_id)
+    raise IOError, "The private game connection is unavailable" unless session&.respond_to?(:send_private)
+    raise ArgumentError, "Invalid private game payload" unless payload.is_a?(Hash) && JSON.generate(payload).bytesize <= 2048
+    session.send_private(recipient, {"type" => "game_room_private", "version" => 1,
+      "session_id" => session_id.to_i, "payload" => payload}, message_id: message_id, timeout: 5)
+  end
+
+  def private_game_messages_pending?(table_id, session_id)
+    @mutex.synchronize { @private_game_messages[table_id].any? { |item| item[:session_id] == session_id.to_i } }
+  end
+
+  def take_private_game_messages(table_id, session_id)
+    @mutex.synchronize do
+      messages = @private_game_messages.delete(table_id) || []
+      messages.select { |item| item[:session_id] == session_id.to_i }
+    end
+  end
+
   def create_room(name:, game:, owner:, game_options:, capacity: MAX_CAPACITY, private_table: false, resume_save_id: nil, bot_count: 0, bot_names: nil)
     start
     table_id = unused_identifier
     maximum = bounded_capacity(capacity)
     metadata = {
       "kind" => KIND,
-      # Named seats need clients which understand their persistent name codes.
-      # Older clients must not mistake a named computer for a human.
+      # Shared thinking-time rules require the same replay rules on all clients.
+      # Earlier clients must not join and silently ignore a clock/timeout event.
       "protocol" => CURRENT_DISCOVERY_PROTOCOL,
       "table_id" => table_id,
       "owner" => owner.to_s,
@@ -367,6 +392,9 @@ class GameRoomLiveSessionStore
     end
 
     game_session_id = unused_game_identifier(table_id)
+    # Persist and verify any local secrets before uploading an archive or
+    # making the restored game visible to other clients.
+    restore[:before_publish]&.call(game_session_id) if restore != nil
     # Keep one complete room-state record before the new game. The immutable
     # room identity remains in native session metadata. No current-game replay
     # is truncated, and chat already received by this client stays local.
@@ -805,6 +833,23 @@ class GameRoomLiveSessionStore
     existing = @mutex.synchronize { @sessions[table_id] }
     return existing if existing.equal?(session)
 
+    if session.respond_to?(:on_message)
+      session.on_message(with_metadata: true) do |sender, packet, info|
+        next unless info.respond_to?(:private?) && info.private? &&
+          info.recipient_user.to_s.casecmp(endpoint.user.to_s).zero? && packet.is_a?(Hash) &&
+          packet["type"] == "game_room_private" && packet["version"] == 1 &&
+          packet["session_id"].is_a?(Integer) && packet["session_id"].positive? &&
+          packet["payload"].is_a?(Hash) && JSON.generate(packet["payload"]).bytesize <= 2048
+        @mutex.synchronize do
+          next unless @sessions[table_id].equal?(session)
+          queue = @private_game_messages[table_id]
+          queue << {sender: sender.user.to_s, session_id: packet["session_id"],
+            payload: JSON.parse(JSON.generate(packet["payload"]))}
+          queue.shift while queue.length > 64
+        end
+      end
+    end
+
     if session.respond_to?(:on_stack_message)
       session.on_stack_message(with_metadata: true) do |sender, packet, info|
         ingest_record(
@@ -830,6 +875,7 @@ class GameRoomLiveSessionStore
           @sessions.delete(table_id) if @sessions[table_id].equal?(session)
           @pending_moves.delete(table_id)
           @recovered_moves.delete(table_id)
+          @private_game_messages.delete(table_id)
           @native_session_ids.delete(session.id.to_s) if session.respond_to?(:id)
         end
         emit_change(table_id, :closed, nil)
@@ -919,13 +965,22 @@ class GameRoomLiveSessionStore
     end
     result = session.stack_push(pending[:packet], message_id: pending[:message_id])
     sequence = extract_push_sequence(result)
+    clock_boundary = %w[game_started game_boundary].include?(pending[:packet]["kind"])
+    server_time = result.is_a?(Hash) ? (result.dig("entry", "created_at") || result["created_at"]) : nil
+    server_time = nil unless server_time.respond_to?(:to_i) && server_time.to_i.positive?
+    if clock_boundary
+      timestamp = server_time || (@record_clock ||= GameRoomSessionClock.new).server_now
+    else
+      timestamp = Time.now.to_i
+    end
     record = ingest_record(
       table_id,
       sequence: sequence,
       message_id: pending[:message_id],
       sender: pending[:sender],
       packet: pending[:packet],
-      created_at: Time.now.to_i
+      created_at: timestamp,
+      estimated_time: clock_boundary && server_time == nil
     )
     record || confirmed_record(table_id, pending)
   rescue StandardError => error
@@ -960,7 +1015,7 @@ class GameRoomLiveSessionStore
     sequence
   end
 
-  def ingest_record(table_id, sequence:, message_id:, sender:, packet:, created_at:)
+  def ingest_record(table_id, sequence:, message_id:, sender:, packet:, created_at:, estimated_time: false)
     seq = sequence.to_i
     identity = message_id.to_s
     return nil if seq <= 0 || identity.empty? || !packet.is_a?(Hash)
@@ -976,11 +1031,21 @@ class GameRoomLiveSessionStore
       message_id: identity,
       sender: sender.to_s,
       packet: JSON.parse(JSON.generate(packet)),
-      created_at: normalize_time(created_at)
+      created_at: normalize_time(created_at),
+      estimated_time: estimated_time
     )
+    corrected = nil
     inserted = @mutex.synchronize do
       key = [seq, identity]
-      next false if @record_keys[table_id].key?(key)
+      if @record_keys[table_id].key?(key)
+        previous = @message_records[table_id][[sender.to_s.downcase, identity]]
+        if previous && previous.sequence == seq && previous.estimated_time && !estimated_time
+          previous.created_at = record.created_at
+          previous.estimated_time = false
+          corrected = previous
+        end
+        next false
+      end
 
       @record_keys[table_id][key] = true
       # A local push acknowledgement can overtake messages not delivered yet.
@@ -1007,6 +1072,7 @@ class GameRoomLiveSessionStore
       true
     end
     emit_record_change(table_id, record) if inserted
+    emit_change(table_id, :game, corrected.packet.dig("data", "session_id").to_i) if corrected
     inserted ? record : nil
   rescue JSON::GeneratorError, JSON::ParserError
     nil
@@ -1166,6 +1232,7 @@ class GameRoomLiveSessionStore
       "created_at" => data["created_at"].to_i,
       "updated_at" => data["created_at"].to_i,
       "__stack_sequence" => record.sequence.to_i,
+      "__server_started_at" => record.created_at.to_i,
       "__archive_id" => data["archive_id"], "__event_id_base" => data["event_id_base"].to_i,
       "__clock_offset" => clock[:offset], "__frozen_at" => clock[:frozen_at],
       "__frozen" => clock[:frozen_at] != nil,
@@ -1431,7 +1498,7 @@ class GameRoomLiveSessionStore
   def supported_metadata?(metadata)
     metadata.is_a?(Hash) &&
       metadata["kind"].to_s == KIND &&
-      [PROTOCOL, FEATURE_DISCOVERY_PROTOCOL, LIFECYCLE_DISCOVERY_PROTOCOL, CURRENT_DISCOVERY_PROTOCOL].include?(metadata["protocol"].to_i) &&
+      [PROTOCOL, FEATURE_DISCOVERY_PROTOCOL, LIFECYCLE_DISCOVERY_PROTOCOL, NAMED_SEATS_DISCOVERY_PROTOCOL, CURRENT_DISCOVERY_PROTOCOL].include?(metadata["protocol"].to_i) &&
       positive_identifier(metadata["table_id"]) != nil
   end
 

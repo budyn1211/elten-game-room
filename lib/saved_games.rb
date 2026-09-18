@@ -3,6 +3,8 @@ require "digest"
 require "securerandom"
 require_relative "game_participants"
 require_relative "live_session_store"
+require_relative "game_session_clock"
+require_relative "hidden_submissions"
 
 # Local archives contain JSON and the confirmed event log, never executable
 # Ruby/Marshal data or the UI's private controls. Replay remains the rule engine.
@@ -45,13 +47,17 @@ class SavedGames
       "id" => SecureRandom.uuid, "owner" => @owner, "saved_at" => now.to_i,
       "game" => game.id, "table_name" => table["name"].to_s, "private" => table["private"] == true,
       "players" => repository.players_for(snapshot.session), "options" => snapshot.session["options"].to_s,
-      "game_time" => now.to_i - snapshot.session["__clock_offset"].to_i,
+      "game_time" => GameRoomSessionClock.from_server(snapshot.session, now.to_i),
       "events" => replay.accepted_events.map do |event|
         { "id" => repository.event_id(event), "sequence" => event["sequence"].to_i,
           "actor" => repository.actor_of(event, snapshot.session), "action" => event["action"].to_s,
           "value" => event["value"].to_s, "created_at" => event["created_at"].to_i }
       end
     }
+    private_data = if game.saved_game_requires_private_data?
+      game.saved_private_data(replay, context: private_context(repository.session_id(snapshot.session)))
+    end
+    row["private_data"] = private_data unless private_data == nil
     row["checksum"] = checksum(row)
     validate(row, game: game)
     @program.update_json(PATH, default: {}) do |root|
@@ -79,8 +85,7 @@ class SavedGames
       GameRoomParticipants.same?(row["owner"], @owner) && row["checksum"] == checksum(row)
     players = row["players"]
     raise ArgumentError, "Invalid saved seats" unless players.is_a?(Array) && players.length.between?(game.minimum_players, game.maximum_players) &&
-      players.all? { |player| player.is_a?(String) && player.length.between?(1, 64) } && GameRoomParticipants.unique(players).length == players.length &&
-      GameRoomParticipants.same?(players.first, @owner)
+      players.all? { |player| player.is_a?(String) && player.length.between?(1, 64) } && GameRoomParticipants.unique(players).length == players.length
     raise ArgumentError, "Invalid saved game time" unless row["saved_at"].is_a?(Integer) && row["saved_at"] > 0 && row["game_time"].is_a?(Integer) && row["game_time"] > 0
     options = JSON.parse(row.fetch("options"))
     raise ArgumentError, "Invalid saved rules" unless options.is_a?(Hash) && game.validation_error(options, player_count: players.length) == nil
@@ -99,12 +104,14 @@ class SavedGames
     raise ArgumentError, "Incompatible saved game events" unless replay.accepted_events.length == events.length
     error = game.save_game_error(replay)
     raise ArgumentError, error if error != nil
+    game.validate_saved_private_data(replay, row["private_data"])
     row
   rescue JSON::ParserError, KeyError, TypeError
     raise ArgumentError, "Invalid saved game data"
   end
 
   def restored_data(row, game:, table_id:, now: Time.now.to_i)
+    validate(row, game: game)
     bot_number = 0
     mapping = row["players"].to_h do |player|
       replacement = if GameRoomParticipants.bot?(player)
@@ -122,10 +129,22 @@ class SavedGames
     }
     replay = game.replay({ "__players" => restored[:players], "options" => row["options"] }, restored[:events], ReplayRepository.new)
     raise ArgumentError, "Incompatible saved game seats" unless replay.accepted_events.length == row["events"].length
+    if row.key?("private_data")
+      # This local callback is not serialized. The transport calls it before
+      # publishing game_started; only the public event archive goes on the wire.
+      restored[:before_publish] = ->(new_session_id) do
+        game.restore_private_data(replay, row["private_data"], context: private_context(new_session_id))
+      end
+    end
     restored
   end
 
   private
+
+  def private_context(session_id)
+    GameRoomGames::ActionContext.new(session_id: session_id,
+      hidden_submissions: HiddenSubmissions::Vault.new(HiddenSubmissions::ProgramStorage.new(@program)))
+  end
 
   def checksum(row)
     Digest::SHA256.hexdigest(JSON.generate(row.reject { |key, _value| key == "checksum" }))

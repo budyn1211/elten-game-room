@@ -7,9 +7,6 @@
    {"en":"A winning line may be horizontal, vertical or diagonal. All its pieces must touch: a gap or an opponent's piece breaks the line. Completing a line ends the game immediately. If all 42 squares fill up without a winner, the game is drawn.","pl":"Zwycięska linia może biec poziomo, pionowo albo ukośnie. Pionki muszą leżeć bezpośrednio obok siebie: luka lub pionek przeciwnika przerywa linię. Jej ukończenie natychmiast kończy partię. Jeśli wszystkie 42 pola zostaną zajęte i nikt nie wygra, jest remis."},
    {"en":"There are no optional board sizes or alternative placement rules in this game. Either player can be a bot.","pl":"Ta gra nie ma ustawienia rozmiaru planszy ani innych sposobów stawiania pionków. W miejsce dowolnego gracza można dodać bota."}
   ]},
-  {"id":"controls","title":{"en":"Choosing a column","pl":"Wybieranie kolumny"},"paragraphs":[
-   {"en":"Arrow keys: inspect the board. Enter: drop a piece into the selected column, regardless of the row you are inspecting.","pl":"Strzałki: przeglądanie planszy. Enter: wrzucenie pionka do wskazanej kolumny, niezależnie od przeglądanego rzędu."},
-   {"en":"T: read whose turn it is.","pl":"T: odczytanie, czyja jest tura."}
-  ]}
+  {"id":"controls","title":{"en":"Game keyboard shortcuts","pl":"Skróty klawiszowe gry"},"paragraphs":[{"en":"Arrows: browse the board.","pl":"Strzałki: przeglądaj planszę."},{"en":"Enter: drop a piece into the selected column.","pl":"Enter: wrzuć pionek do wybranej kolumny."},{"en":"T: read whose turn it is.","pl":"T: odczytaj, czyja jest tura."}]}
  ]
 }

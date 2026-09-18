@@ -207,12 +207,22 @@ module GameRoomGames
           GameRoomRules.translate("Quicksand replaces the normal contract calculation. An exact contract gives ten times the bid, each extra trick subtracts ten, and a missed contract costs ten for each missing trick. There are no accumulated bags or the normal small- and large-contract bonuses. Nil still gives or costs 100. This option is off by default."),
           GameRoomRules.translate("Suicide is for teams of two. At least one partner in each pair must declare nil; both may do so. A positive bid must be at least four. It changes bidding, not the chosen scoring system. Suicide is off by default and cannot be combined with No Hell."),
           GameRoomRules.translate("Omniscient bots, off by default, deliberately gives bots knowledge of every current hand. Ordinary bots use their own cards and public play. The mode does not change what cards people are allowed to play.")),
-        rule_section(:controls, GameRoomRules.translate("Bidding and playing"),
-          GameRoomRules.translate("Shift+C: sort by suit; Shift+H: sort by rank. Press the same shortcut again to reverse that order. Shift+M restores receipt order. Sorting changes only your view and keeps the selected physical card; it does not alter card strength or select a move."),
-          GameRoomRules.translate("Z and Shift+Z visit the next or previous card that can legally be played. With only one unambiguous playable card, the shortcut can play it. It follows the hand's display order, not a strategic recommendation."),
-          GameRoomRules.translate("B during bidding: enter your declaration. Outside bidding: read the declarations. Arrows and Enter: choose and play a card."),
-          GameRoomRules.translate("C: cards in the trick. Ctrl+C: browse them. F: led suit. I: your round progress. V: everyone's round progress, for example 3/5 tricks taken and bid."),
-          GameRoomRules.translate("S: scores and bags. T: whose turn it is."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: browse cards."),
+          GameRoomRules.translate("Enter: play the selected card."),
+          GameRoomRules.translate("B: during bidding, enter your bid; otherwise read the bids."),
+          GameRoomRules.translate("C: read the trick cards."),
+          GameRoomRules.translate("Ctrl+C: browse the trick cards."),
+          GameRoomRules.translate("F: read the led suit."),
+          GameRoomRules.translate("I: read your progress in the round."),
+          GameRoomRules.translate("V: read everyone's tricks taken and bids."),
+          GameRoomRules.translate("S: read scores and bags."),
+          GameRoomRules.translate("Z: next legal card; play it automatically if it is the only unambiguous option."),
+          GameRoomRules.translate("Shift+Z: previous legal card; play it automatically if it is the only unambiguous option."),
+          GameRoomRules.translate("T: read whose turn it is."),
+          GameRoomRules.translate("Shift+C: sort by suit or colour; press again to reverse the order."),
+          GameRoomRules.translate("Shift+H: sort by rank or value; press again to reverse the order."),
+          GameRoomRules.translate("Shift+M: restore the order in which cards were received."))
       ]
     end
 
@@ -737,7 +747,7 @@ module GameRoomGames
       when :round_information
         { message: personal_round_information_text(state, viewer) }
       when :scores
-        { message: _("Scores: %{scores}.") % { scores: score_text(state) } }
+        { message: _("Scores: %{scores}.") % { scores: score_text(state, sorted: true) } }
       else
         super
       end
@@ -2533,8 +2543,9 @@ module GameRoomGames
       )
     end
 
-    def score_text(state)
-      state[:units].map do |unit|
+    def score_text(state, sorted: false)
+      units = sorted ? score_announcement_order(state[:units], state[:scores]) : state[:units]
+      units.map do |unit|
         _("%{unit} %{score}") % {
           unit: unit_label(state, unit),
           score: state[:scores][unit]

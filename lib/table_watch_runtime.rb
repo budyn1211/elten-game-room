@@ -125,6 +125,6 @@ module GameRoomTableWatchRuntime
   end
 
   def table_notice_visible?(notification)
-    table_watch_receiver.visible?(notification)
+    table_watch_receiver.visible?(notification) && contact_notification_allowed?(notification) == true
   end
 end

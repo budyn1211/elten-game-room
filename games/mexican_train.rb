@@ -116,9 +116,19 @@ module GameRoomGames
         rule_section(:points, GameRoomRules.translate("Count the tiles left behind"),
           GameRoomRules.translate("The first player with an empty hand wins the round and receives zero points. Everyone else adds the numbers on their remaining tiles. The 0/0 always counts as 10 here, even alongside other tiles. If the boneyard is empty and nobody can make a legal play over a complete circuit, the round is blocked and all players count their hands. Opening a train may create a new legal move, so merely counting passes is not enough to declare a block."),
           GameRoomRules.translate("Fewer points are better. The score limit defaults to 100 and can be 1\u2013100000. Players who reach it are eliminated after the whole round has been scored. The last survivor wins. If everyone would be eliminated together, the lowest total wins, shared if tied. The game is not limited to thirteen rounds: the station cycle repeats as long as the score rules require more play. There are no team or turn-clock variants in this game.")),
-        rule_section(:controls, GameRoomRules.translate("Choose both a tile and its train"),
-          GameRoomRules.translate("Arrows choose a tile; Enter opens the train list if that tile has any legal destination. The list includes every train, even closed ones, so you can make a conscious choice. Enter on an unavailable destination explains a closed train, a mismatch or the required double and its owner. If the tile cannot go anywhere, the game says so without opening the list. Escape returns to the same tile."),
-          GameRoomRules.translate("Space: draw. C: inspect trains. E: hand and boneyard counts. S: scores. T: turn and any required double. Z and Shift+Z: next or previous legally playable tile. These navigation keys never play a tile automatically; you still choose the train."))
+        rule_section(:clock, GameRoomRules.translate("When time runs out"),
+          GameRoomRules.translate("Thinking time is optional. Zero, the default, means no limit; you may choose 1\u2013600 seconds. When the time expires, you draw one tile if you have not drawn yet and the boneyard is not empty. Your train opens and your turn ends without playing a tile. A double does not restart the clock for your series. Uncovered doubles remain obligations for the following player.")),
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: choose a tile or train."),
+          GameRoomRules.translate("Enter: open train choices for the tile, then confirm a train; an unavailable target explains the refusal."),
+          GameRoomRules.translate("Escape: cancel train selection and return to the tile."),
+          GameRoomRules.translate("Space: draw a tile."),
+          GameRoomRules.translate("C: browse trains."),
+          GameRoomRules.translate("E: read hand sizes and the boneyard count."),
+          GameRoomRules.translate("Z: select the next legally playable tile, without playing it."),
+          GameRoomRules.translate("Shift+Z: select the previous legally playable tile, without playing it."),
+          GameRoomRules.translate("T: read whose turn it is and any double that must be covered."),
+          GameRoomRules.translate("S: read scores."))
       ]
     end
 
@@ -234,6 +244,13 @@ module GameRoomGames
     def apply_move(state, data, event_id, history)
       player = state[:current_player]
       case data["action"]
+      when "timeout"
+        if !state[:drawn] && !state[:stock].empty?
+          draw_one(state, player)
+          add_history(history, event_id, player, :draw, _("%{player} draws a tile.") % { player: participant_name(player) })
+        end
+        # A timeout is not evidence that this player lacks a matching tile.
+        pass(state, data, event_id, history, record_void: false)
       when "play"
         tile, target = data["tile"], data["target"]
         return :invalid unless state[:hands][player].include?(tile) && accessible_trains(state, player).include?(target)
@@ -287,10 +304,12 @@ module GameRoomGames
       add_history(history, event_id, nil, :game, text) unless text.empty?
     end
 
-    def pass(state, data, event_id, history)
+    def pass(state, data, event_id, history, record_void: true)
       player = state[:current_player]
       targets = accessible_trains(state, player)
-      state[:voids][player] = (state[:voids].fetch(player, []) + targets.map { |key| state[:trains][key][:end] }).uniq
+      if record_void
+        state[:voids][player] = (state[:voids].fetch(player, []) + targets.map { |key| state[:trains][key][:end] }).uniq
+      end
       own = state[:trains][train_id(state, player)]
       opened = !own[:open]
       own[:open] = true

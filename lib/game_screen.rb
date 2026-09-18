@@ -6,11 +6,13 @@ require_relative "game_sync"
 require_relative "game_simulation"
 require_relative "game_rules"
 require_relative "game_sounds"
+require_relative "game_event_presentation"
 require_relative "game_chat_commands"
 require_relative "game_history_navigation"
 require_relative "room_presentation"
 require_relative "participant_menu"
 require_relative "network_errors"
+require_relative "game_session_clock"
 
 class GameScreen
   TIMER_INTERVAL = 0.05
@@ -36,7 +38,8 @@ class GameScreen
     manage_observer: nil,
     save_game: nil,
     edit_options: nil,
-    abort_game: nil
+    abort_game: nil,
+    game_services: {}
   )
     @layout = layout
     @manage_computer = manage_computer
@@ -48,6 +51,7 @@ class GameScreen
     @layout.form.game_room_program = program if @layout != nil
     @repository = repository
     @game = game
+    @game_services = game_services
     @session = session
     @table = table
     @table_owner = table_owner
@@ -78,6 +82,7 @@ class GameScreen
     @pending_signal_received_at = nil
     @suppress_surface_focus = false
     @latest_wait_replay = nil
+    @rules_shortcut_snapshot = nil
     @spoken_timer_announcements = {}
     @activity_entries = nil
     @last_seen_activity_id = nil
@@ -112,6 +117,8 @@ class GameScreen
   end
 
   def run
+    @game_client = @game.build_client(@program, **@game_services)
+    return :back if @game_client && !@game_client.start
     loop do
       signal_received_at = @pending_signal_received_at
       confirmation_pending = @bot_turn_controller.waiting_for_confirmation?
@@ -119,7 +126,10 @@ class GameScreen
       using_cached_payload = false
       snapshot_started_at = monotonic_time
       log_signal_timing("snapshot_started", signal_received_at)
-      payload = nil
+      presentation_only = @presentation_refresh_requested && @last_game_payload != nil
+      @presentation_refresh_requested = false
+      verification_forced = false if presentation_only
+      payload = presentation_only ? @last_game_payload : nil
       payload = network_task(
         _("Updating game"),
         ui: refresh_input_ui,
@@ -138,7 +148,7 @@ class GameScreen
             @activity_entries || activity_entries_for(room_snapshot)
           ]
         end
-      end unless @synchronizer.waiting?
+      end unless presentation_only || @synchronizer.waiting?
       log_signal_timing(
         "snapshot_finished",
         signal_received_at,
@@ -180,6 +190,7 @@ class GameScreen
       return :game_aborted if @session["__aborted"]
       replay_started_at = monotonic_time
       replay = @game.replay(@session, snapshot.events, @repository)
+      @game_client&.before_wait(replay, Session.name)
       synchronize_table_status(replay) if !using_cached_payload
       log_signal_timing(
         "replay_finished",
@@ -204,8 +215,9 @@ class GameScreen
         @suppress_surface_focus = true
         next
       end
+      @game_client&.after_events(replay, Session.name, context: action_context)
       revision = @repository.events_revision(snapshot.events)
-      bot_actor = @session["__frozen"] ? nil : pending_bot_actor(replay)
+      bot_actor = @session["__frozen"] || event_presentation_busy? ? nil : pending_bot_actor(replay)
       if bot_actor != nil
         @bot_turn_controller.schedule_decision(
           session_id: @repository.session_id(@session), actor: bot_actor,
@@ -279,8 +291,17 @@ class GameScreen
       when :refresh
         @suppress_surface_focus = true
         next
+      when :presentation_refresh
+        # Repaint a local playback step from the already received snapshot.
+        # Ending a sound is not a reason to send a new network request.
+        @presentation_refresh_requested = true
+        @suppress_surface_focus = true
+        next
       end
     end
+  ensure
+    @event_presentation&.close
+    @game_client&.close
   end
 
   # Used only when a screen has not received its first valid snapshot yet.
@@ -305,10 +326,12 @@ class GameScreen
   private
 
   def wait_for_action(replay, revision, bot_actor: nil, bot_lease: nil)
+    replay = @event_presentation.visible_replay if event_presentation_busy? && @event_presentation.visible_replay != nil
     action = nil
     bot_token = bot_lease == nil ? nil : EltenAPI::Tasks::CancellationToken.new
     history_items = combined_history_items(replay)
     user_items = room_user_items(replay)
+    @game.prepare_view(replay, Session.name, context: action_context)
     view_spec = @game.game_view_spec(replay, Session.name)
     phase = replay.finished? ? :finished : :active
     phase_changed = @layout != nil && (@layout.phase != phase || @focus_new_game == true)
@@ -369,9 +392,17 @@ class GameScreen
       @chat_index = snapshot.chat_index
       @chat_check = snapshot.chat_check
     end
+    layout.bind_status_commands do |command|
+      next if action != nil
+      remember_position.call
+      @selected_surface_action = {"kind" => "command", "action" => command}
+      action = :game_action
+      form.resume
+    end
     shortcuts = normalized_game_shortcuts(@game.game_shortcuts(replay, Session.name))
     handle_shortcut = lambda do |shortcut|
       next if action != nil
+      next if event_presentation_busy? && ![:announcement, :browse, :surface].include?(shortcut.kind)
       next if @session["__frozen"] && ![:announcement, :browse, :surface].include?(shortcut.kind)
       if bot_actor != nil && !@game.actions_during_bot_turn? && ![:announcement, :browse, :surface].include?(shortcut.kind)
         next
@@ -395,7 +426,7 @@ class GameScreen
         form.resume
         next
       end
-      next if selection == nil || @session["__frozen"]
+      next if selection == nil || @session["__frozen"] || event_presentation_busy?
 
       remember_position.call
       @selected_surface_action = selection
@@ -440,7 +471,7 @@ class GameScreen
         ))
       end
       actions
-    end, read_options: -> {
+    end, game: @game, options: @game.options_from_json(@session["options"]), read_options: -> {
       source = replay.finished? ? @room_snapshot&.table.to_h["game_options"] : @session["options"]
       speak(@game.table_options_announcement(@game.options_from_json(source)))
     }) do |requested, participant|
@@ -454,6 +485,7 @@ class GameScreen
     end
     layout.restart_button.on(:press) do
       next if action != nil || !replay.finished? || !same_user?(@table_owner, Session.name)
+      next if event_presentation_busy?
 
       remember_position.call
       action = :restart
@@ -462,6 +494,13 @@ class GameScreen
     surface.on_action do |selection|
       next if action != nil
       next if @session["__frozen"]
+      if selection["kind"] == "surface" && selection["action"] == "refresh"
+        remember_position.call
+        action = :presentation_refresh
+        form.resume_for_refresh
+        next
+      end
+      next if event_presentation_busy?
       next if bot_actor != nil && !@game.actions_during_bot_turn?
 
       cancel_bot_decision(bot_token, :human_surface_action)
@@ -506,7 +545,7 @@ class GameScreen
         cancel_bot_decision(bot_token, :chat)
         form.resume
       elsif submission.kind == :movement
-        next if @session["__frozen"]
+        next if @session["__frozen"] || event_presentation_busy?
         @selected_surface_action = submission.action
         @clear_chat_after_action = true
         action = :game_action
@@ -517,12 +556,14 @@ class GameScreen
     form.add_timer(FormTimer.new(TIMER_INTERVAL, repeat: true) do
       next if action != nil
 
+      presentation_changed = @event_presentation&.advance
+      @game_client&.tick
       announce_due_timers(replay)
       automatic_due = automatic_action_due?(replay)
       sync_event = @synchronizer.next_event(
         allow_recovery: recovery_allowed?(automatic_due, bot_actor)
       )
-      local_action = if replay.finished? || connection_recovery_pending?
+      local_action = if replay.finished? || connection_recovery_pending? || event_presentation_busy? || presentation_changed
         nil
       else
         @game.automatic_surface_action(
@@ -570,6 +611,10 @@ class GameScreen
         remember_position.call
         action = :recovery_refresh
         cancel_bot_decision(bot_token, :connection_recovery)
+        form.resume_for_refresh
+      elsif presentation_changed || @game_client&.refresh_due?
+        remember_position.call
+        action = :presentation_refresh
         form.resume_for_refresh
       elsif automatic_due && !connection_recovery_pending?
         remember_position.call
@@ -811,6 +856,11 @@ class GameScreen
       return action
     end
   ensure
+    # Ctrl+F1 opens its modal dialog only after this wait returns. Preserve the
+    # current game-field descriptions before removing handlers and their tips.
+    @rules_shortcut_snapshot = if action == :rules && @layout != nil
+      GameRoomContextHelp.game_field_tips(@layout.game_help_fields)
+    end
     @bot_turn_controller.cancel(bot_lease)
     @layout&.begin_bindings
   end
@@ -846,9 +896,11 @@ class GameScreen
   end
 
   def show_game_rules(replay)
+    tips = @rules_shortcut_snapshot
+    @rules_shortcut_snapshot = nil
     source = replay.finished? ? @room_snapshot&.table.to_h["game_options"] : @session["options"]
     options = @game.options_from_json(source)
-    tips = @layout && GameRoomContextHelp.game_field_tips(@layout.game_help_fields)
+    tips = @layout && GameRoomContextHelp.game_field_tips(@layout.game_help_fields) if tips == nil
     GameRoomScreens::GameRules.new(@game.rule_book(options: options),
       program: @program, game_shortcuts: tips).wait
   end
@@ -1193,7 +1245,11 @@ class GameScreen
   end
 
   def submit_action(replay)
-    return false if connection_recovery_pending?
+    if @game_client && @game_client.action(@selected_surface_action.to_h, replay, Session.name)
+      @selected_surface_action = nil
+      return true
+    end
+    return false if connection_recovery_pending? || event_presentation_busy?
 
     selection = @selected_surface_action
     @selected_surface_action = nil
@@ -1205,6 +1261,7 @@ class GameScreen
       context: action_context
     )
     if status != :ok
+      @game_client&.error(status)
       alert(@game.move_error_for(status, selection: selection, replay: replay, actor: Session.name))
       return false
     end
@@ -1229,7 +1286,7 @@ class GameScreen
   end
 
   def submit_inline_action(replay, selection, title: _("Sending assessment"))
-    return nil if connection_recovery_pending?
+    return nil if connection_recovery_pending? || event_presentation_busy?
 
     status, plan = @game.action_for(
       selection,
@@ -1284,6 +1341,9 @@ class GameScreen
 
     @session = session
     @new_session_id = nil
+    @event_presentation&.close
+    @event_presentation = nil
+    @presentation_refresh_requested = false
     @automatic_recovery_pending = false
     @focus_new_game = true
     @bot_turn_controller.switch_session(@repository.session_id(session))
@@ -1301,6 +1361,7 @@ class GameScreen
     @history_follows_tail = true
     @suppress_surface_focus = false
     @latest_wait_replay = nil
+    @rules_shortcut_snapshot = nil
     @spoken_timer_announcements = {}
     @last_game_payload = nil
     @clear_chat_after_action = false
@@ -1511,7 +1572,7 @@ class GameScreen
   end
 
   def perform_bot_turn(replay, decision, lease:, form:)
-    return false if connection_recovery_pending?
+    return false if connection_recovery_pending? || event_presentation_busy?
     return false if !same_user?(@table_owner, Session.name)
     return false if decision == nil
 
@@ -1583,6 +1644,7 @@ class GameScreen
   end
 
   def perform_automatic_action(replay)
+    return false if event_presentation_busy?
     return false if @session["__frozen"]
     return false if connection_recovery_pending? || @new_session_id != nil
     return false if !@game.automatic_action_allowed?(
@@ -1606,6 +1668,7 @@ class GameScreen
     )
     if status != :ok
       Log.warning("ELTEN Game Room automatic action was rejected: #{@game.id}, #{status}")
+      @game_client&.automatic_error(status)
       return false
     end
     validate_action_plan!(plan)
@@ -1636,6 +1699,7 @@ class GameScreen
   end
 
   def automatic_action_due?(replay)
+    return false if event_presentation_busy?
     return false if @session["__frozen"]
     return false if connection_recovery_pending? || @new_session_id != nil
     return false if !@game.automatic_action_allowed?(
@@ -1660,7 +1724,8 @@ class GameScreen
       random_source: @random_source,
       options: @game.options_from_json(@session["options"]),
       table_owner: @table_owner,
-      now: (@session["__frozen_at"] || Time.now.to_i).to_i - @session["__clock_offset"].to_i
+      local_data: @game_client&.context_data,
+      now: (@action_clock ||= GameRoomSessionClock.new).public_send(@game.precise_action_clock? ? :now_f : :now, @session)
     )
   end
 
@@ -1717,6 +1782,10 @@ class GameScreen
     (@table["__id"] || @table["id"]).to_i
   end
 
+  def event_presentation_busy?
+    @event_presentation != nil && @event_presentation.busy?
+  end
+
   def process_new_events(replay, signal_received_at: nil)
     newest_id = replay.accepted_events.map { |event| @repository.event_id(event) }.max.to_i
     if @last_seen_event_id == nil
@@ -1729,53 +1798,78 @@ class GameScreen
       @repository.event_id(event) > @last_seen_event_id
     end
     event_replays = event_replays_for(replay, new_events)
+    if !new_events.empty? && @game.respond_to?(:serial_event_presentation?) && @game.serial_event_presentation?
+      first_before = event_replays[@repository.event_id(new_events.first)]&.first
+      @event_presentation ||= GameRoomEventPresentation.new(clock: -> { monotonic_time }, initial_replay: first_before)
+    end
     new_events.each do |event|
       event_id = @repository.event_id(event)
 
       before_replay, after_replay = event_replays.fetch(event_id, [nil, replay])
       turn_entry = remember_turn_transition(before_replay, after_replay, event_id)
-      GameRoomSounds.play_event(
-        @program,
-        game: @game,
-        event: event,
-        before_replay: before_replay,
-        after_replay: after_replay,
-        repository: @repository,
-        viewer: Session.name
-      )
-
-      descriptions = normalize_event_descriptions(
-        @game.describe_event_for_display(
-          event,
-          @repository,
-          replay,
-          Session.name,
-          surface_state: @surface_state
+      if @event_presentation != nil
+        @event_presentation.enqueue(
+          replay: after_replay, defer_replay: after_replay.finished?,
+          start: -> { present_game_event(event, before_replay, after_replay, after_replay, signal_received_at) },
+          finish: -> do
+            present_turn_transition(turn_entry, after_replay)
+            present_game_result(after_replay, signal_received_at) if event_id == newest_id
+          end
         )
-      )
-      descriptions.each_with_index do |description, index|
-        log_signal_timing(
-          "speech_queued",
-          signal_received_at,
-          details: "event_id=#{event_id} item=#{index + 1}/#{descriptions.length}"
-        )
-        speak(description, stop: false, break_sequence: false)
-      end
-      if turn_entry != nil
-        turn_message = @game.turn_announcement(after_replay, Session.name)
-        speak(turn_message, stop: false, break_sequence: false) if !turn_message.to_s.empty?
+      else
+        present_game_event(event, before_replay, after_replay, replay, signal_received_at)
+        present_turn_transition(turn_entry, after_replay)
       end
     end
     merge_turn_history!(replay)
     if newest_id > @last_seen_event_id
-      result = @game.result_text(replay)
-      if result != nil
-        log_signal_timing("result_speech_queued", signal_received_at)
-        speak(result, stop: false, break_sequence: false)
-      end
+      present_game_result(replay, signal_received_at) if @event_presentation == nil
       @history_index = [combined_history_items(replay).length - 1, 0].max if @history_follows_tail
     end
     @last_seen_event_id = [@last_seen_event_id, newest_id].max
+    @event_presentation&.advance
+  end
+
+  def present_game_event(event, before_replay, after_replay, description_replay, signal_received_at)
+    @game_client&.event(event, before_replay, after_replay, Session.name, @repository)
+    sounds = begin
+      cues = GameRoomSounds.event_cue(
+        game: @game, event: event, before_replay: before_replay, after_replay: after_replay,
+        repository: @repository, viewer: Session.name
+      )
+      Array(cues).map { |cue| GameRoomSounds.play(@program, cue) }
+    rescue StandardError => error
+      Log.warning("ELTEN Game Room event sound failed: #{error.class}: #{error.message}") if defined?(Log)
+      []
+    end
+    descriptions = normalize_event_descriptions(
+      @game.describe_event_for_display(event, @repository, description_replay, Session.name, surface_state: @surface_state)
+    )
+    # The result remains in canonical history, but the common result presenter
+    # owns its automatic announcement (also after serialized sound playback).
+    result = @game.result_text(after_replay) if after_replay != nil
+    descriptions = descriptions.reject { |text| GameRoomContent.utf8(text) == GameRoomContent.utf8(result) } if result != nil
+    descriptions.each_with_index do |description, index|
+      log_signal_timing("speech_queued", signal_received_at,
+        details: "event_id=#{@repository.event_id(event)} item=#{index + 1}/#{descriptions.length}")
+      speak(description, stop: false, break_sequence: false)
+    end
+    sounds
+  end
+
+  def present_turn_transition(turn_entry, replay)
+    return if turn_entry == nil
+
+    message = @game.turn_announcement(replay, Session.name)
+    speak(message, stop: false, break_sequence: false) if !message.to_s.empty?
+  end
+
+  def present_game_result(replay, signal_received_at)
+    result = @game.result_text(replay)
+    return if result == nil
+
+    log_signal_timing("result_speech_queued", signal_received_at)
+    speak(result, stop: false, break_sequence: false)
   end
 
   def event_replays_for(replay, new_events)

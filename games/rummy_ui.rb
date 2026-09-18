@@ -83,7 +83,7 @@ module GameRoomGames
         announcement_shortcut(key: "d", label: _("read the discard pile"), message: discard_message),
         surface_shortcut(key: "d", modifiers: [:shift], label: _("take cards from the discard pile"), command: "meld_discard_pile"),
         announcement_shortcut(key: "e", label: _("card counts"), message: active_players(state).map { |p| "#{participant_name(p)}, #{state[:hands][p].length}" }.join("; ") + ". " + _("Draw pile: %{count}.") % { count: state[:stock].length }),
-        announcement_shortcut(key: "s", label: _("scores"), message: state[:scores].map { |p, score| "#{participant_name(p)}, #{score}" }.join("; "))
+        announcement_shortcut(key: "s", label: _("scores"), message: score_announcement_order(state[:players], state[:scores], eliminated: state[:eliminated]).map { |p| "#{participant_name(p)}, #{state[:scores][p]}" }.join("; "))
       ]
       if state[:options]["discard_mode"] == "none"
         shortcuts << GameShortcut.new(key: "f", modifiers: [:shift], label: _("end your turn"), kind: :action, action_kind: "command", action_name: "end", payload: {})
@@ -139,11 +139,28 @@ module GameRoomGames
         rule_section(:time, GameRoomRules.translate("Time limits and a blocked round"),
           GameRoomRules.translate("Thinking time is zero for unlimited play, or 20\u2013600 seconds for the entire turn. Menus and preparing combinations use that time too. On timeout you lose 50 points in normal mode or gain 50 in elimination. If you have not drawn yet, the game draws one stock card when available; it does not draw another if you already drew. Your turn then ends without a discard. Penalties for borrowed cards still apply as well."),
           GameRoomRules.translate("Two full circuits without drawing or placing an original hand card block the round. Taking cards from the table and returning them alone does not keep a round alive indefinitely. A saved game must be taken at a clean turn boundary, before drawing or manipulating combinations.")),
-        rule_section(:controls, GameRoomRules.translate("Rummy keys"),
-          GameRoomRules.translate("Space: draw from the stock. D: read visible discards without opening a list. Shift+D: take the sole available discard or open the list when several choices are possible. Shift+F: finish without discarding in No discard mode."),
-          GameRoomRules.translate("N: begin a new combination; Enter selects its cards in order, and N starts the next combination. F submits the prepared melds. P reads the draft; Shift+P edits it; Escape cancels. Outside the draft, Enter on a card offers matching table combinations or discarding. Delete discards immediately."),
-          GameRoomRules.translate("C: browse table combinations. Their context menu offers legal merging and taking operations. E: card counts. S: scores. T: turn. Shift+C: sort by suit; Shift+H: by rank; repeat to reverse. Shift+M: receipt order."),
-          GameRoomRules.translate("Z and Shift+Z visit cards with a legal immediate lay-off. They do not construct new melds for you. Automatic play is limited to a single unambiguous addition with no draft, joker choice or alternative use."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: browse cards or combinations."),
+          GameRoomRules.translate("Enter: in a draft, add the card in order; otherwise choose a matching meld or discard."),
+          GameRoomRules.translate("Delete: discard the current card immediately."),
+          GameRoomRules.translate("Space: draw from the stock."),
+          GameRoomRules.translate("D: read visible discards without opening a list."),
+          GameRoomRules.translate("Shift+D: take the sole available discard, or open the discard list."),
+          GameRoomRules.translate("N: start a new combination in the draft."),
+          GameRoomRules.translate("F: submit the prepared combinations."),
+          GameRoomRules.translate("Shift+F: finish the turn without discarding in No discard mode."),
+          GameRoomRules.translate("P: read the draft."),
+          GameRoomRules.translate("Shift+P: edit the draft."),
+          GameRoomRules.translate("Escape: cancel the current choice or draft."),
+          GameRoomRules.translate("C: browse table combinations; their context menu contains available taking and merging actions."),
+          GameRoomRules.translate("E: read card counts."),
+          GameRoomRules.translate("Z: next card with a legal immediate lay-off; only a sole unambiguous addition may be automatic."),
+          GameRoomRules.translate("Shift+Z: previous card with a legal immediate lay-off; only a sole unambiguous addition may be automatic."),
+          GameRoomRules.translate("S: read scores."),
+          GameRoomRules.translate("T: read whose turn it is."),
+          GameRoomRules.translate("Shift+C: sort by suit or colour; press again to reverse the order."),
+          GameRoomRules.translate("Shift+H: sort by rank or value; press again to reverse the order."),
+          GameRoomRules.translate("Shift+M: restore the order in which cards were received."))
       ]
     end
 

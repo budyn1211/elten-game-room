@@ -24,6 +24,9 @@ module GameRoomGames
     :default,
     :choices,
     :visible_if,
+    :summary_label,
+    :summary_unit,
+    :omit_zero,
     keyword_init: true
   ) do
     def initialize(**attributes)
@@ -45,6 +48,7 @@ module GameRoomGames
     :now,
     :options,
     :table_owner,
+    :local_data,
     keyword_init: true
   )
 
@@ -211,6 +215,33 @@ module GameRoomGames
   end
 
   class Base
+    # Optional room services. Games without local services retain the existing
+    # lifecycle and never create a service object or perform an extra request.
+    def build_client(_program, **_services); nil; end
+    def build_start_guard(_program, user:, **_services); nil; end
+    def supports_leaderboards?; false; end
+    def build_leaderboard_client(_program, **_services); nil; end
+    def precise_action_clock?; false; end
+    def private_table_required?(_options); false; end
+    def table_join_error(_options, viewer:, owner:); nil; end
+    def join_as_observer?(_options, viewer:, owner:); false; end
+    def role_selection_allowed?(_options); true; end
+    def table_invitations_allowed?(_options); true; end
+    def waiting_view_spec(_viewer, history_empty_label: nil)
+      GameRoomLayout::ViewSpec.new(history_empty_label: history_empty_label)
+    end
+    def room_shortcuts; []; end
+    def run_room_command(_program, _command, viewer:, **_services); false; end
+    def leave_confirmation(_replay, _viewer, own_table:); nil; end
+    def saved_game_requires_private_data?; false; end
+    def saved_private_data(_replay, context:); nil; end
+    def validate_saved_private_data(_replay, data)
+      raise ArgumentError, "Unexpected private save data" unless data == nil
+    end
+    def restore_private_data(_replay, data, context:)
+      validate_saved_private_data(_replay, data)
+    end
+
     PLAYROOM_SUIT_ORDER = %w[H S D C].freeze
     PLAYROOM_RANK_ORDER = %w[2 3 4 5 6 7 8 9 T J Q K A].freeze
 
@@ -286,8 +317,10 @@ module GameRoomGames
 
     def effective_option_definitions(selected = {})
       definitions = content_option_definitions(selected) + option_definitions.to_a
+      definitions << thinking_time_option if thinking_time_range && definitions.none? { |item| item.key == "thinking_time" }
       if supports_bots?
-        definitions << OptionDefinition.new(key: "bot_delay", label: _("Bot move delay in seconds (0 to 5); zero disables the pause"), kind: :integer, default: default_bot_move_delay)
+        definitions << OptionDefinition.new(key: "bot_delay", label: _("Bot move delay in seconds (0 to 5); zero disables the pause"), kind: :integer, default: default_bot_move_delay,
+          summary_label: _("Bot move delay"), summary_unit: :seconds, omit_zero: true)
       end
       keys = definitions.map { |definition| definition.key.to_s }
       raise ArgumentError, "game option keys must be unique" if keys.uniq.length != keys.length
@@ -358,7 +391,24 @@ module GameRoomGames
     end
 
     def validation_error(options, player_count: nil)
-      content_options_error(options) || bot_delay_options_error(options) || options_error(options, player_count: player_count)
+      content_options_error(options) || thinking_time_options_error(options) || bot_delay_options_error(options) || options_error(options, player_count: player_count)
+    end
+
+    # Opt in only when the engine implements an authoritative timeout. A
+    # generic legal move is never a safe substitute for a player's decision.
+    def thinking_time_range; nil; end
+
+    def thinking_time_option
+      OptionDefinition.new(key: "thinking_time", label: _("Thinking time in seconds; zero means no limit"), kind: :integer, default: 0,
+        summary_label: _("Thinking time"), summary_unit: :seconds, omit_zero: true)
+    end
+
+    def thinking_time_options_error(options)
+      range = thinking_time_range
+      return nil unless range
+      value = normalize_options(options)["thinking_time"]
+      return nil if value == 0 || range.include?(value)
+      _("Thinking time must be zero or from %{minimum} to %{maximum} seconds.") % { minimum: range.min, maximum: range.max }
     end
 
     def default_bot_move_delay; 0; end
@@ -393,22 +443,25 @@ module GameRoomGames
     # Read-only snapshot of the effective settings, not the abbreviated lobby
     # summary. Disabled and inapplicable additions are intentionally omitted.
     def rules_options_text(options)
-      lines = effective_option_definitions.filter_map do |definition|
+      lines = effective_option_definitions(options).filter_map do |definition|
         next if !rules_option_visible?(definition, options)
         value = options[definition.key.to_s]
+        next if definition.omit_zero && value.to_i == 0
+        label = GameRoomContent.utf8(definition.summary_label || definition.label).sub(/[.\s]+\z/, "")
         case definition.kind.to_sym
         when :boolean
-          definition.label if value == true
+          label if value == true
         when :choice
           choice = definition.choices.to_a.find { |item| item.value.to_s == value.to_s }
-          "#{definition.label}: #{choice ? choice.label : value}"
+          "#{label}: #{choice ? choice.label : value}"
         when :multiple_choice
           selected = definition.choices.to_a.each_with_index.filter_map do |choice, index|
             choice.label if (value.to_i & (1 << index)) != 0
           end
-          "#{definition.label}: #{selected.join(', ')}" if !selected.empty?
+          "#{label}: #{selected.join(', ')}" if !selected.empty?
         else
-          "#{definition.label}: #{value}"
+          formatted = definition.summary_unit == :seconds ? (_("%{seconds} seconds") % { seconds: value }) : value
+          "#{label}: #{formatted}"
         end
       end
       seats = options[GameRoomTeams::OPTION_KEY]
@@ -419,7 +472,8 @@ module GameRoomGames
     end
 
     def table_options_announcement(options)
-      "#{name}. #{rules_options_text(normalize_options(options)).gsub(/\r?\n+/, '. ')}"
+      lines = rules_options_text(normalize_options(options)).split(/\r?\n/).map { |line| line.strip.sub(/[.\s]+\z/, "") }.reject(&:empty?)
+      ([name] + lines).join(". ")
     end
 
     # Increment when a rules change makes old event archives incompatible.
@@ -531,6 +585,14 @@ module GameRoomGames
     # legitimately have zero (or negative) points; observers have no entry.
     def participant_scores(_replay)
       nil
+    end
+
+    # Presentation only: never reorder seats or change the game's scoring.
+    # Zero/negative scores do not imply elimination; ties retain seat order.
+    def score_announcement_order(units, scores, eliminated: {})
+      units.each_with_index.sort_by do |unit, index|
+        [eliminated.to_h[unit] ? 1 : 0, -scores[unit].to_i, index]
+      end.map(&:first)
     end
 
     def participant_status(_replay, _participant, connected: true)
@@ -832,6 +894,16 @@ module GameRoomGames
 
     def game_view_spec(replay, viewer)
       GameRoomLayout::ViewSpec.new(surface: surface_spec(replay, viewer))
+    end
+
+    # Load local, viewer-specific presentation data independently of automatic
+    # moves. Never publish it or alter the authoritative replay here.
+    def serial_event_presentation?
+      false
+    end
+
+    def prepare_view(_replay, _viewer, context: nil)
+      nil
     end
 
     # A staged form first persists a small public selection (for example the

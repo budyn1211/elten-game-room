@@ -2,6 +2,7 @@
 require_relative "base"
 require_relative "../lib/domino_tiles"
 require_relative "../lib/game_bots"
+require_relative "../lib/game_turn_clock"
 
 module GameRoomGames
   class TileGame < Base
@@ -9,6 +10,7 @@ module GameRoomGames
     Tiles = GameRoomDominoTiles
     def maximum_players; 8; end
     def supports_bots?; true; end
+    def thinking_time_range; 1..600; end
     def perfect_information?; false; end
     def bot_strategy; @bot_strategy ||= GameRoomBots::HeuristicStrategy.new; end
     def bot_delay_revision(replay, _revision); [replay.state[:round], replay.state[:turn]]; end
@@ -50,7 +52,7 @@ module GameRoomGames
       return [:finished, nil] if replay.finished?
       input = selection.to_h.transform_keys(&:to_s)
       data = input.select { |key, _| %w[action tile target].include?(key) }
-      data.merge!("round" => replay.state[:round], "turn" => replay.state[:turn], "time" => (context&.now || Time.now.to_i).to_i)
+      data.merge!("round" => replay.state[:round], "turn" => replay.state[:turn], "time" => GameRoomTurnClock.logical_now(replay.state, context))
       if data["action"] == "deal"
         return [:invalid, nil] unless context&.random_source
         data["seed"] = context.random_source.roll(count: 16, sides: 256).values.map { |v| (v - 1).to_s(16).rjust(2, "0") }.join
@@ -137,7 +139,7 @@ module GameRoomGames
       [
         GameShortcut.new(key: "space", label: _("draw tiles"), kind: :action, action_kind: "tile", action_name: "draw", payload: {}),
         announcement_shortcut(key: "e", label: _("tile counts and boneyard"), message: tile_counts_text(state)),
-        announcement_shortcut(key: "s", label: _("scores"), message: state[:scores].map { |unit, score| "#{unit_label(state, unit)}, #{score}" }.join("; ")),
+        announcement_shortcut(key: "s", label: _("scores"), message: score_announcement_order(state[:units].keys, state[:scores], eliminated: state[:eliminated]).map { |unit| "#{unit_label(state, unit)}, #{state[:scores][unit]}" }.join("; ")),
         surface_shortcut(key: "z", label: _("next playable tile"), command: "navigate_playable_tile", payload: payload.merge("direction" => 1, "shortcut" => "z")),
         surface_shortcut(key: "z", modifiers: [:shift], label: _("previous playable tile"), command: "navigate_playable_tile", payload: payload.merge("direction" => -1, "shortcut" => "shift+z"))
       ]

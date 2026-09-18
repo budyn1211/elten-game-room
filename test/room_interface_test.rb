@@ -407,7 +407,7 @@ assert(match_alerts == ["The game has already ended."], "finished-game action di
 assert(match_controls.first.instance_variable_get(:@timers).empty?, "finished game left a timer running")
 
 # The UI keeps a valid row as slots contract. Named seats use the same path.
-bot_table = row.merge("game" => "farkle", "bot_count" => 3, "__discovery_protocol" => 5)
+bot_table = row.merge("game" => "farkle", "bot_count" => 3, "__discovery_protocol" => GameRoomLiveSessionStore::CURRENT_DISCOVERY_PROTOCOL)
 bot_updates = []
 bot_transport = Object.new
 bot_transport.define_singleton_method(:live_store?) { true }

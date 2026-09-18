@@ -7,11 +7,6 @@
       {"en":"A line can run across a row, down a column or along either diagonal. For example, owning the top-left, centre and bottom-right squares wins the game. The game ends as soon as a line is completed, even if other squares are still empty. If the board fills up without a winning line, the result is a draw.","pl":"Zwycięska linia może biec poziomo, pionowo albo po jednej z dwóch przekątnych. Na przykład zajęcie lewego górnego pola, środka i prawego dolnego pola daje wygraną. Partia kończy się od razu po utworzeniu linii, nawet jeśli zostały wolne pola. Jeśli cała plansza się zapełni i nikt nie ułoży linii, jest remis."},
       {"en":"Game Room uses this 3 by 3 version without additional rule variants. You may play against another person or a bot.","pl":"W Game Roomie gramy na planszy 3 na 3, bez dodatkowych wariantów zasad. Przeciwnikiem może być inna osoba albo bot."}
     ]},
-    {"id":"controls","title":{"en":"Playing on the board","pl":"Obsługa planszy"},"paragraphs":[
-      {"en":"Arrow keys: move around the board and read the selected square.","pl":"Strzałki: poruszanie się po planszy i odczytywanie wskazanego pola."},
-      {"en":"Enter: place your mark on the selected empty square.","pl":"Enter: postawienie znaku na wskazanym pustym polu."},
-      {"en":"T: read whose turn it is.","pl":"T: odczytanie, czyja jest tura."},
-      {"en":"You can also enter a move such as /a1 in the chat field. The slash makes it a game move rather than a message.","pl":"Można też wpisać w polu czatu ruch, na przykład /a1. Ukośnik sprawia, że jest to polecenie ruchu, a nie wiadomość."}
-    ]}
-  ]
+  {"id":"controls","title":{"en":"Game keyboard shortcuts","pl":"Skróty klawiszowe gry"},"paragraphs":[{"en":"Arrows: browse squares.","pl":"Strzałki: przeglądaj pola."},{"en":"Enter: place your mark on the selected empty square.","pl":"Enter: postaw swój znak na wybranym pustym polu."},{"en":"T: read whose turn it is.","pl":"T: odczytaj, czyja jest tura."}]}
+ ]
 }

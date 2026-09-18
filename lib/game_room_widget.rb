@@ -2,16 +2,19 @@ require_relative "game_room_background"
 require_relative "network_errors"
 
 module GameRoomWidget
+  Loading = Struct.new(:label)
+
   class TableList < ListBox
     attr_reader :snapshots
 
-    def initialize(loader:, opener:, labeler:, id_for:, active: -> { true }, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, worker: nil, foreground: nil)
+    def initialize(loader:, opener:, labeler:, id_for:, active: -> { true }, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, worker: nil, foreground: nil, manual_refresh: -> {})
       @loader = loader
       @opener = opener
       @labeler = labeler
       @id_for = id_for
       @snapshots = []
       @active, @clock = active, clock
+      @manual_refresh = manual_refresh
       @foreground = foreground || ->(&operation) { operation.call }
       @load_mutex = Mutex.new
       @generation = 0
@@ -52,6 +55,7 @@ module GameRoomWidget
       if active?
         apply_ready_result
         if key_pressed?(0x52)
+          @manual_refresh.call
           refresh(announce: true)
           return
         end
@@ -135,6 +139,18 @@ module GameRoomWidget
     end
 
     def apply_result(loaded, error, announce:, clear_on_error: false)
+      if loaded.is_a?(Loading) && !error
+        @snapshots = []
+        self.options = []
+        self.index = 0
+        self.empty_label = loaded.label
+        @retry_at = 0.0
+        @refresh_at = @clock.call + 5.0
+        # Say the first actual result once if the user is still here; do not
+        # mistake a pending contact read for an empty or failed table list.
+        @announce_refresh = true
+        return false
+      end
       if error || loaded == nil
         delay = error ? GameRoomNetworkErrors.retry_delay(error, normal: 15.0, rate_limit: 60.0) : 15.0
         @retry_at = @clock.call + delay

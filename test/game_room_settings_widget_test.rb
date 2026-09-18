@@ -119,11 +119,11 @@ Form.class_eval do
     sections = fields[0]
     sections.index = 3
     sections.trigger(:move)
-    raise "widget controls were not shown together" if fields[13..15].any? { |control| hidden_controls.include?(control) }
+    raise "widget controls were not shown together" if fields[14..17].any? { |control| hidden_controls.include?(control) }
     raise "lobby controls remained visible in the widget category" if fields[1..5].any? { |control| !hidden_controls.include?(control) }
     fields[6].index = 1
-    fields[9].index = 0
-    fields[14].select_multiselection_indices([1])
+    fields[10].index = 0
+    fields[15].select_multiselection_indices([1])
     fields[-2].trigger(:press)
   end
 end
@@ -331,9 +331,10 @@ class FakePresentation
 end
 
 class FakeNotification
-  attr_reader :type, :metadata, :sender
+  attr_reader :type, :metadata, :sender, :id, :app_uuid
 
   def initialize(sender)
+    @id, @app_uuid = 1, "468f59c5-c9d7-47cd-80f1-1a6fbfd1aa80"
     @type = "game_room.invitation"
     @sender = sender
     @metadata = { "sender" => sender, "table_name" => "Room", "game_name" => "UNO" }
@@ -346,10 +347,13 @@ end
 
 EltenLink::Contacts.users = ["Bob"]
 EltenLink::Contacts.calls = 0
-EltenGameRoom.instance_variable_set(:@notification_contacts, nil)
+EltenGameRoom.contacts_stop
 EltenGameRoom.define_singleton_method(:read_json) do |_path, default:|
   default.merge("invitation_notifications" => "contacts", "invitation_sounds" => false)
 end
+bob = EltenGameRoom.map_notification(FakeNotification.new("Bob"))
+cache = EltenGameRoom.contacts_cache
+assert(cache.instance_variable_get(:@worker).instance_variable_get(:@thread).join(3), "contact read did not finish")
 bob = EltenGameRoom.map_notification(FakeNotification.new("Bob"))
 eve = EltenGameRoom.map_notification(FakeNotification.new("Eve"))
 assert(!bob.default_suppressed && eve.default_suppressed, "contact-only invitation notifications were filtered incorrectly")

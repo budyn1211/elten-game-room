@@ -23,6 +23,7 @@ module GameRoomGames
     def name; _("Rummy"); end
     def maximum_players; 8; end
     def supports_bots?; true; end
+    def thinking_time_range; 20..600; end
 
     def option_definitions
       [
@@ -33,7 +34,7 @@ module GameRoomGames
         OptionDefinition.new(key: "identities", label: _("Identities — identical cards may form a meld"), kind: :boolean, default: false),
         OptionDefinition.new(key: "first_meld", label: _("First meld minimum score"), kind: :integer, default: 30),
         OptionDefinition.new(key: "score_limit", label: _("Score limit"), kind: :integer, default: 1000),
-        OptionDefinition.new(key: "thinking_time", label: _("Thinking time in seconds; zero means no limit"), kind: :integer, default: 0)
+        thinking_time_option
       ]
     end
 
@@ -49,8 +50,7 @@ module GameRoomGames
       options = normalize_options(options)
       return _("The first meld minimum must be from 15 to 90.") unless options["first_meld"].between?(15, 90)
       return _("The score limit must be a positive number, at most 100000.") unless options["score_limit"].between?(1, 100_000)
-      time = options["thinking_time"]
-      return _("Thinking time must be zero or from 20 to 600 seconds.") unless time == 0 || time.between?(20, 600)
+      return thinking_time_options_error(options) if thinking_time_options_error(options)
       nil
     end
 
@@ -80,6 +80,7 @@ module GameRoomGames
         additions = []
         event_id = repository.event_id(batch.last)
         next unless apply(copy, data, actor, event_id, additions) == :ok
+        record_deck_reshuffle(additions, state[:recycle], copy[:recycle], event_id)
         state = copy
         history.concat(additions)
         accepted.concat(batch)

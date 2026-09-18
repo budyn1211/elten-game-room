@@ -337,9 +337,11 @@ module GameRoomTableWatch
           limited ||= error.respond_to?(:code) && error.code.to_s == "rate_limits.exceeded"
           if @operation && limited && @operation[:kind] == :send && @operation[:attempt].to_i < 1 && @queue.include?(@operation[:job])
             @operation[:job][:recipients].unshift([@operation[:recipient], 1])
-          elsif @operation && @operation[:kind] == :load
+          elsif @operation && @operation[:kind] == :load && !limited && !GameRoomNetworkErrors.transient?(error)
             @queue.delete(@operation[:job])
           end
+          # A transient recipient lookup failure has not sent anything. Leave
+          # that job pending for retry; permanent denial/expiry/cancel win.
           Log.warning("Game Room table notices failed: #{error.class}") if defined?(Log)
         elsif @operation && @operation[:kind] == :load && @queue.include?(@operation[:job])
           @operation[:job][:recipients] = value.map { |name| [name, 0] }

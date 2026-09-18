@@ -56,10 +56,29 @@ module GameRoomGames
         rule_section(:ending, GameRoomRules.translate("The last tiles and the final score"),
           GameRoomRules.translate("Thinking time is zero for no limit, or 20\u2013600 seconds per turn. Choosing a blank and correcting a word use the same turn time. Timeout cancels the unsubmitted draft and passes; it does not draw tiles or charge a separate point penalty."),
           GameRoomRules.translate("The game ends when someone empties their rack and the bag is empty. It also ends as blocked when exchanging is unavailable and three complete circuits pass without a tile being placed. A legal word worth zero still breaks this sequence. At the end, subtract each player's remaining tile values. If a player went out, they also gain the other players' remaining values; a blocked game has no such bonus. Blanks are worth zero. The highest adjusted score wins, with a shared result if tied.")),
-        rule_section(:controls, GameRoomRules.translate("Place letters directly on the board"),
-          GameRoomRules.translate("Arrows: move around A1\u2013O15. Enter on an empty field: choose a rack tile, then Enter to place it. A blank also asks for a letter. Escape cancels the choice. Backspace removes your unsubmitted tile under the cursor; Z clears the whole draft. F submits it."),
-          GameRoomRules.translate("C: read the rack. 1\u20137: read individual rack positions without placing a tile. I: cycle receipt, alphabetic and vowel-first rack order after clearing a draft. Y: preview words and points. L: browse played words."),
-          GameRoomRules.translate("G: exchange; arrows browse, Space selects, Enter confirms, Escape cancels. P: pass. Passing or exchanging asks before discarding a draft. E: tile counts. S: scores. T: turn. Submit or cancel your draft before saving the game."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: move around the board."),
+          GameRoomRules.translate("Enter: on an empty square, choose a rack tile, then place it; a blank asks for its letter."),
+          GameRoomRules.translate("Backspace: remove your unsubmitted tile under the cursor."),
+          GameRoomRules.translate("Z: clear the whole draft."),
+          GameRoomRules.translate("F: submit the draft."),
+          GameRoomRules.translate("Escape: cancel the current tile or exchange choice."),
+          GameRoomRules.translate("C: read the rack."),
+          GameRoomRules.translate("I: cycle receipt, alphabetic and vowel-first order after clearing the draft."),
+          GameRoomRules.translate("Y: preview the words and their points."),
+          GameRoomRules.translate("L: browse played words."),
+          GameRoomRules.translate("G: choose tiles to exchange; Space selects and Enter confirms in that list."),
+          GameRoomRules.translate("P: pass your turn."),
+          GameRoomRules.translate("E: read tile counts."),
+          GameRoomRules.translate("S: read scores."),
+          GameRoomRules.translate("T: read whose turn it is."),
+          GameRoomRules.translate("1: read rack position 1, without placing it."),
+          GameRoomRules.translate("2: read rack position 2, without placing it."),
+          GameRoomRules.translate("3: read rack position 3, without placing it."),
+          GameRoomRules.translate("4: read rack position 4, without placing it."),
+          GameRoomRules.translate("5: read rack position 5, without placing it."),
+          GameRoomRules.translate("6: read rack position 6, without placing it."),
+          GameRoomRules.translate("7: read rack position 7, without placing it."))
       ]
     end
   end

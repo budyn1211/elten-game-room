@@ -1,11 +1,14 @@
 require "digest"
 require_relative "base"
+require_relative "../lib/card_deck_history"
 require_relative "../lib/game_bots"
 require_relative "../lib/game_tree_search"
 require_relative "../lib/ninety_nine_strategy"
+require_relative "../lib/game_turn_clock"
 
 module GameRoomGames
   class NinetyNine < Base
+    include GameRoomCardDeckHistory
     RANKS = %w[2 3 4 5 6 7 8 9 T J Q K A].freeze
     SUITS = %w[C D H S].freeze
     SUIT_NAMES = {
@@ -57,13 +60,23 @@ module GameRoomGames
           GameRoomRules.translate("These penalties depend on an increase. Subtracting from 43 to 33, or leaving 33 unchanged with a nine, does not charge anyone. Doubling 33 to 66 does count as an increase to an exact threshold."),
           GameRoomRules.translate("Making exactly 99 wins the round and costs every other active player two tokens. Going above 99 loses the round and costs you two additional tokens, on top of any 33 or 66 crossing penalties from that play. The next round then starts with the players still in the game."),
           GameRoomRules.translate("Zero tokens does not itself eliminate you. You drop out only when a later penalty costs more than you can pay. If you have one token and lose one, you stay; if you must then pay another, you are out. The last active player wins the game.")),
+        rule_section(:clock, GameRoomRules.translate("When your time runs out"),
+          GameRoomRules.translate("Thinking time is off by default. The table owner may set a limit of 1\u2013600 seconds for each turn. If you do not act in time, you lose one token and the turn passes to the next player. Your cards and the shared total stay unchanged: the game does not choose a card for you or start a new round. As with other penalties, paying your last token does not eliminate you; failing to pay a later penalty does.")),
         rule_section(:options, GameRoomRules.translate("Tokens and bot knowledge"),
           GameRoomRules.translate("Starting tokens defaults to 9 and can be changed to another positive number. Omniscient bots is off by default. Enabling it deliberately lets bots see all current hands while deciding their moves; ordinary bots use their own cards and public play. It changes the information available to the bot, not card effects or penalties.")),
-        rule_section(:controls, GameRoomRules.translate("Playing a card"),
-          GameRoomRules.translate("Shift+C: sort by suit; Shift+H: sort by rank. Press the same shortcut again to reverse that order. Shift+M restores receipt order. Sorting changes only your view and keeps the selected physical card; it does not alter card strength or select a move."),
-          GameRoomRules.translate("Z and Shift+Z visit playable cards. They only move the cursor when the card requires a value choice, such as an ace or ten."),
-          GameRoomRules.translate("Arrows: browse your hand. Enter: play the selected card, or choose the value of an ace or ten. Escape: leave that choice without playing."),
-          GameRoomRules.translate("H: your hand. C: shared total. S: everyone's tokens. T: whose turn it is. Replacement cards are drawn automatically."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: browse cards."),
+          GameRoomRules.translate("Enter: play the card or choose the value of an ace or ten."),
+          GameRoomRules.translate("Escape: cancel a value choice without playing."),
+          GameRoomRules.translate("H: read your hand."),
+          GameRoomRules.translate("C: read the shared total."),
+          GameRoomRules.translate("S: read everyone's tokens."),
+          GameRoomRules.translate("Z: next legal card; only move the cursor if a value choice is needed."),
+          GameRoomRules.translate("Shift+Z: previous legal card; only move the cursor if a value choice is needed."),
+          GameRoomRules.translate("T: read whose turn it is."),
+          GameRoomRules.translate("Shift+C: sort by suit or colour; press again to reverse the order."),
+          GameRoomRules.translate("Shift+H: sort by rank or value; press again to reverse the order."),
+          GameRoomRules.translate("Shift+M: restore the order in which cards were received."))
       ]
     end
 
@@ -78,6 +91,8 @@ module GameRoomGames
     def supports_bots?
       true
     end
+
+    def thinking_time_range; 1..600; end
 
     def bot_strategy
       @bot_strategy ||= NinetyNinePlanning::Strategy.new
@@ -166,12 +181,20 @@ module GameRoomGames
       players = repository.players_for(session)
       state = initial_state(players, options_from_json(session["options"]))
       accepted = []
+      seen = {}
       history = [starting_history(players)]
 
       events.each do |event|
         break if state[:winner] != nil
-
+        original_event = event
+        event_id = repository.event_id(event)
+        next if seen[event_id]
+        decoded = GameRoomTurnClock.decode(state, event)
+        next unless decoded
+        event, time = decoded
+        next if %w[play play_draw draw skip_draw no_cards].include?(event["action"]) && ninety_deadline_reached?(state, time)
         actor = repository.actor_of(event, session)
+        previous_recycle = state[:recycle_count]
         applied = case event["action"].to_s
         when "deal"
           apply_deal(state, event, actor, repository, history)
@@ -185,12 +208,20 @@ module GameRoomGames
           apply_skip_draw(state, event, actor, repository, history)
         when "no_cards"
           apply_no_cards(state, event, actor, repository, history)
+        when "turn_timeout"
+          apply_timeout(state, event, actor, repository, history, time)
         else
           false
         end
-        accepted << event if applied
+        if applied
+          record_deck_reshuffle(history, previous_recycle, state[:recycle_count], event_id)
+          # A standalone legacy play still owes a draw, with the same clock.
+          GameRoomTurnClock.advance(state, time, running: state[:phase] == :playing) unless state[:phase] == :awaiting_draw
+          accepted << original_event
+          seen[event_id] = true
+        end
       end
-
+      GameRoomTurnClock.attach_session(state, session)
       Replay.new(
         board: nil,
         players: players,
@@ -207,9 +238,14 @@ module GameRoomGames
       state = replay.state
       return nil if state == nil || state[:winner] != nil
       return nil if !same_user?(actor, replay.players.first)
+      return { "kind" => "command", "action" => "turn_timeout" } if ninety_deadline_reached?(state, context&.now)
       return nil if ![:awaiting_deal, :round_complete].include?(state[:phase])
 
       { "kind" => "command", "action" => "deal" }
+    end
+
+    def automatic_action_due?(replay, actor, context: nil)
+      !replay.finished? && same_user?(actor, replay.players.first) && ninety_deadline_reached?(replay.state, context&.now)
     end
 
     def active_actors(replay)
@@ -220,6 +256,7 @@ module GameRoomGames
       state = replay.state
       return [] if state == nil || state[:winner] != nil
       return [] if !same_user?(state[:current_player], actor)
+      return [] if ninety_deadline_reached?(state, context&.now)
 
       case state[:phase]
       when :playing
@@ -262,17 +299,23 @@ module GameRoomGames
         round = state[:round].to_i + 1
         seed = random_seed(context.random_source)
         dealer = next_dealer_index(state, seed)
-        return [:ok, event_plan("deal", [round, dealer, seed].join("|"))]
+        return [:ok, timed_ninety_plan("deal", [round, dealer, seed].join("|"), state, context)]
       end
 
+      if selection["action"].to_s == "turn_timeout"
+        return [:not_your_turn, nil] unless same_user?(actor, replay.players.first)
+        return [:invalid, nil] unless ninety_deadline_reached?(state, context&.now)
+        return [:ok, timed_ninety_plan("turn_timeout", state[:turn_deadline].to_s(36), state, context)]
+      end
       return [:not_your_turn, nil] if !same_user?(state[:current_player], actor)
+      return [:invalid, nil] if ninety_deadline_reached?(state, context&.now)
 
       action = selection["action"].to_s
       case state[:phase]
       when :playing
         if action == "no_cards"
           return [:invalid, nil] if !hand_for(state, actor).to_a.empty?
-          return [:ok, event_plan("no_cards", "")]
+          return [:ok, timed_ninety_plan("no_cards", "", state, context)]
         end
         return [:invalid, nil] if selection["kind"].to_s != "card" || action != "select"
 
@@ -281,10 +324,10 @@ module GameRoomGames
         return [:invalid_card_choice, nil] if !valid_mode?(card, mode, state[:total])
 
         action = draw_expected_after_play?(state, actor, card, mode) ? "play_draw" : "play"
-        [:ok, event_plan(action, [card, mode].join("|"))]
+        [:ok, timed_ninety_plan(action, [card, mode].join("|"), state, context)]
       when :awaiting_draw
         return [:invalid, nil] if selection["kind"].to_s != "command"
-        return [:ok, event_plan("draw", "")] if action == "draw"
+        return [:ok, timed_ninety_plan("draw", "", state, context)] if action == "draw"
         [:invalid, nil]
       else
         [:invalid, nil]
@@ -338,7 +381,7 @@ module GameRoomGames
       when :current_total
         { message: _("Pile: %{total}.") % { total: state[:total] } }
       when :scores
-        { message: tokens_text(state) }
+        { message: tokens_text(state, sorted: true) }
       else
         super
       end
@@ -357,11 +400,55 @@ module GameRoomGames
 
     def describe_event(event, repository, replay, viewer)
       event_id = repository.event_id(event)
-      entries = replay.history.select { |entry| entry.event_id.to_i == event_id.to_i }
+      entries = history_entries_for_display(replay, viewer).select { |entry| entry.event_id.to_i == event_id.to_i }
       entries.empty? ? nil : entries.map(&:text)
     end
 
+    def history_entries_for_display(replay, viewer, surface_state: {})
+      replay.history.map do |entry|
+        if entry.kind == :timeout_penalty && same_user?(entry.actor, viewer)
+          HistoryEntry.new(**entry.to_h.merge(text: _("You lose 1 token for running out of time.")))
+        else
+          entry
+        end
+      end
+    end
+
     private
+
+    def timed_ninety_plan(action, value, state, context)
+      event_plan(action, GameRoomTurnClock.encode(state, value, context))
+    end
+
+    def ninety_deadline_reached?(state, now)
+      [:playing, :awaiting_draw].include?(state[:phase]) && GameRoomTurnClock.expired?(state, now)
+    end
+
+    def apply_timeout(state, event, actor, repository, history, time)
+      return false unless same_user?(actor, state[:players].first) && ninety_deadline_reached?(state, time)
+      return false unless /\A[0-9a-z]+\z/.match?(event["value"].to_s) && event["value"].to_i(36) == state[:turn_deadline]
+      player = state[:current_player]
+      event_id = repository.event_id(event)
+      charges = []
+      charge_player(state, player, 1, event_id, charges, "")
+      history << HistoryEntry.new(key: "timeout:#{event_id}",
+        text: _("%{player} loses 1 token for running out of time.") % { player: participant_name(player) },
+        event_id: event_id, actor: player, kind: :timeout_penalty, value: 1)
+      history.concat(charges.reject { |entry| entry.kind == :penalty })
+      if active_players(state).length <= 1
+        finish_game(state, event_id, history)
+      else
+        next_player = state[:phase] == :awaiting_draw ? state[:pending_player] : next_active_player(state, player, 1)
+        next_player = next_active_player(state, player, 1) if next_player == nil || state[:eliminated][next_player]
+        # Old split play/draw events may owe a replacement card. Complete that
+        # obligation, but never draw an extra card or choose a card to play.
+        apply_draw(state, event, player, repository, history) if state[:phase] == :awaiting_draw && !state[:eliminated][player]
+        state[:phase] = :playing
+        state[:current_player] = next_player
+        state[:pending_player] = nil
+      end
+      true
+    end
 
     def initial_state(players, options)
       tokens = options["starting_tokens"].to_i
@@ -791,8 +878,9 @@ module GameRoomGames
       _("Your hand: %{cards}.") % { cards: cards.map { |card| card_label(card) }.join("; ") }
     end
 
-    def tokens_text(state)
-      values = state[:players].map do |player|
+    def tokens_text(state, sorted: false)
+      players = sorted ? score_announcement_order(state[:players], state[:tokens], eliminated: state[:eliminated]) : state[:players]
+      values = players.map do |player|
         if state[:eliminated][player]
           _("%{player} eliminated") % { player: participant_name(player) }
         else

@@ -64,7 +64,7 @@ game_types.each do |game_type|
   end
   controls = book.sections.find { |section| section.id == :controls }
   assert(book.documents[1].text.include?(controls.text), "#{game.id} lost its game shortcuts")
-  assert(book.documents[1].text.include?("Ctrl+F1"), "#{game.id} lost shared shortcuts")
+  assert(book.documents[1].paragraphs == controls.paragraphs, "#{game.id} includes unrelated shared shortcuts")
   assert(book.documents.first.text != book.documents[1].text, "#{game.id} repeats rules instead of shortcuts")
   table = game.rule_book(options: game.default_options)
   assert(table.documents.map(&:id) == [:rules, :controls, :current_options], "#{game.id} table must have settings third")

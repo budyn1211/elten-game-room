@@ -62,11 +62,28 @@ module GameRoomGames
           GameRoomRules.translate("For example, with 50 in Yahtzee you roll five threes. An unused Threes row takes 15. If Threes is already filled, the Joker may let you put 40 in Large straight instead. The additional 100 is awarded only if its separate bonus setting is on. There is no joker button or physical joker die to use.")),
         rule_section(:sheets, GameRoomRules.translate("Finishing a sheet and a match"),
           GameRoomRules.translate("A sheet takes 13 turns per player, or 16 with the extra rows. Number of matches chooses how many complete sheets everyone plays, from 1 to 10, normally 1. A new sheet starts empty. Scores from all sheets are added, and the highest final total wins; equal highest totals mean a tied result.")),
-        rule_section(:controls, GameRoomRules.translate("Dice and score sheets"),
-          GameRoomRules.translate("Enter: roll all dice initially, then reroll selected dice. If none are selected, or you have used three rolls, open the scoring list instead. Arrows and Enter choose and save a category; Escape cancels that choice."),
-          GameRoomRules.translate("1 to 6: select one kept die with that value for rerolling. Repeating a number selects further dice of that value, not a position on the list."),
-          GameRoomRules.translate("!, @, #, $, %, ^: keep one selected die of value 1, 2, 3, 4, 5 or 6. These are Shift with the corresponding number. Space: repeat what is kept and what will be rerolled."),
-          GameRoomRules.translate("D: rolled values. V: your score sheet. Shift+V: an opponent's sheet. S: scores. T: whose turn it is."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Enter: roll or reroll selected dice; with none selected or no rolls left, choose a scoring category."),
+          GameRoomRules.translate("Arrows: choose a scoring category."),
+          GameRoomRules.translate("Escape: cancel category selection."),
+          GameRoomRules.translate("Space: read which dice are kept and which will be rerolled."),
+          GameRoomRules.translate("D: read the rolled dice."),
+          GameRoomRules.translate("V: open your score sheet."),
+          GameRoomRules.translate("Shift+V: open an opponent's score sheet."),
+          GameRoomRules.translate("S: read scores."),
+          GameRoomRules.translate("T: read whose turn it is."),
+          GameRoomRules.translate("1: select one kept die showing 1 for rerolling."),
+          GameRoomRules.translate("!: keep one selected die showing 1."),
+          GameRoomRules.translate("2: select one kept die showing 2 for rerolling."),
+          GameRoomRules.translate("@: keep one selected die showing 2."),
+          GameRoomRules.translate("3: select one kept die showing 3 for rerolling."),
+          GameRoomRules.translate("#: keep one selected die showing 3."),
+          GameRoomRules.translate("4: select one kept die showing 4 for rerolling."),
+          GameRoomRules.translate("$: keep one selected die showing 4."),
+          GameRoomRules.translate("5: select one kept die showing 5 for rerolling."),
+          GameRoomRules.translate("%: keep one selected die showing 5."),
+          GameRoomRules.translate("6: select one kept die showing 6 for rerolling."),
+          GameRoomRules.translate("^: keep one selected die showing 6."))
       ]
     end
 
@@ -238,7 +255,7 @@ module GameRoomGames
       end
       shortcuts + [
         surface_shortcut(key: "space", label: _("read the dice and their selection state"), command: "announce_dice"),
-        announcement_shortcut(key: "s", label: _("read the scores"), message: scores_text(replay.state))
+        announcement_shortcut(key: "s", label: _("read the scores"), message: scores_text(replay.state, sorted: true))
       ]
     end
 
@@ -493,8 +510,9 @@ module GameRoomGames
       _("Dice: %{dice}.") % { dice: state[:dice].join(", ") }
     end
 
-    def scores_text(state)
-      state[:players].map do |player|
+    def scores_text(state, sorted: false)
+      players = sorted ? score_announcement_order(state[:players], state[:players].to_h { |p| [p, total_score(state, p)] }) : state[:players]
+      players.map do |player|
         _("%{player}: %{score}") % { player: participant_name(player), score: total_score(state, player) }
       end.join("; ")
     end

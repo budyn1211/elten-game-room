@@ -77,7 +77,7 @@ require_relative "support/native_live_sessions"
   added = owner_lobby.add_bot(table, snapshot: owner_lobby.snapshot_for(table))
   assert(GameRoomParticipants.bot_number(added.snapshot.bots.last) == 3, "adding after removal changed the existing numbering convention")
   core = broker.cores.values.first
-  assert(core.metadata["protocol"] == 5, "clients without named-seat support must not join new tables")
+  assert(core.metadata["protocol"] == 6, "clients without shared clock replay support must not join new tables")
   packets = core.entries.map { |entry| entry.fetch("packet") }
   assert(packets.all? { |packet| packet["version"] == 2 }, "UI refactor changed the stack protocol")
   bot_updates = packets.select { |packet| packet["kind"] == "room_state" && packet["data"].key?("bot_count") }

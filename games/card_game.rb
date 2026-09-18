@@ -1,10 +1,12 @@
 require "digest"
 require_relative "base"
+require_relative "../lib/card_deck_history"
 
 module GameRoomGames
   # Shared deterministic card helpers.  Games still own their rules and event
   # payloads, but they use one shuffle, labelling and hand presentation model.
   class CardGame < Base
+    include GameRoomCardDeckHistory
     CARD_SUITS = %w[C D H S].freeze
     CARD_RANKS = %w[2 3 4 5 6 7 8 9 T J Q K A].freeze
 

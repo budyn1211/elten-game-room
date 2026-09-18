@@ -35,6 +35,12 @@
       "draw2",
       "farkle",
       "hit1",
+      "hit_ship1",
+      "hit_ship2",
+      "rocket_launch1",
+      "rocket_launch2",
+      "rocket_launch3",
+      "rocket_miss",
       "interception",
       "lose1",
       "lose3",
@@ -54,7 +60,16 @@
       "lose_party",
       "domino_refill",
       "domino_move_tile",
-      "domino_take_chip"
+      "domino_take_chip",
+      "card-shuffle",
+      "krowa-race",
+      "krowa-word-tower",
+      "krowa-single",
+      "krowa-opponent-guessed",
+      "krowa-duplicate",
+      "krowa-unknown",
+      "krowa-length",
+      "krowa-success"
     ]
   }
 }

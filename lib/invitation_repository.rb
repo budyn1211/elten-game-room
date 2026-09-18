@@ -1,4 +1,5 @@
 require "securerandom"
+require_relative "invitation_response_outbox"
 
 class InvitationRepository
   SENT_LOCK = Mutex.new
@@ -61,11 +62,12 @@ class InvitationRepository
   RESPONSE_LIMIT = 500
   RESPONSES = ["accepted", "rejected", "expired"].freeze
 
-  def initialize(server_tables: nil, transport: nil, notification_source: nil, response_sender: nil)
+  def initialize(server_tables: nil, transport: nil, notification_source: nil, response_sender: nil, response_outbox: nil)
     @server_tables = server_tables
     @transport = transport
     @notification_source = notification_source
     @response_sender = response_sender
+    @response_outbox = response_outbox
     @sent_invitations = SENT
     @responses = {}
   end
@@ -188,7 +190,7 @@ class InvitationRepository
       key = [invitation_id, clean_recipient.downcase]
       return @responses[key] if @responses.key?(key)
 
-      @responses[key] = {
+      decision = {
         "__id" => invitation_id,
         "invitation_id" => invitation_id,
         "table_id" => row["table_id"].to_i,
@@ -196,8 +198,11 @@ class InvitationRepository
         "response" => clean_response,
         "created_at" => now.to_i
       }
-      @response_sender&.call(row, clean_response)
-      return @responses[key]
+      if @response_sender
+        outbox = @response_outbox ||= InvitationResponseOutbox.default
+        decision["response"] = outbox.submit(row, clean_response, &@response_sender)
+      end
+      return @responses[key] = decision
     end
 
     existing = response_rows(clean_recipient).find do |candidate|

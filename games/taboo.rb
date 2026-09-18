@@ -4,6 +4,7 @@ require_relative "../content/languages"
 require_relative "../content/taboo_cards"
 require_relative "../lib/game_action_payload"
 require_relative "../lib/game_random"
+require_relative "../lib/game_turn_clock"
 
 module GameRoomGames
   class Taboo < Base
@@ -71,7 +72,7 @@ module GameRoomGames
       data = input.select { |key, _| %w[action token index result].include?(key) }
       # A surface action retains the token of the card it actually displayed.
       data["revision"] = replay.state[:revision]
-      data["time"] = (context&.now || Time.now.to_i).to_i
+      data["time"] = GameRoomTurnClock.logical_now(replay.state, context)
       if MODERATOR_ACTIONS.include?(data["action"]) && replay.state[:master] && context&.table_owner
         return [:not_your_turn,nil] unless same_user?(context.table_owner,replay.state[:master])
       end

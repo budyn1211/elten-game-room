@@ -1,0 +1,567 @@
+require_relative "base"
+require_relative "../lib/game_bots"
+require_relative "../lib/game_tree_search"
+require_relative "../lib/mancala_strategy"
+
+module GameRoomGames
+  class Mancala < Base
+    PITS = 6
+    SIDE = PITS + 1
+    TOTAL = SIDE * 2
+    STONE_CHOICES = (2..8).to_a.freeze
+    IDLE_LIMIT = 120
+    RELAY_LIMIT = 200
+    LEVELS = {
+      "calm" => { depth: 2, nodes: 3_000 },
+      "steady" => { depth: 4, nodes: 12_000 },
+      "sharp" => { depth: 8, nodes: 60_000 }
+    }.freeze
+
+    SKILLS = [
+      OptionChoice.new(value: "calm", label: _("Calm (short search)")),
+      OptionChoice.new(value: "steady", label: _("Steady (looks a few moves ahead)")),
+      OptionChoice.new(value: "sharp", label: _("Sharp (searches deeply and answers more slowly)"))
+    ].freeze
+
+    VARIANTS = [
+      OptionChoice.new(value: "oware", label: _("Oware (capture two or three seeds in the other row)")),
+      OptionChoice.new(value: "ayoayo", label: _("Ayoayo (keep sowing on from every pit that was not empty)")),
+      OptionChoice.new(value: "kalah", label: _("Kalah (sow into your own store and sow again from it)"))
+    ].freeze
+
+    def id
+      "mancala"
+    end
+
+    def name
+      _("Mancala")
+    end
+
+    def rule_sections
+      # Generated from docs/rulebooks/mancala.json; see tools/compile-rulebooks.rb.
+      [
+        rule_section(:board, GameRoomRules.translate("A board full of seeds"),
+          GameRoomRules.translate("Mancala is a family of games about moving seeds between pits. Here two people can play Oware, Ayoayo or Kalah. All three use two rows of six pits and one store for each player. Seeds in your store are your score and never return to play. You want to collect more than your opponent."),
+          GameRoomRules.translate("Your row is always at the bottom, from A1 to F1. The opposing row is A2 to F2. Pits in the same column face each other: C1 faces C2, for instance. An observer sees the board from the first player's side. Move announcements use the coordinates shown on your screen."),
+          GameRoomRules.translate("Each pit begins with four seeds by default. The table can instead start with any whole number from two to eight in every pit. This changes the total available score: four per pit means 48 seeds altogether. Both players always start equally, and both stores begin empty.")),
+        rule_section(:sowing, GameRoomRules.translate("How sowing works"),
+          GameRoomRules.translate("On your turn, choose a nonempty pit in your own row and press Enter. Take all its seeds and drop one into each following pit. This is called sowing. Along your bottom row the order is A1 towards F1, then across the opposing row from F2 towards A2 and back to A1. You never sow into your opponent's store."),
+          GameRoomRules.translate("For example, sowing four seeds from A1 adds one each to B1, C1, D1 and E1. You do not choose their destinations separately. What happens when the last seed lands depends on the variant, so read the section for the game selected at your table.")),
+        rule_section(:oware, GameRoomRules.translate("Oware: capture twos and threes"),
+          GameRoomRules.translate("Oware never sows into either store. When a large handful goes all the way around the board, skip the pit you originally emptied. After sowing, capture is possible only if the last seed landed on the opposing side and left exactly two or three seeds in that pit."),
+          GameRoomRules.translate("Take those seeds into your store. Then inspect the preceding opposing pit, going backwards along the sowing route: if it also holds two or three, capture it too. Continue until a pit has a different number or you reach your own side. For example, ending beside consecutive opposing pits holding 2, 3 and 2 can capture all three."),
+          GameRoomRules.translate("You must not capture every seed left on the opposing side at once. Such a move may be played, but no capture occurs. If the opponent's row is empty before your turn, you must choose a sowing that feeds it when one exists. Otherwise the game ends, and each player keeps the seeds remaining on their own side."),
+          GameRoomRules.translate("Oware ends immediately when someone owns more than half of all seeds. With the default 48, that means 25. Game Room also ends a sequence of 120 moves without any capture: each side's remaining seeds go to its own store. This is the local safeguard against endless circulation, not a threefold-repetition rule. Equal final scores mean a draw.")),
+        rule_section(:ayoayo, GameRoomRules.translate("Ayoayo: one move can continue through several pits"),
+          GameRoomRules.translate("Ayoayo skips the stores and the pit emptied for each sowing. If the last seed lands in a pit that already held seeds, take everything from that pit and continue sowing from there. This continuation is still part of your original move, even on the opposing side. It stops when your last seed lands in an empty pit."),
+          GameRoomRules.translate("If that final empty pit is yours and the opposite pit contains seeds, capture all the seeds opposite together with your own last seed. Both pits become empty. For example, three seeds opposite plus your last seed give you four points. Landing on the opposing side or opposite an empty pit gives no capture."),
+          GameRoomRules.translate("When the opposing row is empty, you must feed it if a legal move can do so. If the player whose turn comes next has no legal move, all seeds still on the board go to the person who made the last move. This also applies when the next player has seeds but cannot feed the empty opposing row. Game Room uses this particular Ayoayo variant; other published descriptions may award these seeds differently."),
+          GameRoomRules.translate("After gathering the remaining seeds, compare the stores. More seeds wins and equal stores mean a draw. Unlike Oware, Ayoayo does not stop merely because someone has passed half of the total.")),
+        rule_section(:kalah, GameRoomRules.translate("Kalah: use your store and earn another move"),
+          GameRoomRules.translate("In Kalah you sow into your own store as you pass it, immediately scoring that seed. Skip only the opponent's store; on a full circuit your original pit can receive seeds again. Landing the last seed in your store gives you another move. You may earn several extra moves in succession."),
+          GameRoomRules.translate("With capturing enabled, ending in your own previously empty pit captures your last seed and every seed in the opposite pit, provided the opposite pit is not empty. Turning off Capture from an empty pit disables this capture only. Sowing into your store and earning extra moves still work."),
+          GameRoomRules.translate("The game ends as soon as either row is empty. The other player moves all seeds remaining in their row into their own store. The larger store wins; equal stores mean a draw. There is no requirement to feed an empty opponent in Kalah.")),
+        rule_section(:computer, GameRoomRules.translate("Playing against the computer"),
+          GameRoomRules.translate("The computer uses the same rules and can see the whole board, just as you can. Calm uses a short search, Steady looks further and is the default, while Sharp considers more continuations and may need longer to answer. These settings change its planning effort, not the number of seeds or scoring."),
+          GameRoomRules.translate("Bot delay is a separate setting: zero adds no intentional pause, and values from one to five add that many seconds before the move. It is not a time limit for the search and does not weaken the computer.")),
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Left / Right: move along a row of pits."),
+          GameRoomRules.translate("Up / Down: change rows."),
+          GameRoomRules.translate("Enter: sow from the selected pit in your own row."),
+          GameRoomRules.translate("S: read both stores, highest score first."),
+          GameRoomRules.translate("P: read your pits in sowing order."),
+          GameRoomRules.translate("Shift+P: read the opposing pits in their sowing order."),
+          GameRoomRules.translate("T: read whose turn it is."))
+      ]
+    end
+
+    def minimum_players
+      2
+    end
+
+    def maximum_players
+      2
+    end
+
+    def supports_bots?
+      true
+    end
+
+    def shareable_simulation_snapshot?
+      true
+    end
+
+    def bot_strategy
+      @bot_strategy ||= MancalaPlanning::Strategy.new
+    end
+
+    def strategy_for(level)
+      @strategies ||= {}
+      size = LEVELS.fetch(level.to_s, LEVELS["steady"])
+      @strategies[level.to_s] ||= GameRoomBots::AlphaBetaStrategy.new(
+        max_depth: size[:depth], node_limit: size[:nodes], optimize_transpositions: true
+      )
+    end
+
+    def skill(state)
+      state[:options]["skill"].to_s
+    end
+
+    def option_definitions
+      [
+        OptionDefinition.new(key: "variant", label: _("Game"), kind: :choice, default: "oware", choices: VARIANTS),
+        OptionDefinition.new(key: "stones", label: _("Seeds in each pit"), kind: :integer, default: 4),
+        OptionDefinition.new(key: "skill", label: _("How hard the computer plays"), kind: :choice,
+          default: "steady", choices: SKILLS),
+        OptionDefinition.new(key: "capture", label: _("Capture from an empty pit"), kind: :boolean, default: true,
+          visible_if: ->(values) { values["variant"] == "kalah" })
+      ]
+    end
+
+    def options_error(options, player_count: nil)
+      values = normalize_options(options)
+      if !STONE_CHOICES.include?(values["stones"].to_i)
+        return _("Each pit must start with %{from} to %{to} seeds.") % { from: STONE_CHOICES.first, to: STONE_CHOICES.last }
+      end
+
+      nil
+    end
+
+    def options_summary(options)
+      values = normalize_options(options)
+      variant = VARIANTS.find { |choice| choice.value == values["variant"] }
+      text = _("%{variant}; %{seeds} seeds in each pit") % { variant: variant&.label, seeds: values["stones"] }
+      values["variant"] == "kalah" && !values["capture"] ? text + "; " + _("no capturing") : text
+    end
+
+    def replay(session, events, repository)
+      players = repository.players_for(session)
+      state = initial_state(players, options_from_json(session["options"]))
+      accepted = []
+      history = [starting_history(players)]
+
+      events.each do |event|
+        break if state[:phase] == :finished
+
+        actor = repository.actor_of(event, session)
+        accepted << event if event["action"].to_s == "sow" && apply_sow(state, event, actor, repository, history)
+      end
+
+      wrap(players, state, accepted, history)
+    end
+
+    def incremental_replay(replay, session, events, repository)
+      return nil if replay == nil
+
+      state = replay.state.merge(pits: replay.state[:pits].dup, players: replay.players)
+      accepted = replay.accepted_events.dup
+      history = replay.history.dup
+      events.each do |event|
+        break if state[:phase] == :finished
+
+        actor = repository.actor_of(event, session)
+        accepted << event if event["action"].to_s == "sow" && apply_sow(state, event, actor, repository, history)
+      end
+      wrap(replay.players, state, accepted, history)
+    end
+
+    def wrap(players, state, accepted, history)
+      Replay.new(
+        board: nil, players: players, current_player: state[:current_player],
+        winner: state[:winner], draw: state[:tie], accepted_events: accepted,
+        history: history, state: state
+      )
+    end
+
+    def active_actors(replay)
+      replay.current_player == nil ? [] : [replay.current_player]
+    end
+
+    def legal_actions(replay, actor, context: nil)
+      state = replay.state
+      return [] if state == nil || state[:phase] == :finished
+      return [] if !same_user?(state[:current_player], actor)
+
+      sowable(state, side_of(state, actor)).map do |pit|
+        { "kind" => "grid", "action" => "select", "x" => pit, "y" => 0 }
+      end
+    end
+
+    def action_for(selection, replay, actor, context: nil)
+      state = replay.state
+      return [:finished, nil] if replay.finished?
+      return [:invalid, nil] if selection["action"].to_s != "select"
+      return [:not_your_turn, nil] if !same_user?(state[:current_player], actor)
+      return [:other_side, nil] if selection["y"].to_i != 0
+
+      side = side_of(state, actor)
+      pit = selection["x"].to_i
+      return [:invalid, nil] if !pit.between?(0, PITS - 1)
+      return [:empty_pit, nil] if state[:pits][side * SIDE + pit].zero?
+      return [:must_feed, nil] if !sowable(state, side).include?(pit)
+
+      [:ok, event_plan("sow", pit.to_s)]
+    end
+
+    def surface_spec(replay, viewer)
+      state = replay.state
+      side = side_of(state, viewer) || 0
+      mine = (0...PITS).map { |column| pit_label(state, side, column, column, 0) }
+      theirs = (0...PITS).map { |column| pit_label(state, 1 - side, PITS - 1 - column, column, 1) }
+      GameSurfaces::GridSpec.new(
+        width: PITS, height: 2, header: board_header(replay, viewer),
+        cells: [mine, theirs], row_origin: :bottom
+      )
+    end
+
+    def participant_scores(replay)
+      state = replay.state
+      state[:players].each_with_index.to_h { |player, index| [player, store_of(state, index)] }
+    end
+
+    def shortcut_features
+      [:turn, :scores]
+    end
+
+    def shortcut_feature_data(feature, replay, viewer)
+      return { message: stores_text(replay.state) } if feature.to_sym == :scores
+
+      super
+    end
+
+    def custom_game_shortcuts(replay, viewer)
+      state = replay.state
+      side = side_of(state, viewer) || 0
+      [
+        announcement_shortcut(key: "p", label: _("read your pits"), message: row_text(state, side, true)),
+        GameShortcut.new(key: "p", modifiers: [:shift], label: _("read the other row"),
+          kind: :announcement, message: row_text(state, 1 - side, false))
+      ]
+    end
+
+    def move_error(status)
+      case status
+      when :empty_pit then _("That pit is empty.")
+      when :other_side then _("You may only sow your own pits.")
+      when :must_feed then _("You must put seeds into the other row.")
+      else super
+      end
+    end
+
+    def describe_event(event, repository, replay, viewer)
+      event_id = repository.event_id(event)
+      entries = history_entries_for_display(replay, viewer).select { |entry| entry.event_id.to_i == event_id.to_i }
+      entries.empty? ? nil : entries.map(&:text)
+    end
+
+    def history_entries_for_display(replay, viewer, surface_state: {})
+      view_side = side_of(replay.state, viewer) || 0
+      replay.history.map do |item|
+        next item unless item.kind == :sow && item.value.is_a?(Hash)
+        own = side_of(replay.state, item.actor) == view_side
+        pit = item.value.fetch("pit")
+        field = own ? field_label(pit, 0) : field_label(PITS - 1 - pit, 1)
+        displayed = item.dup
+        displayed.field = field
+        displayed.text = _("%{player} sows %{seeds} from %{pit}.") % {
+          player: participant_name(item.actor), seeds: seed_count(item.value.fetch("seeds")), pit: field
+        }
+        displayed
+      end
+    end
+
+    def bot_search_key(replay, actor)
+      state = replay.state
+      [variant(state), state[:options]["capture"], state[:idle], state[:phase],
+        side_of(state, actor), side_of(state, state[:current_player]), state[:pits]].inspect
+    end
+
+    def bot_action_score(replay, actor, action, context: nil)
+      state = replay.state
+      side = side_of(state, actor)
+      pit = selection_value(action, "x")
+      preview = state[:pits].dup
+      landing = scatter(preview, state, side, pit)
+      taken = harvest(preview, state, side, landing)
+      return taken * 20.0 + 10.0 if taken.positive?
+      return 100.0 if repeats?(state, side, landing)
+
+      state[:pits][side * SIDE + pit].to_f
+    end
+
+    def bot_position_value(replay, actor)
+      return bot_reward(replay, actor) * 1_000_000.0 if replay.finished?
+
+      state = replay.state
+      side = side_of(state, actor)
+      other = 1 - side
+      gathered = store_of(state, side) - store_of(state, other)
+      held = side_stones(state, side) - side_stones(state, other)
+      gathered * 12.0 + held * 1.0
+    end
+
+    private
+
+    def initial_state(players, options)
+      seeds = options["stones"].to_i
+      pits = Array.new(TOTAL) { |index| (index % SIDE) == PITS ? 0 : seeds }
+      {
+        players: players, options: options, pits: pits, idle: 0,
+        phase: :playing, current_player: players.first, winner: nil, tie: false
+      }
+    end
+
+    def apply_sow(state, event, actor, repository, history)
+      return false if state[:phase] != :playing || !same_user?(state[:current_player], actor)
+
+      side = side_of(state, actor)
+      pit = Integer(event["value"].to_s, 10)
+      return false if side == nil || !sowable(state, side).include?(pit)
+
+      seeds = state[:pits][side * SIDE + pit]
+      landing = scatter(state[:pits], state, side, pit)
+      event_id = repository.event_id(event)
+      history << entry("sow:#{event_id}", _("%{player} sows %{seeds} from %{pit}.") % {
+        player: participant_name(actor), seeds: seed_count(seeds), pit: field_label(pit, 0)
+      }, event_id, actor, :sow)
+      history.last.value = { "pit" => pit, "seeds" => seeds }
+      taken = harvest(state[:pits], state, side, landing)
+      if taken.positive?
+        state[:pits][store_index(side)] += taken
+        state[:idle] = 0
+        history << entry("take:#{event_id}", _("%{player} captures %{seeds}.") % {
+          player: participant_name(actor), seeds: seed_count(taken)
+        }, event_id, actor, :capture)
+      else
+        state[:idle] += 1
+      end
+      again = repeats?(state, side, landing)
+      state[:current_player] = state[:players][1 - side] unless again
+      settle(state, event_id, history)
+      if again && state[:phase] == :playing
+        history << entry("again:#{event_id}", _("%{player} sows again.") % { player: participant_name(actor) },
+          event_id, actor, :again)
+      end
+      true
+    rescue ArgumentError
+      false
+    end
+
+    def scatter(pits, state, side, pit)
+      cursor = side * SIDE + pit
+      laps = 0
+      loop do
+        cursor = sow_once(pits, state, side, cursor)
+        laps += 1
+        break if !relay?(state) || pits[cursor] < 2 || laps > RELAY_LIMIT
+      end
+      cursor
+    end
+
+    def sow_once(pits, state, side, origin)
+      cursor = origin
+      seeds = pits[cursor]
+      pits[cursor] = 0
+      while seeds.positive?
+        cursor = (cursor + 1) % TOTAL
+        next if skipped?(state, side, cursor, origin)
+
+        pits[cursor] += 1
+        seeds -= 1
+      end
+      cursor
+    end
+
+    def skipped?(state, side, cursor, origin)
+      return true if cursor == store_index(1 - side)
+      return false if kalah?(state)
+
+      cursor == store_index(side) || cursor == origin
+    end
+
+    def harvest(pits, state, side, landing)
+      return oware_harvest(pits, side, landing) if oware?(state)
+      return 0 if kalah?(state) && !state[:options]["capture"]
+      return 0 if !own_pits(side).include?(landing) || pits[landing] != 1
+
+      facing_pit = facing(landing)
+      return 0 if pits[facing_pit].zero?
+
+      taken = pits[facing_pit] + 1
+      pits[facing_pit] = 0
+      pits[landing] = 0
+      taken
+    end
+
+    def oware_harvest(pits, side, landing)
+      other = 1 - side
+      cursor = landing
+      picked = []
+      while own_pits(other).include?(cursor) && [2, 3].include?(pits[cursor])
+        picked << cursor
+        cursor = (cursor - 1) % TOTAL
+      end
+      return 0 if picked.empty?
+      return 0 if picked.sum { |pit| pits[pit] } == own_pits(other).sum { |pit| pits[pit] }
+
+      taken = picked.sum { |pit| pits[pit] }
+      picked.each { |pit| pits[pit] = 0 }
+      taken
+    end
+
+    def repeats?(state, side, landing)
+      kalah?(state) && landing == store_index(side)
+    end
+
+    def settle(state, event_id, history)
+      total = state[:pits].sum
+      scores = [store_of(state, 0), store_of(state, 1)]
+      return conclude(state, event_id, history) if scores.sum == total
+
+      side = side_of(state, state[:current_player])
+      if oware?(state)
+        return conclude(state, event_id, history) if scores.any? { |score| score * 2 > total }
+        return gather_each(state, event_id, history) if state[:idle] >= IDLE_LIMIT
+        return gather_each(state, event_id, history) if sowable(state, side).empty?
+
+        return false
+      end
+      if relay?(state)
+        return false if sowable(state, side).any?
+
+        return gather_to(state, 1 - side, event_id, history)
+      end
+
+      empty = [0, 1].find { |index| side_stones(state, index).zero? }
+      return false if empty == nil
+
+      gather_to(state, 1 - empty, event_id, history, own_only: true)
+    end
+
+    def gather_each(state, event_id, history)
+      [0, 1].each { |index| move_to_store(state, index, index, event_id, history) }
+      conclude(state, event_id, history)
+    end
+
+    def gather_to(state, index, event_id, history, own_only: false)
+      sources = own_only ? [index] : [0, 1]
+      sources.each { |source| move_to_store(state, source, index, event_id, history) }
+      conclude(state, event_id, history)
+    end
+
+    def move_to_store(state, source, index, event_id, history)
+      left = side_stones(state, source)
+      return if left.zero?
+
+      own_pits(source).each { |pit| state[:pits][pit] = 0 }
+      state[:pits][store_index(index)] += left
+      history << entry("sweep:#{event_id}:#{source}", _("%{player} takes the last %{seeds}.") % {
+        player: participant_name(state[:players][index]), seeds: seed_count(left)
+      }, event_id, state[:players][index], :sweep)
+    end
+
+    def conclude(state, event_id, history)
+      state[:phase] = :finished
+      state[:current_player] = nil
+      first = store_of(state, 0)
+      second = store_of(state, 1)
+      state[:winner] = first == second ? nil : state[:players][first > second ? 0 : 1]
+      state[:tie] = first == second
+      history << entry("scores:#{event_id}", stores_text(state), event_id, "", :score)
+      history << result_history(event_id: event_id, winner: state[:winner], draw: state[:tie])
+      true
+    end
+
+    def sowable(state, side)
+      return [] if side == nil
+
+      moves = (0...PITS).select { |pit| state[:pits][side * SIDE + pit].positive? }
+      return moves if kalah?(state) || side_stones(state, 1 - side).positive?
+
+      moves.select { |pit| feeds?(state, side, pit) }
+    end
+
+    def feeds?(state, side, pit)
+      preview = state[:pits].dup
+      scatter(preview, state, side, pit)
+      own_pits(1 - side).any? { |place| preview[place].positive? }
+    end
+
+    def oware?(state)
+      variant(state) == "oware"
+    end
+
+    def relay?(state)
+      variant(state) == "ayoayo"
+    end
+
+    def kalah?(state)
+      variant(state) == "kalah"
+    end
+
+    def variant(state)
+      state[:options]["variant"].to_s
+    end
+
+    def own_pits(side)
+      ((side * SIDE)..(side * SIDE + PITS - 1)).to_a
+    end
+
+    def store_index(side)
+      side * SIDE + PITS
+    end
+
+    def store_of(state, side)
+      state[:pits][store_index(side)].to_i
+    end
+
+    def side_stones(state, side)
+      own_pits(side).sum { |pit| state[:pits][pit] }
+    end
+
+    def facing(pit)
+      TOTAL - 2 - pit
+    end
+
+    def side_of(state, actor)
+      state[:players].index { |player| same_user?(player, actor) }
+    end
+
+    def seed_count(number)
+      n_("%{count} seed", "%{count} seeds", number) % { count: number }
+    end
+
+    def pit_label(state, side, pit, column, row)
+      _("%{field}, %{seeds}") % {
+        field: field_label(column, row), seeds: seed_count(state[:pits][side * SIDE + pit])
+      }
+    end
+
+    def board_header(replay, viewer)
+      state = replay.state
+      return _("%{result} %{stores}") % { result: result_text(replay), stores: stores_text(state) } if replay.finished?
+
+      _("%{turn} %{stores}") % { turn: current_turn_shortcut_text(replay, viewer), stores: stores_text(state) }
+    end
+
+    def stores_text(state)
+      scores = state[:players].each_with_index.to_h { |player, index| [player, store_of(state, index)] }
+      values = score_announcement_order(state[:players], scores).map do |player|
+        _("%{player}: %{seeds}") % { player: participant_name(player), seeds: scores.fetch(player) }
+      end
+      _("Stores: %{values}.") % { values: values.join("; ") }
+    end
+
+    def row_text(state, side, own)
+      return _("No pits.") if side == nil
+
+      values = (0...PITS).map { |pit| state[:pits][side * SIDE + pit] }
+      header = own ? _("Your pits: %{values}.") : _("The other row: %{values}.")
+      header % { values: values.join(", ") }
+    end
+
+    def entry(key, text, event_id, actor, kind)
+      HistoryEntry.new(key: key, text: text, event_id: event_id, actor: actor, kind: kind)
+    end
+  end
+end

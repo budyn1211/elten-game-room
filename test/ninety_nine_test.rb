@@ -8,7 +8,7 @@ end
 
 module GameSurfaces
   CardChoice = Struct.new(:id, :label, :value, keyword_init: true)
-  Card = Struct.new(:id, :label, :value, :choices, keyword_init: true)
+  Card = Struct.new(:id, :label, :value, :choices, :sort_keys, keyword_init: true)
   CardZoneSpec = Struct.new(:id, :header, :cards, :empty_label, :hand_order, :hand_epoch, keyword_init: true)
   CardTableSpec = Struct.new(:zones, keyword_init: true)
   Command = Struct.new(:id, :label, :enabled, :payload, keyword_init: true)
@@ -260,7 +260,8 @@ status, = game.action_for(
 )
 assert(status == :invalid_card_choice, "subtracting below zero was accepted")
 
-shortcuts = game.game_shortcuts(replay, "Bob").each_with_object({}) { |shortcut, result| result[shortcut.key] = shortcut }
+shortcuts = game.game_shortcuts(replay, "Bob").select { |shortcut| shortcut.modifiers.empty? }
+  .each_with_object({}) { |shortcut, result| result[shortcut.key] = shortcut }
 assert(shortcuts["c"].message == "Pile: 5.", "C does not use the concise pile announcement")
 assert(!shortcuts["s"].message.include?("tokens"), "S still reads the redundant token unit")
 assert(shortcuts["s"].message.include?("Bob 9"), "S does not announce a player's score")

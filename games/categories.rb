@@ -92,9 +92,15 @@ module GameRoomGames
         rule_section(:finish, GameRoomRules.translate("Equal rounds and tied scores"),
           GameRoomRules.translate("Target score defaults to 100 and can be 10\u20131000. With a rotating judge, reaching it does not stop play at once: finish the current full judge cycle, so everyone has judged equally often. With a permanent judge, the completed scoring round can decide the result. The highest eligible total wins, not necessarily the first person who touched the target."),
           GameRoomRules.translate("A tied lead can give a shared victory or require extra play, the default. In extra play only the tied leaders remain in contention. An outside participant judges if possible; if everyone is tied, judging continues over complete cycles. A permanent judge keeps that role. Further play continues until the tied lead is resolved. This game does not support saving a partly completed match.")),
-        rule_section(:controls, GameRoomRules.translate("Answering and judging keys"),
-          GameRoomRules.translate("Tab and Shift+Tab: move between answer fields and submission. Type normally in each answer field. During review, arrows choose a grade, Enter confirms, and Tab moves between answer groups; Finish review completes judging."),
-          GameRoomRules.translate("Ctrl+T: remaining answer time, also while typing. Outside editable fields, T reads the letter and judge, S the scores and V round information. Letter shortcuts do not interfere with typing answers or chat."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Tab: next answer field, submission control or review group."),
+          GameRoomRules.translate("Shift+Tab: previous answer field or review group."),
+          GameRoomRules.translate("Arrows: during review, select a grade."),
+          GameRoomRules.translate("Enter: confirm the selected grade or submission action."),
+          GameRoomRules.translate("Ctrl+T: read the remaining answer time, also while typing."),
+          GameRoomRules.translate("T: outside answer entry, read the letter and judge."),
+          GameRoomRules.translate("S: outside answer entry, read the scores."),
+          GameRoomRules.translate("V: outside answer entry, read round information."))
       ]
     end
 
@@ -599,7 +605,7 @@ module GameRoomGames
       when :remaining_time
         { message: remaining_time_text(state) }
       when :scores
-        { message: scores_text(state) }
+        { message: scores_text(state, sorted: true) }
       when :round_summary
         { message: cycle_status_text(state) }
       else
@@ -1370,8 +1376,11 @@ module GameRoomGames
       }
     end
 
-    def scores_text(state)
-      values = contestants(state[:players], state[:options]).map do |player|
+    def scores_text(state, sorted: false)
+      players = contestants(state[:players], state[:options])
+      scores = players.to_h { |p| [p, player_hash_value(state[:scores], p).to_i] }
+      players = score_announcement_order(players, scores) if sorted
+      values = players.map do |player|
         _("%{player}: %{points}") % {
           player: participant_name(player),
           points: player_hash_value(state[:scores], player).to_i

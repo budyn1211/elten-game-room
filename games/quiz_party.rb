@@ -67,8 +67,13 @@ module GameRoomGames
         rule_section(:time, GameRoomRules.translate("Answer time and the finishing line"),
           GameRoomRules.translate("Time for one answer defaults to 20 seconds. The offered choices are 5\u201310 seconds one second apart, then 15\u201360 in steps of five. This limit applies separately to each question. The target defaults to 15 points; the list also offers 20, 25, 30, 40 and 50."),
           GameRoomRules.translate("Reaching the target does not cut short a round. Finish all three questions, then the highest score wins. If the highest scores are equal, play another complete round and check again, continuing until one player leads. Bots sometimes know an answer and otherwise guess; adding one does not make every answer perfect. Saving a partly played Quiz Party match is not supported.")),
-        rule_section(:controls, GameRoomRules.translate("Quiz keys"),
-          GameRoomRules.translate("Arrows: choose a category or answer. Enter: submit the highlighted choice. T: read the question. Ctrl+T: remaining answer time. S: scores. V: round summary. Ctrl+F1: rules and shortcuts. Escape: return to the table."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: choose a category or answer."),
+          GameRoomRules.translate("Enter: submit the highlighted choice."),
+          GameRoomRules.translate("T: read the question."),
+          GameRoomRules.translate("Ctrl+T: read the remaining answer time."),
+          GameRoomRules.translate("V: read the round summary."),
+          GameRoomRules.translate("S: read scores."))
       ]
     end
 
@@ -481,7 +486,7 @@ module GameRoomGames
       when :remaining_time
         { message: remaining_time_text(state) }
       when :scores
-        { message: scores_text(state) }
+        { message: scores_text(state, sorted: true) }
       when :round_summary
         { message: round_summary_text(state) }
       else
@@ -1219,8 +1224,9 @@ module GameRoomGames
       _("%{seconds} seconds remaining.") % { seconds: [state[:deadline].to_i - Time.now.to_i, 0].max }
     end
 
-    def scores_text(state)
-      values = state[:players].map do |player|
+    def scores_text(state, sorted: false)
+      players = sorted ? score_announcement_order(state[:players], state[:scores]) : state[:players]
+      values = players.map do |player|
         _("%{player}: %{points}") % {
           player: participant_name(player),
           points: state[:scores].fetch(player, 0).to_i

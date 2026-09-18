@@ -1,4 +1,5 @@
 require_relative "game_participants"
+require_relative "game_turn_clock"
 
 module GameRoomSounds
   ASSET_NAMES = %w[
@@ -9,6 +10,7 @@ module GameRoomSounds
     buzzer2
     ding
     shuffle
+    card-shuffle
     draw
     draw2
     domino_refill
@@ -19,6 +21,12 @@ module GameRoomSounds
     ninety3366
     1000_mariage
     hit1
+    hit_ship1
+    hit_ship2
+    rocket_launch1
+    rocket_launch2
+    rocket_launch3
+    rocket_miss
     interception
     lose1
     lose3
@@ -34,6 +42,12 @@ module GameRoomSounds
     win2
     win_party
   ].freeze
+
+  BATTLESHIP_HITS = %w[hit_ship1 hit_ship2].freeze
+  BATTLESHIP_LAUNCHES = %w[rocket_launch1 rocket_launch2 rocket_launch3].freeze
+  # Balance the loud Battleship recordings before the user's volume controls.
+  # Keep the audio files and playback handles intact for serial presentation.
+  ASSET_VOLUME_GAINS = (BATTLESHIP_HITS + BATTLESHIP_LAUNCHES + ["rocket_miss"]).to_h { |name| [name, 0.2] }.freeze
 
   class MembershipTracker
     def initialize
@@ -70,11 +84,14 @@ module GameRoomSounds
       return nil if !program.send(:game_room_sound_enabled?, name.to_s)
     end
 
+    gain = ASSET_VOLUME_GAINS.fetch(name.to_s, 1.0)
     if program.respond_to?(:game_room_sound_volume, true)
-      volume = program.send(:game_room_sound_volume, name.to_s)
+      volume = program.send(:game_room_sound_volume, name.to_s) * gain
       return nil if volume <= 0
 
       program.play_sound_from_asset(name.to_s, volume: volume)
+    elsif gain != 1.0
+      program.play_sound_from_asset(name.to_s, volume: gain)
     else
       program.play_sound_from_asset(name.to_s)
     end
@@ -106,6 +123,9 @@ module GameRoomSounds
       repository: repository,
       viewer: viewer
     ))
+    if history_for_event(after_replay, event, repository).any? { |entry| entry.kind == :reshuffle }
+      cues.unshift("card-shuffle")
+    end
     cues.concat(Array(result_cue(game, before_replay, after_replay, viewer)))
     cues = cues.compact.map(&:to_s).reject(&:empty?).uniq
     return nil if cues.empty?
@@ -117,6 +137,17 @@ module GameRoomSounds
   def action_cue(game:, event:, before_replay:, after_replay:, repository:, viewer:)
     action = event["action"].to_s
     case game.id.to_s
+    when "battleship"
+      kinds = history_for_event(after_replay, event, repository).map(&:kind)
+      cues = []
+      cues << "play" if kinds.include?(:seal)
+      cues << random_variant(BATTLESHIP_LAUNCHES) if kinds.include?(:shoot)
+      cues << "rocket_miss" if kinds.include?(:miss)
+      cues << random_variant(BATTLESHIP_HITS) if (kinds & [:hit, :sunk]).any?
+      cues
+    when "mancala"
+      kinds = history_for_event(after_replay, event, repository).map(&:kind)
+      { sow: "domino_move_tile", capture: "hit1" }.select { |kind, _| kinds.include?(kind) }.values
     when "biblios"
       kinds = history_for_event(after_replay, event, repository).map(&:kind)
       return "shuffle" if kinds.include?(:deal)
@@ -181,6 +212,10 @@ module GameRoomSounds
       return "shuffle" if action == "deal"
       return "play" if action == "play"
       return "draw" if %w[draw catch].include?(action)
+      if action == "makao_timeout"
+        entries = history_for_event(after_replay, event, repository)
+        return "draw" if entries.any? { |entry| entry.kind == :draw }
+      end
       if action == "makao"
         event_history = history_for_event(after_replay, event, repository)
         return "buzzer2" if event_history.any? { |entry| entry.key.to_s.start_with?("makao:") }
@@ -201,7 +236,7 @@ module GameRoomSounds
       cues
     when "poker"
       return "shuffle" if action == "deal"
-      return "draw" if action == "exchange" && !event["value"].to_s.empty?
+      return "draw" if action == "exchange" && !GameRoomTurnClock.payload(after_replay.state, event).empty?
       return "play" if action == "bet" && event["value"].to_s !~ /\A(?:check|fold)\|/
     when "yahtzee"
       return "roll" if action == "roll"
@@ -313,5 +348,11 @@ module GameRoomSounds
   def history_for_event(replay, event, repository)
     event_id = repository.event_id(event).to_i
     replay.to_h.fetch(:history, []).to_a.select { |entry| entry.event_id.to_i == event_id }
+  end
+
+  def random_variant(names)
+    # Cosmetic randomness must never consume the game's seeded RNG.
+    @sound_random ||= Random.new
+    names[@sound_random.rand(names.length)]
   end
 end

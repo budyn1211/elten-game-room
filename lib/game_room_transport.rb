@@ -692,6 +692,19 @@ class GameRoomTransport
     live_store? ? @live_store.consume_recovered_game_events(session) : []
   end
 
+  def send_private_game(**arguments)
+    raise IOError, "Private game messages require LiveSessions" unless live_store?
+    @live_store.send_private_game(**arguments)
+  end
+
+  def private_game_messages_pending?(table_id, session_id)
+    live_store? && @live_store.private_game_messages_pending?(table_id, session_id)
+  end
+
+  def take_private_game_messages(table_id, session_id)
+    live_store? ? @live_store.take_private_game_messages(table_id, session_id) : []
+  end
+
   def create_room(**arguments)
     raise "The native LiveSessions store is unavailable" if !live_store?
 

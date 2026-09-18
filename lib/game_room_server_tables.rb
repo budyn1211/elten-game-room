@@ -19,6 +19,10 @@ class GameRoomServerTables
       @provider.perform { @table.insert(values) }
     end
 
+    def insert_many(values)
+      @provider.perform { @table.insert_many(values) }
+    end
+
     def update(id, values)
       @provider.perform { @table.update(id, values) }
     end

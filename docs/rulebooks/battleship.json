@@ -1,0 +1,150 @@
+{
+  "source": "games/battleship.rb",
+  "sources": [
+    "https://files.librus.pl/mrk/25/Rozgrzej_mozg/Librus_Rozgrzej_mozg_i_zagraj_w_statki.pdf",
+    "https://github.com/papierek1997/elten-game-room/pull/8"
+  ],
+  "sections": [
+    {
+      "id": "waters",
+      "title": {
+        "en": "Find the opposing fleet",
+        "pl": "Odnajdź flotę przeciwnika"
+      },
+      "paragraphs": [
+        {
+          "en": "Battleship is a game for two players. Each has a separate board with ten columns, A to J, and ten rows, 1 to 10. Before the first shot, both players secretly arrange their ships. You win by hitting every square occupied by your opponent's ships before they sink all of yours.",
+          "pl": "W Statki grają dwie osoby. Każda ma osobną planszę z dziesięcioma kolumnami, od A do J, i dziesięcioma rzędami, od 1 do 10. Przed pierwszym strzałem obaj gracze w tajemnicy rozstawiają okręty. Wygrywasz, gdy trafisz wszystkie pola zajmowane przez statki przeciwnika, zanim on zatopi całą twoją flotę."
+        },
+        {
+          "en": "During play you can browse two boards. Enemy waters show the results of your shots, not the unhit ships. Your waters show your own ships and the shots received. The second board is for inspection: Enter there does not fire. Spectators see two boards named after their owners, with public hit and miss information only.",
+          "pl": "W czasie gry możesz przeglądać dwie plansze. Wody przeciwnika pokazują wyniki twoich strzałów, ale nie odsłaniają nietrafionych statków. Własne wody pokazują twoją flotę i otrzymane strzały. Ta druga plansza służy do sprawdzania sytuacji: Enter na niej nie strzela. Obserwator widzi dwie plansze podpisane imionami graczy, z publiczną informacją o trafieniach i pudłach."
+        }
+      ]
+    },
+    {
+      "id": "fleet",
+      "title": {
+        "en": "Choose and arrange your ships",
+        "pl": "Wybierz i rozstaw statki"
+      },
+      "paragraphs": [
+        {
+          "en": "When a new game starts, each player chooses Randomly or Manually. Randomly places and seals your whole fleet at once, using the selected fleet and the rule about ships touching. Choose Manually if you want to decide where each ship goes: only then does the placement board open. Your choice does not affect how your opponent arranges their fleet.",
+          "pl": "Po rozpoczęciu nowej partii każdy gracz wybiera Losowo albo Ręcznie. Losowo od razu rozstawia i zatwierdza całą twoją flotę, zgodnie z wybranym zestawem statków i zasadą ich stykania się. Wybierz Ręcznie, jeśli chcesz sam zdecydować, gdzie staną poszczególne okręty — dopiero wtedy otworzy się plansza do rozstawiania. Twój wybór nie wpływa na sposób ustawienia floty przeciwnika."
+        },
+        {
+          "en": "The default Polish fleet has ten ships: one covering four squares, two covering three, three covering two, and four covering one. The other fleet has five ships, of lengths 5, 4, 3, 3 and 2. Both players always use the fleet chosen in the table settings.",
+          "pl": "Domyślna polska flota liczy dziesięć statków: jeden czteromasztowiec, dwa trzymasztowce, trzy dwumasztowce i cztery jednomasztowce. Maszt oznacza tutaj jedno zajmowane pole. Druga flota składa się z pięciu statków o długościach 5, 4, 3, 3 i 2. Obaj gracze zawsze korzystają z zestawu wybranego w ustawieniach stołu."
+        },
+        {
+          "en": "A ship must form one straight horizontal or vertical line, without gaps. It cannot bend, run diagonally, overlap another ship or go outside the board. By default, ships must not touch, even at a corner. Enabling Ships may touch removes that spacing restriction, but never allows two ships on the same square.",
+          "pl": "Statek musi zajmować prostą linię poziomą albo pionową, bez przerw. Nie może się zginać, leżeć po skosie, zachodzić na drugi statek ani wychodzić poza planszę. Domyślnie statki nie mogą się stykać, nawet rogami. Opcja Statki mogą się stykać znosi wymóg odstępu, ale nadal nie pozwala zajmować tego samego pola."
+        },
+        {
+          "en": "To place a ship, press Enter at one end, move to the other end and press Enter again. For a one-square ship, choose the same square twice. For example, A1 followed by A4 places a four-square ship vertically. You can place ships of any available length in any order; the program tells you which lengths remain.",
+          "pl": "Aby postawić statek, naciśnij Enter na jednym końcu, przejdź do drugiego końca i ponownie naciśnij Enter. Przy jednomasztowcu wybierz dwa razy to samo pole. Na przykład A1, a potem A4 ustawia czteromasztowiec pionowo. Statki możesz rozstawiać w dowolnej kolejności; program podaje długości tych, które jeszcze pozostały."
+        },
+        {
+          "en": "Backspace cancels a marked first end. If no end is marked, it removes the last ship you placed. An invalid placement leaves the first end selected, so you can choose a different second end or cancel it. After the last ship, confirm that the fleet is ready. Declining takes back that last ship. Once confirmed, the fleet cannot be rearranged.",
+          "pl": "Backspace usuwa zaznaczenie pierwszego końca. Jeśli żaden koniec nie jest zaznaczony, cofa ostatnio postawiony statek. Po błędnym ustawieniu pierwszy koniec pozostaje zaznaczony: możesz wybrać inny drugi koniec albo anulować zaznaczenie. Po postawieniu ostatniego statku potwierdź gotowość floty. Odmowa cofa ten ostatni statek. Po zatwierdzeniu nie można już zmieniać ustawienia."
+        }
+      ]
+    },
+    {
+      "id": "shots",
+      "title": {
+        "en": "One shot, then your opponent",
+        "pl": "Jeden strzał i zmiana gracza"
+      },
+      "paragraphs": [
+        {
+          "en": "When both fleets are ready, the first player at the table begins. On your turn, choose a square in Enemy waters and press Enter. A miss means there is no ship there. A hit means you struck part of a ship. Hit and sunk means every square of that particular ship has now been hit.",
+          "pl": "Gdy obie floty są gotowe, zaczyna pierwszy gracz przy stole. W swojej turze wybierz pole na wodach przeciwnika i naciśnij Enter. Pudło oznacza, że nie ma tam statku. Trafienie oznacza uszkodzenie jego części. Trafiony i zatopiony oznacza, że trafiono już wszystkie pola tego konkretnego statku."
+        },
+        {
+          "en": "Every shot ends your turn, including a hit or a sinking. There is no extra shot for hitting a ship in this version. You cannot shoot a square you have already tried. The other player's program answers automatically; neither player needs to type hit or miss.",
+          "pl": "Każdy strzał kończy twoją turę, także trafienie lub zatopienie. W tej wersji nie dostajesz dodatkowego strzału za trafienie. Nie wolno ponownie strzelać w sprawdzone już pole. Program drugiego gracza odpowiada automatycznie — nikt nie musi ręcznie zgłaszać trafienia ani pudła."
+        },
+        {
+          "en": "With game sounds enabled, you first hear a rocket launch. After that sound finishes, the result is announced with a hit or miss sound. The next move becomes available after that sound ends. You can still browse the board and use chat while listening. Turning game sounds off removes these sound-related pauses.",
+          "pl": "Przy włączonych dźwiękach gry najpierw słyszysz start rakiety. Dopiero po zakończeniu tego nagrania pojawia się wynik strzału z dźwiękiem trafienia lub chybienia. Kolejny ruch jest dostępny po zakończeniu tego dźwięku. W trakcie słuchania nadal możesz przeglądać planszę i korzystać z czatu. Wyłączenie dźwięków gry usuwa związane z nimi pauzy."
+        },
+        {
+          "en": "Suppose a ship occupies B3, C3 and D3. Hitting B3 and D3 damages it, but it remains afloat until C3 is hit as well. Fleet summaries count surviving squares, not the number of whole ships. A partly damaged ship therefore still contributes its unhit squares.",
+          "pl": "Załóżmy, że statek zajmuje B3, C3 i D3. Trafienia w B3 oraz D3 uszkadzają go, ale nadal pływa, dopóki nie zostanie trafione także C3. Podsumowania floty liczą pozostałe pola, a nie całe statki. Częściowo uszkodzony okręt nadal ma więc tyle pozostałych pól, ile jego części jeszcze nie trafiono."
+        }
+      ]
+    },
+    {
+      "id": "verification",
+      "title": {
+        "en": "Finishing and playing against the computer",
+        "pl": "Zakończenie i gra z komputerem"
+      },
+      "paragraphs": [
+        {
+          "en": "When the last ship sinks, both programs reveal their fleets for a final check. The game verifies the original placement and every answer. Only then is the result final. A fleet or answer that disagrees with the original sealed placement makes that player lose; if both fail the check, the result is a draw.",
+          "pl": "Po zatopieniu ostatniego statku oba programy odsłaniają floty do końcowej kontroli. Gra sprawdza początkowe ustawienie oraz wszystkie odpowiedzi. Dopiero wtedy zatwierdza wynik. Gracz, którego flota lub odpowiedzi nie zgadzają się z pierwotnie zatwierdzonym ustawieniem, przegrywa; jeśli kontrola wykaże niezgodności u obu, wynikiem jest remis."
+        },
+        {
+          "en": "Until that check, your fleet stays in private local storage. Stay connected so your program can answer shots and reveal it at the end. Saving Battleship for later is currently unavailable: the shared move history alone cannot restore both secret fleets.",
+          "pl": "Do tej kontroli flota pozostaje w prywatnych danych na twoim komputerze. Pozostań połączony, aby program mógł odpowiadać na strzały i ujawnić ją na końcu. Zapisywanie Statków na później jest obecnie niedostępne: sama wspólna historia ruchów nie wystarczy do odtworzenia dwóch tajnych flot."
+        },
+        {
+          "en": "The computer places its own fleet automatically. It chooses shots using the same public answers available to a person, without seeing the opposing fleet. The shared bot-delay setting only adds a pause before its move; it does not change the rules or reveal extra information.",
+          "pl": "Komputer sam rozstawia swoją flotę. Wybiera strzały na podstawie tych samych publicznych odpowiedzi, które zna człowiek, bez podglądania floty przeciwnika. Wspólne ustawienie opóźnienia bota dodaje jedynie pauzę przed ruchem; nie zmienia zasad ani nie ujawnia dodatkowych informacji."
+        }
+      ]
+    },
+    {
+      "id": "controls",
+      "title": {
+        "en": "Game keyboard shortcuts",
+        "pl": "Skróty klawiszowe gry"
+      },
+      "paragraphs": [
+        {
+          "en": "Arrows: browse squares.",
+          "pl": "Strzałki: przeglądaj pola."
+        },
+        {
+          "en": "Enter: confirm random or manual setup; in manual placement, mark a ship's end; during play, shoot on the enemy board.",
+          "pl": "Enter: wybierz losowe albo ręczne ustawienie; przy ręcznym rozstawianiu zaznacz koniec statku; w czasie gry strzel na planszy przeciwnika."
+        },
+        {
+          "en": "Backspace: cancel the marked end or take back the last ship before sealing.",
+          "pl": "Backspace: anuluj zaznaczony koniec albo cofnij ostatni statek przed zatwierdzeniem floty."
+        },
+        {
+          "en": "Tab / Shift+Tab: move between the game boards and the other screen fields.",
+          "pl": "Tab / Shift+Tab: przejdź między planszami gry i pozostałymi polami ekranu."
+        },
+        {
+          "en": "F: read how many squares of your fleet remain afloat.",
+          "pl": "F: odczytaj, ile pól twojej floty pozostało nietrafionych."
+        },
+        {
+          "en": "Shift+F: read how many enemy fleet squares remain.",
+          "pl": "Shift+F: odczytaj, ile pól floty przeciwnika pozostało nietrafionych."
+        },
+        {
+          "en": "L: read the last answered shot.",
+          "pl": "L: odczytaj ostatni strzał, na który już odpowiedziano."
+        },
+        {
+          "en": "M: read your shots, hits and ships sunk.",
+          "pl": "M: odczytaj liczbę swoich strzałów, trafień i zatopień."
+        },
+        {
+          "en": "Ctrl+L: browse your shots and their results.",
+          "pl": "Ctrl+L: przeglądaj swoje strzały i ich wyniki."
+        },
+        {
+          "en": "T: read whose turn it is.",
+          "pl": "T: odczytaj, czyja jest tura."
+        }
+      ]
+    }
+  ]
+}

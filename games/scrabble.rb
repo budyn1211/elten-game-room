@@ -7,6 +7,7 @@ require_relative "../lib/word_lexicon"
 require_relative "../lib/scrabble_rules"
 require_relative "../lib/game_action_payload"
 require_relative "../lib/game_random"
+require_relative "../lib/game_turn_clock"
 
 module GameRoomGames
   class Scrabble < Base
@@ -15,6 +16,7 @@ module GameRoomGames
     def id; "scrabble"; end
     def name; _("Scrabble"); end
     def maximum_players; 4; end
+    def thinking_time_range; 20..600; end
     def content_pack_kind; "word_dictionary"; end
     def default_content_language_id(_set = nil); "pl-PL"; end
     def single_content_set?; true; end
@@ -25,12 +27,12 @@ module GameRoomGames
         _("Correct the move; subtract 10 points"), _("End the turn; subtract 10 points")]
       [OptionDefinition.new(key: "invalid_word", label: _("Invalid word"), kind: :choice, default: "0",
         choices: policies.each_with_index.map { |label, i| OptionChoice.new(value: i.to_s, label: label) }),
-        OptionDefinition.new(key: "thinking_time", label: _("Thinking time in seconds; zero means no limit"), kind: :integer, default: 0)]
+        thinking_time_option]
     end
 
     def options_error(options, player_count: nil)
       return _("Scrabble requires two to four human players.") if player_count && !player_count.between?(2, 4)
-      return _("Thinking time must be zero or from 20 to 600 seconds.") unless options["thinking_time"] == 0 || options["thinking_time"].between?(20,600)
+      return thinking_time_options_error(options) if thinking_time_options_error(options)
       selected_content_pack(options).data
       nil
     rescue ArgumentError, Zlib::Error, LoadError
@@ -66,7 +68,7 @@ module GameRoomGames
       return [:finished, nil] if replay.finished?
       input = selection.to_h.transform_keys(&:to_s)
       data = input.select { |key, _| %w[action placements tiles].include?(key) }
-      data.merge!("revision" => replay.state[:revision], "time" => (context&.now || Time.now.to_i).to_i)
+      data.merge!("revision" => replay.state[:revision], "time" => GameRoomTurnClock.logical_now(replay.state, context))
       if %w[deal exchange].include?(data["action"])
         return [:invalid, nil] unless context&.random_source
         data["seed"] = context.random_source.roll(count: 16, sides: 256).values.map { |v| (v-1).to_s(16).rjust(2,"0") }.join
@@ -86,7 +88,7 @@ module GameRoomGames
     def participant_scores(replay); replay.state[:scores].dup; end
     def shortcut_features; super + [:scores]; end
     def shortcut_feature_data(feature, replay, viewer)
-      return { "message" => scores_text(replay.state) } if feature == :scores
+      return { "message" => scores_text(replay.state, sorted: true) } if feature == :scores
       super
     end
 
@@ -125,7 +127,10 @@ module GameRoomGames
       end
     end
     def expired?(state, now); state[:phase] == :playing && now && state[:turn_deadline] > 0 && now.to_i >= state[:turn_deadline]; end
-    def scores_text(state); state[:scores].map { |p,score| "#{participant_name(p)}, #{score}" }.join("; "); end
+    def scores_text(state, sorted: false)
+      players = sorted ? score_announcement_order(state[:scores].keys, state[:scores]) : state[:scores].keys
+      players.map { |p| "#{participant_name(p)}, #{state[:scores][p]}" }.join("; ")
+    end
     def record(history, event_id, actor, kind, text)
       history << HistoryEntry.new(key: "scrabble:#{event_id}:#{history.length}", event_id: event_id, actor: actor, kind: kind, text: text)
     end

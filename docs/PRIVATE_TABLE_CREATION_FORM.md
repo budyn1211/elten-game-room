@@ -4,8 +4,10 @@ Poprawka źródeł po podpisaniu 2.0.1/build 229, 18 września 2026.
 
 ## Zachowanie
 
-Po wybraniu gry otwiera się jeden wspólny formularz. Pierwszym aktywnym
-polem jest „Stół prywatny”, domyślnie odznaczone; dalej są dotychczasowe
+Po wybraniu gry otwiera się jeden wspólny formularz. Zgodnie z późniejszą
+korektą użytkownika początkowy fokus jest na instrukcji „Wybierz opcje gry
+za pomocą Tabulatora i strzałek”, nie na polu prywatności. Pierwszy Tab
+przechodzi do „Stół prywatny”, domyślnie odznaczonego; dalej są dotychczasowe
 opcje gry. „Utwórz stół” zatwierdza całość, bez kolejnego okna. „Anuluj”
 lub Escape wychodzi przed utworzeniem stołu i zapisaniem wybranych opcji.
 Prywatność pozostaje zaznaczona przy zmianie języka i zestawów oraz po

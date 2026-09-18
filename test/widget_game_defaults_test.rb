@@ -2,7 +2,8 @@ require_relative "game_room_settings_widget_test"
 
 current_ids = EltenGameRoom::GAME_REGISTRY.ids
 new_2_0 = %w[rummy domino mexican_train scrabble taboo biblios]
-old_ids = current_ids - new_2_0
+old_ids = GameRoomPreferences::LEGACY_WIDGET_GAME_IDS
+new_since_legacy = current_ids - old_ids
 raise "Release migration fixture must cover six new games" unless new_2_0.all? { |id| current_ids.include?(id) } && old_ids.length == 17
 
 legacy = {
@@ -13,7 +14,7 @@ legacy = {
 }
 original = Marshal.load(Marshal.dump(legacy))
 migrated = GameRoomPreferences.normalize(legacy, current_ids)
-expected = current_ids.select { |id| (%w[uno makao] + new_2_0).include?(id) }
+expected = current_ids.select { |id| (%w[uno makao] + new_since_legacy).include?(id) }
 assert(migrated["widget_games"] == expected, "legacy widget selection did not enable the six games added in 2.0")
 assert(legacy == original, "normalizing preferences mutated the saved input")
 %w[widget_enabled widget_show_unavailable lobby_games table_watch_games invitation_notifications custom_setting].each do |key|
@@ -25,10 +26,15 @@ assert(GameRoomPreferences.normalize(migrated, current_ids) == migrated, "migrat
 # The user explicitly approved this one-off upgrade even when the old
 # selection was empty; old games remain off, and a disabled widget stays off.
 empty = GameRoomPreferences.normalize(legacy.merge("widget_games" => []), current_ids)
-assert(empty["widget_games"].sort == new_2_0.sort && empty["widget_enabled"] == false, "empty legacy selection lost the agreed upgrade")
+assert(empty["widget_games"].sort == new_since_legacy.sort && empty["widget_enabled"] == false, "empty legacy selection lost the agreed upgrade")
 assert(GameRoomPreferences.defaults(current_ids)["widget_games"] == current_ids, "new installation lost default games")
 fresh_old = GameRoomPreferences.defaults(old_ids)
 assert(GameRoomPreferences.normalize(fresh_old, current_ids)["widget_games"] == current_ids, "a fresh older installation missed newly registered games")
+
+before_new_boards = current_ids - %w[battleship mancala]
+existing_229 = GameRoomPreferences.defaults(before_new_boards).merge("widget_games" => %w[uno])
+assert(GameRoomPreferences.normalize(existing_229, current_ids)["widget_games"].sort == %w[uno battleship mancala].sort,
+  "new board games did not migrate independently of build number or old opt-outs")
 
 # Subsequent releases need no per-game allowlist edit. Explicit deselection
 # is honoured even for one of the six games enabled by the legacy migration.

@@ -1,0 +1,175 @@
+{
+  "source": "games/mancala.rb",
+  "sources": [
+    "https://www.kurnik.pl/oware/zasady.phtml",
+    "https://mankala.pl/wp-content/uploads/ZASADY-GRY-MANKALA.pdf",
+    "https://www.johnpratt.com/items/mancala/ayoayo.html",
+    "https://mancala.fandom.com/wiki/Ayoayo",
+    "https://github.com/papierek1997/elten-game-room/pull/9"
+  ],
+  "sections": [
+    {
+      "id": "board",
+      "title": {
+        "en": "A board full of seeds",
+        "pl": "Plansza pełna kamieni"
+      },
+      "paragraphs": [
+        {
+          "en": "Mancala is a family of games about moving seeds between pits. Here two people can play Oware, Ayoayo or Kalah. All three use two rows of six pits and one store for each player. Seeds in your store are your score and never return to play. You want to collect more than your opponent.",
+          "pl": "Mankala to rodzina gier polegających na przekładaniu kamieni między dołkami. Tutaj dwie osoby mogą zagrać w Oware, Ayoayo albo Kalah. Każda odmiana korzysta z dwóch rzędów po sześć dołków oraz po jednym magazynie dla gracza. Kamienie w twoim magazynie są twoimi punktami i nie wracają do gry. Twoim zadaniem jest zebrać ich więcej niż przeciwnik."
+        },
+        {
+          "en": "Your row is always at the bottom, from A1 to F1. The opposing row is A2 to F2. Pits in the same column face each other: C1 faces C2, for instance. An observer sees the board from the first player's side. Move announcements use the coordinates shown on your screen.",
+          "pl": "Twój rząd zawsze znajduje się na dole, od A1 do F1. Rząd przeciwnika to A2–F2. Dołki w tej samej kolumnie leżą naprzeciwko siebie: na przykład C1 naprzeciwko C2. Obserwator ogląda planszę od strony pierwszego gracza. Komunikaty o ruchach używają współrzędnych widocznych na twoim ekranie."
+        },
+        {
+          "en": "Each pit begins with four seeds by default. The table can instead start with any whole number from two to eight in every pit. This changes the total available score: four per pit means 48 seeds altogether. Both players always start equally, and both stores begin empty.",
+          "pl": "Domyślnie każdy dołek zawiera cztery kamienie. Przy tworzeniu stołu można wybrać od dwóch do ośmiu kamieni na dołek. Zmienia to łączną liczbę punktów do zdobycia: przy czterech kamieniach mamy ich 48 na całej planszy. Obie strony zawsze zaczynają z taką samą liczbą, a magazyny są początkowo puste."
+        }
+      ]
+    },
+    {
+      "id": "sowing",
+      "title": {
+        "en": "How sowing works",
+        "pl": "Jak rozsiewać kamienie"
+      },
+      "paragraphs": [
+        {
+          "en": "On your turn, choose a nonempty pit in your own row and press Enter. Take all its seeds and drop one into each following pit. This is called sowing. Along your bottom row the order is A1 towards F1, then across the opposing row from F2 towards A2 and back to A1. You never sow into your opponent's store.",
+          "pl": "W swojej turze wybierz niepusty dołek we własnym rzędzie i naciśnij Enter. Zabierasz z niego wszystkie kamienie i wkładasz po jednym do kolejnych dołków. To właśnie rozsiewanie. W dolnym rzędzie idzie ono od A1 do F1, następnie przez rząd przeciwnika od F2 do A2 i z powrotem do A1. Nigdy nie wkładasz kamieni do magazynu przeciwnika."
+        },
+        {
+          "en": "For example, sowing four seeds from A1 adds one each to B1, C1, D1 and E1. You do not choose their destinations separately. What happens when the last seed lands depends on the variant, so read the section for the game selected at your table.",
+          "pl": "Na przykład rozsianie czterech kamieni z A1 dodaje po jednym do B1, C1, D1 i E1. Nie wybierasz osobno miejsca dla każdego kamienia. To, co stanie się po odłożeniu ostatniego, zależy od odmiany — przeczytaj więc opis gry wybranej przy twoim stole."
+        }
+      ]
+    },
+    {
+      "id": "oware",
+      "title": {
+        "en": "Oware: capture twos and threes",
+        "pl": "Oware: zbieraj dwójki i trójki"
+      },
+      "paragraphs": [
+        {
+          "en": "Oware never sows into either store. When a large handful goes all the way around the board, skip the pit you originally emptied. After sowing, capture is possible only if the last seed landed on the opposing side and left exactly two or three seeds in that pit.",
+          "pl": "W Oware podczas rozsiewania omijasz oba magazyny. Jeśli kamieni wystarczy na pełne okrążenie, pomijasz również dołek, z którego je zabrano. Po rozsianiu możesz zdobyć kamienie tylko wtedy, gdy ostatni trafił na stronę przeciwnika i w tym dołku są teraz dokładnie dwa albo trzy."
+        },
+        {
+          "en": "Take those seeds into your store. Then inspect the preceding opposing pit, going backwards along the sowing route: if it also holds two or three, capture it too. Continue until a pit has a different number or you reach your own side. For example, ending beside consecutive opposing pits holding 2, 3 and 2 can capture all three.",
+          "pl": "Przenieś te kamienie do swojego magazynu. Następnie sprawdź poprzedni dołek przeciwnika, cofając się po trasie rozsiewania: jeśli również ma dwa lub trzy kamienie, zabierz i je. Kontynuuj do pierwszego dołka z inną liczbą albo do własnej strony. Na przykład zakończenie przy ciągu przeciwnika z liczbami 2, 3, 2 może pozwolić zdobyć wszystkie trzy dołki."
+        },
+        {
+          "en": "You must not capture every seed left on the opposing side at once. Such a move may be played, but no capture occurs. If the opponent's row is empty before your turn, you must choose a sowing that feeds it when one exists. Otherwise the game ends, and each player keeps the seeds remaining on their own side.",
+          "pl": "Nie wolno jednym biciem zabrać wszystkich kamieni ze strony przeciwnika. Taki ruch można wykonać, ale bicie nie następuje. Jeśli przed twoją turą rząd przeciwnika jest pusty, musisz wybrać ruch, który dostarczy mu kamieni, o ile taki ruch istnieje. W przeciwnym razie gra się kończy, a każda osoba otrzymuje kamienie pozostałe po własnej stronie."
+        },
+        {
+          "en": "Oware ends immediately when someone owns more than half of all seeds. With the default 48, that means 25. Game Room also ends a sequence of 120 moves without any capture: each side's remaining seeds go to its own store. This is the local safeguard against endless circulation, not a threefold-repetition rule. Equal final scores mean a draw.",
+          "pl": "Oware kończy się od razu, gdy ktoś zdobędzie więcej niż połowę wszystkich kamieni. Przy domyślnych 48 oznacza to 25. Game Room kończy też serię 120 ruchów bez żadnego bicia: pozostałe kamienie trafiają do magazynu właściciela danego rzędu. To nasze zabezpieczenie przed niekończącym się krążeniem, a nie reguła trzykrotnego powtórzenia pozycji. Równy wynik końcowy oznacza remis."
+        }
+      ]
+    },
+    {
+      "id": "ayoayo",
+      "title": {
+        "en": "Ayoayo: one move can continue through several pits",
+        "pl": "Ayoayo: jeden ruch przez wiele dołków"
+      },
+      "paragraphs": [
+        {
+          "en": "Ayoayo skips the stores and the pit emptied for each sowing. If the last seed lands in a pit that already held seeds, take everything from that pit and continue sowing from there. This continuation is still part of your original move, even on the opposing side. It stops when your last seed lands in an empty pit.",
+          "pl": "W Ayoayo pomijasz magazyny oraz dołek opróżniony dla danego rozsiewania. Jeśli ostatni kamień trafi do dołka, który nie był pusty, zabierasz całą jego zawartość i rozsiewasz dalej właśnie stamtąd. To wciąż ten sam ruch, również wtedy, gdy kontynuacja zaczyna się po stronie przeciwnika. Kończysz dopiero, gdy ostatni kamień trafi do pustego dołka."
+        },
+        {
+          "en": "If that final empty pit is yours and the opposite pit contains seeds, capture all the seeds opposite together with your own last seed. Both pits become empty. For example, three seeds opposite plus your last seed give you four points. Landing on the opposing side or opposite an empty pit gives no capture.",
+          "pl": "Jeśli ten ostatni, wcześniej pusty dołek należy do ciebie, a naprzeciwko są kamienie, zdobywasz je razem z własnym ostatnim kamieniem. Oba dołki zostają puste. Na przykład trzy kamienie naprzeciwko i twój ostatni dają cztery punkty. Zakończenie po stronie przeciwnika albo naprzeciwko pustego dołka nie daje bicia."
+        },
+        {
+          "en": "When the opposing row is empty, you must feed it if a legal move can do so. If the player whose turn comes next has no legal move, all seeds still on the board go to the person who made the last move. This also applies when the next player has seeds but cannot feed the empty opposing row. Game Room uses this particular Ayoayo variant; other published descriptions may award these seeds differently.",
+          "pl": "Gdy rząd przeciwnika jest pusty, musisz go zasilić, jeśli istnieje legalny ruch, który to umożliwia. Jeżeli osoba mająca teraz grać nie ma legalnego ruchu, wszystkie kamienie pozostałe na planszy otrzymuje gracz, który wykonał ostatni ruch. Dotyczy to również sytuacji, w której następny gracz ma kamienie, ale nie może zasilić pustego rzędu przeciwnika. W Game Roomie gramy właśnie w tę odmianę Ayoayo; inne opisy mogą przyznawać te kamienie inaczej."
+        },
+        {
+          "en": "After gathering the remaining seeds, compare the stores. More seeds wins and equal stores mean a draw. Unlike Oware, Ayoayo does not stop merely because someone has passed half of the total.",
+          "pl": "Po zabraniu pozostałych kamieni porównujemy magazyny. Większa liczba oznacza zwycięstwo, a równa — remis. W odróżnieniu od Oware samo przekroczenie połowy wszystkich kamieni nie kończy jeszcze Ayoayo."
+        }
+      ]
+    },
+    {
+      "id": "kalah",
+      "title": {
+        "en": "Kalah: use your store and earn another move",
+        "pl": "Kalah: korzystaj z magazynu i dodatkowych ruchów"
+      },
+      "paragraphs": [
+        {
+          "en": "In Kalah you sow into your own store as you pass it, immediately scoring that seed. Skip only the opponent's store; on a full circuit your original pit can receive seeds again. Landing the last seed in your store gives you another move. You may earn several extra moves in succession.",
+          "pl": "W Kalah wkładasz kamień także do własnego magazynu, kiedy mijasz go podczas rozsiewania, od razu zdobywając punkt. Omijasz tylko magazyn przeciwnika; przy pełnym okrążeniu kamienie mogą ponownie trafić do początkowego dołka. Odłożenie ostatniego kamienia we własnym magazynie daje dodatkowy ruch. Możesz uzyskać kilka takich ruchów z rzędu."
+        },
+        {
+          "en": "With capturing enabled, ending in your own previously empty pit captures your last seed and every seed in the opposite pit, provided the opposite pit is not empty. Turning off Capture from an empty pit disables this capture only. Sowing into your store and earning extra moves still work.",
+          "pl": "Przy włączonym biciu zakończenie we własnym, wcześniej pustym dołku pozwala zabrać ostatni kamień i wszystkie kamienie z dołka naprzeciwko, pod warunkiem że naprzeciwko coś leży. Wyłączenie opcji Bicie z pustego dołka wyłącza tylko ten sposób zdobywania punktów. Nadal wkładasz kamienie do magazynu i dostajesz dodatkowe ruchy."
+        },
+        {
+          "en": "The game ends as soon as either row is empty. The other player moves all seeds remaining in their row into their own store. The larger store wins; equal stores mean a draw. There is no requirement to feed an empty opponent in Kalah.",
+          "pl": "Gra kończy się, gdy którykolwiek rząd jest pusty. Drugi gracz przenosi wszystkie kamienie ze swojego rzędu do własnego magazynu. Wygrywa większy magazyn, a równe wyniki oznaczają remis. W Kalah nie ma obowiązku zasilania pustego rzędu przeciwnika."
+        }
+      ]
+    },
+    {
+      "id": "computer",
+      "title": {
+        "en": "Playing against the computer",
+        "pl": "Gra z komputerem"
+      },
+      "paragraphs": [
+        {
+          "en": "The computer uses the same rules and can see the whole board, just as you can. Calm uses a short search, Steady looks further and is the default, while Sharp considers more continuations and may need longer to answer. These settings change its planning effort, not the number of seeds or scoring.",
+          "pl": "Komputer przestrzega tych samych zasad i widzi całą planszę, tak jak ty. Poziom Spokojny analizuje krótko, Zrównoważony sięga dalej i jest domyślny, a Wnikliwy rozważa więcej kontynuacji i może odpowiadać dłużej. Te ustawienia zmieniają zakres planowania, a nie liczbę kamieni ani punktację."
+        },
+        {
+          "en": "Bot delay is a separate setting: zero adds no intentional pause, and values from one to five add that many seconds before the move. It is not a time limit for the search and does not weaken the computer.",
+          "pl": "Opóźnienie bota jest osobnym ustawieniem: zero nie dodaje celowej pauzy, a wartości od jednego do pięciu dodają tyle sekund przed ruchem. Nie jest to limit czasu obliczeń i nie osłabia komputera."
+        }
+      ]
+    },
+    {
+      "id": "controls",
+      "title": {
+        "en": "Game keyboard shortcuts",
+        "pl": "Skróty klawiszowe gry"
+      },
+      "paragraphs": [
+        {
+          "en": "Left / Right: move along a row of pits.",
+          "pl": "Strzałki w lewo / prawo: przechodź między dołkami w rzędzie."
+        },
+        {
+          "en": "Up / Down: change rows.",
+          "pl": "Strzałki w górę / dół: zmień rząd."
+        },
+        {
+          "en": "Enter: sow from the selected pit in your own row.",
+          "pl": "Enter: rozsiej kamienie z wybranego dołka we własnym rzędzie."
+        },
+        {
+          "en": "S: read both stores, highest score first.",
+          "pl": "S: odczytaj oba magazyny, od wyższego wyniku."
+        },
+        {
+          "en": "P: read your pits in sowing order.",
+          "pl": "P: odczytaj swoje dołki w kolejności rozsiewania."
+        },
+        {
+          "en": "Shift+P: read the opposing pits in their sowing order.",
+          "pl": "Shift+P: odczytaj dołki przeciwnika w jego kolejności rozsiewania."
+        },
+        {
+          "en": "T: read whose turn it is.",
+          "pl": "T: odczytaj, czyja jest tura."
+        }
+      ]
+    }
+  ]
+}

@@ -92,5 +92,5 @@ assert(store != nil, "missing native store")
   {"bot_count" => 1, "bot_names" => {"0" => "pl01"}}
 ].each { |data| assert(!store.send(:room_fields_valid?, data), "malformed name assignment accepted") }
 assert(store.send(:room_fields_valid?, {"bot_count" => 2, "bot_names" => ["pl01", "en03"]}), "valid assignment rejected")
-assert(h.core.metadata["protocol"] == 5, "old readers can mistake named bot actors for people")
+assert(h.core.metadata["protocol"] == GameRoomLiveSessionStore::CURRENT_DISCOVERY_PROTOCOL && h.core.metadata["protocol"] >= 5, "old readers can mistake named bot actors for people")
 puts "Bot names: 24 PL/26 EN, collisions, stable names, selected removal, shared clients, checkpoint, actors and validation: OK"

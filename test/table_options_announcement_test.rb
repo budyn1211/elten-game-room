@@ -8,7 +8,7 @@ game = GameRoomGames::Makao.new
 options = game.normalize_options({ "profile" => "polish", "cards_per_player" => 7, "bot_delay" => 4 })
 before = Marshal.dump(options)
 message = game.table_options_announcement(options)
-raise "not the same settings source" unless message == "#{game.name}. #{game.rules_options_text(options).gsub(/\r?\n+/, '. ')}"
+raise "not the same settings source" unless message == ([game.name] + game.rules_options_text(options).split(/\r?\n/).reject(&:empty?)).join('. ')
 raise "options mutated" unless Marshal.dump(options) == before
 game.effective_option_definitions.select { |item| item.kind == :boolean }.each do |item|
   raise "disabled setting announced" if options[item.key.to_s] == false && message.include?(item.label)

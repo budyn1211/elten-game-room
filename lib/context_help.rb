@@ -4,6 +4,7 @@ module GameRoomContextHelp
   module DynamicTips
     attr_accessor :game_room_context_help_tips
     attr_accessor :game_room_game_help_tips
+    attr_accessor :game_room_non_game_help_tips
 
     def get_tips
       inherited = defined?(super) ? super.to_a : []
@@ -20,6 +21,9 @@ module GameRoomContextHelp
     context = field.respond_to?(:game_room_context_help_tips) ? field.game_room_context_help_tips.to_a : []
     inherited = field.respond_to?(:get_tips) ? field.get_tips.to_a : []
     game, context, inherited = [game, context, inherited].map { |items| clean_tips(items) }
+    if !include_context && field.respond_to?(:game_room_non_game_help_tips)
+      inherited -= clean_tips(field.game_room_non_game_help_tips)
+    end
     (game + (include_context ? context : []) + (inherited - game - context)).uniq
   end
 
@@ -29,6 +33,13 @@ module GameRoomContextHelp
 
   def clean_tips(tips)
     tips.to_a.map { |tip| GameRoomContent.utf8(tip).strip }.reject(&:empty?).uniq
+  end
+
+  def exclude_from_game_help(fields, tips)
+    fields.to_a.each do |field|
+      field.extend(DynamicTips) if !field.singleton_class.ancestors.include?(DynamicTips)
+      field.game_room_non_game_help_tips = clean_tips(field.game_room_non_game_help_tips.to_a + tips)
+    end
   end
 
   # Context actions change with the current screen and game phase. Keep their

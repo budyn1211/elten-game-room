@@ -17,7 +17,10 @@ module GameRoomGames
       [
         OptionDefinition.new(key: "tile_set", label: _("Domino set"), kind: :choice, default: "d6", choices: SETS.map do |key, (max, copies, _, limit)|
           count = (max + 1) * (max + 2) / 2 * copies
-          label = _("%{copies} × Double %{maximum}, %{count} tiles, up to %{players} players") % { copies: copies, maximum: max, count: count, players: limit }
+          names = { 6 => _("Double 6"), 9 => _("Double 9"), 12 => _("Double 12"), 15 => _("Double 15"), 18 => _("Double 18") }
+          set = GameRoomContent.utf8(names.fetch(max))
+          set = GameRoomContent.utf8("%{copies} × %{set}") % { copies: copies, set: set } if copies > 1
+          label = _("%{set}, %{count} tiles, up to %{players} players") % { set: set, count: count, players: limit }
           OptionChoice.new(value: key, label: label)
         end),
         OptionDefinition.new(key: "teams", label: _("Play in teams"), kind: :boolean, default: false),
@@ -26,7 +29,7 @@ module GameRoomGames
         OptionDefinition.new(key: "allow_playable_draw", label: _("Allow drawing with a playable tile"), kind: :boolean, default: true, visible_if: { "forbid_draw" => false }),
         OptionDefinition.new(key: "draw_until", label: _("Draw until finding a playable tile"), kind: :boolean, default: false, visible_if: { "forbid_draw" => false }),
         OptionDefinition.new(key: "whole_team", label: _("The whole team must finish"), kind: :boolean, default: false, visible_if: { "teams" => true }),
-        OptionDefinition.new(key: "thinking_time", label: _("Thinking time in seconds; zero means no limit"), kind: :integer, default: 0),
+        thinking_time_option,
         OptionDefinition.new(key: "score_limit", label: _("Score limit"), kind: :integer, default: 100)
       ]
     end
@@ -49,7 +52,7 @@ module GameRoomGames
       options = normalize_options(values)
       return _("Unknown domino set.") unless SETS.key?(options["tile_set"])
       return _("The score limit must be a positive number, at most 100000.") unless options["score_limit"].between?(1, 100_000)
-      return _("Thinking time must be from 0 to 600 seconds.") unless options["thinking_time"].between?(0, 600)
+      return thinking_time_options_error(options) if thinking_time_options_error(options)
       if player_count
         maximum = SETS[options["tile_set"]][3]
         return _("This domino set supports from 2 to %{count} players.") % { count: maximum } unless player_count.between?(2, maximum)
@@ -152,9 +155,19 @@ module GameRoomGames
           GameRoomRules.translate("Whole team finish mode changes this: all teammates must empty their hands before the team ends the round. Players who already finished are skipped and do not draw again. The option is off by default and appears only for team play. Elimination and the final result use team totals.")),
         rule_section(:clock, GameRoomRules.translate("A time limit for each turn"),
           GameRoomRules.translate("Thinking time is zero by default, meaning no limit; a positive value can be up to 600 seconds. At timeout, the game draws one tile if drawing is allowed, the pile is not empty and you have not drawn yet. It then passes without playing the tile. Drawing during your turn does not restart the clock.")),
-        rule_section(:controls, GameRoomRules.translate("Domino keys"),
-          GameRoomRules.translate("Arrows: choose a tile. Enter: play it. G selects the left end and D the right end for tiles that fit both. This is a remembered preference, initially right; the keys do not play a tile themselves. If only one end fits, Enter uses it regardless of the preference."),
-          GameRoomRules.translate("Space: draw. C: chain ends. V: the whole chain in order. E: hand and boneyard counts. S: scores. T: turn. Z and Shift+Z: next or previous playable tile; a sole tile with a single legal placement may be played automatically."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: choose a tile."),
+          GameRoomRules.translate("Enter: play the selected tile; use the preferred end if both fit."),
+          GameRoomRules.translate("G: prefer the left end for subsequent plays."),
+          GameRoomRules.translate("D: prefer the right end for subsequent plays."),
+          GameRoomRules.translate("Space: draw tiles according to the table rules."),
+          GameRoomRules.translate("C: read both ends of the chain."),
+          GameRoomRules.translate("V: browse the whole chain."),
+          GameRoomRules.translate("E: read hand sizes and the boneyard count."),
+          GameRoomRules.translate("Z: next playable tile; automatically play a sole unambiguous move."),
+          GameRoomRules.translate("Shift+Z: previous playable tile; automatically play a sole unambiguous move."),
+          GameRoomRules.translate("S: read scores."),
+          GameRoomRules.translate("T: read whose turn it is."))
       ]
     end
 

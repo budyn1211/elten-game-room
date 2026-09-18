@@ -33,11 +33,17 @@ screen = GameScreen.allocate
 layout = GameRoomLayout::Screen.new(view_spec: GameRoomLayout::ViewSpec.new(surface: game.surface_spec(view, "Alice")), history_items: [], user_items: [])
 shortcuts = game.game_shortcuts(view, "Alice")
 GameRoomContextHelp.replace([field], ["Context action"])
+inherited_tips = field.get_tips.uniq
 5.times { screen.send(:bind_game_shortcuts, layout.form, [field], shortcuts) {} }
 tips = field.get_tips
-assert(tips == tips.uniq && tips.length == shortcuts.length + 2, "Help accumulates on retained fields")
+expected_tips = shortcuts.map do |shortcut|
+  "Press #{screen.send(:shortcut_key_label, shortcut)} for #{shortcut.label}."
+end + inherited_tips
+# Enter/Shift+Enter belong to the card control, not the dynamic shortcut list.
+assert(tips == expected_tips.uniq, "Help accumulates or drops control tips on retained fields")
 screen.send(:bind_game_shortcuts, layout.form, [field], shortcuts.reject { |s| s.key == "p" }) {}
-assert(field.get_tips.none? { |t| t.include?("prepared packet") }, "Obsolete shortcuts survive phase change")
+assert(field.game_room_game_help_tips.none? { |t| t.include?("prepared packet") }, "Obsolete shortcuts survive phase change")
+assert(field.get_tips.include?("Press Shift+Enter to add or remove the current card from the prepared packet."), "Permanent packet help disappeared")
 assert(field.get_tips.include?("Native tip") && field.get_tips.include?("Context action"), "Native or context help disappeared")
 GameRoomContextHelp.replace(layout.form.fields, ["Game action"], source: :game)
 GameRoomContextHelp.replace(layout.form.fields, ["Context action"])

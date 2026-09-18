@@ -53,11 +53,27 @@ module GameRoomGames
         rule_section(:mate, GameRoomRules.translate("Check, mate and the end of the game"),
           GameRoomRules.translate("Check means that your king is under attack. You must answer it by moving the king, capturing the attacker or blocking the attack, whichever is legal. If no legal reply exists, it is checkmate and you lose. If you have no legal move but your king is not attacked, it is stalemate and the game is drawn."),
           GameRoomRules.translate("Game Room also ends the game automatically on threefold repetition, after 50 moves by each side without a pawn move or capture, and in the insufficient-material positions recognised by the program. You do not have to claim these draws. There is no chess clock or alternative chess variant in the current game.")),
-        rule_section(:controls, GameRoomRules.translate("Moving and inspecting pieces"),
-          GameRoomRules.translate("Arrow keys: browse squares. Enter on your piece selects it; Enter on its destination attempts the move. Promotion opens a choice list."),
-          GameRoomRules.translate("V: legal destinations for the inspected piece. E: pieces attacking the inspected square. C: each player's colour. S: each player's remaining pieces. T: whose turn it is."),
-          GameRoomRules.translate("K, D, R, B, N, P: visit your kings, queens, rooks, bishops, knights and pawns. With Shift: visit the opponent's pieces of that kind."),
-          GameRoomRules.translate("Ctrl+Shift+H: rotate your view. A chat command such as /e2 e4 makes the same move as selecting those squares on the board."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: browse squares."),
+          GameRoomRules.translate("Enter: select your piece, then its destination; choose a promotion if needed."),
+          GameRoomRules.translate("V: read legal destinations for the inspected piece."),
+          GameRoomRules.translate("E: read pieces attacking the inspected square."),
+          GameRoomRules.translate("C: read player colours."),
+          GameRoomRules.translate("S: read each player's remaining pieces."),
+          GameRoomRules.translate("Ctrl+Shift+H: rotate the board view."),
+          GameRoomRules.translate("T: read whose turn it is."),
+          GameRoomRules.translate("K: browse your kings."),
+          GameRoomRules.translate("Shift+K: browse the opponent's kings."),
+          GameRoomRules.translate("D: browse your queens."),
+          GameRoomRules.translate("Shift+D: browse the opponent's queens."),
+          GameRoomRules.translate("R: browse your rooks."),
+          GameRoomRules.translate("Shift+R: browse the opponent's rooks."),
+          GameRoomRules.translate("B: browse your bishops."),
+          GameRoomRules.translate("Shift+B: browse the opponent's bishops."),
+          GameRoomRules.translate("N: browse your knights."),
+          GameRoomRules.translate("Shift+N: browse the opponent's knights."),
+          GameRoomRules.translate("P: browse your pawns."),
+          GameRoomRules.translate("Shift+P: browse the opponent's pawns."))
       ]
     end
 

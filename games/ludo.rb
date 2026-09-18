@@ -64,11 +64,15 @@ module GameRoomGames
           GameRoomRules.translate("An exact roll is required to reach the finish is on by default. A pawn two squares from the finish needs a two: a larger result cannot move it. With this option off, an overshooting roll also takes the pawn to the finish."),
           GameRoomRules.translate("Three consecutive sixes lose the turn is on by default. The third six ends your turn without a move for that roll. Moves made after the first two sixes stay on the board: they are not undone."),
           GameRoomRules.translate("Two pawns of one player form a blockade is on by default. Turning it off removes the restrictions caused by opposing pairs on the track. It does not remove safe entry squares or change the length of the route.")),
-        rule_section(:controls, GameRoomRules.translate("Rolling and finding pawns"),
-          GameRoomRules.translate("Enter: roll, or confirm the selected pawn move. Arrow keys: choose between available pawn moves."),
-          GameRoomRules.translate("D: read the current die result without rolling again."),
-          GameRoomRules.translate("V: browse your pawns. Shift+V: browse everyone's pawns. These lists inspect positions; they do not move pawns."),
-          GameRoomRules.translate("P and Shift+P: summarize your positions and the opponents' positions. Pawns still in the base are included; finished pawns are omitted. T: whose turn it is."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: choose an available pawn move."),
+          GameRoomRules.translate("Enter: roll the die or confirm a pawn move."),
+          GameRoomRules.translate("D: read the current die result without rolling."),
+          GameRoomRules.translate("V: browse your pawns."),
+          GameRoomRules.translate("Shift+V: browse everyone's pawns."),
+          GameRoomRules.translate("P: read your unfinished pawn positions, including the base."),
+          GameRoomRules.translate("Shift+P: read opponents' unfinished pawn positions, including their bases."),
+          GameRoomRules.translate("T: read whose turn it is."))
       ]
     end
 
@@ -241,7 +245,7 @@ module GameRoomGames
     def shortcut_features; super + [:last_roll]; end
     def shortcut_feature_data(feature, replay, viewer)
       return super unless feature == :last_roll
-      roll = replay.state[:roll]
+      roll = replay.state[:last_roll]
       { message: roll == nil ? _("The dice have not been rolled.") : _("Last roll: %{dice}.") % { dice: roll } }
     end
 
@@ -376,7 +380,7 @@ module GameRoomGames
 
     def initial_state(players, options)
       {
-        players: players, options: options, current_player: players[0], phase: :awaiting_roll, roll: nil,
+        players: players, options: options, current_player: players[0], phase: :awaiting_roll, roll: nil, last_roll: nil,
         consecutive_sixes: 0, pawns: Array.new(players.length) { Array.new(PAWNS_PER_PLAYER, -1) }, winner: nil
       }
     end
@@ -387,6 +391,7 @@ module GameRoomGames
       return false if !value.between?(1, 6)
 
       state[:roll] = value
+      state[:last_roll] = value
       state[:consecutive_sixes] = value == 6 ? state[:consecutive_sixes] + 1 : 0
       event_id = repository.event_id(event)
       history << HistoryEntry.new(

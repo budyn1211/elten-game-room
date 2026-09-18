@@ -59,10 +59,23 @@ module GameRoomGames
         rule_section(:result, GameRoomRules.translate("Turn category leads into victory points"),
           GameRoomRules.translate("After the last auction is settled, total each player's cards in every category. The highest total wins that category's die. A tied total is decided by the card letter closest to A in that category. A category nobody holds awards nothing. Add the faces of the dice you won to obtain your victory points; card values themselves are not added again."),
           GameRoomRules.translate("Most victory points wins. If tied, compare remaining Gold. If still tied, compare the Monk total and then its best letter, followed in the same way by Pigments, Forbidden Tomes, Holy Books and Manuscripts. If every comparison remains equal, the game is drawn. There is no separate score target or series of rounds in Biblios.")),
-        rule_section(:controls, GameRoomRules.translate("Biblios keys"),
-          GameRoomRules.translate("Arrows and Enter: choose a gift destination, public card, Church effect or auction action. R: enter another bid. To pay, Shift+Enter selects or removes cards from a packet and Enter submits it. Do not pay accepts the penalty instead. Escape clears the payment packet."),
-          GameRoomRules.translate("L: your library. Ctrl+L: browse it by category. C: Scriptorium. Shift+C: standings based on openly taken cards, not hidden hands. G: your Gold. P: public space. B: auction. T: turn. S: final scores when the game ends."),
-          GameRoomRules.translate("During payment, Z and Shift+Z visit cards that may form a legal payment. They neither select a packet nor pay automatically. Shift+C retains its Biblios meaning and does not sort cards."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: browse the available cards or actions."),
+          GameRoomRules.translate("Enter: choose a destination, card or effect; during payment, submit the packet."),
+          GameRoomRules.translate("Shift+Enter: select or unselect a card for payment."),
+          GameRoomRules.translate("Escape: clear the payment packet."),
+          GameRoomRules.translate("R: enter your bid."),
+          GameRoomRules.translate("L: read your library."),
+          GameRoomRules.translate("Ctrl+L: browse your library by category."),
+          GameRoomRules.translate("C: read the Scriptorium."),
+          GameRoomRules.translate("Shift+C: read standings based on publicly taken cards."),
+          GameRoomRules.translate("G: read your Gold."),
+          GameRoomRules.translate("P: read the public space."),
+          GameRoomRules.translate("B: read the current auction."),
+          GameRoomRules.translate("S: read final scores after the game."),
+          GameRoomRules.translate("Z: next card usable for payment, without selecting or paying."),
+          GameRoomRules.translate("Shift+Z: previous card usable for payment, without selecting or paying."),
+          GameRoomRules.translate("T: read whose turn it is."))
       ]
     end
 
@@ -290,7 +303,7 @@ module GameRoomGames
     def shortcut_feature_data(feature, replay, viewer)
       state = replay.state
       case feature.to_sym
-      when :scores then replay.finished? ? { message: scores_text(state) } : nil
+      when :scores then replay.finished? ? { message: scores_text(state, sorted: true) } : nil
       when :bidding then { message: auction_text(state) }
       else super
       end
@@ -1282,8 +1295,9 @@ module GameRoomGames
       text + " " + _("Passed: %{players}.") % { players: passed.join(", ") }
     end
 
-    def scores_text(state)
-      values = state[:players].map do |player|
+    def scores_text(state, sorted: false)
+      players = sorted ? score_announcement_order(state[:players], state[:players].to_h { |p| [p, victory_points(state, p)] }) : state[:players]
+      values = players.map do |player|
         _("%{player}: %{score}") % { player: participant_name(player), score: victory_points(state, player) }
       end
       _("Victory Points: %{values}.") % { values: values.join("; ") }

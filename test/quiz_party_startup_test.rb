@@ -45,7 +45,7 @@ assert(registry.name("quiz") == "Quiz Party", "the registered game has no readab
 
 game = registry.build("quiz")
 book = game.rule_book
-assert(book.sections.map(&:id) == [:goal, :setup, :play, :ending, :variants, :controls], "the rule book has the wrong sections")
+assert(book.documents.map(&:id) == [:rules, :controls], "rules and keyboard shortcuts are not separate documents")
 assert(book.sections.all? { |section| section.paragraphs.any? { |text| !text.to_s.strip.empty? } }, "a rule section is empty")
 
 options = game.default_options
@@ -101,6 +101,7 @@ assert(packs[2..].none?(&:verified?), "loading the full Witcher set eagerly load
 assert(game.selected_content_pack(options) != nil, "the default table options do not resolve to an installed pack")
 polish_sets = game.send(:available_content_sets, "pl-PL").map(&:id).sort
 assert(polish_sets == ["quiz.wikidata", "quiz.witcher", "quiz.witcher.b", "quiz.witcher.g"], "Polish does not offer the intended question sets")
+require_relative "support/native_live_sessions"
 [
   ["quiz.wikidata", "pl-PL"],
   ["quiz.witcher", "pl-PL"],
@@ -108,7 +109,17 @@ assert(polish_sets == ["quiz.wikidata", "quiz.witcher", "quiz.witcher.b", "quiz.
   ["quiz.witcher.b", "pl-PL"]
 ].each do |set_id, language_id|
   set_options = game.normalize_options("content_set_id" => set_id, "content_language_id" => language_id)
-  assert(JSON.generate(set_options).bytesize <= 256, "#{set_id} options exceed the server field limit")
+  # Options now travel in a LiveSession record, not the retired string:256
+  # table column. Exercise the actual room/start path and its packet limit.
+  broker = NativeLiveSessionsBroker.new
+  store = GameRoomLiveSessionStore.new(ProgramDouble.new(broker.endpoint("Alice")))
+  room = store.create_room(name:"Quiz startup", game:game.id, owner:"Alice", game_options:JSON.generate(set_options))
+  guest = GameRoomLiveSessionStore.new(ProgramDouble.new(broker.endpoint("Bob")))
+  guest.join_room(room,"Bob")
+  $game_room_test_user = "Alice"
+  session = store.start_game(table:room,game:game.id,players:%w[Alice Bob],options:JSON.generate(set_options),actor:"Alice")
+  assert(JSON.parse(session["options"]) == set_options, "#{set_id} options did not survive native room startup")
+  assert(broker.cores.values.first.entries.all? { |entry| JSON.generate(entry["packet"]).bytesize <= GameRoomLiveSessionStore::STACK_ENTRY_BYTES }, "Quiz startup packet exceeds the native limit")
 end
 
 english_pack = GameRoomContent.registry.pack("quiz.general.en")

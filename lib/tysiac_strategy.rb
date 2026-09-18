@@ -309,10 +309,14 @@ module TysiacPlanning
       hand = @state[:hands].fetch(@actor, []).to_a
       return choices if hand.length > 2
       return choices if @state[:round_points].fetch(@actor, 0).to_i >= @state[:contract].to_i
+      # A side-suit ace can be ruffed. Do not discard every alternative before
+      # the planner has even evaluated it; only a trump ace (or no trumps)
+      # provides the unconditional control this shortcut assumes.
+      trump = @state[:trump]
 
       aces = choices.select do |action|
         mode, card = parse_action_card(action)
-        mode == "normal" && card_rank(card) == "A"
+        mode == "normal" && card_rank(card) == "A" && (trump == nil || card_suit(card) == trump)
       end
       aces.empty? ? choices : aces
     end

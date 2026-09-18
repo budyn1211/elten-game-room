@@ -145,6 +145,10 @@ module GameRoomScreens
         quiet: true
       )
       watched_games = multiple_game_list(_("Notify me about new public tables (preferences are visible to table creators)"), @values["table_watch_games"])
+      watched_contacts = CheckBox.new(
+        GameRoomContent.utf8(_("Notify me about new tables only from contacts")),
+        checked: @values["table_watch_contacts_only"] == true
+      )
       levels = GameRoomPreferences.sound_volumes(@values)
       volume_fields = GameRoomPreferences::SOUND_GROUPS.to_h do |group|
         [group, ListBox.new((0..100).map { |level| "#{level}%" },
@@ -159,14 +163,18 @@ module GameRoomScreens
         _("Show full or unavailable tables"),
         checked: setting_enabled?("widget_show_unavailable")
       )
+      widget_contacts = CheckBox.new(
+        GameRoomContent.utf8(_("Show only tables created by contacts")),
+        checked: @values["widget_contacts_only"] == true
+      )
       save_button = Button.new(_("Save"))
       cancel_button = Button.new(_("Cancel"))
 
       groups = [
         [lobby_games, created, joined, left, computers],
-        [invitation_policy, watched_games],
+        [invitation_policy, watched_games, watched_contacts],
         volume_fields.values,
-        [widget_enabled, widget_games, widget_unavailable]
+        [widget_enabled, widget_games, widget_unavailable, widget_contacts]
       ]
       form = GameRoomUI::Form.new([sections] + groups.flatten + [save_button, cancel_button], program: @program, quiet: true)
       # Function-key edits in Settings affect the same staged values as the
@@ -199,8 +207,10 @@ module GameRoomScreens
         "announce_lobby_changes" => [created, joined, left, computers].any?(&:checked),
         "invitation_notifications" => INVITATION_POLICIES[invitation_policy.index.to_i] || "everyone",
         "table_watch_games" => selected_game_ids(watched_games),
+        "table_watch_contacts_only" => watched_contacts.checked,
         "sound_volumes" => form.game_room_volume_reader.call,
         "widget_enabled" => widget_enabled.checked,
+        "widget_contacts_only" => widget_contacts.checked,
         "widget_games" => selected_game_ids(widget_games),
         "widget_known_games" => GameRoomPreferences.normalized_game_ids(
           @values["widget_known_games"].to_a + @games.map { |game| game.fetch(:id) }

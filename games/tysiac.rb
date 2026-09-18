@@ -74,12 +74,23 @@ module GameRoomGames
         rule_section(:penalties, GameRoomRules.translate("Surrendering and collecting no points"),
           GameRoomRules.translate("After seeing the talon but before giving away the first card, the bidder may surrender, unless on the barrel. Each defender receives at least 60, or half the contract if that is higher, rounded upwards to five. The bidder normally receives zero. Every third surrender additionally costs the bidder 120 points."),
           GameRoomRules.translate("Collecting exactly zero unrounded points in three played deals costs 120. A small result that merely rounds to zero does not count as a zero deal. These zeroes are not accumulated while you are on the barrel.")),
-        rule_section(:controls, GameRoomRules.translate("From auction to the last trick"),
-          GameRoomRules.translate("Shift+C: sort by suit; Shift+H: sort by rank. Press the same shortcut again to reverse that order. Shift+M restores receipt order. Sorting changes only your view and keeps the selected physical card; it does not alter card strength or select a move."),
-          GameRoomRules.translate("Z and Shift+Z find playable trick cards, not cards to give away from the talon. A marriage choice prevents automatic play even if the card is the only playable one."),
-          GameRoomRules.translate("Enter during the auction: choose a bid or pass. After taking the talon: choose one card for each opponent with Arrows and Enter. B can change the final contract; playing a card accepts the current one."),
-          GameRoomRules.translate("Enter on a card: play, or choose whether to declare an available marriage. Shift+Enter: declare the marriage directly when legal. Without a marriage it reports that fact and does not play the card."),
-          GameRoomRules.translate("H: hand. C: trick cards. Ctrl+C: browse them. F: trump. S: scores. Shift+S: zeroes, surrenders and barrel chances. T: whose turn it is."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: choose a bid, talon card or trick card."),
+          GameRoomRules.translate("Enter: confirm the current choice; on a card, play or choose a marriage."),
+          GameRoomRules.translate("Shift+Enter: declare a legal marriage directly; without one, do not play."),
+          GameRoomRules.translate("B: change the final contract before playing the first card."),
+          GameRoomRules.translate("H: read your hand."),
+          GameRoomRules.translate("C: read the trick cards."),
+          GameRoomRules.translate("Ctrl+C: browse the trick cards."),
+          GameRoomRules.translate("F: read the trump suit."),
+          GameRoomRules.translate("Shift+S: read zeroes, surrenders and barrel chances."),
+          GameRoomRules.translate("Z: next legal trick card; a possible marriage prevents automatic play."),
+          GameRoomRules.translate("Shift+Z: previous legal trick card; a possible marriage prevents automatic play."),
+          GameRoomRules.translate("S: read scores."),
+          GameRoomRules.translate("T: read whose turn it is."),
+          GameRoomRules.translate("Shift+C: sort by suit or colour; press again to reverse the order."),
+          GameRoomRules.translate("Shift+H: sort by rank or value; press again to reverse the order."),
+          GameRoomRules.translate("Shift+M: restore the order in which cards were received."))
       ]
     end
 
@@ -421,7 +432,7 @@ module GameRoomGames
           message: state[:trump] == nil ? _("There is no trump suit.") : _("Trump: %{suit}.") % { suit: SUIT_NAMES.fetch(state[:trump]) }
         }
       when :scores
-        { message: scores_text(state) }
+        { message: scores_text(state, sorted: true) }
       when :statistics
         { message: statistics_text(state) }
       when :bidding
@@ -1175,7 +1186,10 @@ module GameRoomGames
     end
 
     def bot_public_played_cards(replay)
-      replay.accepted_events.to_a.filter_map do |event|
+      events = replay.accepted_events.to_a
+      deal = events.rindex { |event| event["action"].to_s == "deal" }
+      events = events[(deal + 1)..] if deal != nil
+      events.filter_map do |event|
         next if event["action"].to_s != "play"
 
         _mode, card = parse_play(event["value"])
@@ -1400,9 +1414,10 @@ module GameRoomGames
       end.join("; ")
     end
 
-    def scores_text(state)
+    def scores_text(state, sorted: false)
+      players = sorted ? score_announcement_order(state[:players], state[:scores]) : state[:players]
       _("Scores: %{scores}.") % {
-        scores: state[:players].map do |player|
+        scores: players.map do |player|
           _("%{player}: %{score}") % {
             player: participant_name(player),
             score: state[:scores][player]

@@ -1,4 +1,5 @@
 require_relative "game_content"
+require_relative "context_help"
 
 module GameRoomRules
   REQUIRED_SECTION_IDS = [:controls].freeze
@@ -60,7 +61,7 @@ module GameRoomRules
     def documents
       result = [
         Section.new(id: :rules, title: _("Rules"), paragraphs: sections.reject { |section| [:controls, :current_options].include?(section.id) }.map { |section| "#{section.title}\r\n#{section.text}" }),
-        Section.new(id: :controls, title: _("In-game keyboard shortcuts"), paragraphs: sections.find { |section| section.id == :controls }.paragraphs + GameRoomRules.common_controls)
+        Section.new(id: :controls, title: _("In-game keyboard shortcuts"), paragraphs: sections.find { |section| section.id == :controls }.paragraphs)
       ]
       current = sections.find { |section| section.id == :current_options }
       result << current if current
@@ -109,6 +110,7 @@ module GameRoomRules
     fields.to_a.each do |field|
       field.add_tip(_("Press Ctrl+F1 to read the game rules.")) if field.respond_to?(:add_tip)
     end
+    GameRoomContextHelp.exclude_from_game_help(fields, [_("Press Ctrl+F1 to read the game rules.")])
     form.on(:key_f1) do |parameters|
       next if !ctrl_f1_event?(parameters)
 

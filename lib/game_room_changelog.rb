@@ -129,7 +129,22 @@ module GameRoomChangelog
         "Replaced the sounds for winning and losing a whole game. A player or team now hears the defeat sound when permanently eliminated, without hearing it again at the end of that game. Round-result sounds are unchanged.",
         "The Private table checkbox is now part of the table creation form, alongside the game settings, instead of a separate window.",
         "New games are selected in the widget by default, while saved manual deselections are remembered. Older settings also enable Rummy, Domino, Mexican Train, Scrabble, Taboo and Biblios once.",
-        "Domino and Mexican Train now have distinct sounds for dealing tiles, playing a tile and drawing from the boneyard."
+        "Domino and Mexican Train now have distinct sounds for dealing tiles, playing a tile and drawing from the boneyard.",
+        "You can limit the active-tables widget and new-table notifications to your contacts. Both filters are off by default. Invitations restricted to contacts now use the same background-updated contact list.",
+        "Turn-time settings are now consistent across UNO, Makao, Domino, Mexican Train, Rummy, Scrabble, 99 and Poker. The limit is off by default. Timeouts follow each game's rules and never choose and play a card for you.",
+        "In 99, exceeding the turn-time limit costs one token and passes the turn to the next player.",
+        "In both Poker variants, exceeding the time limit folds your hand. During the draw, an all-in player instead keeps their cards and remains in the showdown. Side pots are also settled correctly when players fold during the draw.",
+        "Ctrl+R gives shorter table settings, omitting disabled clocks and delays. Domino set names are also translated in the table creation form.",
+        "Keyboard help in the rules lists each game-field shortcut separately, without chat controls or global shortcuts.",
+        "Reshuffling an exhausted deck during a deal now has a short announcement and its own sound in UNO, Makao, 99, Rummy and draw Poker.",
+        "Score announcements under S are ordered from highest to lowest, with eliminated players or teams last. Their actual scores are preserved.",
+        "Added Battleship by Dawid Pieper: two fleets, manual placement, a computer opponent, spectator boards and a final fleet check. Saving this game for later is not yet available.",
+        "Added Mancala by Dawid Pieper, with Oware, Ayoayo and Kalah variants and three computer strengths. Both new games include clear Polish and English rules, keyboard help and move sounds.",
+        "At the start of Battleship, each player can choose random or manual fleet placement. Random placement follows the selected fleet and ship-spacing rules.",
+        "Battleship has new rocket-launch, hit and miss sounds. The next event waits for the current sound to finish, while chat and receiving moves remain available. Other games keep overlapping sound effects.",
+        "After selecting a game to create a table, focus starts on the opening instructions again. Tab then moves to Private table and the game settings.",
+        "Fixed the empty in-game shortcuts list opened through Ctrl+F1, including in Scrabble. It now retains the current game-field help when opening the rules.",
+        "Added Krowa by paulinux: guess Polish words in the daily puzzle, solo play, Race or cooperative Word Tower, with a personal gallery and optional leaderboards."
       ].freeze
     ).freeze
   ].freeze

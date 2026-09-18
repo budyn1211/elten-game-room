@@ -76,7 +76,7 @@ assert(app.transport.current_room("Alice") == nil && broker.cores.values.first.c
 saved = app.send(:saved_games).list.first
 new_table = app.send(:create_saved_game_table, saved)
 assert(new_table && new_table["resume_save_id"] == saved["id"], "saved game did not create a continuation room")
-assert(broker.cores[new_table["__live_session_id"]].metadata["protocol"] == 5, "legacy clients can join an unsupported archive")
+assert(broker.cores[new_table["__live_session_id"]].metadata["protocol"] == GameRoomLiveSessionStore::CURRENT_DISCOVERY_PROTOCOL, "legacy clients can join an unsupported archive")
 assert(new_table["bot_count"] == 1, "original bots were not restored before waiting")
 assert(new_table["bot_names"] == ["pl20"], "restoration lost the saved computer name")
 assert(app.notices.any? { |notice| notice.is_a?(Array) && notice[0] == "Bob" && notice[2]["continuation"] == true }, "original human did not receive continuation invitation")

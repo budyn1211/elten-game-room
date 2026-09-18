@@ -1,5 +1,189 @@
 # Instrukcje dla agentów pracujących nad ELTEN Game Room
 
+## Krowa i ponowne wydanie 229 — 18 września 2026
+
+Najnowsze polecenie zezwala po zakończeniu weryfikacji zbudować i podpisać
+tę samą 2.0.1/build 229 z Krową (PR #10, paoscripts, autor opisany na prośbę
+użytkownika jako paulinux) i wcześniejszymi lokalnymi poprawkami audytu.
+Zastępuje wcześniejsze wstrzymanie wydania, nie upoważnia do instalacji,
+publikacji, GitHuba ani scalenia/zamknięcia PR-u. Changelog: zachować
+28 wcześniejszych wpisów PL/EN i dodać TYLKO jeden opis Krowy z autorstwem.
+Nie uruchamiać pełnego runnera; używać kontroli celowanych i gotowej paczki.
+
+Zakres i dowody: docs/KROWA_IMPLEMENTATION.md oraz
+../diagnostics/krowa-implementation/{SOURCE,SERVER,PACKAGE}.json.
+Przyjęto poprawki 1–11 przeglądu. Baza rzeczowników, jej duplikaty,
+kolejność i algorytm losowania pozostają identyczne z PR-em na wyraźne
+polecenie użytkownika. Także osiem plików Audio/krowa-* bez edycji.
+Nie usuwać duplikatów jako rzekomej optymalizacji.
+
+Wyścig i Wieża mają prywatny lokalny sekret w pełnym zapisie. Wznowienie
+musi go zweryfikować i zapisać pod nowym ID sesji PRZED publikacją archiwum
+i startu. Brak sekretu nie może zostać uznany za udane wznowienie. Ujawnienie
+po poddaniu w Wyścigu jest adresowaną wiadomością, nie wspólnym zdarzeniem.
+Sprawdzać nadawcę, odbiorcę, fazę, rundę i zobowiązanie; nie odtwarzać starego
+krowa_surrender_word jako ujawnienia. Kontroler nadal zna własny sekret.
+Dzień Warszawy pochodzi z prawdziwego czasu serwera, nie epoki partii.
+Usuniętych własnych słów nie odtwarzać przy ponownym czytaniu starej historii.
+
+Cztery nowe tabele Krowy już dodano po potwierdzeniu konta papierek.
+Zastane tabele i protected/powiadomienia zachowano. Nie powtarzać migracji;
+testy publikacji/rankingów korzystają z atrap, nie żywych rekordów konta.
+Nie osłabiać zamierzonej bramki dostępu do tabel. Metody klienta, rankingi,
+ograniczenia ról i formularzy pozostają opcjonalnymi hookami Base, domyślnie
+neutralnymi dla pozostałych gier. Nie utożsamiać testów z żywą rozgrywką.
+
+## Poprawki po audycie klas — źródła, bez nowego wydania
+
+Użytkownik zatwierdził potwierdzone błędy z listy 1–12, z wyjątkiem
+punktu 2/F11 (zamierzona kontrola dostępu do tabel), bez optymalizacji
+O01–O04. Wdrożenia i granice sprawdzenia opisuje docs/AUDIT_FIXES_229.md;
+wyniki celowanych prób: ../diagnostics/audit-fixes-229/RESULTS.json.
+Końcowo 59/59 uruchomień i 25 kontroli składni poprawnych, bez zmian
+poza jawnym zakresem. Zachowano 579 wcześniejszych plików identycznie,
+w tym dane, tłumaczenia, dźwięki, manifesty i changelog.
+Starsze narzędzia merge-quiz-pool i refine-quiz-decisions-semantic-safety
+nie są podłączone do obecnej ścieżki gry/danych/wydania; nie uruchamiać ich
+na danych bez wcześniejszego usunięcia problemów F13/F14 z audytu.
+
+Przy zmianach zegara sprawdzać nie tylko wolniejszy klient, ale też
+pozostały czas po zapisie/wznowieniu oraz metadane serwera otrzymane
+przed lub po odpowiedzi na zapis. Nie traktować lokalnego Time.now jako
+potwierdzonego czasu serwera. Zachować ścisłe odrzucanie starych tur.
+Ponowienie odpowiedzi na zaproszenie to nie ponowne zaproszenie: zachować
+tożsamość decyzji, granicę czasu, izolację kont i brak podwójnej historii.
+Wynik partii ma pozostać w historii, ale automatycznie odczytywać się raz.
+
+Zmiany są niewydane. Nie budować/podpisywać na podstawie starszych wpisów.
+2.0.1/229, changelog i podpisana paczka 9d2d6fdd… pozostają bez zmian.
+Nie wykonano instalacji, publikacji, operacji GitHub, serwera ani profili.
+Tylko testy celowane; nie przedstawiać symulacji jako prób żywych klientów.
+
+## Ściszenie Statków: ponowne pakowanie 229 bez zmian changelogu
+
+Użytkownik polecił przebudować i podpisać tę samą 2.0.1/build 229 ze
+ściszeniem sześciu efektów Statków do 20% bazowego poziomu. Zachować
+changelog PL/EN dokładnie bez zmian: dotychczasowe 28 punktów, bez nowego
+wpisu o ściszeniu. Nie zmieniać nagrań, pauz, pozostałych dźwięków ani
+preferencji użytkownika. Raport: docs/BATTLESHIP_SOUND_BALANCE.md.
+Wyniki bieżącego pakowania: ../diagnostics/battleship-volume-229/SOURCE.json
+i PACKAGE.json. Zachować poprzednią paczkę d49e824b… osobno; nie uznawać
+samego tego wpisu za potwierdzenie wydania. Testy celowane, bez pełnego
+runnera, instalacji, publikacji, GitHuba, serwera i zmian profili.
+
+## Ctrl+F1: pusta lista skrótów — poprawka i ponowny build 229
+
+Zgłoszenie Scrabble odtworzono przez pełną ścieżkę wyjścia z oczekiwania:
+`wait_for_action` czyścił opisy w `ensure`, zanim otwierało się okno zasad.
+Zachowywać jednorazowy snapshot aktualnej pomocy pól gry przed sprzątaniem;
+nie usuwać cleanup ani nie przywracać stałych list nieaktualnych skrótów.
+Nowy test `rules_help_lifecycle_test.rb` musi przechodzić przez Ctrl+F1/menu,
+zakończenie oczekiwania i dopiero wyświetlenie listy. Samo przypięcie opisów
+i bezpośrednie otwarcie okna nie odtwarza tego błędu. Sprawdzać też źródła
+binarne i gotową paczkę, PL/EN, obserwatora oraz zachowanie kursora/czatu.
+Raport: docs/RULES_HELP_LIFECYCLE_229.md. Użytkownik polecił przebudowanie
+i podpisanie tej samej 2.0.1/229, zachowanie 27 punktów i jeden nowy PL/EN.
+Wynik sprawdzać w ../diagnostics/rules-shortcuts-229/SOURCE.json i PACKAGE.json.
+Zachować poprzednią podpisaną paczkę e1c7b20d…; bez instalacji, publikacji,
+GitHuba, serwera, profili i pełnego runnera.
+
+## Statki: audio i ustawianie floty; ponowny build 229 — 18 września 2026
+
+Użytkownik zatwierdził sześć dźwięków Statków (dwa trafienia, trzy starty
+rakiety, jedno pudło), odczekanie końca dźwięku przed kolejnym zdarzeniem
+oraz wybór Losowo/Ręcznie po rozpoczęciu partii. Kolejka prezentacji jest
+lokalna i włączona TYLKO w Statkach; inne gry nadal nakładają dźwięki.
+Nie blokować czatu ani odbioru sieci, nie używać sleep, nie odpytywać serwera
+z powodu samego zakończenia dźwięku. Tryb i ręczny szkic przeżywają odświeżenie;
+losowa flota nadal jest prywatna, a powtórzenie wysłania zachowuje commitment.
+Szczegóły: docs/BATTLESHIP_AUDIO_AND_SETUP_229.md.
+
+Dodatkowa poprawka wspólnego formularza: po wybraniu gry zaczynać na
+instrukcji „Wybierz opcje gry…”, nie na polu prywatności. Tab dopiero potem
+przechodzi na Stół prywatny. Nie przestawiać pól ani zmieniać ustawień.
+Zaktualizowano testy 25 formularzy oraz binarnego kodowania.
+
+Najnowsze polecenie zatwierdza przebudowanie i podpisanie tej samej wersji
+2.0.1/build 229. Zachować wcześniejsze 24 punkty changelogu, dodać trzy PL/EN.
+Wynik końcowy sprawdzić w ../diagnostics/battleship-audio-setup-229/SOURCE.json
+i PACKAGE.json — sam wpis nie potwierdza ukończenia pakowania. Zachować
+poprzednią podpisaną 229 (aae9df52…). Testy celowane, bez pełnego runnera,
+instalacji, publikacji, GitHuba, serwera i zmian profili.
+
+## Statki/Mankala wdrożone; przebudowa 229 zatwierdzona, 18 września 2026
+
+Najnowsze polecenie użytkownika znosi wcześniejsze wstrzymanie pakowania:
+włączyć PR #8/#9 z uzgodnionymi poprawkami, uzupełnić changelog, przebudować
+i podpisać tę samą 2.0.1/build 229. Bez instalacji, publikacji, GitHuba,
+scalania PR-ów, zmian serwera/profili i pełnego runnera. Zachować wszystkie
+wcześniejsze niewydane zmiany; teraz również mają wejść do paczki.
+Gry włączono z zachowaniem autorstwa Dawida Piepera i przyjętych reguł Ayoayo.
+Zakres i ograniczenia: docs/BATTLESHIP_MANCALA_229.md. Instrukcje obu gier
+są przystępnymi opisami PL/EN z przykładami; polskie i angielskie źródła
+służą redakcji, nie nadpisywaniu uzgodnionych odmian. Zachować ten standard.
+Statki nie obsługują zapisu/wznowienia, dopóki nie będzie bezpiecznej obsługi
+prywatnych flot obu graczy. Mankala korzysta ze wspólnego zapisu.
+Walidacja i gotowa paczka są dokumentowane w katalogu roboczym
+diagnostics/new-board-games-229/SOURCE.json oraz PACKAGE.json. Nie deklarować
+zakończenia podpisywania na podstawie samego tego wpisu; sprawdzić wynik.
+
+
+## PR #8/#9 — zatwierdzone zasady Ayoayo, 18 września 2026
+
+Użytkownik zaakceptował poprawki przeglądu Statków i Mankali, po czym
+zatwierdził zachowanie odmiany Ayoayo z PR #9 Pajpera. NIE zmieniać bicia
+na wersję pozostawiającą własny kamień: PR zabiera kamienie przeciwnika
+oraz własny kamień kończący ruch. Zachować też przyznawanie pozostałych
+kamieni ostatniemu wykonującemu ruch przy zakończeniu z braku legalnego
+ruchu. To przyjęty wariant, nie bezsporne błędy M1/M2 wcześniejszego audytu.
+Doprecyzować te reguły w instrukcji PL/EN i testach, bez mieszania opisów
+Mancala World i Johna Pratta. Raport skorygowano w
+../diagnostics/pr-8-9-review-20260918/REVIEW.md.
+
+Ten wpis dokumentuje decyzję, NIE wykonanie pozostałych poprawek ani
+integrację PR-ów. Bez budowania, podpisywania, publikacji i zmian serwera;
+wcześniejsze wstrzymanie wydania pozostaje aktualne.
+
+## Tasowanie, kolejność wyników i changelog — niewydane, 18 września 2026
+
+Na polecenie użytkownika dodano komunikat „Przetasowano talię.” i zasób
+card-shuffle przy faktycznym recyklingu talii UNO, Makao, 99, Rummy oraz
+Pokera dobieranego. Nie zmieniać RNG ani zasad dobierania: wspólny
+GameRoomCardDeckHistory obserwuje istniejący licznik tylko po przyjęciu
+zdarzenia. Historia i audio korzystają ze standardowej ochrony przed
+powtórzeniem. Nowe rozdanie ani pusta talia bez kart do recyklingu nie są
+takim zdarzeniem. Dźwięk CC BY 4.0; autor i źródło w THIRD_PARTY_NOTICES.
+
+Odczyt punktacji pod S ma malejący wynik liczbowy i trwałe eliminacje na
+końcu. Używać wspólnego score_announcement_order również w nowych grach;
+nie sortować miejsc, nie zerować wyników, nie uznawać samego zera za
+eliminację. Remisy zachowują kolejność miejsc; drużyny pozostają razem.
+Nie zmieniać S służącego do liczenia pionków lub tylko własnych żetonów.
+Monopoly sortuje majątek, a Poker sortuje cudze żetony pod Shift+S.
+
+Uzupełniono istniejący changelog 2.0.1/229 w PL/EN: zachowano 14 punktów,
+dopisano osiem zaległych, również o filtrach, zegarach, Ctrl+R i pomocy.
+Wydanie nadal WSTRZYMANE: bez budowania, podpisywania, instalacji,
+GitHuba, serwera i zmian profili. Szczegóły oraz wyniki bieżącej weryfikacji:
+docs/CARD_RESHUFFLE_AND_SCORE_ORDER_229.md i
+../diagnostics/card-reshuffle-scores-229/RESULTS.json.
+
+## Wydanie wstrzymane; nowe limity czasu — 18 września 2026
+
+Użytkownik wyraźnie zatrzymał budowanie i podpisywanie. W źródłach są
+niewydane filtry kontaktów, wspólny thinking time i poprawki pomocy/Ctrl+R.
+Najnowsze uzgodnienie: 99 po czasie traci jeden żeton, Poker automatycznie
+pasuje. W wymianie Pokera dobieranego gracz all-in zachowuje karty bez
+wymiany i nadal bierze udział w showdown — nie wolno go spasować.
+Weryfikacja zakończona: 52/52 skrypty wspólne i 8/8 dodatkowych uruchomień
+zegarów, składnia 59 Ruby, idempotencja zasad i binarne wczytanie. Jeden
+osobny stary test wymian Monopoly nie przechodzi identycznie na HEAD
+sprzed zmian; nie liczyć go jako zaliczonego. Szczegóły i granice kontroli:
+docs/CONTACT_FILTERS_AND_TIMERS_229.md. Bez pełnego runnera i żywych
+klientów. Numery 2.0.1/229, istniejąca podpisana paczka, GitHub, serwer
+i profile bez zmian.
+Starsze zgody na pakowanie poniżej nie upoważniają do nowego wydania.
+
 ## Ponowne pakowanie 2.0.1/229 — 18 września 2026
 
 Najnowsze polecenie zatwierdza przebudowanie i podpisanie tej samej wersji

@@ -1,6 +1,7 @@
 require "digest"
 require_relative "card_game"
 require_relative "../lib/game_bots"
+require_relative "../lib/game_turn_clock"
 
 module GameRoomGames
   class Poker < CardGame
@@ -56,6 +57,8 @@ module GameRoomGames
       true
     end
 
+    def thinking_time_range; 1..600; end
+
     def bot_strategy
       @bot_strategy ||= GameRoomBots::HeuristicStrategy.new
     end
@@ -83,14 +86,42 @@ module GameRoomGames
         rule_section(:limits, GameRoomRules.translate("Choosing the betting limits"),
           GameRoomRules.translate("No limit, the default, allows any legal raise up to your stack. Pot limit allows a raise above the call up to the pot after adding that call. Half-pot limit uses half of that amount, but never sets the ceiling below a minimum legal raise. Your remaining stack is still the final limit. Fixed limit uses a raise equal to the current big blind throughout the hand. Unlike some poker rules, our fixed-limit amount does not double in later betting rounds."),
           GameRoomRules.translate("You may also enable a cap on raises per betting round. The cap defaults to 3 and can be 1\u201310. It is shared by the whole table, not a separate allowance for every player, and resets when the next betting round starts. Without this option there is no numerical cap on raises.")),
+        rule_section(:clock, GameRoomRules.translate("Time to make your decision"),
+          GameRoomRules.translate("Thinking time is off by default. In either variant, the table owner may allow 1\u2013600 seconds for each betting decision and, in five-card draw, for each player's exchange. If you run out of time, you fold, even when checking would have cost nothing. Chips already committed remain in the pot; no bet or card exchange is chosen for you. Each new decision gets the full time allowance."),
+          GameRoomRules.translate("There is one exception during the exchange: if you have already gone all-in, running out of time keeps all your cards without exchanging any. You are not folded and still take part in the showdown for the pots you are entitled to win.")),
         rule_section(:stakes, GameRoomRules.translate("Blinds and ante put chips into play"),
           GameRoomRules.translate("Hold'em uses blinds: forced bets made before seeing the hand develop. The small blind defaults to 5 and the big blind to 10. Both must be positive, and the big blind cannot be smaller. Five-card draw normally uses an ante of 5 from everyone instead. Its amount must be positive and no greater than the starting stack. Use blinds in five-card draw replaces that ante with blinds. Even with ante, the base big-blind value supplies the minimum betting unit."),
           GameRoomRules.translate("When blinds are used, you can leave them unchanged, increase them after a chosen number of hands, or increase them after a number of minutes. The default doubles them every five hands. The interval accepts 1\u2013100 hands or minutes and the multiplier 2\u201310. A change takes effect only at the start of a new hand, never halfway through a bet.")),
-        rule_section(:controls, GameRoomRules.translate("Poker keys"),
-          GameRoomRules.translate("C: check or call. F: fold. R: enter a raise above the call; Escape cancels. A: all-in."),
-          GameRoomRules.translate("S: your stack. Shift+S: other stacks. V: amount to call. P: total pot. I: your investment in this hand. H: players still in and folded. L: blinds. T: turn."),
-          GameRoomRules.translate("D: your cards. E: community cards. G: your best current combination. In Hold'em, 1\u20132 read private cards and 3\u20137 the board; in draw poker, 1\u20135 read your own cards."),
-          GameRoomRules.translate("During exchange, arrows choose a card and Shift+Enter adds or removes it from the packet. Enter exchanges the packet, including the current card if it was not selected. Keep all cards ends the exchange without replacing any. Shift+C, Shift+H and Shift+M sort that hand by suit, rank and receipt order; repeating C or H with Shift reverses its order."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("C: check or call."),
+          GameRoomRules.translate("F: fold."),
+          GameRoomRules.translate("R: enter your raise above the call."),
+          GameRoomRules.translate("A: go all-in."),
+          GameRoomRules.translate("S: read your stack."),
+          GameRoomRules.translate("Shift+S: read the other players' stacks."),
+          GameRoomRules.translate("V: read the amount needed to call."),
+          GameRoomRules.translate("P: read the total pot."),
+          GameRoomRules.translate("I: read your investment in this hand."),
+          GameRoomRules.translate("H: read who is still in and who has folded."),
+          GameRoomRules.translate("L: read the blinds."),
+          GameRoomRules.translate("D: read your cards."),
+          GameRoomRules.translate("E: read the community cards."),
+          GameRoomRules.translate("G: read your best current combination."),
+          GameRoomRules.translate("Arrows: during exchange, choose a card."),
+          GameRoomRules.translate("Shift+Enter: during exchange, select or unselect the current card."),
+          GameRoomRules.translate("Enter: exchange the selected packet, also including the current card."),
+          GameRoomRules.translate("Escape: cancel a bid input or card selection."),
+          GameRoomRules.translate("T: read whose turn it is."),
+          GameRoomRules.translate("Shift+C: during exchange, sort by suit or colour; press again to reverse the order."),
+          GameRoomRules.translate("Shift+H: during exchange, sort by rank or value; press again to reverse the order."),
+          GameRoomRules.translate("Shift+M: during exchange, restore the order in which cards were received."),
+          GameRoomRules.translate("1: read private card 1."),
+          GameRoomRules.translate("2: read private card 2."),
+          GameRoomRules.translate("3: in Hold'em, read community card 1; in draw poker, read private card 3."),
+          GameRoomRules.translate("4: in Hold'em, read community card 2; in draw poker, read private card 4."),
+          GameRoomRules.translate("5: in Hold'em, read community card 3; in draw poker, read private card 5."),
+          GameRoomRules.translate("6: in Hold'em, read community card 4."),
+          GameRoomRules.translate("7: in Hold'em, read community card 5."))
       ]
     end
 
@@ -160,31 +191,57 @@ module GameRoomGames
       players = repository.players_for(session)
       state = initial_state(players, options_from_json(session["options"]))
       accepted = []
+      seen = {}
       history = [starting_history(players)]
       events.each do |event|
         break if state[:winner] != nil
+        original_event = event
+        event_id = repository.event_id(event)
+        next if seen[event_id]
+        decoded = GameRoomTurnClock.decode(state, event)
+        next unless decoded
+        event, time = decoded
+        next if %w[bet exchange].include?(event["action"]) && poker_deadline_reached?(state, time)
+        # Timed deals reuse the envelope's time instead of sending it twice.
+        if event["action"] == "deal" && time != nil
+          event = event.merge("value" => "#{event['value']}|#{time}")
+        end
         actor = repository.actor_of(event, session)
+        previous_recycle = state[:recycle]
         applied = case event["action"].to_s
         when "deal" then apply_deal(state, event, actor, repository, history)
         when "bet" then apply_bet(state, event, actor, repository, history)
         when "exchange" then apply_exchange(state, event, actor, repository, history)
+        when "turn_timeout" then apply_timeout(state, event, actor, repository, history, time)
         else false
         end
-        accepted << event if applied
+        if applied
+          record_deck_reshuffle(history, previous_recycle, state[:recycle], event_id)
+          GameRoomTurnClock.advance(state, time, running: [:betting, :exchange].include?(state[:phase]))
+          accepted << original_event
+          seen[event_id] = true
+        end
       end
+      GameRoomTurnClock.attach_session(state, session)
       Replay.new(board: nil, players: players, current_player: state[:current_player], winner: state[:winner],
         draw: false, accepted_events: accepted, history: history, state: state)
     end
 
     def automatic_action(replay, actor, context: nil)
       return nil if replay.finished? || !same_user?(actor, replay.players.first)
+      return { "kind" => "command", "action" => "turn_timeout" } if poker_deadline_reached?(replay.state, context&.now)
       return nil if ![:awaiting_deal, :hand_complete].include?(replay.state[:phase])
       { "kind" => "command", "action" => "deal" }
+    end
+
+    def automatic_action_due?(replay, actor, context: nil)
+      !replay.finished? && same_user?(actor, replay.players.first) && poker_deadline_reached?(replay.state, context&.now)
     end
 
     def legal_actions(replay, actor, context: nil)
       state = replay.state
       return [] if replay.finished? || !same_user?(state[:current_player], actor)
+      return [] if poker_deadline_reached?(state, context&.now)
       if state[:phase] == :exchange
         maximum = state[:options]["draw_five"] ? 5 : 3
         hand = hand_for(state, actor)
@@ -220,15 +277,22 @@ module GameRoomGames
         return [:invalid, nil] if ![:awaiting_deal, :hand_complete].include?(state[:phase]) || context&.random_source == nil
         seed = card_seed(context.random_source)
         dealer = state[:dealer_index] == nil ? seed.to_i(16) % replay.players.length : next_seated_index(state, state[:dealer_index])
-        timestamp = context.now == nil ? Time.now.to_i : context.now.to_i
-        return [:ok, event_plan("deal", "#{state[:hand_number] + 1}|#{dealer}|#{seed}|#{timestamp}")]
+        value = "#{state[:hand_number] + 1}|#{dealer}|#{seed}"
+        value += "|#{GameRoomTurnClock.logical_now(state, context)}" unless GameRoomTurnClock.enabled?(state)
+        return [:ok, timed_poker_plan("deal", value, state, context)]
       end
+      if selection["action"].to_s == "turn_timeout"
+        return [:not_your_turn, nil] unless same_user?(actor, replay.players.first)
+        return [:invalid, nil] unless poker_deadline_reached?(state, context&.now)
+        return [:ok, timed_poker_plan("turn_timeout", state[:turn_deadline].to_s(36), state, context)]
+      end
+      return [:invalid, nil] if poker_deadline_reached?(state, context&.now)
       legal = legal_actions(replay, actor, context: context)
       if selection["action"].to_s == "exchange"
         cards = JSON.parse(selection["cards"].to_s).map(&:to_s)
         candidate = legal.find { |item| item["action"] == "exchange" && JSON.parse(item["cards"]).sort == cards.sort }
         return [:invalid_exchange, nil] if candidate == nil
-        return [:ok, event_plan("exchange", cards.join(","))]
+        return [:ok, timed_poker_plan("exchange", cards.join(","), state, context)]
       end
       action = selection["action"].to_s
       if action == "raise" && selection.key?("raise_by")
@@ -245,7 +309,7 @@ module GameRoomGames
       candidate = bet_candidate(state, actor, action, amount)
       return [:invalid_bet, nil] if candidate == nil
       amount = candidate["amount"].to_i
-      [:ok, event_plan("bet", "#{action}|#{amount}")]
+      [:ok, timed_poker_plan("bet", "#{action}|#{amount}", state, context)]
     rescue JSON::ParserError
       [:invalid_exchange, nil]
     end
@@ -414,6 +478,45 @@ module GameRoomGames
 
     private
 
+    def timed_poker_plan(action, value, state, context)
+      event_plan(action, GameRoomTurnClock.encode(state, value, context))
+    end
+
+    def poker_deadline_reached?(state, now)
+      [:betting, :exchange].include?(state[:phase]) && GameRoomTurnClock.expired?(state, now)
+    end
+
+    def apply_timeout(state, event, actor, repository, history, time)
+      return false unless same_user?(actor, state[:players].first) && poker_deadline_reached?(state, time)
+      return false unless /\A[0-9a-z]+\z/.match?(event["value"].to_s) && event["value"].to_i(36) == state[:turn_deadline]
+      player = state[:current_player]
+      if state[:phase] == :betting
+        return apply_bet(state, event.merge("value" => "fold|0"), player, repository, history)
+      end
+      # All-in still has the right to a showdown: a missed exchange means
+      # standing pat, never forfeiting the committed chips or playing cards.
+      if state[:all_in][player]
+        return apply_exchange(state, event.merge("value" => ""), player, repository, history)
+      end
+      # Unlike a betting fold, this happens after betting has already closed.
+      # Any unmatched excess belongs to its bettor, not to a forfeited pot.
+      matched = state[:contributions].reject { |other, _| other == player }.values.max.to_i
+      excess = [state[:contributions][player] - matched, 0].max
+      state[:contributions][player] -= excess
+      state[:stacks][player] += excess
+      state[:street_bets][player] = [state[:street_bets][player] - excess, 0].max
+      state[:folded][player] = true
+      id = repository.event_id(event)
+      history << HistoryEntry.new(key: "bet:#{id}", text: betting_history(player, "fold", 0, state, state[:current_bet]),
+        event_id: id, actor: player, kind: :game)
+      if contenders(state).one?
+        award_uncontested(state, contenders(state).first, id, history)
+      else
+        advance_exchange(state, player, id, history)
+      end
+      true
+    end
+
     def initial_state(players, options)
       chips = options["starting_chips"].to_i
       { players: players, options: options, stacks: players.to_h { |player| [player, chips] },
@@ -544,6 +647,11 @@ module GameRoomGames
       id = repository.event_id(event)
       text = cards.empty? ? _("%{player} keeps all cards.") % { player: participant_name(player) } : n_("%{player} exchanged %{count} card.", "%{player} exchanged %{count} cards.", cards.length) % { player: participant_name(player), count: cards.length }
       history << HistoryEntry.new(key: "exchange:#{id}", text: text, event_id: id, actor: actor, kind: :game)
+      advance_exchange(state, player, id, history)
+      true
+    end
+
+    def advance_exchange(state, player, id, history)
       next_player = next_pending_exchange(state, player)
       if next_player == nil
         start_betting_street(state, 1)
@@ -552,7 +660,6 @@ module GameRoomGames
       else
         state[:current_player] = next_player
       end
-      true
     end
 
     def progress_after_action(state, actor, event_id, history)
@@ -733,12 +840,20 @@ module GameRoomGames
     def side_pots(state, eligible)
       levels = state[:contributions].values.select { |value| value > 0 }.uniq.sort
       previous = 0
-      levels.map do |level|
+      levels.each_with_object([]) do |level, pots|
         contributors = state[:players].select { |player| state[:contributions][player] >= level }
         amount = (level - previous) * contributors.length
         previous = level
-        { amount: amount, eligible: contributors & eligible }
-      end.reject { |pot| pot[:amount].zero? || pot[:eligible].empty? }
+        candidates = contributors & eligible
+        next if amount.zero?
+        if candidates.empty? && !pots.empty?
+          # All contenders of a side pot can time out during the exchange.
+          # Their matched chips are dead money, not chips to erase.
+          pots.last[:amount] += amount
+        elsif !candidates.empty?
+          pots << { amount: amount, eligible: candidates }
+        end
+      end
     end
 
     def hand_rank(cards)
@@ -860,8 +975,11 @@ module GameRoomGames
       start = events.rindex { |event| event["action"] == "deal" }
       events = events[(start + 1)..] if start
       # Only the announced NUMBER of exchanged cards is usable by opponents.
+      # A timeout's forced stand-pat is not a voluntary hint of hand strength.
       events.each_with_object({}) do |event, result|
-        result[event["actor"]] = event["value"].to_s.split(",").length if event["action"] == "exchange"
+        if event["action"] == "exchange"
+          result[event["actor"]] = GameRoomTurnClock.payload(replay.state, event).split(",").reject(&:empty?).length
+        end
       end
     end
 
@@ -1180,7 +1298,9 @@ module GameRoomGames
     end
 
     def stack_text(state, viewer)
-      state[:players].reject { |player| same_user?(player, viewer) }.map { |player| _("%{player}: %{chips}") % { player: participant_name(player), chips: state[:stacks][player] } }.join("; ")
+      replay = Replay.new(state: state)
+      out = state[:players].to_h { |p| [p, eliminated_from_game?(replay, p)] }
+      score_announcement_order(state[:players], state[:stacks], eliminated: out).reject { |player| same_user?(player, viewer) }.map { |player| _("%{player}: %{chips}") % { player: participant_name(player), chips: state[:stacks][player] } }.join("; ")
     end
 
     def active_text(state)

@@ -48,9 +48,14 @@ module GameRoomParticipantMenu
     active ? [:abort_game] : [:edit_options]
   end
 
-  def bind(layout, available:, read_options: nil, &dispatch)
+  def bind(layout, available:, read_options: nil, game: nil, options: nil, &dispatch)
     supplied = available
-    available = -> { supplied.call + (read_options == nil ? [] : [:table_options]) }
+    available = -> do
+      actions = supplied.call + (read_options == nil ? [] : [:table_options])
+      actions -= [:invite_online, :invite_contacts] if game && !game.table_invitations_allowed?(options.to_h)
+      actions -= [:observe_next_game, :play_next_game] if game && !game.role_selection_allowed?(options.to_h)
+      actions
+    end
     layout.form.bind_context do |menu|
       actions = available.call
       entries.each do |entry|

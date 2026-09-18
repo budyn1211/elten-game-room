@@ -11,11 +11,6 @@
    {"en":"Allow passing is also enabled by default. It lets you give the turn to your opponent even when you have a legal move. You may do this repeatedly; voluntary passes alone do not produce a draw. Switch the option off if you want players to pass only when they cannot place a disc.","pl":"Możliwość pasowania również jest domyślnie włączona. Pozwala oddać turę przeciwnikowi nawet wtedy, gdy masz poprawny ruch. Możesz pasować wielokrotnie; same dobrowolne pasy nie powodują remisu. Wyłącz tę opcję, jeśli gracze mają pomijać turę wyłącznie wtedy, gdy nie mogą postawić pionka."},
    {"en":"The game ends when the board is full or neither player has a legal placement under the selected rules. The player with more discs wins; equal numbers mean a draw. Having no move yourself does not end the game if your opponent can still play.","pl":"Partia kończy się po zapełnieniu planszy albo wtedy, gdy żaden gracz nie może postawić pionka zgodnie z wybranymi zasadami. Wygrywa osoba z większą liczbą pionków, a równa liczba oznacza remis. Sam brak ruchu u ciebie nie kończy gry, jeżeli przeciwnik nadal może grać."}
   ]},
-  {"id":"controls","title":{"en":"Board commands","pl":"Obsługa planszy"},"paragraphs":[
-   {"en":"Arrow keys: inspect squares. Enter: place a disc on the selected square.","pl":"Strzałki: przeglądanie pól. Enter: postawienie pionka na wskazanym polu."},
-   {"en":"P: pass, when the table rules allow it.","pl":"P: pas, jeśli pozwalają na to zasady stołu."},
-   {"en":"S: read each player's number of discs. T: read whose turn it is.","pl":"S: odczytanie liczby pionków każdego gracza. T: odczytanie, czyja jest tura."},
-   {"en":"A chat command such as /d3 attempts a move on that square, using the same rules as Enter.","pl":"Polecenie czatu, na przykład /d3, próbuje wykonać ruch na tym polu, zgodnie z tymi samymi zasadami co Enter."}
-  ]}
+  {"id":"controls","title":{"en":"Game keyboard shortcuts","pl":"Skróty klawiszowe gry"},"paragraphs":[{"en":"Arrows: browse squares.","pl":"Strzałki: przeglądaj pola."},{"en":"Enter: place a disc on the selected square.","pl":"Enter: postaw pionek na wybranym polu."},{"en":"P: pass when the table rules allow it.","pl":"P: pomiń turę, jeśli zasady stołu na to pozwalają."},{"en":"S: read each player's number of discs.","pl":"S: odczytaj liczbę pionków każdego gracza."},{"en":"T: read whose turn it is.","pl":"T: odczytaj, czyja jest tura."}]}
  ]
 }

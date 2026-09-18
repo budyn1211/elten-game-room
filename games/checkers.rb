@@ -111,11 +111,17 @@ module GameRoomGames
         rule_section(:result, GameRoomRules.translate("Winning, draws and square names"),
           GameRoomRules.translate("You win if your opponent has no pieces left or no legal move. The program declares a draw when a position occurs three times, or after 80 individual moves without a capture or promotion."),
           GameRoomRules.translate("The board can use numbered dark squares or chess-style coordinates. Numbered boards have 32, 50 or 72 playable squares, depending on size. Switching notation or rotating the view changes only how you inspect the board, not the rules or the other player's view.")),
-        rule_section(:controls, GameRoomRules.translate("Board commands"),
-          GameRoomRules.translate("Arrow keys: inspect squares. Enter: select a piece, then its destination. Choose each jump of a multiple capture separately."),
-          GameRoomRules.translate("V: possible moves. K and Shift+K: your kings and the opponent's kings. C: player colours. S: remaining men and kings. T: whose turn it is."),
-          GameRoomRules.translate("Ctrl+H: switch numbered and chess notation. Ctrl+Shift+H: rotate the view. In numbered mode, light squares sound but do not announce a field number."),
-          GameRoomRules.translate("Chat move commands accept the chosen notation, for example /21 17 or /a3 b4."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: browse squares."),
+          GameRoomRules.translate("Enter: select a piece and its destination; choose each jump separately."),
+          GameRoomRules.translate("V: read possible moves."),
+          GameRoomRules.translate("K: browse your draughts kings."),
+          GameRoomRules.translate("Shift+K: browse the opponent's draughts kings."),
+          GameRoomRules.translate("C: read player colours."),
+          GameRoomRules.translate("S: read remaining men and kings."),
+          GameRoomRules.translate("Ctrl+H: switch numbered and chess notation."),
+          GameRoomRules.translate("Ctrl+Shift+H: rotate the board view."),
+          GameRoomRules.translate("T: read whose turn it is."))
       ]
     end
 

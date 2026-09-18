@@ -23,7 +23,7 @@ module GameRoomGames
       state = replay.state
       result = [surface_shortcut(key: "r", label: _("remaining time"), command: "taboo_time",
         payload: { "deadline" => state[:deadline], "offset" => state[:clock_offset].to_i, "frozen" => state[:frozen_at] }),
-        announcement_shortcut(key: "s", label: _("team scores"), message: _("Team 1: %{first}; team 2: %{second}.") % { first: state[:scores][0], second: state[:scores][1] })]
+        announcement_shortcut(key: "s", label: _("team scores"), message: score_announcement_order([0, 1], state[:scores]).map { |team| _("Team %{number}: %{score}") % { number: team + 1, score: state[:scores][team] } }.join("; "))]
       if card_visible?(state,viewer)
         result << announcement_shortcut(key: "c", label: _("read the entire card"), message: card_lines(state,viewer).join(", "))
         card_lines(state,viewer).each_with_index do |text, i|
@@ -87,10 +87,21 @@ module GameRoomGames
         rule_section(:options, GameRoomRules.translate("Language, turn length and the winning team"),
           GameRoomRules.translate("Choose the card language and a set available in that language. Polish and English sets are supplied. This does not change the interface or the language of these rules. Moving through languages leaves the cursor on the language choice; move to the updated set list with Tab when ready."),
           GameRoomRules.translate("Time for describing defaults to 60 seconds and accepts 30\u2013300. Describing turns per person defaults to two and accepts one to ten. When everyone has completed the chosen number of turns, the team with more points wins. A tie adds one turn for each team, repeating pairs until the tie breaks. Both teams therefore get the same number of opportunities.")),
-        rule_section(:controls, GameRoomRules.translate("Taboo keys depend on your role"),
-          GameRoomRules.translate("For the describer, Enter starts the turn or marks a correct guess, and P skips. For opponents, B reports a violation. Guessing teammates answer aloud without using these keys."),
-          GameRoomRules.translate("When you are allowed to see the card, arrows browse it, C reads it all, 1 reads the target and 2\u20136 the forbidden words. R reads remaining time, S team scores and T the describer and team. Guessers and observers have no active-card reading shortcuts."),
-          GameRoomRules.translate("During review, Enter on a card lets the master correct it. A separate approval action closes the review. Ordinary letter keys retain their typing meaning in chat."))
+        rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("Arrows: browse the card or review list when visible to you."),
+          GameRoomRules.translate("Enter: start describing or mark a correct guess; during review, edit the selected result."),
+          GameRoomRules.translate("P: as the describer, skip the card."),
+          GameRoomRules.translate("B: as an opponent, report a violation."),
+          GameRoomRules.translate("C: read the card if your role may see it."),
+          GameRoomRules.translate("R: read the remaining time."),
+          GameRoomRules.translate("S: read team scores."),
+          GameRoomRules.translate("T: read the current describer and team."),
+          GameRoomRules.translate("1: read the target, if your role may see the card."),
+          GameRoomRules.translate("2: read forbidden word 1, if your role may see the card."),
+          GameRoomRules.translate("3: read forbidden word 2, if your role may see the card."),
+          GameRoomRules.translate("4: read forbidden word 3, if your role may see the card."),
+          GameRoomRules.translate("5: read forbidden word 4, if your role may see the card."),
+          GameRoomRules.translate("6: read forbidden word 5, if your role may see the card."))
       ]
     end
   end
