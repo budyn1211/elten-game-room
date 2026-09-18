@@ -18,12 +18,16 @@ module GameRoomGames
     end
 
     def rule_sections
+      # Generated from docs/rulebooks/four_in_a_row.json; see tools/compile-rulebooks.rb.
       [
-        rule_section(:falling, _("Falling pieces and lines of four"),
-          _("Two players alternate on a board with seven columns and six rows. The first listed player begins. Choose a column: the piece always falls to its lowest empty field. Choosing a higher row does not make the piece stay there. A full column cannot accept another piece."),
-          _("An uninterrupted line of at least four of your pieces horizontally, vertically or diagonally wins immediately. Filling all 42 fields without a winning line is a draw. This game has no configurable rule variants or board sizes. Both people and computers can play.")),
-        rule_section(:controls, _("Choosing a column"),
-          _("Left and Right change the column; Up and Down inspect its fields. Enter drops a piece in the current column. T reads the turn. A chat command such as /c1 or /c4 drops a piece in column C, exactly like Enter; the row does not override gravity."))
+        rule_section(:falling, GameRoomRules.translate("Build a line from falling pieces"),
+          GameRoomRules.translate("Two players take turns dropping pieces into a board with seven columns and six rows. Your aim is to join at least four of your own pieces in a straight line. The first player at the table starts."),
+          GameRoomRules.translate("Each turn consists of choosing one column. Your piece falls to the lowest empty square in that column. You cannot leave it suspended higher up: if the column is empty, it lands at the bottom; if it already holds two pieces, yours rests on top of them. A full column cannot accept another piece."),
+          GameRoomRules.translate("A winning line may be horizontal, vertical or diagonal. All its pieces must touch: a gap or an opponent's piece breaks the line. Completing a line ends the game immediately. If all 42 squares fill up without a winner, the game is drawn."),
+          GameRoomRules.translate("There are no optional board sizes or alternative placement rules in this game. Either player can be a bot.")),
+        rule_section(:controls, GameRoomRules.translate("Choosing a column"),
+          GameRoomRules.translate("Arrow keys: inspect the board. Enter: drop a piece into the selected column, regardless of the row you are inspecting."),
+          GameRoomRules.translate("T: read whose turn it is."))
       ]
     end
 

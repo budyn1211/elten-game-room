@@ -45,17 +45,18 @@ end
 playing = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: {}, history: [])
 %w[rummy domino mexican_train].each do |game_id|
   event = { "id" => 8000, "action" => game_id, "value" => "compact" }
-  %i[deal draw play].zip(%w[shuffle draw play]).each do |kind, sound|
+  sounds = game_id == "rummy" ? %w[shuffle draw play] : %w[domino_refill domino_take_chip domino_move_tile]
+  %i[deal draw play].zip(sounds).each do |kind, sound|
     after = playing.dup
     after.history = [History.new(event_id: 8000, kind: kind)]
     assert(cue(game_id, event, playing, after, repository, viewer) == sound, "#{game_id} missing #{kind} sound")
   end
   after = playing.dup
   after.history = [History.new(event_id: 8000, kind: :play), History.new(event_id: 8000, kind: :round_result, actor: "Bob", value: ["Bob", "Alice"])]
-  assert(cue(game_id, event, playing, after, repository, viewer) == %w[play win1], "#{game_id} team round winner sound")
+  assert(cue(game_id, event, playing, after, repository, viewer) == [sounds.last, "win1"], "#{game_id} team round winner sound")
   after.history.last.value = ["Bob"]
-  assert(cue(game_id, event, playing, after, repository, viewer) == %w[play lose1], "#{game_id} round loser sound")
-  assert(cue(game_id, event, playing, after, repository, "Observer") == "play", "observer receives a result meant for players")
+  assert(cue(game_id, event, playing, after, repository, viewer) == [sounds.last, "lose1"], "#{game_id} round loser sound")
+  assert(cue(game_id, event, playing, after, repository, "Observer") == sounds.last, "observer receives a result meant for players")
 end
 assert(cue("spades", { "id" => 1, "action" => "deal" }, playing, playing, repository, viewer) == "shuffle", "Spades did not shuffle on a deal")
 assert(cue("spades", { "id" => 2, "action" => "play", "value" => "AS" }, playing, playing, repository, viewer) == ["play", "draw2"], "Spades trump did not layer draw2 over the card sound")
@@ -116,8 +117,8 @@ assert(cue("monopoly", { "id" => 150, "action" => "bankrupt" }, playing, bankrup
 
 won = Replay.new(players: [viewer, "Bob"], winner: viewer, draw: false, state: {}, history: [])
 lost = Replay.new(players: [viewer, "Bob"], winner: "Bob", draw: false, state: {}, history: [])
-assert(cue("four_in_a_row", { "id" => 15, "action" => "drop" }, playing, won, repository, viewer) == ["play2", "win2"], "winning a game lost the move or result sound")
-assert(cue("four_in_a_row", { "id" => 16, "action" => "drop" }, playing, lost, repository, viewer) == ["play2", "lose3"], "losing a game lost the move or result sound")
+assert(cue("four_in_a_row", { "id" => 15, "action" => "drop" }, playing, won, repository, viewer) == ["play2", "win_party"], "winning a game lost the move or result sound")
+assert(cue("four_in_a_row", { "id" => 16, "action" => "drop" }, playing, lost, repository, viewer) == ["play2", "lose_party"], "losing a game lost the move or result sound")
 
 tracker = GameRoomSounds::MembershipTracker.new
 assert(tracker.observe([viewer]).empty?, "the first room snapshot announced an old member")

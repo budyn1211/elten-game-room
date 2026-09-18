@@ -50,21 +50,25 @@ module GameRoomGames
     end
 
     def rule_sections
+      # Generated from docs/rulebooks/ludo.json; see tools/compile-rulebooks.rb.
       [
-        rule_section(:route, _("From the base to the finish"),
-          _("Two to four players have four pawns each. Win by bringing all four to the finish first. Pawns start in the base, where they do not occupy the track. The players enter the shared track at fields 1, 14, 27 and 40 in seating order. The 52-field track wraps from 52 to 1, so a later starting number does not shorten a player's route."),
-          _("After the shared track a pawn enters its own six-field home lane; opponents cannot enter that lane. The last field is the finish. A pawn at the finish no longer moves and is not offered as a playable pawn.")),
-        rule_section(:roll, _("Rolling, choosing a pawn and captures"),
-          _("Roll one die. If exactly one pawn has a legal move, it moves automatically. If several can move, choose one from the list of legal destinations. If none can move, play passes on, except for an extra roll allowed by the six rule. One roll moves one pawn, not several pawns sharing its value."),
-          _("Landing on an opponent outside a safe starting field sends that pawn back to its base. All four entry fields are safe. With blockades enabled, two opposing pawns on one track field prevent passage or landing while moving along the track. Your own pair does not block your other pawns; entry from the base is handled separately.")),
-        rule_section(:choices, _("Five rules you can change"),
-          _("A 6 is required to leave the base: on by default. A six places a pawn on its entry field; it does not move it six fields further. When disabled, any roll allows entry. Roll again after a 6: on by default; disabling it passes the turn after the move even on a six."),
-          _("An exact roll is required to reach the finish: on by default. A roll going past the finish cannot move that pawn. When disabled, an excessive roll also brings it to the finish. Three consecutive sixes lose the turn: on by default; the third six ends the turn without moving a pawn for that roll, but does not undo previous moves."),
-          _("Two pawns of one player form a blockade: on by default. Disable it to remove blockade restrictions. These settings do not change the length of the shared track or private home lanes.")),
-        rule_section(:controls, _("Choosing and finding pawns"),
-          _("D reads the current die without rolling or moving a pawn. Before the roll it announces that the die has not been rolled."),
-          _("Enter rolls or confirms the selected legal pawn move. Arrow keys browse available moves. V opens your pawn list; Shift+V opens all pawns with owners and positions. These are inspection lists, not movement choices."),
-          _("P summarizes your positions and Shift+P the opponents' positions. Pawns in the base are included; finished pawns are omitted from these summaries. T reads the turn."))
+        rule_section(:route, GameRoomRules.translate("Bring all four pawns home"),
+          GameRoomRules.translate("Ludo is a race for two to four players. Everyone has four pawns waiting in a base. You roll a die to bring them onto the track and move them around the board. The first player to bring all four to the finish wins."),
+          GameRoomRules.translate("The shared track has 52 squares. Players enter at squares 1, 14, 27 and 40 in seating order. The numbering wraps from 52 back to 1, so everyone travels the same distance. After the shared track, each pawn enters its owner's private six-square home lane. Opponents cannot enter that lane. Its last square is the finish, and a finished pawn does not move again.")),
+        rule_section(:roll, GameRoomRules.translate("A roll gives one pawn a move"),
+          GameRoomRules.translate("Roll the die, then use its whole result for one pawn. You cannot split the number between pawns. When several pawns can move, choose one of the offered destinations. When only one can move, the program moves it automatically. If no pawn can move, your turn normally ends."),
+          GameRoomRules.translate("Landing on an opponent's pawn sends it back to its base, unless the square is one of the four safe entry squares. Pawns on those entry squares cannot be captured. With blockades enabled, two opposing pawns sharing a track square also stop you from moving through or landing there. Your own pair does not block your other pawns; bringing a pawn out of the base is treated separately.")),
+        rule_section(:options, GameRoomRules.translate("What the five checkboxes change"),
+          GameRoomRules.translate("A 6 is required to leave the base is on by default. A six lets you place a pawn on its entry square; it does not then advance another six squares. With this option off, any roll lets you enter the track."),
+          GameRoomRules.translate("Roll again after a 6 is on by default. After resolving a six you get another roll, even if that six could not move a pawn. Turning it off makes a six end the turn like any other result."),
+          GameRoomRules.translate("An exact roll is required to reach the finish is on by default. A pawn two squares from the finish needs a two: a larger result cannot move it. With this option off, an overshooting roll also takes the pawn to the finish."),
+          GameRoomRules.translate("Three consecutive sixes lose the turn is on by default. The third six ends your turn without a move for that roll. Moves made after the first two sixes stay on the board: they are not undone."),
+          GameRoomRules.translate("Two pawns of one player form a blockade is on by default. Turning it off removes the restrictions caused by opposing pairs on the track. It does not remove safe entry squares or change the length of the route.")),
+        rule_section(:controls, GameRoomRules.translate("Rolling and finding pawns"),
+          GameRoomRules.translate("Enter: roll, or confirm the selected pawn move. Arrow keys: choose between available pawn moves."),
+          GameRoomRules.translate("D: read the current die result without rolling again."),
+          GameRoomRules.translate("V: browse your pawns. Shift+V: browse everyone's pawns. These lists inspect positions; they do not move pawns."),
+          GameRoomRules.translate("P and Shift+P: summarize your positions and the opponents' positions. Pawns still in the base are included; finished pawns are omitted. T: whose turn it is."))
       ]
     end
 

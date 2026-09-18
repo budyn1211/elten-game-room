@@ -1,5 +1,178 @@
 # Instrukcje dla agentów pracujących nad ELTEN Game Room
 
+## Ponowne pakowanie 2.0.1/229 — 18 września 2026
+
+Najnowsze polecenie zatwierdza przebudowanie i podpisanie tej samej wersji
+2.0.1/build 229 z formularzem prywatności, domyślnymi grami widgetu oraz
+nowymi dźwiękami kostek w Domino i Mexican Train. Te trzy punkty dopisano
+do istniejących 11 w tym samym changelogu PL/EN. Starsze statusy niewydania
+poniżej opisują etap przed tym poleceniem. Zakres i testy:
+docs/DOMINO_SOUNDS_229.md. Wynik podpisania i gotowego artefaktu sprawdzać
+w ../diagnostics/release-2-0-1-refresh/PACKAGE.json, nie w historycznych
+wynikach pierwszej 229. Poprzednią 229 z SHA 0ac85551… zachować osobno.
+Tylko testy celowane, bez instalacji, publikacji, GitHuba i zmian serwera.
+
+## Domyślne gry widgetu — poprawione, niewydane, 18 września 2026
+
+Użytkownik zatwierdził jednorazowe włączenie sześciu gier z 2.0 w starych
+ustawieniach oraz domyślne zaznaczanie każdej przyszłej nowej gry.
+GameRoomPreferences normalizuje widget_games razem z widget_known_games;
+nowe ID rejestru są domyślnie wybrane, zapisane ręczne odznaczenia zostają.
+LEGACY_WIDGET_GAME_IDS jest zamkniętą listą 17 gier sprzed 2.0, wyłącznie
+do migracji danych bez widget_known_games — nie dopisywać do niej nowych
+gier. Samo zarejestrowanie kolejnej gry ma wystarczyć. Ustawienia zapisują
+znane ID razem z wyborami; odczyt pozostaje bez zapisów na dysku. Nie
+zmieniać tym mechanizmem lobby ani subskrypcji powiadomień. Opis:
+docs/WIDGET_NEW_GAME_DEFAULTS.md; test widget_game_defaults_test obejmuje
+aktualizacje, zapis/odznaczenia, niezależne profile i formularz ustawień.
+13/13 testów celowanych, składnia trzech Ruby i diff check poprawne.
+Bez pełnego runnera i żywych klientów. Bez nowej paczki: podpisana
+2.0.1/229 z SHA 0ac85551… nie zawiera tej zmiany ani formularza prywatności.
+Wersja, changelog i PL.mo niezmienione; nie instalowano, publikowano,
+wysyłano na GitHub, zmieniano serwera ani żywych profili użytkownika.
+
+## Prywatność tworzonego stołu — poprawione, niewydane, 18 września 2026
+
+Na polecenie użytkownika przeniesiono „Stół prywatny” do wspólnego
+formularza opcji, przed ustawieniami gry. `show_create_table` korzysta
+z `configure_game_options(..., creating_table: true)`; wynik zawiera
+osobno `game_options` i `private_table`. Zwykła edycja zachowuje dawny
+wynik i nie pokazuje prywatności. Nie wkładać tego pola do definicji
+opcji poszczególnych gier, JSON zasad ani zapamiętanego profilu.
+Osobne `choose_table_privacy` usunięto. Domyślnie publiczny; wybór
+przeżywa zmianę języka i walidację. Szczegóły:
+`docs/PRIVATE_TABLE_CREATION_FORM.md`. 10/10 celowanych skryptów i składnia
+trzech Ruby poprawne; nowe testy private_table_creation oraz
+private_table_creation_encoding obejmują 23 gry i binarne ładowanie.
+Nie przebudowano paczki: podpisana 2.0.1/229 z SHA 0ac85551… NIE zawiera
+tej poprawki. Wersja, changelog i PL.mo niezmienione. Bez instalacji,
+publikacji, GitHuba, serwera, pełnego runnera i żywych klientów.
+
+## Przygotowanie wydania 2.0.1/build 229 — 18 września 2026
+
+Najnowsze polecenie użytkownika zatwierdza zbudowanie podpisanej paczki
+z wersją 2.0.1. Build 229 obejmuje 12 poprawek POST_228 oraz nowe zasady
+23 gier. Nowy changelog PL/EN zawiera 11 punktów pod jednym nagłówkiem;
+historyczne wpisy pozostają niezmienione. API nadal 3.0.3. Podpisana
+228 ma pozostać nietknięta. Bez pełnego runnera, instalacji, publikacji,
+GitHuba i zmian serwera. Zakres: `docs/RELEASE_2_0_1.md`.
+Końcowe wyniki sprawdzać w katalogu roboczym poza repozytorium:
+`../diagnostics/release-2-0-1/SOURCE.json` i `PACKAGE.json`. Sam ten wpis
+nie jest potwierdzeniem ukończenia pakowania. Wcześniejsze zakazy budowania
+dotyczą etapu sprzed najnowszego polecenia, nie wydania 2.0.1.
+
+## Redakcja zasad wszystkich gier — ukończona w źródłach, 18 września 2026
+
+Poprzednie 12 punktów wdrożono i zweryfikowano (POST_228_IMPLEMENTATION).
+Następnie przepisano zasady 23 gier w PL/EN: 360 par akapitów, z przykładami,
+wyjaśnieniem pojęć i wariantów według kodu. Źródła zewnętrzne porównano,
+nie kopiowano ani nie zmieniano reguł silników. Lista skrótów pod strzałkami
+w aktywnej grze korzysta ze wspólnych definicji F1 pola gry; biblioteka
+zachowuje pełną instrukcję obsługi. Zasady to jeden dokument z nagłówkami,
+obok skróty, przy stole także aktualne ustawienia. Raport i źródła:
+`docs/RULES_REWRITE_REVIEW.md`, status: `docs/RULES_REWRITE_PROGRESS.md`.
+15/15 końcowych skryptów celowanych, 63 Ruby ze sprawdzoną składnią,
+207 symulowanych okien z binarnymi źródłami i rzeczywistym słownikiem hosta,
+PL/EN/fallback. Bez pełnego runnera i żywych klientów. 2.0/228 i changelog
+bez zmian; NIE budowano, podpisywano, instalowano, publikowano ani zmieniano
+serwera/GitHuba. Podpisana 228 nie zawiera obu nowych etapów.
+
+Przy kolejnych zmianach zasad edytować pary PL/EN w `docs/rulebooks/*.json`,
+następnie uruchomić `tools/compile-rulebooks.rb`. Nie edytować wyłącznie
+wygenerowanego `rule_sections`. Wspólne akapity mają tłumaczenia w
+`locale/rules-shared-pl.json`. Nowa opcja wymaga wyjaśnienia i wpisu
+w `docs/RULEBOOK_OPTION_COVERAGE.json`; indeks nie zastępuje sprawdzenia
+znaczenia w kodzie. Zachować lokalne warianty i informować o różnicach
+wobec źródeł. Nowe skróty przypinać do rzeczywistych kontrolek, bez drugiej
+kopii aktualnej pomocy. Sprawdzać testy rulebook_authoring, rulebook_examples,
+rules_live_help, rules_native_windows oraz dotychczasowe rules/encoding.
+Przy przyszłym pakowaniu ponownie sprawdzić binarne wczytanie GOTOWEJ
+paczki; obecne testy źródeł nie są dowodem jej zbudowania.
+
+## Wdrożenie poprawek po 228 — 18 września 2026
+
+Użytkownik polecił wdrożyć do kodu `docs/POST_228_FIXES_PLAN.md` (12 punktów).
+Potwierdził Shift+C/Shift+H/Shift+M dla sortowania, z zachowaniem UNO/Rummy
+i istniejącego Shift+C Biblios. Starszy status „tylko plan” poniżej opisuje
+etap zbierania wymagań. Testy celowane, bez pełnego runnera; nie budować,
+nie podpisywać, nie instalować ani nie publikować na podstawie tego polecenia.
+Nie zmieniać serwera, numeru wersji i changelogu. Postęp i wyniki:
+`docs/POST_228_IMPLEMENTATION.md`. Nie oznaczać niewykonanych prób jako
+zaliczonych; podpisana paczka 228 nie zawiera tych nowych zmian.
+
+## Kolejne poprawki po 228 — tylko plan, 18 września 2026
+
+Bieżący zbiór nowych ustaleń: `docs/POST_228_FIXES_PLAN.md`.
+Punkt 1 po doprecyzowaniu: sprawdzić potrzebę lokalnego zapisu odbiorów
+powiadomień o nowych stołach; usunąć zbędny zapis albo przenieść potrzebny
+do tła. Zmierzyć wpływ na opóźnienia komunikatu i blokowanie UI, zachować
+filtry i obsługę dołączenia. Osobno ocenić seen/resolved i mechanizmy hosta:
+restart ani dołączenie nie tworzy nowego powiadomienia, a sprzątanie listy
+nie dowodzi konieczności zapisu każdego odbioru. Osobne pomiary etapów
+odbioru. Próba syntetyczna wykazała blokującą ścieżkę, nie dowiodła
+przyczyny rzeczywistego dwusekundowego incydentu. Użytkownik na razie
+polecił tylko zapisać poprawkę i będzie dodawał kolejne. Bez implementacji,
+nowego wydania, instalacji, publikacji i zmian serwera; czekać na polecenie.
+Wydana 2.0/build 228 pozostaje aktualna i niezmieniona.
+Punkt 2 tego samego planu: krótkie powiadomienie w kolejności właściciel,
+gra, typ, np. „Papierek, Yahtzee, typ, nowy stół”, bez podwójnego „Nowy stół”.
+Host łączy obecny tytuł z treścią zawierającą ten sam prefiks — potwierdzone
+w kodzie. Sprawdzić odczyt i listę, etykietę typu, PL/EN i kodowanie;
+nie zmieniać innych powiadomień ani działania dołączenia. Nadal tylko plan.
+Punkt 3: wspólny wybór języka (zgłoszenie Quiz/Taboo) bez przeskoku fokusu
+na zestaw. Strzałki nadal przeglądają języki; zestawy aktualizowane bez
+zmiany fokusu, przejście ręcznie Tabem. Zachować inne opcje i ich walidację,
+obsłużyć także Ctrl+X. Kod obecnie wymusza SET_OPTION_KEY po zmianie języka,
+a test game_option_form_test tego oczekuje — oba do późniejszej zmiany.
+Szczegóły i przyszłe testy w planie, bez wdrażania na obecnym etapie.
+Punkt 4: uzupełnić F1 Makao o Shift+Enter (dodaj/usuń kartę z paczki),
+bez drugiego handlera i niepoprawnego opisu dla wymiany w Pokerze.
+Punkt 5: wspólne sortowanie własnej ręki; klawisze dopiero proponowane:
+Shift+C kolor, Shift+H ranga z przełączaniem kierunku, Shift+M kolejność
+otrzymania. Nie nadpisywać UNO/Rummy Shift+D ani Biblios Shift+C.
+Zachować fizyczne ID, kursor i kolejność paczek/układów; bez zmian sieci
+i reguł. PacketCardSurface nie obsługuje jeszcze sort_cards. Tylko plan;
+nie traktować proponowanych klawiszy jako uzgodnionych.
+Punkt 6: mieszane PL/EN w obu sekcjach pomocy Taboo. Bieżący PL.mo zawiera
+tłumaczenia wszystkich 12 tekstów rule_sections; izolowany odczyt źródła
+ich nie gubi. Sprawdzić rzeczywistą paczkę, wybór katalogu/kluczy i wspólne
+akapity pomocy, bez zgadywania przyczyny. Docelowo oba dokumenty w języku
+interfejsu niezależnie od języka kart. Szczegóły w planie; bez implementacji.
+Punkt 7: zachować nakładanie niezależnych dźwięków. Wspólny mechanizm już
+przekazuje wiele efektów, lecz ninety_nine_cue wybiera jeden specjalny
+przez if/elsif. Potwierdzono brak reverse waleta przy 25 → 35 i 60 → 70:
+draw2 zastępuje efekt karty. Zbierać skutki niezależnie, sprawdzić podobne
+przypadki innych gier, bez pauz/uciszania, z zachowaniem głośności i ochrony
+przed powtórzeniem tego samego zdarzenia. Nadal tylko plan, bez zmian kodu.
+Punkt 8: dźwięk farkle_bank.ogg po zaakceptowanym odłożeniu punktów (bank),
+nie zapis partii. Plik źródłowy ma faktycznie nazwę Dokumenty/freesound/
+farkle)bank.ogg; przy wdrożeniu skopiować jako Audio/farkle_bank.ogg.
+Zachować równoczesny dźwięk wyniku i ustawienia głośności. Tylko plan;
+nie kopiowano pliku, nie zmieniano kodu ani paczki.
+Punkt 9: ninety3366.ogg z Dokumenty/freesound przy trafieniu dokładnie
+w 33/66 w grze 99. Powiązać z istniejącą regułą wzrostu do progu, nie
+przeskoczeniem, spadkiem ani pozostawieniem sumy. Zachować nakładanie
+efektów i głośności; plik potwierdzony, szczegóły w planie. Bez wdrażania.
+Punkt 10: zastąpić wspólny dźwięk wygranej całej partii win2 plikiem
+Dokumenty/freesound/win_party.ogg. Nie dodawać go obok starego, zachować
+wygrane/przegrane rund win1/lose1, drużyny i ustawienia głośności.
+Plik potwierdzony, szczegóły w planie; bez kopiowania i wdrażania.
+Punkt 11: analogicznie zastąpić wspólny dźwięk przegranej całej partii
+lose3 plikiem Dokumenty/freesound/lose_party.ogg, bez dwóch efektów
+przegranej. Zachować lose1 dla rund, wynik drużyny, głośność i nakładanie
+z ruchem. Doprecyzowanie: lose_party już przy trwałej eliminacji gracza
+lub drużyny z partii, bez ponowienia na końcu tej samej partii ani przy
+odświeżeniu. Nie mylić z odpadnięciem tylko z rundy (UNO No Mercy),
+pasowaniem czy rozłączeniem; przy końcu partii respektować ostatecznych
+zwycięzców/remis. Samo zastąpienie pliku w result_cue nie wystarczy,
+bo dziś wymaga finished?. Plik potwierdzony, szczegóły w planie; bez
+kopiowania i wdrażania.
+Punkt 12: 1000_mariage.ogg z Dokumenty/freesound przy skutecznym mariażu
+w Tysiącu, własnym/cudzym i bota, słyszalny u uczestników i obserwatorów.
+Powiązać z zaakceptowanym play w trybie marriage, nie zwykłym królem/damą
+ani odrzuconą próbą. Zachować równoczesne efekty, głośność i deduplikację.
+Plik potwierdzony, szczegóły w planie; bez kopiowania i wdrażania.
+
 ## Build 228 — kodowanie ustawień, 17 września 2026
 
 Użytkownik polecił zbudować i podpisać 2.0/build 228, kopiując cały changelog
@@ -611,6 +784,24 @@ tipsów zależnych od fazy. Szczegóły: `docs/VOLUME_AND_HELP_224.md`.
   grupuje wszystkie legalne akcje według stabilnego ID fizycznej karty. `Z` i
   `Shift+Z` zapewnia wspólny szkielet. Automatyczny ruch wolno oznaczyć tylko,
   gdy karta nie wymaga dalszego wyboru, deklaracji, meldunku ani pakietu.
+- Ręczne sortowanie ręki udostępnia `hand_sorting_available?` i wspólne
+  `hand_sort_shortcuts`. Karty dostarczają semantyczne `sort_keys` dla
+  colour/number/none, nigdy tłumaczone etykiety jako klucz. Domyślnego
+  układu nie zmieniać przy samym dodaniu tej możliwości. Sortowanie widoku
+  nie sortuje stanu partii, paczki ani kolejności zaznaczania układu;
+  kontrolki CardTable/PacketCardSurface zachowują fizyczne ID i kursor.
+  Sprawdzać konflikty skrótów i faktyczną obecność ręki na danym ekranie.
+- Trwałą eliminację udostępnia `eliminated_from_game?`, oddzielnie od
+  końca rundy, pasa, rozłączenia i all-in. Wspólny selektor dźwięków
+  wykrywa przejście do tego stanu i respektuje ostateczny wynik/remis.
+  Nie odtwarzać ponownie efektu porażki na końcu ani podczas replaya.
+- Niezależne skutki jednego ruchu mogą mieć równoczesne efekty audio.
+  Zbierać je niezależnie, nie przez wzajemnie wykluczające if/elsif;
+  zachować deduplikację zdarzeń, akceptację ruchu i głośność gry.
+- Tekst zasad ze znakami spoza ASCII tłumaczyć lokalnym
+  `GameRoomRules.translate`: słownik hosta może przechowywać binarne klucze
+  MO. Samo istnienie tłumaczenia i UTF-8 wyniku nie dowodzi, że klucz się
+  dopasował. Testować rzeczywisty słownik albo wierną atrapę binarną.
 - Bot wybiera akcję, ale wykonuje ją przez standardową ścieżkę gry.
 - Stan stołu i partii synchronizuje stos LiveSessions. Publiczne stoły wyszukuj
   przez discovery i dołączaj do nich bezpośrednio; nie przywracaj bootstrapu

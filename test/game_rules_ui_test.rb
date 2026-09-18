@@ -59,7 +59,7 @@ game = GameRoomGames::Makao.new
     visible = form.fields - form.hidden_controls
     assert(visible.length == 1, "headings or buttons became extra tab stops")
     control = visible.first
-    if control.is_a?(ListBox)
+    if control.is_a?(ListBox) && current_document == nil
       assert(control.options == book.documents.map(&:title), "rules picker contains section headings instead of documents")
       assert(control.index == expected_index, "return from document loses chosen item")
       if visits < book.documents.length
@@ -71,12 +71,20 @@ game = GameRoomGames::Makao.new
       else
         form.cancel_button.trigger(:press)
       end
+    elsif current_document.id == :controls
+      assert(control.is_a?(ListBox), "shortcuts are not browsable with arrows")
+      assert(control.options == current_document.paragraphs, "shortcut rows differ from reference")
+      assert(form.accept_button.equal?(form.cancel_button), "Enter does not close shortcut list")
+      assert(form.instance_variable_get(:@game_room_help_open), "shortcut list allows nested F1 recursion")
+      form.accept_button.trigger(:press)
+      current_document = nil
     else
       assert(control.is_a?(EditBox), "rules are not one text document")
       assert(control.flags & EditBox::Flags::ReadOnly != 0, "rules are editable")
       assert(control.flags & EditBox::Flags::MultiLine != 0, "rules lost multiline paragraphs")
       assert(control.text == current_document.text, "document did not contain all paragraphs")
       form.cancel_button.trigger(:press)
+      current_document = nil
     end
   end
   GameRoomScreens::GameRules.new(book).wait

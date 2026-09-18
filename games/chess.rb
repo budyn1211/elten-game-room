@@ -37,21 +37,27 @@ module GameRoomGames
     end
 
     def rule_sections
+      # Generated from docs/rulebooks/chess.json; see tools/compile-rulebooks.rb.
       [
-        rule_section(:position, _("The board and the king"),
-          _("Two players begin from the standard chess position on an 8 by 8 board. White moves first. Each side has a king, queen, two rooks, two bishops, two knights and eight pawns. Capture an opposing piece by moving to its field. You cannot capture your own piece or make a move that leaves your king attacked.")),
-        rule_section(:pieces, _("How each piece moves"),
-          _("The king moves one field in any direction. The queen moves any distance along a row, column or diagonal. A rook moves along rows and columns; a bishop along diagonals. These pieces cannot jump over occupied fields. A knight jumps in an L: two fields along one axis and one along the other, regardless of intervening pieces."),
-          _("A pawn moves one empty field forward, toward the opponent's starting side. From its starting rank it may move two fields if both are empty. It captures one field diagonally forward, never straight ahead. On reaching the last rank it must become a queen, rook, bishop or knight, chosen from a list.")),
-        rule_section(:special, _("Castling and en passant"),
-          _("To castle, move the king two fields toward its rook. The rook moves to the field the king passed. Neither piece may have moved before, the fields between them must be empty, and the king must not be in check, pass through check or finish in check. Both short and long castling are supported."),
-          _("En passant is available only immediately after an opposing pawn advances two fields and finishes beside your pawn. Move your pawn diagonally to the field that opposing pawn passed; that pawn is captured even though the destination was empty.")),
-        rule_section(:mate, _("Check, checkmate and draws"),
-          _("Check means your king is attacked: your next move must remove that attack. Checkmate means there is no legal reply, and loses the game. No legal move while not in check is stalemate, a draw. The program also automatically draws on three repetitions of a position, insufficient mating material, or 50 moves by each side without a pawn move or capture. This implementation has no optional chess variants or chess clock.")),
-        rule_section(:controls, _("Moving and inspecting pieces"),
-          _("Arrow keys browse the board. Enter selects your piece, then Enter on the destination attempts the move. Promotion opens a choice list. V reads legal destinations for the inspected piece; E reads pieces attacking the inspected field, including an empty field; C identifies each player's colour."),
-          _("K, D, R, B, N and P jump between your kings, queens, rooks, bishops, knights and pawns respectively; Shift with the same letter visits the opponent's pieces. Ctrl+Shift+H rotates the view without renaming fields. T reads the turn. In chat, /e2 e4 attempts a move from E2 to E4; castling and promotion use the same rules and choices as board moves."),
-          _("S reads the current number of kings, queens, rooks, bishops, knights and pawns belonging to each player."))
+        rule_section(:king, GameRoomRules.translate("The king is what you are protecting"),
+          GameRoomRules.translate("Chess is a game for two players. White moves first, then the players alternate one move at a time. Each begins with a king, queen, two rooks, two bishops, two knights and eight pawns on an 8 by 8 board. Your aim is to attack the opposing king in a way your opponent cannot escape: this is checkmate. You do not actually capture the king."),
+          GameRoomRules.translate("You capture an opposing piece by moving one of yours onto its square. You cannot land on a piece of your own colour. Nor may you make a move that exposes your king to attack, even if the move would otherwise be possible.")),
+        rule_section(:pieces, GameRoomRules.translate("Getting to know the pieces"),
+          GameRoomRules.translate("The rook moves any distance along a row or column. The bishop moves any distance diagonally. The queen combines both movements. None of these pieces can jump over another piece. For example, a rook blocked by your own pawn must wait for the pawn to move or choose another direction."),
+          GameRoomRules.translate("The knight moves in an L: two squares along a row or column, then one square sideways. It can jump over pieces in between. The king normally moves one square in any direction, but never onto a square attacked by the opponent. Two kings therefore cannot stand next to each other."),
+          GameRoomRules.translate("A pawn moves forward towards the opponent's starting side. It advances one square into an empty square. From its starting row it may instead advance two, provided both squares are empty. It captures differently: one square diagonally forward. A pawn cannot move backwards or capture straight ahead."),
+          GameRoomRules.translate("A pawn reaching the farthest row is promoted. Choose a queen, rook, bishop or knight from the list. This choice is not limited to pieces that have already been captured: you can have two queens.")),
+        rule_section(:special, GameRoomRules.translate("Two special moves"),
+          GameRoomRules.translate("Castling moves the king and a rook in one turn. Move your king two squares towards the chosen rook; the program moves the rook to the square the king crossed. Both pieces must still have their original castling rights, and the squares between them must be empty. You cannot castle out of check, through an attacked square or into check. Both kingside and queenside castling are supported."),
+          GameRoomRules.translate("En passant is a special pawn capture. If an opposing pawn advances two squares and finishes beside your pawn, you may capture it as though it had advanced only one. Move diagonally to the square it passed through. This opportunity exists only on your very next move; if you play something else, it is gone.")),
+        rule_section(:mate, GameRoomRules.translate("Check, mate and the end of the game"),
+          GameRoomRules.translate("Check means that your king is under attack. You must answer it by moving the king, capturing the attacker or blocking the attack, whichever is legal. If no legal reply exists, it is checkmate and you lose. If you have no legal move but your king is not attacked, it is stalemate and the game is drawn."),
+          GameRoomRules.translate("Game Room also ends the game automatically on threefold repetition, after 50 moves by each side without a pawn move or capture, and in the insufficient-material positions recognised by the program. You do not have to claim these draws. There is no chess clock or alternative chess variant in the current game.")),
+        rule_section(:controls, GameRoomRules.translate("Moving and inspecting pieces"),
+          GameRoomRules.translate("Arrow keys: browse squares. Enter on your piece selects it; Enter on its destination attempts the move. Promotion opens a choice list."),
+          GameRoomRules.translate("V: legal destinations for the inspected piece. E: pieces attacking the inspected square. C: each player's colour. S: each player's remaining pieces. T: whose turn it is."),
+          GameRoomRules.translate("K, D, R, B, N, P: visit your kings, queens, rooks, bishops, knights and pawns. With Shift: visit the opponent's pieces of that kind."),
+          GameRoomRules.translate("Ctrl+Shift+H: rotate your view. A chat command such as /e2 e4 makes the same move as selecting those squares on the board."))
       ]
     end
 

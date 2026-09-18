@@ -167,4 +167,22 @@ assert(polish.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } ==
 assert(english.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } == entry_228.changes,
   "English release document differs from the in-game changelog")
 
-puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, main menu and build 228 notes"
+entry_229 = entries.find { |entry| entry.build == 229 }
+release_229 = JSON.parse(File.read(File.expand_path("../locale/changelog-build-229-pl.json", __dir__), encoding: "UTF-8"))
+assert(entry_229.version == "2.0.1" && entry_229.changes == release_229.keys, "2.0.1 changelog and translations differ")
+assert(entry_229.changes.length == 14, "2.0.1 must retain its eleven notes and add privacy, widget defaults and domino sounds")
+assert(entry_229.changes[-3].include?("Private table checkbox") &&
+  entry_229.changes[-2].include?("New games are selected in the widget") &&
+  entry_229.changes[-1].include?("Domino and Mexican Train"), "2.0.1 is missing its latest corrections")
+release_229.each { |source, translation| assert(catalog[source] == translation, "uncompiled 2.0.1 translation: #{source}") }
+assert(GameRoomChangelog.pending_entries(228, 229).map(&:build) == [229], "2.0.1 repeats already-read updates")
+assert(GameRoomChangelog.pending_entries(nil, 229).map(&:build) == [229], "first 2.0.1 launch repeats past updates")
+assert(GameRoomChangelog.pending_entries(229, 229).empty?, "2.0.1 keeps reopening after being read")
+assert(GameRoomChangelog.list_items([entry_229]).first == "Version 2.0.1, build 229", "2.0.1 heading differs")
+document_229 = File.read(File.expand_path("../docs/CHANGELOG_2_0_1.md", __dir__), encoding: "UTF-8")
+assert(document_229.start_with?("# Game Room 2.0.1 — build 229"), "2.0.1 document heading differs")
+polish_229, english_229 = document_229.split("## English", 2)
+assert(polish_229.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } == release_229.values, "2.0.1 Polish document differs")
+assert(english_229.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } == entry_229.changes, "2.0.1 English document differs")
+
+puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, main menu, preserved build 228 and bilingual 2.0.1/build 229 notes"

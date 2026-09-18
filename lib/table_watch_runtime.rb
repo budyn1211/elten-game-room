@@ -13,25 +13,38 @@ module GameRoomTableWatchRuntime
       @table_watch_sender = nil
       @table_watch_loader&.close
       @table_watch_loader = nil
+      @table_watch_receipt_writer&.close
       @table_watch_pruned = {}
       @table_watch_clock = GameRoomTableWatch::Clock.new
       data = begin
-        respond_to?(:read_json) ? read_json("table-notice-receipts.json", default: {}) : {}
+        GameRoomTableWatch::Timing.measure(:receipts_startup_read) do
+          respond_to?(:read_json) ? read_json("table-notice-receipts.json", default: {}) : {}
+        end
       rescue StandardError => error
         Log.warning("Game Room table receipts could not be read: #{error.class}") if defined?(Log)
         {}
       end
+      runtime = Programs.current_runtime if defined?(Programs) && Programs.respond_to?(:current_runtime)
+      receipt_clock = @table_watch_clock
+      @table_watch_receipt_writer = GameRoomTableWatch::ReceiptWriter.new(runtime: runtime) do |value|
+        if respond_to?(:update_json)
+          update_json("table-notice-receipts.json", default: {}) do |state|
+            raise TypeError, "Invalid table receipt storage" unless state.is_a?(Hash)
+            previous = state[user.downcase].is_a?(Hash) ? state[user.downcase]["resolved"] : {}
+            previous = {} unless previous.is_a?(Hash)
+            # Older writes from a prior runtime/account must not undo a
+            # newer join. Only expiration can remove a resolved session.
+            merged = previous.merge(value.fetch("resolved")) { |_key, old, fresh| [old.to_f, fresh.to_f].max }
+            now = receipt_clock.call
+            merged = merged.select { |_key, expiry| expiry.to_f > now }.to_a.last(1024).to_h
+            state[user.downcase] = { "resolved" => merged }
+          end
+        end
+      end
+      writer = @table_watch_receipt_writer
       @table_watch_receiver = GameRoomTableWatch::Receiver.new(user: user, games: self::GAME_REGISTRY.ids,
         uuid: server_app_uuid, clock: @table_watch_clock,
-        stored: data.is_a?(Hash) ? data[user.downcase] || {} : {}, persist: ->(value) {
-          if respond_to?(:update_json)
-            update_json("table-notice-receipts.json", default: {}) do |state|
-              state = {} unless state.is_a?(Hash)
-              state[user.downcase] = value
-              state
-            end
-          end
-        })
+        stored: data.is_a?(Hash) ? data[user.downcase] || {} : {}, persist: ->(value) { writer.enqueue(value) })
     end
     @table_watch_receiver
   end
@@ -62,24 +75,29 @@ module GameRoomTableWatchRuntime
       Log.warning("Game Room watched games could not be loaded: #{error.class}") if error && defined?(Log)
     end
     @table_watch_sender&.tick
+    @table_watch_receipt_writer&.tick
     if defined?(EltenAPI::NotificationService) && EltenAPI::NotificationService.respond_to?(:active_notifications)
-      ids = EltenAPI::NotificationService.active_notifications.filter_map do |row|
-        next unless row.cat.to_s == "app" && row.app_uuid.to_s.casecmp?(server_app_uuid.to_s)
-        notification = Programs.app_notification_from(row)
-        next unless notification.type.to_s == GameRoomTableWatch::TYPE
-        next if receiver.visible?(notification) || @table_watch_pruned[row.id.to_i]
-        @table_watch_pruned[row.id.to_i] = true
-        row.id.to_i
+      GameRoomTableWatch::Timing.measure(:list_cleanup) do
+        ids = EltenAPI::NotificationService.active_notifications.filter_map do |row|
+          next unless row.cat.to_s == "app" && row.app_uuid.to_s.casecmp?(server_app_uuid.to_s)
+          notification = Programs.app_notification_from(row)
+          next unless notification.type.to_s == GameRoomTableWatch::TYPE
+          next if receiver.visible?(notification) || @table_watch_pruned[row.id.to_i]
+          @table_watch_pruned[row.id.to_i] = true
+          row.id.to_i
+        end
+        # Only this new type; never change the deferred invitation expiration.
+        EltenAPI::NotificationService.revoke_active_notifications(ids) unless ids.empty?
+        @table_watch_pruned = @table_watch_pruned.to_a.last(2048).to_h
       end
-      # Only this new type; never change the deferred invitation expiration.
-      EltenAPI::NotificationService.revoke_active_notifications(ids) unless ids.empty?
-      @table_watch_pruned = @table_watch_pruned.to_a.last(2048).to_h
     end
   rescue StandardError => error
     Log.warning("Game Room table notification update failed: #{error.class}") if defined?(Log)
   end
 
   def table_watch_stop
+    # The finite receipt writer drains its latest snapshot without a UI join.
+    # Retain it for extension restarts; it owns no recurring background loop.
     @table_watch_sender&.close
     @table_watch_loader&.close
     @table_watch_sender = nil

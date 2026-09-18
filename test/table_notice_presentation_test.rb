@@ -13,7 +13,7 @@ wire_notice = Notice2.new(id: 600, app_uuid: uuid, type: GameRoomTableWatch::TYP
     "live_session_id" => "uEoTspHz_s-PSO-UVrMr8CaRSyVLTraP", "created_at" => now, "expires_at" => now + 300 })
 notice = EltenGameRoom.map_notification(wire_notice)
 options = notice.instance_variable_get(:@options)
-assert(options[:body] == "New table: UNO, Bob" && options[:action] == :open_new_table, "wire notification lost text or routing")
+assert(options[:title] == "Bob, UNO" && options[:body] == "New table" && options[:action] == :open_new_table, "wire notification lost owner/game/type order or routing")
 assert(!notice.default_suppressed && notice.sound.end_with?("notice.ogg"), "first wire notification lost announcement or sound")
 EltenGameRoom.notification_received(wire_notice, notice)
 assert(!notice.default_suppressed, "first receipt suppressed valid notification")

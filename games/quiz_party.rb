@@ -53,44 +53,22 @@ module GameRoomGames
     end
 
     def rule_sections
+      # Generated from docs/rulebooks/quiz.json; see tools/compile-rulebooks.rb.
       [
-        rule_section(
-          :goal,
-          _("Goal"),
-          _("Answer questions correctly to earn points. Speed does not affect the score, provided you answer before the time expires.")
-        ),
-        rule_section(
-          :setup,
-          _("Setup"),
-          _("The table master chooses the question set, its language, the time for one answer and the target score. Every set is offered with the number of questions it installs, and the question language is independent of the interface language, so a Polish interface can host an Italian match."),
-          _("A match is played in rounds of three questions. At the start of every round three categories are drawn at random, one player chooses one of them for all three questions, and that choice rotates between the players."),
-          _("Every drawn category is offered with the number of questions it holds.")
-        ),
-        rule_section(
-          :play,
-          _("How to play"),
-          _("Every player answers every question. Each question has four answers and only one of them is correct."),
-          _("Choose an answer with the arrow keys and confirm it with Enter. The answer is sent immediately, and answers stay hidden until everyone has answered or the time expires."),
-          _("A correct answer is worth one point. A wrong or missing answer is worth no points, and there are no negative points.")
-        ),
-        rule_section(
-          :ending,
-          _("Ending the game"),
-          _("The match ends after the round in which at least one player reaches the target score. The highest score wins."),
-          _("If the leaders are tied after that round, another complete round is played until a single player leads.")
-        ),
-        rule_section(
-          :variants,
-          _("Variants and table options"),
-          _("The table master chooses the question set, the question language, the answer time from five to sixty seconds and the target score, which is at least fifteen points."),
-          _("Computer players answer correctly part of the time and guess otherwise, so they can be beaten.")
-        ),
-        rule_section(
-          :controls,
-          _("Controls"),
-          _("Use the arrow keys to move between answers and Enter to send the highlighted answer."),
-          _("Press T for the current question, Ctrl+T for the remaining time, S for scores, V for the round summary, Ctrl+F1 for these rules, and Escape to return to the table.")
-        )
+        rule_section(:question, GameRoomRules.translate("Everyone answers the same question"),
+          GameRoomRules.translate("Quiz Party is for two to eight participants, with bots available. Each question has four proposed answers and one is marked correct in the question set. Everyone answers independently. Use the arrows to choose an answer and Enter to submit it. Your submission is final for that question and stays hidden until the answering period closes."),
+          GameRoomRules.translate("A correct answer gives one point. A wrong answer or no answer gives zero; there are no negative points. Answering first earns no extra points, provided everyone answers within the time allowed. You can therefore use the available time to think instead of racing to press Enter.")),
+        rule_section(:round, GameRoomRules.translate("One category lasts for three questions"),
+          GameRoomRules.translate("A round consists of three questions. At its start, the game draws three available categories and one participant chooses which will be used for all three questions. The right to choose moves between players in successive rounds. Category choices include their question counts so you can see how much material they contain."),
+          GameRoomRules.translate("After everyone answers or time expires, the game reveals the answers and awards points, then prepares the next question. Preparing a question is not another answer choice: wait for the new question to appear. Once all three have been settled, the round summary is available and the next category selection begins unless the match has ended.")),
+        rule_section(:sets, GameRoomRules.translate("Choose the content, not the interface language"),
+          GameRoomRules.translate("When creating or configuring the table, first choose a question language and then a set offered in that language. The set label gives the number of questions supplied. This choice does not change anyone's interface: a Polish interface can still display questions from an English or Italian set. The language and set are shared by the whole table."),
+          GameRoomRules.translate("The full Witcher set combines its two subject collections. Witcher \u2014 games contains game-related questions; Witcher \u2014 books and adaptations contains books and screen adaptations. Choose the full set for a mixture or the narrower set for that medium. The accepted answer comes from the chosen question data, not a live search or a judge's decision during play.")),
+        rule_section(:time, GameRoomRules.translate("Answer time and the finishing line"),
+          GameRoomRules.translate("Time for one answer defaults to 20 seconds. The offered choices are 5\u201310 seconds one second apart, then 15\u201360 in steps of five. This limit applies separately to each question. The target defaults to 15 points; the list also offers 20, 25, 30, 40 and 50."),
+          GameRoomRules.translate("Reaching the target does not cut short a round. Finish all three questions, then the highest score wins. If the highest scores are equal, play another complete round and check again, continuing until one player leads. Bots sometimes know an answer and otherwise guess; adding one does not make every answer perfect. Saving a partly played Quiz Party match is not supported.")),
+        rule_section(:controls, GameRoomRules.translate("Quiz keys"),
+          GameRoomRules.translate("Arrows: choose a category or answer. Enter: submit the highlighted choice. T: read the question. Ctrl+T: remaining answer time. S: scores. V: round summary. Ctrl+F1: rules and shortcuts. Escape: return to the table."))
       ]
     end
 

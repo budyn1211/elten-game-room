@@ -32,6 +32,10 @@ module GameRoomGames
       "uno"
     end
 
+    def eliminated_from_game?(replay, viewer)
+      replay.state.fetch(:eliminated, {}).any? { |player, out| out && same_user?(player, viewer) }
+    end
+
     def name
       _("UNO")
     end
@@ -53,31 +57,39 @@ module GameRoomGames
     end
 
     def rule_sections
+      # Generated from docs/rulebooks/uno.json; see tools/compile-rulebooks.rb.
       [
-        rule_section(:hand, _("Matching cards and winning rounds"),
-          _("Two to eight players begin each round with seven cards. Play one card matching the effective colour or the face of the top discard; a wild lets you choose the next colour. Cards are normally played one at a time. The first player with an empty hand wins the round, but a final draw penalty or buzzer is resolved before scoring."),
-          _("The round winner gets zero points. Others add the points of cards left in their hands: number cards their value, coloured action cards 20, and wild cards 50. Eliminate a player at this score defaults to 500 (50–5000). Reaching or exceeding it eliminates that player; the remaining players start another round. The last remaining player wins the whole game."),
-          _("Declare UNO when one card remains. An opponent can catch an undeclared last card in the response window and make its owner draw two. If the draw pile runs out, discarded cards except its top are shuffled back into the draw pile; held cards stay in their hands.")),
-        rule_section(:decks, _("Classic, No Mercy and Flip decks"),
-          _("Classic is the default deck: four colours, numbers 0–9, Skip, Reverse, Draw Two, Wild and Wild Draw Four. Skip misses the next player. Reverse changes direction; with two players it normally acts as a skip. Draw cards create a pending penalty instead of immediately choosing the next player's response."),
-          _("No Mercy adds coloured Draw Four, wild Draw Six and Draw Ten, Reverse Draw Four, Skip Everyone, Discard All and Colour Roulette. Skip Everyone gives another play. Discard All removes the rest of the played colour from your hand. Roulette makes the next player draw until a non-wild card of the chosen colour appears and then ends their turn. Reverse Draw Four reverses direction and adds four; with two players its pending penalty comes back to the player who used it."),
-          _("No Mercy card limit applies only to that deck: default 25, or 10–100; 0 disables it. Reaching the limit removes the player from this round and adds 250 points. They return next round unless their accumulated score eliminates them from the whole game. This is different from the voluntary draw limit."),
-          _("Flip has a light and a dark side. A Flip card turns every hand and both piles over, reversing the pile order. Light uses Draw One and Wild Draw Two; dark uses Draw Five, Skip Everyone and wild colour drawing, as well as its own colours. The active side determines what matches and what a card does. This implementation's action-card scoring remains 20 for coloured and 50 for wild cards on either side.")),
-        rule_section(:draw, _("Drawing and responses to penalties"),
-          _("Ordinary drawing takes one card. If afterwards you still have no playable card, your turn ends automatically. Otherwise you may play. Allow drawing with a playable card is on by default. Maximum cards drawn voluntarily in one turn is 3 by default (1–20); at the limit another draw is refused rather than silently ending the turn. With optional drawing disabled, you cannot draw while already holding a legal card."),
-          _("Draw until a playable card is off by default. When enabled, one ordinary draw action takes cards until a playable card is found or the available supply is exhausted. Penalty drawing is separate: it takes the full pending penalty. Skip the turn after drawing a penalty is off by default; when on, that draw always ends the turn. When off, it still ends the turn if no playable card remains."),
-          _("Draw responses is on by default: you may add a draw card to the pending penalty instead of taking it. Classic requires the same draw-card type. In No Mercy coloured Draw Two/Four form one family and wild draw cards another; the responding card cannot be weaker than the last attack. Advanced responses is off and requires Draw responses: Skip or Wild passes the debt on, Reverse sends it in the opposite direction; in No Mercy Discard All and Skip Everyone cancel the pending numeric penalty. Without responses you must take the penalty."),
-          _("Challenging Wild Draw Four is off by default and available only in Classic. F challenges the last such play: if its author still had a card of the previous colour, they draw four instead. If the play was justified, the challenger draws six and loses the turn. This is not an automatic check on every wild play.")),
-        rule_section(:speed, _("Interceptions, hand changes and the buzzer"),
-          _("Interceptions is off by default. When enabled, a matching non-wild card can be played out of turn to take over the turn; it must match both colour and face. Super interceptions, separately off, relaxes this to the same face regardless of colour. An interception becomes visible as its own play, not part of a hidden batch."),
-          _("A wild card that requires a colour is placed on the discard pile first, and choosing its colour is a separate visible action. Once the wild has been played, nobody can intercept before its owner chooses the colour. Thinking time is paused during this choice; the next player's full time starts only after the colour has been selected."),
-          _("Straights is off by default. When enabled, a player may start a straight only during their own turn by playing a number card. They may then quickly add consecutive number cards of the same colour, in ascending or descending order. Every card is a separate visible play. The sequence ends as soon as another player plays or intercepts; there is no separate straight timer."),
-          _("With interceptions enabled, pressing Enter on a nonmatching card during another player's turn announces Too late and adds 3 penalty points to your total. The card stays in your hand and the turn does not change. This applies against people and computers, including during the bot's delay. There is no accidental-key exception. Wrong cards on your own turn, disabled interceptions and buzzer response windows do not incur this penalty. Elimination at the score limit is checked at the end of the round."),
-          _("Zero and seven hand swapping is off by default. Seven exchanges your hand with a selected opponent. Zero passes every active hand along the direction of play. Buzzer cards is also off: it adds eight universal cards to Classic or No Mercy, not Flip. After one is played, all active players press B; the last draws two. Anything can be played after a buzzer."),
-          _("Thinking time is 0 by default, meaning unlimited, or 1–300 seconds. Expiry takes the pending penalty, or one card if there is none, and ends the turn. Buzzer responses pause this countdown. The shared bot delay defaults to one second. There is no extra pause before a bot chooses a wild card's colour.")),
-        rule_section(:controls, _("Playing, sorting and checking the state"),
-          _("Arrow keys browse your hand; Enter plays a card and opens colour or opponent choices when needed. Space draws. C reads the top card, V the current colour, E reads every player's card count, S the scores, T the turn, U declares or catches UNO, F challenges Wild Draw Four, B responds to a buzzer and G reads the pending penalty."),
-          _("Shift+C toggles ascending/descending colour order. Shift+H toggles ascending/descending card-value order. Shift+D restores deal order. Sorting changes your local hand view, not anyone's cards or the turn."))
+        rule_section(:hand, GameRoomRules.translate("Match a card and try to empty your hand"),
+          GameRoomRules.translate("UNO is for two to eight players. Each round starts with seven cards per person. On your turn, play a card matching the current colour or the number or symbol on the top discard. On a blue seven, for example, you may play a blue card or a seven of another colour. Wild cards let you choose the next colour."),
+          GameRoomRules.translate("Usually you play one card and the turn moves on. The first empty hand wins the round, although a final drawing penalty or buzzer must be resolved before points are counted. With one card left, announce UNO. Another player can catch the missing announcement in the response window, making its owner draw two cards."),
+          GameRoomRules.translate("You want as few points as possible. The round winner receives zero; everyone else adds the value of cards still held. Number cards count their number, coloured action cards 20 and wild cards 50. The elimination limit is normally 500, configurable from 50 to 5000. Players reaching it leave after the round, while the others continue. The last remaining player wins the whole game.")),
+        rule_section(:draw, GameRoomRules.translate("Drawing is not always the end of your turn"),
+          GameRoomRules.translate("An ordinary draw takes one card. If you still have no legal card afterwards, your turn ends automatically. Otherwise you may play. When the pile runs out, discards except the top card are shuffled back for drawing; nobody loses their hand."),
+          GameRoomRules.translate("Allow drawing with a playable card is on by default. Its separate limit is normally three voluntary cards per turn, from one to twenty. At the limit, another press only reports that you cannot draw; it does not secretly end the turn. If optional drawing is off, having a legal card prevents an ordinary draw."),
+          GameRoomRules.translate("Draw until a playable card is off by default. If enabled, one draw action keeps taking cards until a playable card is found or the available supply ends. Penalty draws are separate: they take the amount currently owed, not this ordinary-drawing allowance."),
+          GameRoomRules.translate("Skip the turn after drawing a penalty is off by default. With it on, paying a penalty always ends your turn. With it off, you may still play if your resulting hand has a legal card; otherwise the turn ends automatically. You do not have to draw again just to confirm that you cannot play.")),
+        rule_section(:classic, GameRoomRules.translate("The classic deck and drawing attacks"),
+          GameRoomRules.translate("Classic is the default deck: four colours, numbers from zero to nine, Skip, Reverse, Draw Two, Wild and Wild Draw Four. Skip misses the next player; Reverse changes direction and normally acts as Skip with two players. Draw Two adds two cards to a penalty, while Wild Draw Four adds four and changes colour."),
+          GameRoomRules.translate("A colour-changing wild is played in two steps. First it leaves your hand and becomes the table card; then you select a colour. Nobody can intercept between those steps. A configured thinking timer is paused during this colour choice. The next player receives their full turn time once the colour is chosen."),
+          GameRoomRules.translate("Draw responses, on by default, lets you pass a drawing debt on by adding another permitted drawing card. In Classic it must be the same kind: Draw Two answers Draw Two, Wild Draw Four answers Wild Draw Four. The next player owes the accumulated amount. Without this option, you must take the debt instead."),
+          GameRoomRules.translate("Advanced responses requires ordinary responses and is off by default. Skip or Wild passes the debt onwards; Reverse sends it in the other direction. In No Mercy, Discard All and Skip Everyone instead cancel a pending numerical drawing penalty."),
+          GameRoomRules.translate("Challenging Wild Draw Four is an optional Classic-only rule. If its author still had a card of the previous colour, a successful challenge makes them draw four instead. If the play was justified, the challenger draws six and loses the turn. The option is off by default; the game does not automatically challenge every wild.")),
+        rule_section(:decks, GameRoomRules.translate("No Mercy and Flip"),
+          GameRoomRules.translate("No Mercy adds coloured Draw Four and wild Draw Six, Draw Ten and Reverse Draw Four. Drawing responses stay in their family, coloured or wild, and cannot be weaker than the last attack. Reverse Draw Four also reverses direction; with two players its debt returns to the player who used it."),
+          GameRoomRules.translate("No Mercy also has Skip Everyone, which gives another play; Discard All, which removes your other cards of the played colour; and Colour Roulette. Roulette makes the next player draw until a non-wild card of the chosen colour appears, then ends their turn."),
+          GameRoomRules.translate("The No Mercy card limit normally removes a player from the round at 25 cards and adds 250 points. You can choose a limit from 10 to 100, or zero to disable it. This is not necessarily elimination from the whole game: the player returns next round unless their total score has reached the overall elimination limit."),
+          GameRoomRules.translate("Flip uses two-sided cards. Playing Flip turns every hand and both piles over and reverses the pile order. The light side has Draw One and Wild Draw Two; the dark side has its own colours, Draw Five, Skip Everyone and wild colour drawing. Only the active side determines matching and effects. Game Room counts coloured action cards as 20 and wild cards as 50 on either side.")),
+        rule_section(:speed, GameRoomRules.translate("Optional fast reactions and hand exchanges"),
+          GameRoomRules.translate("Interceptions lets you play out of turn with a non-wild card identical in colour and face to the top discard. You take over play, subject to that card's effect; intercepting with a drawing attack does not make you pay your own attack. Super interceptions relaxes the colour requirement but still requires the same face. Both options are off by default, and Super requires ordinary interceptions."),
+          GameRoomRules.translate("With interceptions enabled, trying a nonmatching card during someone else's turn says Too late and adds three penalty points. The card stays in your hand. This also applies during a bot's pause, without a special exemption for mistaken key presses. It does not apply to ordinary wrong moves on your own turn or to buzzer response windows. Score-limit elimination is checked at the round's end."),
+          GameRoomRules.translate("Straights, off by default, lets you follow your own number-card play with consecutive numbers of the same colour, going up or down. For example, red eight, seven, six. Each card is a separate play. You can continue only until another player plays or intercepts; there is no separate timed straight window, and you cannot start the sequence out of turn."),
+          GameRoomRules.translate("Zero and seven hand swapping is off by default. A seven exchanges your hand with a chosen opponent; a zero passes all active hands in the direction of play. Buzzer cards, also off, adds eight universal buzzer cards to Classic or No Mercy, not Flip. After a buzzer, everyone still active responds with B and the last responder draws two. Any card may follow a buzzer."),
+          GameRoomRules.translate("Thinking time is unlimited at zero, or can be set from one to 300 seconds. Expiry takes the pending drawing penalty, or one card if there is no penalty, then ends the turn. Buzzer responses and colour selection pause the timer. The game does not interrupt play with automatic time-remaining announcements.")),
+        rule_section(:controls, GameRoomRules.translate("Hand and reactions"),
+          GameRoomRules.translate("Z and Shift+Z can visit legal cards on your own turn in the basic game. This assistance is disabled with straights, interceptions or buzzer cards. A Wild requiring a colour choice is not played automatically by navigation."),
+          GameRoomRules.translate("Arrows and Enter: choose and play a card, then a colour or player if required. Space: draw. U: announce or catch UNO. B: respond to a buzzer. F: challenge Wild Draw Four."),
+          GameRoomRules.translate("C: top card. V: current colour. E: each player's card count. G: pending penalty. S: scores. T: whose turn it is."),
+          GameRoomRules.translate("Shift+C: toggle colour order. Shift+H: toggle value order. Shift+D or Shift+M: acquisition order. These only change your own view."))
       ]
     end
 
@@ -357,6 +369,11 @@ module GameRoomGames
       end
     end
 
+    def hand_sorting_available?(replay, viewer)
+      return false if colour_choice_pending?(replay.state) && same_user?(replay.state[:colour_choice_player], viewer)
+      !hand_for(replay.state, viewer).to_a.empty?
+    end
+
     def surface_spec(replay, viewer)
       state = replay.state
       if colour_choice_pending?(state) && same_user?(state[:colour_choice_player], viewer)
@@ -448,7 +465,7 @@ module GameRoomGames
         shortcuts << GameShortcut.new(key: "b", label: _("press the buzzer"), kind: :action,
           action_kind: "command", action_name: "buzz")
       end
-      shortcuts
+      shortcuts.reject { |shortcut| shortcut.action_name == "sort_cards" && !hand_sorting_available?(replay, viewer) }
     end
 
     def bot_observation(replay, actor)

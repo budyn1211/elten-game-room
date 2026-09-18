@@ -245,8 +245,9 @@ module GameRoomGames
       book = GameRoomRules::Book.new(
         game_id: id,
         title: name,
-        sections: rule_sections + (supports_bots? ? [rule_section(:bot_pacing, _("Computer move timing"),
-          _("Bot move delay ranges from 0 to 5 seconds. Zero disables the intentional pause, not the computer. UNO and Makao default to one second; other games default to zero. This is a table setting, preserved in saved games. Waiting does not block human actions or synchronization and is shortened near a time limit."))] : [])
+        sections: rule_sections + (supports_bots? ? [rule_section(:bot_pacing, GameRoomRules.translate("Time to follow a bot's move"),
+          GameRoomRules.translate("Bot move delay lets the table pause briefly before a computer acts, so people can follow the play. Choose 0 to 5 seconds. Zero removes the deliberate pause; it does not disable the bot or change its playing strength. UNO and Makao start at one second, other games at zero."),
+          GameRoomRules.translate("The delay belongs to the table and is preserved when a supported game is saved. It does not prevent permitted human actions while waiting. Near a turn deadline the wait is shortened so it cannot keep the bot from acting in time."))] : [])
       )
       return book if options == nil
 
@@ -630,6 +631,12 @@ module GameRoomGames
       replay.finished? ? bot_reward(replay, actor) : 0.0
     end
 
+    # Override only for permanent removal from this match. A lost round,
+    # folded hand, passed turn, all-in or disconnection is not elimination.
+    def eliminated_from_game?(_replay, _viewer)
+      false
+    end
+
     def shortcut_features
       [:turn, :material]
     end
@@ -698,6 +705,22 @@ module GameRoomGames
       nil
     end
 
+    # Opt in only when this phase exposes an actual, sortable private hand.
+    # Biblios' card/target pickers, boards and dice are deliberately excluded.
+    def hand_sorting_available?(_replay, _viewer)
+      false
+    end
+
+    def hand_sort_shortcuts(replay, viewer)
+      return [] unless hand_sorting_available?(replay, viewer)
+      [["c", "colour", _("sort cards by suit"), _("Cards sorted by ascending suit."), _("Cards sorted by descending suit.")],
+       ["h", "number", _("sort cards by rank"), _("Cards sorted by ascending rank."), _("Cards sorted by descending rank.")],
+       ["m", "none", _("restore acquisition order"), _("Cards restored to acquisition order."), nil]].map do |key, mode, label, ascending, descending|
+        surface_shortcut(key: key, modifiers: [:shift], label: label, command: "sort_cards",
+          payload: { "mode" => mode, "toggle" => mode != "none", "ascending_message" => ascending, "descending_message" => descending })
+      end
+    end
+
     def game_shortcuts(replay, viewer)
       shortcuts = GameRoomShortcuts.build(self, shortcut_features, replay, viewer)
       custom = custom_game_shortcuts(replay, viewer).to_a
@@ -705,6 +728,10 @@ module GameRoomGames
         raise ArgumentError, "a custom game shortcut must be a GameShortcut"
       end
       result = shortcuts + custom + playable_card_shortcuts(replay, viewer)
+      # Explicit game shortcuts (UNO colour/value/Shift+D, Rummy) retain their
+      # labels and behaviour. Add only the missing shared hand commands.
+      existing = result.map { |shortcut| [shortcut.key, shortcut.modifiers.to_a] }
+      result += hand_sort_shortcuts(replay, viewer).reject { |shortcut| existing.include?([shortcut.key, shortcut.modifiers.to_a]) }
       keys = result.map { |shortcut| [shortcut.key, shortcut.modifiers.to_a] }
       raise ArgumentError, "game shortcut keys must be unique" if keys.uniq.length != keys.length
 
@@ -1103,6 +1130,12 @@ module GameRoomGames
         rank_index == nil ? ranks.length : rank_index,
         tie_breaker
       ]
+    end
+
+    def standard_hand_sort_keys(rank:, suit:, position:)
+      suit_index = PLAYROOM_SUIT_ORDER.index(suit) || PLAYROOM_SUIT_ORDER.length
+      rank_index = PLAYROOM_RANK_ORDER.index(rank) || PLAYROOM_RANK_ORDER.length
+      { "colour" => [suit_index, rank_index], "number" => [rank_index, suit_index], "none" => [position] }
     end
 
     def bot_identity_value(value, aliases)

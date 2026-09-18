@@ -2,7 +2,7 @@ require "json"
 
 module GameSurfaces
   PacketCardSpec = Struct.new(
-    :id, :header, :cards, :action_name, :allow_packet, :empty_label, :hand_order, :hand_epoch,
+    :id, :header, :cards, :action_name, :allow_packet, :empty_label, :hand_order, :hand_epoch, :packet_tip, :activation_tip,
     keyword_init: true
   )
 
@@ -11,20 +11,31 @@ module GameSurfaces
   # written to LiveSessions.
   class PacketCardSurface
     include ActionEmitter
+    include CardSorting
+
+    module PacketHelp
+      attr_accessor :packet_help_tip
+      def get_tips
+        inherited = defined?(super) ? super.to_a : []
+        (Array(packet_help_tip) + inherited).uniq
+      end
+    end
 
     attr_reader :command_field_index
 
     def initialize(spec, state: {})
       @spec = spec
-      @cards = spec.cards.to_a
+      @card_sort_mode = state_value(state, "card_sort_mode", "").to_s
+      @card_sort_direction = state_value(state, "card_sort_direction", "ascending").to_s
+      @cards = sorted_cards(spec.cards.to_a, @card_sort_mode)
       validate!
       index = state_value(state, "index", 0)
       if spec.hand_order != nil
         @cards, index, changed = CardHandCursor.resolve(@cards, spec.hand_order, spec.hand_epoch,
-          state_value(state, "hand_cursor", {}), index)
+          state_value(state, "hand_cursor", {}), index, sorted: sorted_hand?)
         @cursor_announcement = card_label(@cards[index]) if changed
       end
-      @signature = @cards.map { |card| card_id(card) }.join("|")
+      @signature = @cards.map { |card| card_id(card) }.sort.join("|")
       same_epoch = spec.hand_order == nil || state_value(state, "hand_cursor", {})["epoch"] == spec.hand_epoch.to_s
       @selected_ids = if same_epoch && state_value(state, "signature", "").to_s == @signature
         state_value(state, "selected_ids", []).to_a.map(&:to_s)
@@ -39,6 +50,8 @@ module GameSurfaces
         empty_label: (spec.empty_label || _("Your hand is empty")).to_s
       )
       @control.on(:select) { |parameters| activate(parameters.to_a[0].to_i) }
+      @control.extend(PacketHelp)
+      refresh_packet_help
     end
 
     def fields
@@ -49,7 +62,9 @@ module GameSurfaces
       result = {
         "index" => @pending == nil ? @control.index.to_i : @pending[:card_index],
         "selected_ids" => @selected_ids.dup,
-        "signature" => @signature
+        "signature" => @signature,
+        "card_sort_mode" => @card_sort_mode,
+        "card_sort_direction" => @card_sort_direction
       }
       if @spec.hand_order != nil
         result["hand_cursor"] = CardHandCursor.snapshot(@cards, @spec.hand_order, @spec.hand_epoch, result["index"])
@@ -64,10 +79,10 @@ module GameSurfaces
     def update_spec(spec)
       remembered = state
       @spec = spec
-      @cards, index, changed = CardHandCursor.resolve(spec.cards.to_a, spec.hand_order, spec.hand_epoch,
-        remembered["hand_cursor"], remembered["index"])
+      @cards, index, changed = CardHandCursor.resolve(sorted_cards(spec.cards.to_a, @card_sort_mode), spec.hand_order, spec.hand_epoch,
+        remembered["hand_cursor"], remembered["index"], sorted: sorted_hand?)
       validate!
-      signature = @cards.map { |card| card_id(card) }.join("|")
+      signature = @cards.map { |card| card_id(card) }.sort.join("|")
       same_hand = signature == @signature && remembered["hand_cursor"]["epoch"] == spec.hand_epoch.to_s
       @selected_ids.clear unless same_hand
       @signature = signature
@@ -83,6 +98,7 @@ module GameSurfaces
       @control.empty_label = spec.empty_label.to_s if @control.respond_to?(:empty_label=)
       @control.index = bounded_index(index) unless @pending
       @cursor_announcement = changed && !@pending ? card_label(@cards[index]) : nil
+      refresh_packet_help
       self
     end
 
@@ -113,6 +129,7 @@ module GameSurfaces
 
     def handle_command(command, payload = {})
       @command_field_index = nil
+      return sort_hand(payload) if command.to_s == "sort_cards"
       if command.to_s == "navigate_playable_card"
         return navigate_playable_card(payload)
       end
@@ -131,6 +148,29 @@ module GameSurfaces
     end
 
     private
+
+    def refresh_packet_help
+      @control.packet_help_tip = if !@pending && @spec.allow_packet != false
+        [@spec.activation_tip, @spec.packet_tip || _("Press Shift+Enter to add or remove the current card from the prepared packet.")].compact
+      end
+    end
+
+    def sort_hand(payload)
+      return false if @pending
+      mode = (payload["mode"] || payload[:mode]).to_s
+      return false if mode.empty? || @cards.none? { |card| card_sort_keys(card).key?(mode) }
+      toggle = payload["toggle"] || payload[:toggle]
+      direction = toggle && @card_sort_mode == mode && @card_sort_direction == "ascending" ? "descending" : "ascending"
+      selected = card_id(@cards[@control.index.to_i])
+      @cards = sorted_cards(@cards, mode, direction)
+      @card_sort_mode, @card_sort_direction = mode, direction
+      refresh_labels
+      @control.index = @cards.index { |card| card_id(card) == selected } || 0
+      @cursor_announcement = nil
+      message = payload["#{direction}_message"] || payload["message"] || payload[:message]
+      speak(message.to_s) unless message.to_s.empty?
+      true
+    end
 
     def navigate_playable_card(payload)
       hand_id = (payload["hand_id"] || payload[:hand_id]).to_s
@@ -188,6 +228,7 @@ module GameSurfaces
         @control.options = choices.map { |choice| choice_label(choice) }
         @control.header = card_choice_header(card)
         @control.index = 0
+        refresh_packet_help
         @control.focus(0)
       else
         submit_packet(index, nil)
@@ -229,6 +270,7 @@ module GameSurfaces
       @control.options = labels
       @control.header = @spec.header.to_s
       @control.index = bounded_index(index)
+      refresh_packet_help
       @control.focus(@control.index) if speak
     end
 

@@ -319,6 +319,13 @@ module GameRoomLayout
       @content_fields.reject { |field| field.equal?(@chat) }
     end
 
+    # Only visible game controls, never the participant list, history or chat.
+    def game_help_fields
+      @content_fields.each_with_index.filter_map do |field, index|
+        field if @field_locations[index].to_a.first == :game
+      end
+    end
+
     def suppress_focus!
       field = @form.fields[@form.index.to_i]
       field.suppress_next_focus! if field.respond_to?(:suppress_next_focus!)

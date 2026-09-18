@@ -237,9 +237,7 @@ class GameScreen
       when :new_session
         switch_to_new_session
       when :rules
-        source = replay.finished? ? @room_snapshot&.table.to_h["game_options"] : @session["options"]
-        options = @game.options_from_json(source)
-        GameRoomScreens::GameRules.new(@game.rule_book(options: options)).wait
+        show_game_rules(replay)
       when :save_game
         surface = @layout&.surface
         if surface.respond_to?(:save_game_error) && (error = surface.save_game_error)
@@ -845,6 +843,14 @@ class GameScreen
     raise ArgumentError, "game shortcut keys must be unique" if keys.uniq.length != keys.length
 
     result
+  end
+
+  def show_game_rules(replay)
+    source = replay.finished? ? @room_snapshot&.table.to_h["game_options"] : @session["options"]
+    options = @game.options_from_json(source)
+    tips = @layout && GameRoomContextHelp.game_field_tips(@layout.game_help_fields)
+    GameRoomScreens::GameRules.new(@game.rule_book(options: options),
+      program: @program, game_shortcuts: tips).wait
   end
 
   def bind_game_shortcuts(form, fields, shortcuts, &handler)

@@ -75,7 +75,7 @@ assert(!receiver.receive(notice) && receiver.visible?(notice), "same notice aler
 duplicate = notice.dup; duplicate.id = 2
 assert(!receiver.visible?(duplicate), "duplicate leaves an empty list row")
 restarted = GameRoomTableWatch::Receiver.new(user: "Alice", uuid: "uuid", games: %w[uno rummy], stored: stored, clock: -> { now })
-assert(restarted.received?(notice) && !restarted.receive(notice), "restart lost receipt memory")
+assert(stored.empty? && !restarted.received?(notice), "receiving unnecessarily persisted seen IDs; startup delivery belongs to the host")
 receiver.games = ["rummy"]
 assert(!receiver.visible?(notice), "disabled game passed receiver filter")
 receiver.games = ["uno"]
@@ -84,6 +84,8 @@ assert(!receiver.visible?(notice), "expired announcement remains visible")
 now = 1000
 receiver.resolve(session_id)
 assert(!receiver.visible?(notice), "manual join did not resolve announcement")
+restarted = GameRoomTableWatch::Receiver.new(user: "Alice", uuid: "uuid", games: %w[uno rummy], stored: stored, clock: -> { now })
+assert(!restarted.visible?(notice), "restart lost resolved/joined table suppression")
 bad = notice.dup; bad.metadata = meta.merge("live_session_id" => "https://evil.invalid")
 assert(receiver.data(bad) == nil, "untrusted target accepted")
 bad.metadata = meta.merge("expires_at" => 999999)

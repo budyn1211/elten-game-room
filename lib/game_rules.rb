@@ -1,3 +1,5 @@
+require_relative "game_content"
+
 module GameRoomRules
   REQUIRED_SECTION_IDS = [:controls].freeze
   CTRL_F1_KEY = 0x70
@@ -19,8 +21,8 @@ module GameRoomRules
 
     def initialize(id:, title:, paragraphs:)
       @id = id.to_sym
-      @title = title.to_s.strip
-      @paragraphs = paragraphs.to_a.map { |paragraph| paragraph.to_s.strip }.reject(&:empty?).freeze
+      @title = GameRoomContent.utf8(title).strip
+      @paragraphs = paragraphs.to_a.map { |paragraph| GameRoomContent.utf8(paragraph).strip }.reject(&:empty?).freeze
       raise ArgumentError, "a rule section requires an id" if @id.to_s.empty?
       raise ArgumentError, "a rule section requires a title" if @title.empty?
       raise ArgumentError, "a rule section requires content" if @paragraphs.empty?
@@ -80,11 +82,24 @@ module GameRoomRules
 
   def self.common_controls
     [
-      _("Shared room controls: Tab and Shift+Tab move between fields. F1 gives help for the current field and available actions. Ctrl+F1 opens the rules, game shortcuts and current table settings. The room context menu contains the actions available to you at that moment."),
-      _("In Game Room, F1 opens a shortcuts list browsed with the arrow keys; Enter or Escape closes it. F2 lowers and F3 raises the selected sound group's volume by 10 percentage points. Shift+F2/F3 selects a sound group. All Game Room sounds is the master level; individual game, room, chat and notification levels remain separate. Speech and other ELTEN sounds are not affected."),
-      _("Outside text entry, Shift+Left/Right chooses the history view: All, Game, Chat or Room events. Ctrl+Left/Right reads the previous or next entry in that view; Ctrl+Shift+Left/Right goes to its first or last entry. These combinations retain their normal editing meaning in a writable text field."),
-      _("Type in the Chat field and press Enter to send. Ordinary letter shortcuts do not take letters away from text entry. In grid board games, a slash command uses the same move validation as Enter: for example /a1 places a piece, and /e2 e4 moves from one square to another. Draughts also accepts its square numbers. Begin with // to send a literal slash instead of a move command. Escape closes an opened list or dialog.")
+      translate("Tab and Shift+Tab: move between the game's fields, chat and the other table sections. Game letter keys do not replace typing in an editable field."),
+      translate("F1: open the current field's help list. Arrows browse it; Enter or Escape closes it. Ctrl+F1: open rules, game shortcuts and, at a table, its current settings. During a game the shortcuts list reflects the current game fields; outside a game it is a reference for all phases."),
+      translate("F2 and F3: lower or raise the selected sound group's volume by 10 percentage points. Shift+F2 and Shift+F3: choose the sound group. All Game Room sounds controls the master level without changing each group's setting. Speech and other ELTEN sounds are unaffected."),
+      translate("Outside text entry, Shift+Left and Shift+Right choose the history view: all, game, chat or room events. Ctrl+Left and Ctrl+Right read its previous or next entry; adding Shift jumps to the first or last. In editable fields these keys keep their editing meaning."),
+      translate("Enter in Chat: send the typed message. In grid games, /a1 can place a piece and /e2 e4 can move one, using the same legality checks as the board. Draughts also accepts numbered squares. Start a message with // to send a literal slash. Escape closes an open list or dialog.")
     ]
+  end
+
+  # Some ELTEN dictionaries index MO keys as binary bytes. UTF-8 source keys
+  # containing e.g. an en dash then miss despite an existing translation.
+  # Retry only an untranslated key, locally; never patch the host dictionary.
+  def self.translate(text)
+    source = GameRoomContent.utf8(text)
+    translated = GameRoomContent.utf8(_(source))
+    if translated == source && !source.ascii_only?
+      translated = GameRoomContent.utf8(_(source.b))
+    end
+    translated
   end
 
   def self.bind_ctrl_f1(form, fields, &handler)

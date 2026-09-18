@@ -85,17 +85,14 @@ module GameRoomUI
       return if @game_room_help_open
 
       field = fields[index.to_i]
-      game = field.respond_to?(:game_room_game_help_tips) ? field.game_room_game_help_tips.to_a : []
-      context = field.respond_to?(:game_room_context_help_tips) ? field.game_room_context_help_tips.to_a : []
-      tips = field.respond_to?(:get_tips) ? field.get_tips.to_a : []
+      tips = GameRoomContextHelp.field_tips(field)
       form_tips = respond_to?(:get_tips) ? get_tips.to_a : []
       history_tips = if field.is_a?(EditBox) && (field.flags.to_i & EditBox::Flags::ReadOnly) == 0
         []
       else
         game_room_general_help_tips.to_a
       end
-      items = (game + context + tips + form_tips + history_tips + GLOBAL_TIPS.map { |tip| _(tip) })
-        .map(&:to_s).reject(&:empty?).uniq
+      items = GameRoomContextHelp.clean_tips(tips + form_tips + history_tips + GLOBAL_TIPS.map { |tip| _(tip) })
       items = [_("No shortcuts are available on this screen.")] if items.empty?
       @game_room_help_open = true
       opened_here = true

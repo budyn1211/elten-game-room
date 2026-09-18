@@ -3,8 +3,8 @@
   "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
-  "version": "2.0",
-  "build_id": "228",
+  "version": "2.0.1",
+  "build_id": "229",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -22,7 +22,9 @@
     "sounds": [
       "connect", "disconnect", "chatmsg", "notice", "buzzer2", "ding", "shuffle", "draw", "draw2",
       "farkle", "hit1", "interception", "lose1", "lose3", "play", "play2", "replay",
-      "reverse", "reverse3", "roll", "skip", "win1", "win2"
+      "reverse", "reverse3", "roll", "skip", "win1", "win2",
+      "farkle_bank", "ninety3366", "1000_mariage", "win_party", "lose_party",
+      "domino_refill", "domino_move_tile", "domino_take_chip"
     ]
   }
 }
@@ -98,8 +100,8 @@ require_relative "games/registry"
 
 class EltenGameRoom < Program
   extend GameRoomTableWatchRuntime
-  GAME_ROOM_VERSION = "2.0".freeze
-  GAME_ROOM_BUILD_ID = 228
+  GAME_ROOM_VERSION = "2.0.1".freeze
+  GAME_ROOM_BUILD_ID = 229
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
   NOTIFICATION_CONTACT_CACHE_SECONDS = 5 * 60
@@ -237,6 +239,10 @@ class EltenGameRoom < Program
   end
 
   def self.map_notification(notification)
+    GameRoomTableWatch::Timing.measure(:mapping) { map_game_room_notification(notification) }
+  end
+
+  def self.map_game_room_notification(notification)
     if GameRoomInvitationReceipts::TYPES.include?(notification.type.to_s)
       return notification.presentation(title: "", body: "", sound: nil).suppress_default!
     end
@@ -252,9 +258,9 @@ class EltenGameRoom < Program
       receiver = table_watch_receiver
       if receiver.visible?(notification)
         sound = nil if receiver.received?(notification)
-        notification.presentation(title: _("New table"), body: _("New table: %{game}, %{owner}") % {
-          game: GAME_REGISTRY.name(metadata["game"]), owner: notification.sender.to_s
-        }, sound: sound, action: :open_new_table)
+        title = [notification.sender, GAME_REGISTRY.name(metadata["game"])].map { |text| GameRoomContent.utf8(text) }.join(", ")
+        notification.presentation(title: title, body: GameRoomContent.utf8(_("New table")),
+          sound: sound, action: :open_new_table)
       else
         # suppress_default! stops delivery speech, not rows in the host's
         # notification list. Keep a readable fallback until our pruning runs.
@@ -281,7 +287,7 @@ class EltenGameRoom < Program
       presentation.extend(GameRoomUI::NotificationSound)
       presentation.game_room_notice_player = lambda do
         volume = GameRoomPreferences.sound_volume(normalized_settings, "notice")
-        play_sound_from_asset("notice", volume: volume) if volume > 0
+        GameRoomTableWatch::Timing.measure(:audio) { play_sound_from_asset("notice", volume: volume) } if volume > 0
       rescue StandardError => error
         Log.warning("ELTEN Game Room notification sound failed: #{error.class}: #{error.message}") if defined?(Log)
       end
@@ -296,7 +302,8 @@ class EltenGameRoom < Program
   def self.notification_received(notification, _presentation = nil)
     receive_invitation_receipt(notification) if GameRoomInvitationReceipts::TYPES.include?(notification.type.to_s)
     if notification.type.to_s == GameRoomTableWatch::TYPE
-      _presentation&.suppress_default! unless table_watch_receiver.receive(notification)
+      received = GameRoomTableWatch::Timing.measure(:receipt) { table_watch_receiver.receive(notification) }
+      _presentation&.suppress_default! unless received
     end
   end
 
@@ -640,11 +647,11 @@ class EltenGameRoom < Program
     return if game_id == nil
 
     game = game_definition(game_id)
-    game_options = configure_game_options(game)
-    return if game_options == nil
+    configuration = configure_game_options(game, creating_table: true)
+    return if configuration == nil
 
-    privacy = choose_table_privacy
-    return if privacy == nil
+    game_options = configuration.fetch(:game_options)
+    privacy = configuration.fetch(:private_table)
 
     result = run_network_task(_("Creating table")) do
       created = @lobby.create_table(
@@ -670,20 +677,6 @@ class EltenGameRoom < Program
       speech_wait
     end
     show_table_screen(result.table)
-  end
-
-  def choose_table_privacy
-    choice = CheckBox.new(_("Private table"), checked: false)
-    create = Button.new(_("Create table"))
-    back = Button.new(_("Back"))
-    form = GameRoomUI::Form.new([choice, create, back], program: self, quiet: true)
-    result = nil
-    form.accept_button = create
-    form.cancel_button = back
-    create.on(:press) { result = choice.checked == true; form.resume }
-    back.on(:press) { form.resume }
-    form.wait
-    result
   end
 
   def saved_games
@@ -1034,17 +1027,24 @@ class EltenGameRoom < Program
     action == :select ? game_ids[selected_index] : nil
   end
 
-  def configure_game_options(game, initial_options: nil, submit_label: nil)
-    return {} if game == nil
+  # Creation returns table privacy separately from game rules; ordinary
+  # editing (Ctrl+X) keeps its existing options-only result and controls.
+  def configure_game_options(game, initial_options: nil, submit_label: nil, creating_table: false)
+    return creating_table ? nil : {} if game == nil
 
     selected = initial_options == nil ? {} : game.normalize_options(initial_options)
     definitions = game.effective_option_definitions(selected).to_a
-    return game.default_options if definitions.empty?
+    return game.default_options if definitions.empty? && !creating_table
     built_language = selected.fetch(GameRoomContent::LANGUAGE_OPTION_KEY, game.default_options[GameRoomContent::LANGUAGE_OPTION_KEY]).to_s
-    focused_option_key = nil
+    private_table = false
 
     loop do
       controls = [Static.new(_("Choose game options using Tab and the arrow keys. In lists allowing multiple selections, use Space to select or clear an item."))]
+      privacy_control = nil
+      if creating_table
+        privacy_control = CheckBox.new(GameRoomContent.utf8(_("Private table")), checked: private_table)
+        controls << privacy_control
+      end
       bindings = []
       defaults = remembered_game_option_defaults(game, definitions).merge(selected)
       definitions.each do |definition|
@@ -1103,12 +1103,7 @@ class EltenGameRoom < Program
       action = nil
       save_button = Button.new(submit_label || _("Create table"))
       cancel_button = Button.new(_("Cancel"))
-      focused_binding_index = bindings.index do |definition, _control|
-        definition.key.to_s == focused_option_key
-      end
-      form_index = focused_binding_index == nil ? 0 : focused_binding_index + 1
-      form = GameRoomUI::Form.new(controls + [save_button, cancel_button], program: self, index: form_index, quiet: true)
-      focused_option_key = nil
+      form = GameRoomUI::Form.new(controls + [save_button, cancel_button], program: self, index: creating_table ? 1 : 0, quiet: true)
       form.accept_button = save_button
       form.cancel_button = cancel_button
       previous_options = game.normalize_options(game_option_values(bindings))
@@ -1146,21 +1141,26 @@ class EltenGameRoom < Program
       end
       if language_binding != nil
         language_binding[1].on(:move) do
-          action = :language_changed
-          form.resume
+          # Replace only the dependent choices. Recreating the form here
+          # steals focus (and speech) from the language being browsed.
+          options = game.normalize_options(game_option_values(bindings))
+          definitions = game.effective_option_definitions(options).to_a
+          set_binding = bindings.find { |definition, _control| definition.key.to_s == GameRoomContent::SET_OPTION_KEY }
+          set_definition = definitions.find { |definition| definition.key.to_s == GameRoomContent::SET_OPTION_KEY }
+          if set_binding && set_definition
+            control = set_binding[1]
+            set_binding[0] = set_definition
+            control.options = set_definition.choices.map { |choice| choice.label.to_s }
+            control.index = set_definition.choices.index { |choice| choice.value.to_s == options[GameRoomContent::SET_OPTION_KEY].to_s }.to_i
+          end
+          built_language = options[GameRoomContent::LANGUAGE_OPTION_KEY].to_s
+          refresh_visibility.call
         end
       end
       form.wait
-      if action == :language_changed
-        options = game.normalize_options(game_option_values(bindings))
-        selected = options
-        built_language = options[GameRoomContent::LANGUAGE_OPTION_KEY].to_s
-        definitions = game.effective_option_definitions(selected).to_a
-        focused_option_key = GameRoomContent::SET_OPTION_KEY
-        next
-      end
       return nil if action != :save
 
+      private_table = privacy_control.checked == true if creating_table
       raw = game_option_values(bindings)
       options = game.normalize_options(raw)
       chosen_language = options[GameRoomContent::LANGUAGE_OPTION_KEY].to_s
@@ -1173,7 +1173,7 @@ class EltenGameRoom < Program
       error = game.validation_error(options)
       if error == nil
         remember_multiple_choice_options(game, definitions, options) if initial_options == nil
-        return options
+        return creating_table ? { game_options: options, private_table: private_table } : options
       end
 
       alert(error)

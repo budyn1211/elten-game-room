@@ -17,12 +17,18 @@ module GameRoomGames
     end
 
     def rule_sections
+      # Generated from docs/rulebooks/tic_tac_toe.json; see tools/compile-rulebooks.rb.
       [
-        rule_section(:line, _("Three marks in a line"),
-          _("Two players take turns on a 3 by 3 board. The first listed player places X and starts; the other places O. On each turn place exactly one mark on an empty field. Marks already placed cannot be moved or removed."),
-          _("Three of your marks in an unbroken row, column or diagonal win immediately. If all nine fields are filled without a winning line, the result is a draw. There are no optional board sizes or rule variants. Either seat may be occupied by a computer.")),
-        rule_section(:controls, _("Playing on the board"),
-          _("Arrow keys inspect fields; Enter places your mark on the selected empty field during your turn. T announces the turn. You can also enter /a1 in chat to play on A1; this is a move command, not a chat message."))
+        rule_section(:line, GameRoomRules.translate("A small board, three marks to win"),
+          GameRoomRules.translate("In Tic-tac-toe, two players try to make a line of three of their own marks. The board has three rows and three columns. The first player uses X and makes the first move; the other uses O."),
+          GameRoomRules.translate("On your turn, choose one empty square and place your mark there. Then it is your opponent's turn. Once placed, a mark stays where it is: you cannot move it or replace an opponent's mark."),
+          GameRoomRules.translate("A line can run across a row, down a column or along either diagonal. For example, owning the top-left, centre and bottom-right squares wins the game. The game ends as soon as a line is completed, even if other squares are still empty. If the board fills up without a winning line, the result is a draw."),
+          GameRoomRules.translate("Game Room uses this 3 by 3 version without additional rule variants. You may play against another person or a bot.")),
+        rule_section(:controls, GameRoomRules.translate("Playing on the board"),
+          GameRoomRules.translate("Arrow keys: move around the board and read the selected square."),
+          GameRoomRules.translate("Enter: place your mark on the selected empty square."),
+          GameRoomRules.translate("T: read whose turn it is."),
+          GameRoomRules.translate("You can also enter a move such as /a1 in the chat field. The slash makes it a game move rather than a message."))
       ]
     end
 

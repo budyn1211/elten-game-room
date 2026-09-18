@@ -34,32 +34,36 @@ module GameRoomGames
       "ninety_nine"
     end
 
+    def eliminated_from_game?(replay, viewer)
+      replay.state.fetch(:eliminated, {}).any? { |player, out| out && same_user?(player, viewer) }
+    end
+
     def name
       "99"
     end
 
     def rule_sections
+      # Generated from docs/rulebooks/ninety_nine.json; see tools/compile-rulebooks.rb.
       [
-        rule_section(:tokens, _("Three cards and a changing total"),
-          _("Ninety-nine is played by 2 to 8 players. Each active player receives three cards at the start of a round, and the pile total starts at zero. By default everyone starts the game with 9 tokens; the table master may choose another positive number."),
-          _("With 7 or 8 players the game uses two decks. The dealer changes between rounds and the first active player after the dealer begins."),
-          _("Play one card from your hand to change the pile total. If the round continues, the program immediately draws a replacement card for you and passes the turn."),
-          _("When the draw pile is exhausted, discards are shuffled for drawing again; players keep their current hands. Reaching a round-ending total starts a fresh deal for the remaining players, resetting the pile total, not their token balances.")),
-        rule_section(:cards, _("How the cards change the total"),
-          _("Cards 3 through 8 add their face value, 9 leaves the total unchanged, and queens and kings add 10. A 10 adds or subtracts 10; an ace adds 1 or 11. Enter on a 10 or ace opens its available choices, and subtracting below zero is never offered."),
-          _("A 2 doubles the total, except that an even total above 49 is halved. A jack skips the next player; with two players it therefore gives the same player another turn. A 4 reverses direction when at least three players remain."),
-          _("A jack does not add points. A four still adds four when it reverses direction. The ace and ten choices are made before playing the card; the program never permits a negative pile.")),
-        rule_section(:thresholds, _("33, 66, 99 and elimination"),
-          _("Making the total exactly 33 or 66 by increasing it costs every other active player 1 token. Jumping upward across either of those totals costs the player who played the card 1 token for each crossed threshold."),
-          _("Making exactly 99 wins the round and costs every other active player 2 tokens. Exceeding 99 loses the round and costs the player 2 additional tokens, as well as any penalties for crossing 33 or 66 during that play."),
-          _("A player may remain active with zero tokens. Elimination occurs only when the player later owes more tokens than are available. When one active player remains, that player wins the game."),
-          _("The 33/66 penalty for opponents requires an increase, including doubling 33 to 66. Subtracting from 43 to 33 or from 76 to 66 does not trigger it; neither does leaving the total unchanged with a nine. Exactly paying a penalty can leave you at zero without eliminating you.")),
-        rule_section(:options, _("Starting tokens and computer knowledge"),
-          _("The number of starting tokens is configurable and defaults to 9. Omniscient bots is an optional challenge mode in which computers can see every player's current hand while planning; it is deliberately unfair and is off by default. Ordinary bots infer hidden cards from their own hand and public play."),
-          _("Card effects and token penalties remain the same in both bot modes.")),
-        rule_section(:controls, _("Cards and information"),
-          _("Use the Arrow keys to browse your hand and press Enter to play a card. Enter on an ace or 10 opens its value choices; Escape from that choice returns to the hand. Replacement cards are drawn automatically."),
-          _("T reads the turn, H your hand, C the pile total and S everyone's remaining tokens. The automatic replacement draw needs no extra key."))
+        rule_section(:tokens, GameRoomRules.translate("Three cards and one shared total"),
+          GameRoomRules.translate("In 99, two to eight players change a shared total by playing cards. You want to protect your tokens and make other players lose theirs. Each round starts with three cards per player and a total of zero. After your play, if the round continues, you automatically receive a replacement card."),
+          GameRoomRules.translate("The dealer changes between rounds, and the next active player starts. Seven or eight players use two decks. When the drawing pile runs out, discards are shuffled back in; this does not replace the cards people are holding. A new round deals new hands and resets the shared total, but token balances carry over.")),
+        rule_section(:cards, GameRoomRules.translate("What your card will do"),
+          GameRoomRules.translate("Cards from 3 to 8 add their printed value. Queens and kings add 10. A nine leaves the total unchanged, which can be useful when adding points would be dangerous."),
+          GameRoomRules.translate("An ace gives you a choice of adding 1 or 11. A ten lets you add or subtract 10, but you cannot go below zero. The game asks for that choice before playing the card."),
+          GameRoomRules.translate("A two normally doubles the total. However, if the total is even and greater than 49, it halves it instead: 60 becomes 30. A jack adds 10 and skips the next player. With two players, this gives its author another turn. A four still adds four, but also reverses direction when at least three players remain.")),
+        rule_section(:thresholds, GameRoomRules.translate("The important totals: 33, 66 and 99"),
+          GameRoomRules.translate("Increasing the total to exactly 33 or 66 makes every other active player lose one token. Jumping upwards past one of these thresholds makes you lose one token instead. Crossing both costs you two. For example, going from 30 to 33 charges your opponents, while going from 30 to 35 charges you."),
+          GameRoomRules.translate("These penalties depend on an increase. Subtracting from 43 to 33, or leaving 33 unchanged with a nine, does not charge anyone. Doubling 33 to 66 does count as an increase to an exact threshold."),
+          GameRoomRules.translate("Making exactly 99 wins the round and costs every other active player two tokens. Going above 99 loses the round and costs you two additional tokens, on top of any 33 or 66 crossing penalties from that play. The next round then starts with the players still in the game."),
+          GameRoomRules.translate("Zero tokens does not itself eliminate you. You drop out only when a later penalty costs more than you can pay. If you have one token and lose one, you stay; if you must then pay another, you are out. The last active player wins the game.")),
+        rule_section(:options, GameRoomRules.translate("Tokens and bot knowledge"),
+          GameRoomRules.translate("Starting tokens defaults to 9 and can be changed to another positive number. Omniscient bots is off by default. Enabling it deliberately lets bots see all current hands while deciding their moves; ordinary bots use their own cards and public play. It changes the information available to the bot, not card effects or penalties.")),
+        rule_section(:controls, GameRoomRules.translate("Playing a card"),
+          GameRoomRules.translate("Shift+C: sort by suit; Shift+H: sort by rank. Press the same shortcut again to reverse that order. Shift+M restores receipt order. Sorting changes only your view and keeps the selected physical card; it does not alter card strength or select a move."),
+          GameRoomRules.translate("Z and Shift+Z visit playable cards. They only move the cursor when the card requires a value choice, such as an ace or ten."),
+          GameRoomRules.translate("Arrows: browse your hand. Enter: play the selected card, or choose the value of an ace or ten. Escape: leave that choice without playing."),
+          GameRoomRules.translate("H: your hand. C: shared total. S: everyone's tokens. T: whose turn it is. Replacement cards are drawn automatically."))
       ]
     end
 
@@ -289,10 +293,16 @@ module GameRoomGames
       [:invalid_card_choice, nil]
     end
 
+    def hand_sorting_available?(replay, viewer)
+      !hand_for(replay.state, viewer).to_a.empty?
+    end
+
     def surface_spec(replay, viewer)
       state = replay.state
       cards = hand_for(state, viewer).to_a.sort_by { |card| card_sort_key(card) }.map do |card|
-        card_surface_card(card, state[:total])
+        item = card_surface_card(card, state[:total])
+        item.sort_keys = standard_hand_sort_keys(rank: card_rank(card), suit: card_suit(card), position: hand_for(state, viewer).index(card))
+        item
       end
       hand = GameSurfaces::CardTableSpec.new(
         zones: [

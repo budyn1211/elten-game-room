@@ -186,32 +186,33 @@ module GameRoomGames
     end
 
     def rule_sections
+      # Generated from docs/rulebooks/spades.json; see tools/compile-rulebooks.rb.
       [
-        rule_section(:contracts, _("Declarations and partnerships"),
-          _("Win rounds of tricks, fulfil your declarations and become the unique player or team at or above the table's score limit. The default winning score is 300 points; a tie for first place continues the game."),
-          _("Spades is played by 3 to 6 players. Individual play is the default. Four players may form two teams of two. Six players may form three teams of two or two teams of three. At 3 and 5 players the game is individual."),
-          _("With 3 players one 2 is removed and everyone receives 17 cards. With 4 players the complete deck gives 13 cards each. With 5 players two 2s are removed and everyone receives 10 cards. With 6 players all 2s are removed and everyone receives 8 cards."),
-          _("The dealer changes every round. The player to the dealer's left begins both bidding and the first trick. For team games, the table master may accept the alternating seat arrangement or assign every human and computer to a valid team before starting.")),
-        rule_section(:tricks, _("Bidding, following suit and trump"),
-          _("Each player declares from zero up to the number of cards in hand. Bids do not have to exceed earlier bids. In a team, the ordinary bids of partners combine into one contract; a zero bid remains an individual nil."),
-          _("The first card sets the led suit. You must follow that suit when possible, except that you may withhold the ace of spades when it is your only spade. Otherwise you may play any card, including a spade. The highest spade wins the trick; if no spade was played, the highest card of the led suit wins. Aces are high and 2s are low."),
-          _("Spades are always trump. You may not lead a spade until one has been used to trump another suit, unless your hand contains only spades. The winner of a trick leads the next one.")),
-        rule_section(:points, _("Contracts, nils and overtricks"),
-          _("In standard scoring, making a regular contract gives 10 points for every bid trick plus 1 point for every overtrick. Missing it gives minus 10 times the bid. Overtricks are already part of the displayed score; every accumulated tenth overtrick also causes a 100 point penalty."),
-          _("A successful nil, a bid of zero with no tricks won, gives 100 points. A failed nil costs 100 points, and its tricks become overtricks in standard play. In a team, a nil is scored separately and its tricks do not help the partner's ordinary contract."),
-          _("With 3 or 4 players, making a bid of 1 or 2 exactly gives a 20 point bonus. Large successful bids receive another 10 points for each level beginning at 10, 7, 6 or 5 with respectively 3, 4, 5 or 6 players."),
-          _("After every round the scores are updated and another deal begins automatically while no unique leader has reached the selected limit. Once there is such a leader, that player or team wins the game.")),
-        rule_section(:variants, _("No Hell, Quicksand and Suicide"),
-          _("No Hell and Suicide cannot be enabled together."),
-          _("No Hell prevents the last bidder from making the sum of all bids equal the number of tricks in the round."),
-          _("Quicksand changes regular contract scoring. An exact contract gives 10 times the bid. Every overtrick costs 10 points, and a missed contract costs 10 points for every missing trick. There are no persistent bags. Nil still gives or costs 100 points, but a failed nil creates no bags."),
-          _("Suicide is available only to teams of two. At least one partner on every team must bid nil, while a nonzero bid must be at least 4. Both partners may bid nil. It changes bidding requirements, not the selected scoring system."),
-          _("No Hell, Quicksand and Suicide are off by default. Quicksand takes precedence over standard contract bonuses and bag scoring when enabled. The score limit must be positive and defaults to 300. Team arrangement is Individual by default; team membership is chosen before the game and partners share a score.")),
-        rule_section(:computers, _("Computer opponents"),
-          _("Omniscient bots is an optional challenge mode in which computers know all hands while planning. It is deliberately unfair and is off by default. Ordinary computers infer hidden cards only from their own hand and public play.")),
-        rule_section(:controls, _("Bidding and inspecting a trick"),
-          _("Use the Arrow keys to browse your hand and press Enter to play the current card. During your bid, press B, enter a number and confirm it. Outside bidding, B reads all declarations."),
-          _("Press T for the current turn, S for scores and bags, C to read the cards on the table, Ctrl+C to browse them, F for the led suit, I for your own round information, and V for every player's round information. Trick progress is read as tricks won over tricks bid, for example 3/5."))
+        rule_section(:contracts, GameRoomRules.translate("Promise a number of tricks, then try to take them"),
+          GameRoomRules.translate("A trick is one card played by each player in turn. One player wins those cards and starts the next trick. In Spades, you first promise how many tricks you will win. Taking too few is expensive, but taking far too many can hurt as well. Spades are always trumps: they beat cards of the other suits."),
+          GameRoomRules.translate("Game Room supports three to six players. Three players receive 17 cards each after removing one two; four receive 13 from the full deck; five receive 10 after removing two twos; six receive eight after removing all twos. Cards rank from two up to ace. The dealer rotates, and the next player starts both bidding and the first trick."),
+          GameRoomRules.translate("Individual play is the default. Four players may form two pairs; six may form three pairs or two teams of three. At three or five players everyone plays individually. Teams share a score. Their members are assigned before starting, using the proposed alternating seats or the master's chosen valid arrangement."),
+          GameRoomRules.translate("Each player declares a number from zero to the size of their hand. You do not have to outbid the previous player. In a team, partners' positive declarations add together into one contract. A declaration of zero, called nil, remains that person's separate promise to win no tricks.")),
+        rule_section(:tricks, GameRoomRules.translate("Following suit and breaking spades"),
+          GameRoomRules.translate("The first card of a trick sets its suit. You must follow that suit if you can. Game Room has one exception: if the ace is your only spade, you may keep it when spades are led and play another suit instead. When you cannot follow suit, you may play any card; you are not forced to use a trump."),
+          GameRoomRules.translate("The highest spade wins. If nobody played a spade, the highest card of the led suit wins. A high card in another suit does not win merely because it is high. For example, an ace of hearts cannot beat a low club in a club-led trick unless hearts were the led suit instead."),
+          GameRoomRules.translate("You cannot lead with a spade until someone has used a spade on a trick led in another suit. This is called breaking spades. If your hand contains only spades, you may lead one anyway. Whoever wins a trick chooses the first card of the next.")),
+        rule_section(:points, GameRoomRules.translate("Contracts, nils and bags"),
+          GameRoomRules.translate("Under normal scoring, meeting a positive contract earns ten points per promised trick and one per extra trick. Missing the contract loses ten times the whole bid. A bid of four with five tricks therefore gives 41, while the same bid with three tricks gives minus 40, before any other bonuses or bag penalties."),
+          GameRoomRules.translate("Extra tricks are called bags. They are already included in the score, but accumulate between deals: each set of ten also costs 100 points. A successful nil gives 100. Taking even one trick after declaring nil costs 100; in normal scoring its tricks also become bags. A failed nil's tricks do not help a partner fulfil an ordinary contract."),
+          GameRoomRules.translate("There are also contract bonuses. With three or four players, a contract of one or two made exactly gives 20 extra points. A successful large contract adds ten per level starting at ten with three players, seven with four, six with five or five with six. For example, a four-player contract of eight earns an extra 20 for reaching levels seven and eight."),
+          GameRoomRules.translate("The target score is a positive number, normally 300. Scores are checked after the deal. A sole leader at or above the target wins; a tie for first place means another deal. In a team game compare team scores, not individual tricks.")),
+        rule_section(:variants, GameRoomRules.translate("Changing the kind of challenge"),
+          GameRoomRules.translate("No Hell prevents the last bidder from making the sum of all declarations equal the number of tricks available. Someone will therefore miss a contract or take extra tricks. It is off by default."),
+          GameRoomRules.translate("Quicksand replaces the normal contract calculation. An exact contract gives ten times the bid, each extra trick subtracts ten, and a missed contract costs ten for each missing trick. There are no accumulated bags or the normal small- and large-contract bonuses. Nil still gives or costs 100. This option is off by default."),
+          GameRoomRules.translate("Suicide is for teams of two. At least one partner in each pair must declare nil; both may do so. A positive bid must be at least four. It changes bidding, not the chosen scoring system. Suicide is off by default and cannot be combined with No Hell."),
+          GameRoomRules.translate("Omniscient bots, off by default, deliberately gives bots knowledge of every current hand. Ordinary bots use their own cards and public play. The mode does not change what cards people are allowed to play.")),
+        rule_section(:controls, GameRoomRules.translate("Bidding and playing"),
+          GameRoomRules.translate("Shift+C: sort by suit; Shift+H: sort by rank. Press the same shortcut again to reverse that order. Shift+M restores receipt order. Sorting changes only your view and keeps the selected physical card; it does not alter card strength or select a move."),
+          GameRoomRules.translate("Z and Shift+Z visit the next or previous card that can legally be played. With only one unambiguous playable card, the shortcut can play it. It follows the hand's display order, not a strategic recommendation."),
+          GameRoomRules.translate("B during bidding: enter your declaration. Outside bidding: read the declarations. Arrows and Enter: choose and play a card."),
+          GameRoomRules.translate("C: cards in the trick. Ctrl+C: browse them. F: led suit. I: your round progress. V: everyone's round progress, for example 3/5 tricks taken and bid."),
+          GameRoomRules.translate("S: scores and bags. T: whose turn it is."))
       ]
     end
 
@@ -637,6 +638,10 @@ module GameRoomGames
       else
         [:invalid, nil]
       end
+    end
+
+    def hand_sorting_available?(replay, viewer)
+      !hand_for(replay.state, viewer).to_a.empty?
     end
 
     def surface_spec(replay, viewer)
@@ -2512,7 +2517,8 @@ module GameRoomGames
     def card_table_spec(state, viewer)
       hand = hand_for(state, viewer).to_a.sort_by { |card| card_sort_key(card) }
       hand_cards = hand.map do |card|
-        GameSurfaces::Card.new(id: card, label: card_label(card), value: card)
+        GameSurfaces::Card.new(id: card, label: card_label(card), value: card,
+          sort_keys: standard_hand_sort_keys(rank: card_rank(card), suit: card_suit(card), position: hand_for(state, viewer).index(card)))
       end
       GameSurfaces::CardTableSpec.new(
         zones: [

@@ -111,6 +111,26 @@ module GameRoomChangelog
         "New tables require Game Room 2.0 for all participants, so everyone uses the same game rules and table controls. Existing local saved games are retained.",
         "Fixed text encoding in game settings, including a Reversi checkbox crash when Game Room and ELTEN use different interface languages."
       ].freeze
+    ).freeze,
+    Entry.new(
+      version: "2.0.1",
+      build: 229,
+      changes: [
+        "Rewritten the rules of all 23 games in Polish and English, with clearer explanations, examples and descriptions of the variants and settings available in Game Room.",
+        "In-game keyboard shortcuts are now an arrow-key list. During a game, it uses the same current game-field help as F1. Enter or Escape closes the list; rules remain one document with headings.",
+        "Receiving new-table notifications no longer waits for disk writes, removing one source of temporary interface stalls. The occasional record of a handled table is saved in the background.",
+        "New-table notifications give the owner, game and notification type without repeating New table twice.",
+        "Changing the question or card language in Quiz Party and Taboo keeps focus on the language. Sets update without moving the cursor; use Tab to reach them.",
+        "Card hands support Shift+C to sort by suit or colour, Shift+H by rank, and Shift+M by receipt order. Pressing C or H with Shift again reverses that sorting direction. This covers UNO, Makao, Rummy, Spades, Tysiac, 99 and Poker's exchange hand, preserving each game's default order, the selected card and card packages.",
+        "Makao's F1 help now includes Shift+Enter for adding a card to or removing it from a package.",
+        "Fixed mixed Polish and English text in Taboo's rules and keyboard help. Help follows the interface language, independently of the card language.",
+        "Independent sound effects can play together, including the jack effect and a threshold effect caused by the same move in 99.",
+        "Added sounds for banking points in Farkle, reaching exactly 33 or 66 in 99, and declaring a marriage in Tysiac.",
+        "Replaced the sounds for winning and losing a whole game. A player or team now hears the defeat sound when permanently eliminated, without hearing it again at the end of that game. Round-result sounds are unchanged.",
+        "The Private table checkbox is now part of the table creation form, alongside the game settings, instead of a separate window.",
+        "New games are selected in the widget by default, while saved manual deselections are remembered. Older settings also enable Rummy, Domino, Mexican Train, Scrabble, Taboo and Biblios once.",
+        "Domino and Mexican Train now have distinct sounds for dealing tiles, playing a tile and drawing from the boneyard."
+      ].freeze
     ).freeze
   ].freeze
 

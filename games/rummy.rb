@@ -16,6 +16,10 @@ module GameRoomGames
     ].freeze
 
     def id; "rummy"; end
+    def eliminated_from_game?(replay, viewer)
+      replay.state.fetch(:eliminated, {}).any? { |player, out| out && same_user?(player, viewer) }
+    end
+
     def name; _("Rummy"); end
     def maximum_players; 8; end
     def supports_bots?; true; end

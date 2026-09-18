@@ -33,6 +33,13 @@ module GameRoomGames
       "poker"
     end
 
+    def eliminated_from_game?(replay, viewer)
+      player = player_key(replay.state, viewer)
+      return false unless player && replay.state.fetch(:stacks, {}).key?(player)
+      replay.state[:stacks][player] <= 0 &&
+        ([:hand_complete, :finished].include?(replay.state[:phase]) || hand_for(replay.state, player).empty?)
+    end
+
     def name
       _("Poker")
     end
@@ -54,30 +61,36 @@ module GameRoomGames
     end
 
     def rule_sections
+      # Generated from docs/rulebooks/poker.json; see tools/compile-rulebooks.rb.
       [
-        rule_section(:chips, _("Playing for chips"),
-          _("Two to eight players begin with equal stacks. Starting chips defaults to 1000 and can be 100–100000. Win a hand by having the best five-card combination at showdown or by making everyone else fold. Folded contributions remain in the pot. The dealer moves around the table between hands. Losing all chips eliminates you only after the hand is settled; the last player with chips wins the game.")),
-        rule_section(:holdem, _("Texas Hold'em"),
-          _("The default variant deals two private cards to each player. There are four betting rounds: before the flop, after the three-card flop, after the one-card turn, and after the one-card river. The five table cards are shared. At showdown choose the best five cards from the seven available: both, one or neither of your private cards may be used. The game announces each stage and newly exposed table cards.")),
-        rule_section(:draw, _("Five-card draw"),
-          _("This variant deals five private cards and has no community cards. The first betting round is followed by one exchange phase, a second betting round and showdown. Keep all five or exchange up to three selected cards. Allow exchanging all five cards is off by default; enabling it raises the exchange limit to five, not the number of exchange phases. Folded players do not exchange; all-in players still do."),
-          _("Jacks or better is required to open draw poker is off by default. When enabled, opening the first betting round with a bet requires at least a pair of jacks or any stronger combination. It does not prevent a weaker hand from calling an existing bet and does not apply to the second betting round.")),
-        rule_section(:bet, _("Checking, calling, raising and all-in"),
-          _("Check pays nothing and is available only with nothing to call. Call pays the difference to the current bet, or the rest of your stack if that is smaller. Fold abandons this hand and any chance at its pots. A raise first calls, then increases the bet by at least the previous full raise; the opening minimum is based on the big blind."),
-          _("All-in commits your remaining chips if the betting structure permits it. It does not itself end the game or automatically win the hand. Players with chips still respond. A short all-in below a full raise does not reopen raising for players who already acted, unless cumulative increases reach the required amount. If further betting is impossible, remaining community cards are dealt and the hand is settled."),
-          _("A player can win only the contributions matched by their investment. Larger investments create side pots contested by their contributors who have not folded. Equal best hands split a pot. Combinations from weakest to strongest are high card, pair, two pairs, three of a kind, straight, flush, full house, four of a kind and straight flush. Aces can be low in A-2-3-4-5; suits do not break equal hands. Ranks within the combination, then kickers, decide ties.")),
-        rule_section(:odd_chips, _("Splitting an odd chip"),
-          _("In both variants, distribute any indivisible chips clockwise among tied winners starting to the left of the dealer. Apply this separately to each pot.")),
-        rule_section(:limits, _("Betting structures and the raise cap"),
-          _("No limit, the default, permits any legal raise up to your stack. Pot limit caps the raise above the call at the pot after adding your call. Half-pot limit uses half that amount, but never below the minimum legal raise. Both are capped by your available chips. Fixed limit uses a fixed raise equal to the current big blind at every stage in this implementation; it does not double on later streets."),
-          _("Limit raises per betting round is off by default. When enabled, Maximum raises per betting round defaults to 3 and accepts 1–10. This is the shared count for the whole betting round, not a separate allowance for each player. A new betting round resets it. The interface refuses raises that exceed the structure or cap.")),
-        rule_section(:stakes, _("Blinds, ante and increasing stakes"),
-          _("Small blind is 5 and big blind 10 by default; both must be positive and the big blind at least as large. Hold'em always uses blinds. Five-card draw normally uses an ante of 5 paid by everyone; it must be positive and no larger than the starting stack. Use blinds in five-card draw replaces the ante with blinds. In an ante game the base big-blind value still sets the minimum betting unit."),
-          _("Increase blinds can be Never, after a number of hands, or after a number of minutes. The default is every 5 hands with a multiplier of 2. The interval can be 1–100 hands or minutes; the multiplier 2–10. Increases are applied when a new hand begins, not in the middle of betting. These controls are relevant only when the variant uses blinds.")),
-        rule_section(:controls, _("Betting and inspecting cards"),
-          _("C checks or calls, F folds, A goes all-in. R opens Raise by in both variants. Enter the increase above the call, not the total payment. The default is the minimum legal raise; an invalid amount gives the allowed range. With nothing to call the amount is the opening bet. Escape cancels."),
-          _("S reads your stack, Shift+S the others, V the amount to call, P the total pot, I your investment in this hand, H active and folded players, L the blinds and T the turn. D reads your cards, E community cards and G your best visible combination, including a pair before the flop. G says No combination for high card only, without changing hand ranking. In Hold'em, 1 and 2 read private cards and 3–7 community positions. In draw poker, 1–5 read your five private cards."),
-          _("In draw poker, choose cards with the Arrow keys. Shift+Enter adds or removes cards from the exchange packet, then Enter exchanges it, also including the current card if not already selected. The Keep all cards action completes the exchange phase without discarding anything."))
+        rule_section(:chips, GameRoomRules.translate("Win the pot, keep your chips"),
+          GameRoomRules.translate("Poker is played by two to eight people with a standard 52-card deck. Everyone starts with the same number of chips: 1000 unless the table owner chooses another amount from 100 to 100000. Chips placed during a hand form the pot. You win it either by showing the strongest hand or by being the only player who has not folded."),
+          GameRoomRules.translate("One hand is not the whole game. After its pots have been paid out, players with no chips are eliminated, the dealer position moves on and another hand begins. The last player with chips wins the game. Committing all your chips does not eliminate you while the hand is still being played.")),
+        rule_section(:holdem, GameRoomRules.translate("Texas Hold'em: two cards and a shared board"),
+          GameRoomRules.translate("In the default variant, each player receives two private cards. First you bet without any cards on the board. The flop then reveals three community cards, followed by another betting round. The turn adds one card and another betting round; the river adds the fifth and final community card, followed by the last betting round. The game announces each stage and the newly revealed cards."),
+          GameRoomRules.translate("At showdown, your hand is the best five-card combination you can make from your two cards and the five on the board. You may use both private cards, just one, or neither. For example, if the best five cards are all on the board, everyone still contesting that pot has access to the same combination.")),
+        rule_section(:draw, GameRoomRules.translate("Five-card draw: improve your own hand"),
+          GameRoomRules.translate("Five-card draw has no community cards. Everyone receives five private cards, then plays through a betting round, one exchange and a second betting round. Finally, the remaining hands are compared. During the exchange you may keep everything or replace up to three cards. Allow exchanging all five cards raises that limit to five; it does not add another exchange. Folded players no longer take part, but all-in players may still exchange."),
+          GameRoomRules.translate("The optional Jacks or better rule restricts opening the first betting round: you need at least a pair of jacks or a stronger combination, such as two pairs. Once someone has opened, a weaker hand may call. This restriction does not apply to the second betting round. Both this option and exchanging all five cards are off by default.")),
+        rule_section(:betting, GameRoomRules.translate("What your betting choices mean"),
+          GameRoomRules.translate("Check means paying nothing and staying in the hand; it is possible only when you owe nothing to the current bet. Call pays the difference between your contribution in this betting round and the current bet. Fold gives up the hand: chips already paid stay in the pot and you cannot win them back in this hand. Raise first matches the bet, then increases it for everyone else."),
+          GameRoomRules.translate("R asks for the raise above the call, not the total number of chips you will pay. If you owe 20 and enter 30, you pay 50: 20 to call and 30 to raise. The minimum full raise is the size of the previous full raise, starting from the big-blind unit. With nothing to call, the entered amount is your opening bet. An amount outside the allowed range is rejected without placing a bet."),
+          GameRoomRules.translate("All-in puts in your remaining chips, subject to the betting limits. Other players still have to respond. If you cannot afford a full call, you may call with everything you have. An all-in smaller than a full raise does not normally let players who already acted raise again; several small increases must add up to a full raise before that right returns. If nobody can continue betting, the game completes the board where needed and compares the hands.")),
+        rule_section(:hands, GameRoomRules.translate("Which hand wins?"),
+          GameRoomRules.translate("From weakest to strongest: high card; one pair; two pairs; three of a kind; straight; flush; full house; four of a kind; straight flush. A pair is two cards of one rank. A straight is five consecutive ranks, regardless of suit; a flush is five cards of one suit. A full house combines three of one rank with two of another. A straight flush meets both the straight and flush conditions."),
+          GameRoomRules.translate("When the types match, compare the ranks forming the combination, then the remaining cards, called kickers. Suits never break a tie. An ace is normally high, but A-2-3-4-5 is the lowest straight. G says No combination when you only have a high card; that does not mean your cards are ignored at showdown. Equal best five-card hands split the pot."),
+          GameRoomRules.translate("A small all-in can win only the money matched by that player's contribution. Extra investments form side pots for the other eligible players. For example, with contributions of 50, 100 and 100, the first 150 can be won by all three; the remaining 100 is contested only by the last two. Each pot is settled separately. Any odd chips in a split go clockwise to tied winners, starting to the left of the dealer.")),
+        rule_section(:limits, GameRoomRules.translate("Choosing the betting limits"),
+          GameRoomRules.translate("No limit, the default, allows any legal raise up to your stack. Pot limit allows a raise above the call up to the pot after adding that call. Half-pot limit uses half of that amount, but never sets the ceiling below a minimum legal raise. Your remaining stack is still the final limit. Fixed limit uses a raise equal to the current big blind throughout the hand. Unlike some poker rules, our fixed-limit amount does not double in later betting rounds."),
+          GameRoomRules.translate("You may also enable a cap on raises per betting round. The cap defaults to 3 and can be 1\u201310. It is shared by the whole table, not a separate allowance for every player, and resets when the next betting round starts. Without this option there is no numerical cap on raises.")),
+        rule_section(:stakes, GameRoomRules.translate("Blinds and ante put chips into play"),
+          GameRoomRules.translate("Hold'em uses blinds: forced bets made before seeing the hand develop. The small blind defaults to 5 and the big blind to 10. Both must be positive, and the big blind cannot be smaller. Five-card draw normally uses an ante of 5 from everyone instead. Its amount must be positive and no greater than the starting stack. Use blinds in five-card draw replaces that ante with blinds. Even with ante, the base big-blind value supplies the minimum betting unit."),
+          GameRoomRules.translate("When blinds are used, you can leave them unchanged, increase them after a chosen number of hands, or increase them after a number of minutes. The default doubles them every five hands. The interval accepts 1\u2013100 hands or minutes and the multiplier 2\u201310. A change takes effect only at the start of a new hand, never halfway through a bet.")),
+        rule_section(:controls, GameRoomRules.translate("Poker keys"),
+          GameRoomRules.translate("C: check or call. F: fold. R: enter a raise above the call; Escape cancels. A: all-in."),
+          GameRoomRules.translate("S: your stack. Shift+S: other stacks. V: amount to call. P: total pot. I: your investment in this hand. H: players still in and folded. L: blinds. T: turn."),
+          GameRoomRules.translate("D: your cards. E: community cards. G: your best current combination. In Hold'em, 1\u20132 read private cards and 3\u20137 the board; in draw poker, 1\u20135 read your own cards."),
+          GameRoomRules.translate("During exchange, arrows choose a card and Shift+Enter adds or removes it from the packet. Enter exchanges the packet, including the current card if it was not selected. Keep all cards ends the exchange without replacing any. Shift+C, Shift+H and Shift+M sort that hand by suit, rank and receipt order; repeating C or H with Shift reverses its order."))
       ]
     end
 
@@ -237,13 +250,20 @@ module GameRoomGames
       [:invalid_exchange, nil]
     end
 
+    def hand_sorting_available?(replay, viewer)
+      replay.state[:phase] == :exchange && same_user?(replay.current_player, viewer)
+    end
+
     def surface_spec(replay, viewer)
       state = replay.state
       if state[:phase] == :exchange && same_user?(state[:current_player], viewer)
         cards = hand_for(state, viewer).sort_by { |card| playing_sort_key(card) }.map do |card|
-          GameSurfaces::Card.new(id: card, label: poker_card_label(card), value: card)
+          GameSurfaces::Card.new(id: card, label: poker_card_label(card), value: card,
+            sort_keys: standard_hand_sort_keys(rank: card[0], suit: card[1], position: hand_for(state, viewer).index(card)))
         end
         packet = GameSurfaces::PacketCardSpec.new(id: "poker_exchange", header: _("Choose cards to exchange"),
+          packet_tip: _("Press Shift+Enter to select or unselect the current card for exchange."),
+          activation_tip: _("Press Enter to exchange the current card or the selected cards."),
           cards: cards, action_name: "exchange", allow_packet: true, empty_label: _("No cards"),
           hand_order: hand_for(state, viewer).dup, hand_epoch: [viewer, state[:hand_number]].join(":"))
         stand_pat = GameSurfaces::CommandPanelSpec.new(commands: [

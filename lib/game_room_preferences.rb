@@ -6,6 +6,13 @@ module GameRoomPreferences
     "game" => "game_sounds", "room" => "room_membership_sounds",
     "chat" => "chat_sounds", "notifications" => "invitation_sounds"
   }.freeze
+  # Old widget settings stored only the checked games. Treat the pre-2.0
+  # catalogue as known so old opt-outs survive; the six 2.0 additions (and
+  # later games) start checked. The user approved this one-time migration.
+  LEGACY_WIDGET_GAME_IDS = %w[
+    four_in_a_row tic_tac_toe chess checkers reversi ludo spades farkle
+    ninety_nine tysiac categories monopoly yahtzee uno poker makao quiz
+  ].freeze
 
   module_function
 
@@ -25,6 +32,7 @@ module GameRoomPreferences
       "invitation_sounds" => true,
       "widget_enabled" => true,
       "widget_games" => games.dup,
+      "widget_known_games" => games.dup,
       "widget_show_unavailable" => false
     }
   end
@@ -53,7 +61,7 @@ module GameRoomPreferences
 
     allowed_games = normalized_game_ids(game_ids)
     result["lobby_games"] = selected_games(source, "lobby_games", allowed_games)
-    result["widget_games"] = selected_games(source, "widget_games", allowed_games)
+    result["widget_games"], result["widget_known_games"] = widget_selection(source, allowed_games)
     result["invitation_notifications"] = normalized_invitation_policy(result["invitation_notifications"])
     %w[
       game_sounds
@@ -139,6 +147,22 @@ module GameRoomPreferences
     allowed.select { |game_id| requested.include?(game_id) }
   end
   private_class_method :selected_games
+
+  def widget_selection(source, allowed)
+    known = if source["widget_known_games"].is_a?(Array)
+      normalized_game_ids(source["widget_known_games"])
+    elsif source.key?("widget_games")
+      LEGACY_WIDGET_GAME_IDS
+    else
+      allowed
+    end
+    selected = selected_games(source, "widget_games", allowed)
+    # Keep this a pure read: widget refreshes and notification mapping must
+    # not write settings. Settings Save persists both the choices and known
+    # catalogue, so unchecking a new game is not undone on the next load.
+    [allowed.select { |id| selected.include?(id) || !known.include?(id) }, (known + allowed).uniq]
+  end
+  private_class_method :widget_selection
 
   def duplicate(value)
     value.is_a?(Array) || value.is_a?(Hash) ? value.dup : value

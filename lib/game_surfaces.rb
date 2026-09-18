@@ -1,4 +1,5 @@
 require_relative "game_surfaces/card_hand_cursor"
+require_relative "game_surfaces/card_sorting"
 require_relative "game_room_ui"
 
 module GameSurfaces
@@ -588,6 +589,7 @@ module GameSurfaces
   end
 
   class CardTable
+    include CardSorting
     include ActionEmitter
 
     attr_reader :command_field_index
@@ -828,6 +830,7 @@ module GameSurfaces
 
       @card_sort_mode = mode
       @card_sort_direction = direction
+      @cursor_announcements.clear
       message = payload["#{direction}_message"] || payload["message"] || payload[:message]
       speak(message.to_s) if !message.to_s.empty?
       true
@@ -886,29 +889,6 @@ module GameSurfaces
       control.announce_current_card
       @command_field_index = zone_index
       true
-    end
-
-    def sorted_hand?
-      !@card_sort_mode.empty? && @card_sort_mode != "none"
-    end
-
-    def sorted_cards(cards, mode, direction = @card_sort_direction)
-      return cards if mode.to_s.empty?
-
-      sorted = cards.each_with_index.sort_by do |card, index|
-        key = card_sort_keys(card)[mode.to_s]
-        key == nil ? [1, index] : [0, *key.to_a, card_id(card)]
-      end.map(&:first)
-      direction == "descending" ? sorted.reverse : sorted
-    end
-
-    def card_sort_keys(card)
-      value = if card.respond_to?(:sort_keys)
-        card.sort_keys
-      elsif card.respond_to?(:key?)
-        card["sort_keys"] || card[:sort_keys]
-      end
-      value.respond_to?(:key?) ? value : {}
     end
 
     def shifted_choice(card, choices)

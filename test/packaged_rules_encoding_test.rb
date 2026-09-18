@@ -230,7 +230,7 @@ EltenGameRoom.instance_variable_set(:@table_watch_receiver, binary_receiver)
 EltenGameRoom.define_singleton_method(:normalized_settings) { { "invitation_sounds" => false } }
 raise "Binary receiver rejected server ID" unless binary_receiver.visible?(binary_notice)
 binary_presentation = EltenGameRoom.map_notification(binary_notice)
-raise "Binary notice lost translated text" unless binary_presentation[:body] == "Nowy stół: 99, Łucja"
+raise "Binary notice lost translated text" unless binary_presentation[:title] == "Łucja, 99" && binary_presentation[:body] == "Nowy stół"
 raise "Binary notice lost action" unless binary_presentation[:action] == :open_new_table
 binary_widget_worker = Object.new
 binary_widget_worker.define_singleton_method(:closed?) { false }

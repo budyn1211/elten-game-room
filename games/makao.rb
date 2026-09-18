@@ -41,27 +41,34 @@ module GameRoomGames
     end
 
     def rule_sections
+      # Generated from docs/rulebooks/makao.json; see tools/compile-rulebooks.rb.
       [
-        rule_section(:matching, _("Matching cards and playing packets"),
-          _("Two to eight players use a standard 52-card deck, optionally with two jokers. Everyone receives five cards by default. The first table card is not a two, three, four, ace, king or joker. Play goes in one fixed direction from the player after the dealer. The first player to empty their hand wins immediately."),
-          _("Play one card or an ordered packet of equal ranks. The first card must match the current suit or rank, or qualify under an active special rule. Later cards in the same packet may have different suits but must have the same rank; a joker can represent that rank. The packet is a single move. Its order matters because the last card determines the resulting table state."),
-          _("With no legal starting card, draw one. If the drawn card is playable and Draw responses is enabled, you may play it in this turn, including a matching packet, or pass. Otherwise the turn passes automatically. You cannot draw voluntarily while already holding a playable card, and paying a draw penalty always ends the turn. If the deck runs out, discards except the current top card are recycled.")),
-        rule_section(:penalties, _("Twos, threes, fours and kings"),
-          _("Each two adds two penalty cards and each three adds three. Twos and threes may answer each other is on in the ready-made profiles: the debt accumulates, for example two plus three means five. With this option off, only another card of the same attacking rank answers. A player with no legal defence automatically draws the full debt and ends the turn."),
-          _("A four requires waiting. With Fours accumulate skipped turns enabled, answer with another four or a packet of fours to pass on the increased number. Whoever accepts waits exactly that many turns, including the current one, and is automatically skipped on later waiting turns. With accumulation off, a four causes one missed turn and cannot be answered with another four."),
-          _("A draw attack always targets the next seat and never rebounds to its author. A player who is already waiting cannot defend against a two, three, attacking king or equivalent joker: the cards are drawn automatically and that resolution consumes one waiting turn."),
-          _("With Attacking kings enabled, the king of spades attacks the next player with five cards. The king of hearts answers that king attack and adds another five, so the next player owes ten. It does not reverse the direction. The other kings are ordinary matching cards. King penalties are separate from the two/three family.")),
-        rule_section(:special, _("Suit changes, requests, queens and jokers"),
-          _("Ace changes suit lets an ace be played on any ordinary table card and opens the choice of a suit. It does not cancel a pending draw or waiting penalty. If disabled, aces only match normally. Jack requests a rank from 5 to 10 makes a played jack request one of those ranks from the next player. With it off, jacks are ordinary cards."),
-          _("Queen is universal allows a queen to start a normal move regardless of the table card. A queen does not defend against a pending penalty. Use two jokers adds two cards which can represent any ordinary or special card; choose the represented card when playing. A joker defending a penalty must represent a card that can actually defend it, not an arbitrary card. Representing an ace or king uses its enabled special effect.")),
-        rule_section(:profiles, _("Ready-made profiles and your own rules"),
-          _("Simple Makao is the default: no jokers, mixing two/three penalties, cumulative fours, suit-changing aces and playing a drawn card are enabled; jack requests, universal queens and attacking kings are disabled. Polish extended Makao adds those three features, still without jokers. Makao with jokers adds two jokers and attacking kings to the simple profile, fixes the deal at five cards, and leaves jack requests and universal queens off."),
-          _("Custom rules exposes every special-rule switch described above: jokers, mixed twos/threes, cumulative fours, ace suit changes, jack requests, universal queens, attacking kings and playing a drawn card. These values are remembered locally for the next custom table, not imposed on other people's tables. Cards dealt to each player can be 3–15, default 5, except in the fixed joker profile. The chosen player count and hand size must leave a card for the table."),
-          _("Cards drawn for missing Makao defaults to 1, from 1 to 10, in every profile. Say Makao once your hand contains one card. Another player may catch the omission before your next turn and make you draw this many cards. Playing your last card ends the game; there is no points-elimination tournament in this implementation."),
-          _("The shared bot move delay defaults to one second in Makao. You may announce or catch Makao during the computer's turn, including its waiting time.")),
-        rule_section(:controls, _("Preparing and playing a packet"),
-          _("Arrow keys browse your hand. Enter plays the current card, or the prepared packet, opening any required declaration list. Shift+Enter adds or removes a card from the packet in selection order; Enter also includes the current card if it is not selected yet. P reads the prepared packet in selection order; Shift+P clears it. Space draws, or ends the turn after an ordinary draw. If you cannot defend against a draw or waiting penalty, the game accepts it automatically."),
-          _("C reads the table card and declaration, G the pending penalty, T the turn, E card counts and D your hand. U says Makao, Shift+U catches another player. A declaration or catch does not require your ordinary turn."))
+        rule_section(:matching, GameRoomRules.translate("Get rid of your hand"),
+          GameRoomRules.translate("Makao is for two to eight players. The first person with an empty hand wins the game. You normally begin with five cards from a standard deck, with two jokers added only in the appropriate profile. The first card on the table is not a two, three, four, ace, king or joker. Play starts after the dealer and continues in one fixed direction."),
+          GameRoomRules.translate("On your turn, play a card matching the suit or rank of the table card. For example, on an eight of hearts you may play another heart or an eight of another suit. Some special cards can change this rule. A pending penalty or requested rank can also restrict what you may play."),
+          GameRoomRules.translate("You can play several cards as one packet if they share a rank. Only its first card has to start a legal move; later cards may be of other suits. Choose the order deliberately, because the last card becomes the new table card. A packet is one move, not several turns, and a joker must represent the same rank as the rest."),
+          GameRoomRules.translate("When you have no legal starting card, draw one. If it is playable and playing a drawn card is enabled, you can use it immediately, also as part of a packet, or end your turn. Otherwise the turn ends automatically. You cannot draw voluntarily when you already have a legal card. If the drawing pile runs out, discards other than the top card are recycled.")),
+        rule_section(:penalties, GameRoomRules.translate("Drawing penalties and waiting turns"),
+          GameRoomRules.translate("A two adds two cards to the next player's penalty, and a three adds three. Instead of paying, the attacked player can answer with a permitted attacking card. The debt then passes on and grows. With mixed twos and threes enabled, a two answered by a three makes five cards. With it disabled, the responding rank must match the attack."),
+          GameRoomRules.translate("If you have no legal defence, the program takes the whole drawing penalty for you and ends your turn. A drawing attack targets the next seat, including a player who is waiting after a four. A waiting player cannot defend: they draw automatically, using up one of their waiting turns. The attack does not bounce back to its author merely because the next player is waiting."),
+          GameRoomRules.translate("A four makes the next player wait. With accumulating fours enabled, another four or a packet of fours passes on a larger waiting penalty. The player who accepts it waits that many turns, including the current one; later waiting turns are skipped automatically. If accumulation is disabled, a four simply skips one turn and cannot be answered by another four."),
+          GameRoomRules.translate("Attacking kings introduces a separate five-card attack. The king of spades starts it; the king of hearts can answer it and add five more. Thus spades followed by hearts makes the next player draw ten, unless they defend again. It does not reverse play. The other kings are ordinary cards, and a king attack is not combined with a two-or-three attack.")),
+        rule_section(:special, GameRoomRules.translate("Changing the card that others must follow"),
+          GameRoomRules.translate("Ace changes suit lets you start an ordinary move with an ace regardless of the table card and choose a suit. It is not a way out of a pending drawing or waiting penalty. With the option off, an ace follows the ordinary matching rule."),
+          GameRoomRules.translate("Jack requests a rank lets the player using a jack request a value from five to ten. The next player must meet that request rather than merely follow suit. With the option off, jacks are ordinary matching cards. Queen is universal separately lets a queen start an ordinary move on any table card, but it does not defend a pending penalty."),
+          GameRoomRules.translate("Use two jokers adds two cards that can represent an ordinary or special card. You choose what the joker represents when playing it. It only defends a penalty if the represented card would be a legal defence. Representing an ace, jack or king uses its special effect only when that effect is enabled at the table.")),
+        rule_section(:profiles, GameRoomRules.translate("Choose a profile, or make your own"),
+          GameRoomRules.translate("Simple Makao is the default. It enables mixed twos and threes, accumulating fours, suit-changing aces and playing a drawn card. There are no jokers, jack requests, universal queens or attacking kings. Polish extended Makao adds jack requests, universal queens and attacking kings, but still no jokers."),
+          GameRoomRules.translate("Makao with jokers adds two jokers and attacking kings to the simple rules. Jack requests and universal queens stay off, and the starting hand is fixed at five. Custom rules lets you set each of these eight switches yourself. The custom choices are remembered locally for your next custom table; they do not change another person's room."),
+          GameRoomRules.translate("Outside the fixed joker profile, the starting hand can have three to fifteen cards, normally five. There must be enough cards for all players and the first table card. The penalty for forgetting Makao is independent of the profile: one to ten cards, normally one."),
+          GameRoomRules.translate("When one card remains, announce Makao. Another player may catch an omission before your next turn and make you draw the configured penalty. You can announce or catch Makao during someone else's turn, including a bot's delay. Playing your last card wins immediately; this game does not run a points-elimination tournament.")),
+        rule_section(:controls, GameRoomRules.translate("Cards and packets"),
+          GameRoomRules.translate("Shift+C: sort by suit; Shift+H: sort by rank. Press the same shortcut again to reverse that order. Shift+M restores receipt order. Sorting changes only your view and keeps the selected physical card; it does not alter card strength or select a move."),
+          GameRoomRules.translate("Z and Shift+Z visit legal cards. A sole ordinary play may happen automatically, but a declaration, an actual alternative packet or an already prepared packet requires your decision. Sorting never changes the order of cards you selected for a packet."),
+          GameRoomRules.translate("Arrows: browse cards. Enter: play the current card or prepared packet, choosing a declaration if needed."),
+          GameRoomRules.translate("Shift+Enter: add or remove the current card from the packet. Selection order is play order. Enter also includes the current card if it was not selected. P reads the packet; Shift+P clears it."),
+          GameRoomRules.translate("Space: draw, or end the turn after an ordinary draw. U: announce Makao. Shift+U: catch a missing Makao."),
+          GameRoomRules.translate("C: table card and declaration. G: pending penalty. D: your hand. E: card counts. T: whose turn it is."))
       ]
     end
 
@@ -284,6 +291,10 @@ module GameRoomGames
       [:invalid_packet, nil]
     end
 
+    def hand_sorting_available?(replay, viewer)
+      !hand_for(replay.state, viewer).to_a.empty?
+    end
+
     def surface_spec(replay, viewer)
       state = replay.state
       cards = hand_for(state, viewer).sort_by { |card| makao_sort_key(card) }.map do |card|
@@ -291,9 +302,11 @@ module GameRoomGames
           GameSurfaces::CardChoice.new(id: choice, label: choice_label(choice), value: choice)
         end
         GameSurfaces::Card.new(id: card, label: makao_card_label(card), value: card, choices: choices,
+          sort_keys: standard_hand_sort_keys(rank: card_rank(card), suit: card_suit(card), position: hand_for(state, viewer).index(card)),
           choice_header: joker?(card) ? _("Choose the card represented by the joker") : card_rank(card) == "A" ? _("Choose a suit") : _("Choose the requested rank"))
       end
       packet = GameSurfaces::PacketCardSpec.new(id: "makao_hand", header: same_user?(state[:current_player], viewer) ? _("Your hand") : _("Waiting for %{player}") % { player: participant_name(state[:current_player]) },
+        activation_tip: _("Press Enter to play the current card or the prepared packet."),
         cards: cards, action_name: "play", allow_packet: true, empty_label: _("Your hand is empty"),
         hand_order: hand_for(state, viewer).dup, hand_epoch: [viewer, state[:seed]].join(":"))
       return packet if state[:skip_penalty].to_i <= 0 || !same_user?(state[:current_player], viewer)

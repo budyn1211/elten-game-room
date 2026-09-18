@@ -11,11 +11,18 @@ module GameRoomSounds
     shuffle
     draw
     draw2
+    domino_refill
+    domino_move_tile
+    domino_take_chip
     farkle
+    farkle_bank
+    ninety3366
+    1000_mariage
     hit1
     interception
     lose1
     lose3
+    lose_party
     play
     play2
     replay
@@ -25,6 +32,7 @@ module GameRoomSounds
     skip
     win1
     win2
+    win_party
   ].freeze
 
   class MembershipTracker
@@ -132,9 +140,14 @@ module GameRoomSounds
       return "shuffle" if action == "deal"
       return nil if action != "play"
 
-      _mode, card = event["value"].to_s.split("|", 2)
+      mode, card = event["value"].to_s.split("|", 2)
       trump = after_replay&.state.to_h[:trump].to_s
-      !trump.empty? && card.to_s.end_with?(trump) ? ["play", "draw2"] : "play"
+      cues = ["play"]
+      cues << "draw2" if !trump.empty? && card.to_s.end_with?(trump)
+      if mode == "marriage" && history_for_event(after_replay, event, repository).any? { |entry| entry.kind == :play }
+        cues << "1000_mariage"
+      end
+      cues
     when "ninety_nine"
       ninety_nine_cue(event, before_replay, after_replay, viewer)
     when "farkle"
@@ -174,10 +187,12 @@ module GameRoomSounds
       end
     when "rummy", "domino", "mexican_train"
       entries = history_for_event(after_replay, event, repository)
+      deal_sound, draw_sound, play_sound = game.id.to_s == "rummy" ?
+        %w[shuffle draw play] : %w[domino_refill domino_take_chip domino_move_tile]
       cues = []
-      cues << "shuffle" if entries.any? { |entry| entry.kind == :deal }
-      cues << "draw" if entries.any? { |entry| entry.kind == :draw }
-      cues << "play" if entries.any? { |entry| entry.kind == :play }
+      cues << deal_sound if entries.any? { |entry| entry.kind == :deal }
+      cues << draw_sound if entries.any? { |entry| entry.kind == :draw }
+      cues << play_sound if entries.any? { |entry| entry.kind == :play }
       result = entries.find { |entry| entry.kind == :round_result }
       if result && !result.actor.to_s.empty? && GameRoomParticipants.includes?(after_replay.players, viewer)
         winners = result.value.is_a?(Array) ? result.value : [result.actor]
@@ -233,14 +248,24 @@ module GameRoomSounds
   end
 
   def result_cue(game, before_replay, after_replay, viewer)
-    return nil if after_replay == nil || !after_replay.finished?
-    return nil if before_replay != nil && before_replay.finished?
-    return nil if after_replay.winner == nil
+    # Initial reconstruction is silent. Permanent elimination is a transition,
+    # not a property to announce again for every later move or final result.
+    return nil if before_replay == nil || after_replay == nil || before_replay.finished?
     return nil if !GameRoomParticipants.includes?(after_replay.players, viewer)
+    return nil if game.respond_to?(:eliminated_from_game?) && game.eliminated_from_game?(before_replay, viewer)
 
-    game.bot_reward(after_replay, viewer).to_f > 0 ? "win2" : "lose3"
-  rescue StandardError
-    GameRoomParticipants.same?(after_replay.winner, viewer) ? "win2" : "lose3"
+    # Resolve the final result first: a limit crossed on the final event may
+    # still produce a winner (or a tie), depending on the game's rules.
+    if after_replay.finished?
+      return nil if after_replay.winner == nil || after_replay.draw
+      reward = begin
+        game.bot_reward(after_replay, viewer).to_f
+      rescue StandardError
+        GameRoomParticipants.same?(after_replay.winner, viewer) ? 1.0 : -1.0
+      end
+      return reward > 0 ? "win_party" : (reward < 0 ? "lose_party" : nil)
+    end
+    "lose_party" if game.respond_to?(:eliminated_from_game?) && game.eliminated_from_game?(after_replay, viewer)
   end
 
   def ninety_nine_cue(event, before_replay, after_replay, viewer)
@@ -252,31 +277,27 @@ module GameRoomSounds
     previous_total = before_replay&.state.to_h.fetch(:total, 0).to_i
     current_total = after_replay&.state.to_h.fetch(:total, previous_total).to_i
     viewer_played = GameRoomParticipants.same?(event["actor"], viewer)
-    primary = if current_total == 99
-      viewer_played ? "win1" : "lose1"
-    elsif current_total > 99
-      viewer_played ? "lose1" : "win1"
-    elsif [33, 66].any? { |limit| previous_total < limit && current_total > limit }
-      "draw2"
-    else
-      card, _mode = event["value"].to_s.split("|", 2)
-      rank = card.to_s[1]
-      if rank == "J"
-        "reverse"
-      elsif rank == "4" && before_replay&.state.to_h.fetch(:eliminated, {}).count { |_player, eliminated| !eliminated } >= 3
-        "reverse3"
-      else
-        "play"
-      end
+    cues = ["play"]
+    card, _mode = event["value"].to_s.split("|", 2)
+    rank = card.to_s[1]
+    cues << "reverse" if rank == "J"
+    if rank == "4" && before_replay&.state.to_h.fetch(:eliminated, {}).count { |_player, eliminated| !eliminated } >= 3
+      cues << "reverse3"
     end
-
-    cues = primary == "play" ? ["play"] : ["play", primary]
+    cues << "draw2" if [33, 66].any? { |limit| previous_total < limit && current_total > limit }
+    cues << "ninety3366" if [33, 66].include?(current_total) && current_total > previous_total
+    cues << (viewer_played ? "win1" : "lose1") if current_total == 99
+    cues << (viewer_played ? "lose1" : "win1") if current_total > 99
     cues << "draw" if action == "play_draw"
     cues
   end
 
   def farkle_cue(event, before_replay, after_replay, repository)
     action = event["action"].to_s
+    if action == "bank"
+      return "farkle_bank" if history_for_event(after_replay, event, repository).any? { |entry| entry.kind == :bank }
+      return nil
+    end
     if action == "roll"
       return ["roll", "farkle"] if history_for_event(after_replay, event, repository).any? { |entry| entry.kind == :farkle }
 

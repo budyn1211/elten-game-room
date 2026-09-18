@@ -74,34 +74,34 @@ Form.driver = lambda do |form|
   raise "language control missing" if language_control == nil
 
   if step == 0
+    form.index = form.fields.index(language_control)
     language_control.index = language_definition.choices.index { |choice| choice.value == target_language }
     step += 1
     language_control.trigger(:move)
-  else
-    selected_language = language_definition.choices[language_control.index].value
-    assert(selected_language == target_language, "rebuilding the option form reset the selected language")
-    set_control = form.fields.find { |field| field.is_a?(ListBox) && field.header == "Game content set" }
-    assert(form.fields[form.index] == set_control, "the rebuilt form did not focus the question set")
-    expected_count = target_language == "pl-PL" ? 4 : 1
-    assert(set_control != nil && set_control.options.length == expected_count, "changing language did not immediately replace the question sets")
-    labels = set_control.options.join(" ")
-    if target_language == "pl-PL"
-      polish_counts = %w[quiz.wikidata.pl quiz.witcher.pl quiz.witcher.g.pl quiz.witcher.b.pl]
-        .map { |id| GameRoomContent.registry.pack(id).entry_count.to_s }
-      assert(polish_counts.all? { |count| labels.include?(count) } && !labels.include?(GameRoomContent.registry.pack("quiz.general.en").entry_count.to_s), "Polish still shows the English question set")
-    else
-      assert(labels.include?(GameRoomContent.registry.pack("quiz.general.en").entry_count.to_s), "English does not show the OpenTriviaQA set")
-    end
-    step += 1
-    form.fields.find { |field| field.is_a?(Button) && field.label == "Create table" }.trigger(:press)
   end
+  selected_language = language_definition.choices[language_control.index].value
+  assert(selected_language == target_language, "updating choices reset the selected language")
+  set_control = form.fields.find { |field| field.is_a?(ListBox) && field.header == "Game content set" }
+  assert(form.fields[form.index] == language_control, "changing language moved focus from the language list")
+  expected_count = target_language == "pl-PL" ? 4 : 1
+  assert(set_control != nil && set_control.options.length == expected_count, "changing language did not immediately replace the question sets")
+  labels = set_control.options.join(" ")
+  if target_language == "pl-PL"
+    polish_counts = %w[quiz.wikidata.pl quiz.witcher.pl quiz.witcher.g.pl quiz.witcher.b.pl]
+      .map { |id| GameRoomContent.registry.pack(id).entry_count.to_s }
+    assert(polish_counts.all? { |count| labels.include?(count) } && !labels.include?(GameRoomContent.registry.pack("quiz.general.en").entry_count.to_s), "Polish still shows the English question set")
+  else
+    assert(labels.include?(GameRoomContent.registry.pack("quiz.general.en").entry_count.to_s), "English does not show the OpenTriviaQA set")
+  end
+  step += 1
+  form.fields.find { |field| field.is_a?(Button) && field.label == "Create table" }.trigger(:press)
 end
 
 options = app.send(:configure_game_options, game)
-assert(step == 2, "changing the question language did not rebuild the option form once")
-assert(options["content_language_id"] == target_language, "the rebuilt option form rejected the selected language")
+assert(step == 2, "language selection did not finish in the same form")
+assert(options["content_language_id"] == target_language, "the option form rejected the selected language")
 selected_pack = game.selected_content_pack(options)
-assert(selected_pack != nil && selected_pack.language_id == target_language, "the rebuilt option form did not select a compatible question set")
+assert(selected_pack != nil && selected_pack.language_id == target_language, "the option form did not select a compatible question set")
 
 multiple_choice_game = Class.new(GameRoomGames::QuizParty) do
   def option_definitions
@@ -135,18 +135,17 @@ Form.driver = lambda do |form|
     topics_control.select_multiselection_indices([1])
     multiple_step += 1
     language_control.trigger(:move)
-  else
-    selected_language = language_definition.choices[language_control.index].value
-    assert(selected_language == multiple_target_language, "rebuilding reset the language beside a multiple-choice option")
-    assert(topics_control.multiselections.sort == [0, 1], "rebuilding reset a multiple-choice option")
-    multiple_step += 1
-    form.fields.find { |field| field.is_a?(Button) && field.label == "Create table" }.trigger(:press)
   end
+  selected_language = language_definition.choices[language_control.index].value
+  assert(selected_language == multiple_target_language, "updating choices reset the language beside a multiple-choice option")
+  assert(topics_control.multiselections.sort == [0, 1], "updating choices reset a multiple-choice option")
+  multiple_step += 1
+  form.fields.find { |field| field.is_a?(Button) && field.label == "Create table" }.trigger(:press)
 end
 
 multiple_options = app.send(:configure_game_options, multiple_choice_game)
-assert(multiple_step == 2, "the multiple-choice option test did not rebuild the form")
-assert(multiple_options["topics"] == 3, "the rebuilt form lost its multiple-choice mask")
+assert(multiple_step == 2, "multiple-choice test did not finish in the same form")
+assert(multiple_options["topics"] == 3, "updating choices lost the multiple-choice mask")
 
 class CheckBox < FakeControl
   attr_accessor :checked

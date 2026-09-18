@@ -21,3 +21,15 @@ Plik `hit1.ogg`, używany przy skompletowaniu grupy w Monopoly, oraz plik
 `notice.ogg`, używany przez powiadomienia Game Roomu, pochodzą z dostarczonego
 zestawu Quentin Playroom. Dla tych plików również nie ma w repozytorium
 osobnego potwierdzenia licencji.
+
+### Dźwięki kostek Domino i Mexican Train
+
+Trzy nagrania autora **poenia**, dostarczone przez użytkownika wraz z
+informacją o licencji [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/):
+
+- `Audio/domino_refill.ogg` — [Domino_sfx_refillPlayers](https://freesound.org/s/745031/), rozdawanie kostek;
+- `Audio/domino_move_tile.ogg` — [Domino_sfx_moveTile](https://freesound.org/s/745028/), zagranie kostki;
+- `Audio/domino_take_chip.ogg` — [Domino_sfx_takeChip](https://freesound.org/s/745032/), dobranie ze stosu.
+
+Są to pliki Freesound `preview-hq-ogg`, pobrane 18 września 2026 r.
+Nagrania zachowano bez zmian zawartości, zmieniono jedynie nazwy plików.

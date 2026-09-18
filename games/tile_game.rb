@@ -88,6 +88,10 @@ module GameRoomGames
       replay.players.to_h { |p| [p, replay.state[:scores][unit_for(replay.state, p)]] }
     end
 
+    def eliminated_from_game?(replay, viewer)
+      !!replay.state.fetch(:eliminated, {})[unit_for(replay.state, viewer)]
+    end
+
     def participant_status(replay, participant, connected: true)
       return _("eliminated") if replay.state[:eliminated][unit_for(replay.state, participant)]
       super

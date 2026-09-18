@@ -93,25 +93,29 @@ module GameRoomGames
     end
 
     def rule_sections
+      # Generated from docs/rulebooks/checkers.json; see tools/compile-rulebooks.rb.
       [
-        rule_section(:diagonals, _("Dark fields, men and kings"),
-          _("Two players move on the dark fields of a square board. White starts from the bottom and moves first. A man normally moves one empty field diagonally forward. It captures by jumping over an adjacent opposing piece onto the empty field beyond. On reaching the opposite end it becomes a king."),
-          _("The default board is 8 by 8, with 12 pieces on each side. A 10 by 10 board gives each player 20 pieces; a 12 by 12 board gives 30. The two middle rows start empty. Size changes the space and starting army, not the selected movement rules.")),
-        rule_section(:captures, _("Which captures must be made"),
-          _("Captured pieces block the board until the capture sequence ends is on by default. You cannot cross or capture the same removed piece again during that sequence. Disable it for variants where captured pieces disappear immediately."),
-          _("Capturing is mandatory is on by default: if any piece can capture, an ordinary move is forbidden. Turning it off permits an ordinary move even when a capture exists."),
-          _("The move capturing the most pieces is mandatory is on by default. Compare complete capture paths for all your pieces, not just the first jump, and choose one taking the greatest number. This option requires mandatory capture and completing capture sequences."),
-          _("A capture sequence must be completed is on by default. After a jump, continue capturing with the same piece while a continuation is available. The interface performs the jumps one at a time. With this option off the turn ends after one jump. Prefer a king when equally long captures are available is off by default; when enabled, equally long maximum captures by a king take precedence over those by a man.")),
-        rule_section(:movement, _("Movement and promotion settings"),
-          _("Men may capture backward is on by default. Disable it to restrict men to forward captures. Men may move backward without capturing is separately off by default: enabling backward captures alone does not allow an ordinary backward move."),
-          _("Kings move and capture over any distance is on by default. A flying king travels along a clear diagonal and captures an opposing piece with an empty landing field beyond it; it cannot jump over several occupied fields in one jump. Disable this option for kings that move one field and capture by a short jump. Kings can move and capture in both directions."),
-          _("Promote immediately during a capture sequence is off by default: promotion is evaluated at the end of the move. When enabled, reaching the last row during a capture changes the man into a king immediately, and further captures use king rules. The rule checkboxes describe independent choices except for the stated capture dependencies.")),
-        rule_section(:result, _("Winning and field notation"),
-          _("You win when the opponent has no pieces or no legal move. Three repetitions or 80 individual moves without capture or promotion give a draw. Numbered notation labels only playable fields: 1–32, 1–50 or 1–72 depending on board size. Chess notation labels the full grid. Changing notation or rotating the board is local presentation only; it changes neither the legal moves nor the other player's view.")),
-        rule_section(:controls, _("Board commands"),
-          _("Arrow keys inspect every field. In numbered notation the light, unplayable fields make a sound without a spoken name. Enter selects a piece; another Enter chooses its destination. V reads possible moves. K visits your kings and Shift+K the opponent's kings. C reads colours; T reads the turn."),
-          _("Ctrl+H switches numbered and chess notation, including movement announcements and displayed history. Ctrl+Shift+H rotates the board without renaming fields. In chat use /21 17 or /a3 b4 as appropriate for the chosen fields. A multiple capture is entered one jump at a time, just like Enter on the board."),
-          _("S reads the current number of men and kings belonging to each player."))
+        rule_section(:diagonals, GameRoomRules.translate("Across the dark squares"),
+          GameRoomRules.translate("In Checkers, two players try to leave the opponent without a piece or without a legal move. Only dark squares are used. White starts at the bottom and moves first. An ordinary piece, called a man, normally moves one empty square diagonally towards the far side of the board."),
+          GameRoomRules.translate("To capture, jump over an opposing piece onto an empty square beyond it. A man needs the opponent to be on the adjacent diagonal square. Reaching the farthest row gives you a king, which can move and capture in both directions. The settings below decide how far a king can travel and whether men may go backwards."),
+          GameRoomRules.translate("The board size may be 8 by 8, 10 by 10 or 12 by 12. These sizes give each side 12, 20 or 30 pieces respectively. Two rows in the middle begin empty. Changing the size does not automatically change the movement or capture rules, so check the other settings as well.")),
+        rule_section(:captures, GameRoomRules.translate("One jump, or a whole capture sequence?"),
+          GameRoomRules.translate("With mandatory capture enabled, an available capture takes priority over every ordinary move, even if it is a different piece that can capture. This is enabled by default. Turning it off lets you choose a non-capturing move instead."),
+          GameRoomRules.translate("Completing a capture sequence is also enabled by default. After the first jump, keep using the same piece while it can capture again. You choose each landing square separately. If this setting is disabled, the turn ends after a single jump."),
+          GameRoomRules.translate("Maximum capture, enabled by default, makes you choose a complete route that captures as many pieces as possible. Suppose one of your men can take one piece, while another can take three by successive jumps: you must choose the three-piece route. This rule requires both mandatory capture and completing the sequence. An optional further rule gives a king priority over a man when both have equally long maximum routes; that priority is off by default."),
+          GameRoomRules.translate("Captured pieces normally remain as obstacles until the whole sequence ends. You cannot jump over the same captured piece again. If you disable delayed removal, each victim disappears immediately, which can open a route that would otherwise be blocked.")),
+        rule_section(:movement, GameRoomRules.translate("Choose how men and kings move"),
+          GameRoomRules.translate("Men may capture backward is on by default. It allows backward jumps but does not allow ordinary backward moves. Those are controlled by the separate Men may move backward without capturing setting, which is off by default."),
+          GameRoomRules.translate("Kings move and capture over any distance is on by default. Such a king travels along a clear diagonal and may land on an empty square beyond the opposing piece it jumps. It cannot jump two occupied squares in a single jump. If the setting is off, a king moves one square or makes a short capture jump, still in either direction."),
+          GameRoomRules.translate("Promotion normally happens at the end of a move. Promote immediately during a capture sequence changes this: a man reaching the last row during a jump becomes a king straight away and continues using king movement. This option is off by default.")),
+        rule_section(:result, GameRoomRules.translate("Winning, draws and square names"),
+          GameRoomRules.translate("You win if your opponent has no pieces left or no legal move. The program declares a draw when a position occurs three times, or after 80 individual moves without a capture or promotion."),
+          GameRoomRules.translate("The board can use numbered dark squares or chess-style coordinates. Numbered boards have 32, 50 or 72 playable squares, depending on size. Switching notation or rotating the view changes only how you inspect the board, not the rules or the other player's view.")),
+        rule_section(:controls, GameRoomRules.translate("Board commands"),
+          GameRoomRules.translate("Arrow keys: inspect squares. Enter: select a piece, then its destination. Choose each jump of a multiple capture separately."),
+          GameRoomRules.translate("V: possible moves. K and Shift+K: your kings and the opponent's kings. C: player colours. S: remaining men and kings. T: whose turn it is."),
+          GameRoomRules.translate("Ctrl+H: switch numbered and chess notation. Ctrl+Shift+H: rotate the view. In numbered mode, light squares sound but do not announce a field number."),
+          GameRoomRules.translate("Chat move commands accept the chosen notation, for example /21 17 or /a3 b4."))
       ]
     end
 

@@ -2,8 +2,8 @@
   "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
-  "version": "2.0",
-  "build_id": "228",
+  "version": "2.0.1",
+  "build_id": "229",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": [
@@ -46,7 +46,15 @@
       "roll",
       "skip",
       "win1",
-      "win2"
+      "win2",
+      "farkle_bank",
+      "ninety3366",
+      "1000_mariage",
+      "win_party",
+      "lose_party",
+      "domino_refill",
+      "domino_move_tile",
+      "domino_take_chip"
     ]
   }
 }

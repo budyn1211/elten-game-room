@@ -1,0 +1,15 @@
+{
+ "source":"games/four_in_a_row.rb",
+ "sections":[
+  {"id":"falling","title":{"en":"Build a line from falling pieces","pl":"Ułóż linię ze spadających pionków"},"paragraphs":[
+   {"en":"Two players take turns dropping pieces into a board with seven columns and six rows. Your aim is to join at least four of your own pieces in a straight line. The first player at the table starts.","pl":"Dwie osoby na zmianę wrzucają pionki na planszę z siedmioma kolumnami i sześcioma rzędami. Celem jest połączenie co najmniej czterech własnych pionków w prostą linię. Zaczyna pierwszy gracz przy stole."},
+   {"en":"Each turn consists of choosing one column. Your piece falls to the lowest empty square in that column. You cannot leave it suspended higher up: if the column is empty, it lands at the bottom; if it already holds two pieces, yours rests on top of them. A full column cannot accept another piece.","pl":"Ruch polega na wybraniu jednej kolumny. Pionek spada na jej najniższe wolne pole. Nie można zatrzymać go wyżej: w pustej kolumnie trafi na sam dół, a gdy leżą w niej już dwa pionki, stanie na nich. Do pełnej kolumny nie da się wrzucić kolejnego pionka."},
+   {"en":"A winning line may be horizontal, vertical or diagonal. All its pieces must touch: a gap or an opponent's piece breaks the line. Completing a line ends the game immediately. If all 42 squares fill up without a winner, the game is drawn.","pl":"Zwycięska linia może biec poziomo, pionowo albo ukośnie. Pionki muszą leżeć bezpośrednio obok siebie: luka lub pionek przeciwnika przerywa linię. Jej ukończenie natychmiast kończy partię. Jeśli wszystkie 42 pola zostaną zajęte i nikt nie wygra, jest remis."},
+   {"en":"There are no optional board sizes or alternative placement rules in this game. Either player can be a bot.","pl":"Ta gra nie ma ustawienia rozmiaru planszy ani innych sposobów stawiania pionków. W miejsce dowolnego gracza można dodać bota."}
+  ]},
+  {"id":"controls","title":{"en":"Choosing a column","pl":"Wybieranie kolumny"},"paragraphs":[
+   {"en":"Arrow keys: inspect the board. Enter: drop a piece into the selected column, regardless of the row you are inspecting.","pl":"Strzałki: przeglądanie planszy. Enter: wrzucenie pionka do wskazanej kolumny, niezależnie od przeglądanego rzędu."},
+   {"en":"T: read whose turn it is.","pl":"T: odczytanie, czyja jest tura."}
+  ]}
+ ]
+}

@@ -19,7 +19,7 @@ module GameSurfaces
   Die = Struct.new(:id, :value, :sides, :held, :label, :enabled, keyword_init: true)
   ScoreChoice = Struct.new(:id, :label, :value, keyword_init: true)
   RollAndScoreSpec = Struct.new(:id, :header, :dice, :categories, :can_roll, :force_categories, :empty_label, :roll_number, keyword_init: true)
-  PacketCardSpec = Struct.new(:id, :header, :cards, :action_name, :allow_packet, :empty_label, :hand_order, :hand_epoch, keyword_init: true)
+  PacketCardSpec = Struct.new(:id, :header, :cards, :action_name, :allow_packet, :empty_label, :hand_order, :hand_epoch, :packet_tip, :activation_tip, keyword_init: true)
   SurfacePart = Struct.new(:id, :surface, keyword_init: true)
   CompositeSpec = Struct.new(:parts, keyword_init: true)
 end

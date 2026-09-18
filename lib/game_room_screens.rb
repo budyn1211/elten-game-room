@@ -202,6 +202,9 @@ module GameRoomScreens
         "sound_volumes" => form.game_room_volume_reader.call,
         "widget_enabled" => widget_enabled.checked,
         "widget_games" => selected_game_ids(widget_games),
+        "widget_known_games" => GameRoomPreferences.normalized_game_ids(
+          @values["widget_known_games"].to_a + @games.map { |game| game.fetch(:id) }
+        ),
         "widget_show_unavailable" => widget_unavailable.checked
       })
     end
@@ -232,10 +235,20 @@ module GameRoomScreens
   end
 
   class GameRules
-    def initialize(book, program: nil)
+    def initialize(book, program: nil, game_shortcuts: nil)
       @program = program
       @book = book
       @documents = book.documents
+      # Library/waiting-table help is the complete reference. During play use
+      # a snapshot of the actual game fields' F1 tips, without room commands.
+      if game_shortcuts != nil
+        tips = GameRoomContextHelp.clean_tips(game_shortcuts)
+        tips = [_("No shortcuts are available on this screen.")] if tips.empty?
+        @documents = @documents.map do |document|
+          document.id == :controls ? GameRoomRules::Section.new(
+            id: :controls, title: document.title, paragraphs: tips) : document
+        end
+      end
       @section_index = 0
     end
 
@@ -274,15 +287,22 @@ module GameRoomScreens
     private
 
     def show_section(section)
-      content = EditBox.new(
-        _("%{game}: %{section}") % { game: @book.title, section: section.title },
-        type: EditBox::Flags::ReadOnly | EditBox::Flags::MultiLine,
-        text: section.text,
-        quiet: true
-      )
+      header = _("%{game}: %{section}") % { game: @book.title, section: section.title }
+      shortcuts = section.id == :controls
+      content = if shortcuts
+        ListBox.new(section.paragraphs, header: header, quiet: true)
+      else
+        EditBox.new(header,
+          type: EditBox::Flags::ReadOnly | EditBox::Flags::MultiLine,
+          text: section.text,
+          quiet: true
+        )
+      end
       back_button = Button.new(_("Back"))
       form = GameRoomUI::Form.new([content, back_button], program: @program, quiet: true)
       form.cancel_button = back_button
+      form.accept_button = back_button if shortcuts
+      form.instance_variable_set(:@game_room_help_open, true) if shortcuts
       form.hide(back_button)
       back_button.on(:press) { form.resume }
       form.wait

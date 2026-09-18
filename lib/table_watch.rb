@@ -117,8 +117,113 @@ module GameRoomTableWatch
     end
   end
 
-  # No HTTP in presentation/visibility callbacks. Bounded account-specific
-  # receipt memory suppresses duplicate deliveries, including after restart.
+  # Tiny, content-free diagnostic buffer; inspecting it never performs I/O.
+  module Timing
+    @samples = []
+    @mutex = Mutex.new
+    def self.measure(stage)
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      yield
+    ensure
+      elapsed = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000
+      @mutex.synchronize do
+        @samples << { stage: stage, milliseconds: elapsed }
+        @samples.shift while @samples.length > 128
+      end
+    end
+    def self.samples; @mutex.synchronize { @samples.map(&:dup) }; end
+  end
+
+  # Only resolved/joined rooms need durable suppression of a late delivery.
+  # One in-flight write and one replaceable snapshot, never a thread per notice.
+  class ReceiptWriter
+    def initialize(runtime: nil, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, &write)
+      @runtime, @clock, @write = runtime, clock, write
+      @mutex = Mutex.new
+      @pending, @running, @closed, @failures, @retry_at = nil, false, false, 0, 0
+    end
+
+    def enqueue(value)
+      snapshot = { "resolved" => value.fetch("resolved", {}).dup.freeze }.freeze
+      @mutex.synchronize do
+        return false if @closed
+        @pending = snapshot
+        @failures = 0
+        dispatch
+      end
+      true
+    end
+
+    def tick
+      @mutex.synchronize { dispatch unless @closed }
+    end
+
+    def close
+      @mutex.synchronize do
+        @closed = true
+        dispatch # Finite pending writes may finish, without joining on the UI.
+      end
+    end
+
+    private
+
+    def dispatch
+      return if @running || !@pending || @failures >= 3 || @clock.call < @retry_at
+      @running = true
+      @thread = Thread.new do
+        Thread.current.report_on_exception = false
+        begin
+          if @runtime && defined?(Programs) && Programs.respond_to?(:with_runtime)
+            Programs.with_runtime(@runtime) { drain }
+          else
+            drain
+          end
+        rescue StandardError => error
+          # A disposed host runtime may reject entering its context before
+          # drain starts. Do not leave the writer permanently marked busy.
+          @mutex.synchronize { failed_attempt }
+          Log.warning("Game Room table receipt runtime failed: #{error.class}") if defined?(Log)
+        end
+      end
+    rescue StandardError => error
+      # Thread creation itself can fail. dispatch runs under @mutex.
+      failed_attempt
+      Log.warning("Game Room table receipt worker failed: #{error.class}") if defined?(Log)
+    end
+
+    def failed_attempt
+      @failures += 1
+      @retry_at = @clock.call + 5
+      @running = false
+    end
+
+    def drain
+      loop do
+        snapshot = @mutex.synchronize do
+          value = @pending
+          @pending = nil
+          @running = false unless value
+          value
+        end
+        break unless snapshot
+        begin
+          Timing.measure(:resolved_write) { @write.call(snapshot) }
+          @mutex.synchronize { @failures = 0; @retry_at = 0 }
+        rescue StandardError => error
+          @mutex.synchronize do
+            @pending ||= snapshot
+            failed_attempt
+          end
+          Log.warning("Game Room resolved table notice write failed: #{error.class}") if defined?(Log)
+          break
+        end
+      end
+    end
+  end
+
+  # No HTTP or disk write on receipt. The host remembers delivery IDs and
+  # primes old notifications silently on startup; local seen is extra RAM-only
+  # deduplication by table. Legacy stored seen remains readable, not rewritten.
   class Receiver
     attr_accessor :games
     attr_reader :user
@@ -170,7 +275,7 @@ module GameRoomTableWatch
       return false unless visible?(notification) && !received?(notification)
       value = data(notification)
       @seen[value["live_session_id"]] = { "id" => notification.id.to_i, "expires" => value["expires_at"] }
-      save
+      trim
       true
     end
 
@@ -188,7 +293,7 @@ module GameRoomTableWatch
 
     def save
       trim
-      @persist.call({ "seen" => @seen, "resolved" => @resolved })
+      @persist.call({ "resolved" => @resolved.dup })
     rescue StandardError => error
       Log.warning("Game Room table notice receipt could not be saved: #{error.class}") if defined?(Log)
     end

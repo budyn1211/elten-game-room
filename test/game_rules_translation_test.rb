@@ -17,15 +17,19 @@ def _(text)
   value || text
 end
 
-files = %w[tic_tac_toe four_in_a_row spades farkle ninety_nine tysiac categories chess checkers reversi ludo monopoly yahtzee uno poker makao rummy domino mexican_train scrabble taboo biblios]
+files = %w[tic_tac_toe four_in_a_row spades farkle ninety_nine tysiac categories chess checkers reversi ludo monopoly yahtzee uno poker makao rummy domino mexican_train scrabble taboo biblios quiz_party]
 require_relative "../games/base"
+require_relative "../content/languages"
+require_relative "../content/quiz_general_en"
+require_relative "../content/quiz_pl_wikidata"
+require_relative "../content/quiz_witcher_pl"
 files.each { |file| require_relative "../games/#{file}" }
 types = [GameRoomGames::TicTacToe, GameRoomGames::FourInARow, GameRoomGames::Spades,
   GameRoomGames::Farkle, GameRoomGames::NinetyNine, GameRoomGames::Tysiac,
   GameRoomGames::Categories, GameRoomGames::Chess, GameRoomGames::Checkers,
   GameRoomGames::Reversi, GameRoomGames::Ludo, GameRoomGames::Monopoly,
   GameRoomGames::Yahtzee, GameRoomGames::Uno, GameRoomGames::Poker, GameRoomGames::Makao,
-  GameRoomGames::Rummy, GameRoomGames::Domino, GameRoomGames::MexicanTrain, GameRoomGames::Scrabble, GameRoomGames::Taboo, GameRoomGames::Biblios]
+  GameRoomGames::Rummy, GameRoomGames::Domino, GameRoomGames::MexicanTrain, GameRoomGames::Scrabble, GameRoomGames::Taboo, GameRoomGames::Biblios, GameRoomGames::QuizParty]
 types.each do |type|
   game = type.new
   documents = game.rule_book(options: game.default_options).documents

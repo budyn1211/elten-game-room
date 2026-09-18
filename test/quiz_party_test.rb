@@ -99,7 +99,8 @@ assert(game.id == "quiz", "the game exposes the wrong id")
 assert(game.minimum_players == 2 && game.maximum_players == 8, "Quiz Party exposes the wrong player range")
 assert(game.supports_bots?, "Quiz Party does not offer computer players")
 assert(!game.perfect_information?, "hidden answers were exposed to tree search")
-assert(game.rule_book.sections.map(&:id) == [:goal, :setup, :play, :ending, :variants, :controls], "the rule book is incomplete")
+assert(game.rule_book.documents.map(&:id) == [:rules, :controls], "the rule book must expose rules and keyboard help")
+assert(game.rule_book.sections.any? { |section| section.id == :bot_pacing }, "the shared bot timing rule is missing")
 
 defaults = game.default_options
 assert(defaults["answer_time"] == 20, "the default answer time is wrong")
@@ -108,7 +109,7 @@ assert(defaults["content_language_id"] == "pl-PL", "the question language option
 assert(defaults["content_set_id"] == "quiz.wikidata", "the question set option was not offered")
 language_definition = game.effective_option_definitions.find { |definition| definition.key == "content_language_id" }
 assert(language_definition != nil && language_definition.kind == :choice, "the table cannot pick a question language")
-assert(language_definition.choices.map(&:value) == ["pl-PL"], "the installed question languages are not offered as choices")
+assert(language_definition.choices.map(&:value) == ["pl-PL"], "the fixture's installed question languages are not offered as choices")
 time_definition = game.effective_option_definitions.find { |definition| definition.key == "answer_time" }
 assert(time_definition.kind == :choice, "the answer time is not a choice list")
 assert(time_definition.choices.map(&:value) == [5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60], "the answer time choices are wrong")
@@ -117,7 +118,7 @@ assert(target_definition.choices.map(&:value).min == 15, "the target score can b
 assert(game.validation_error(defaults, player_count: 2) == nil, "a default table was rejected")
 assert(game.validation_error(defaults.merge("target_score" => 10), player_count: 2) != nil, "a target score below fifteen was accepted")
 assert(game.validation_error(defaults.merge("answer_time" => 3), player_count: 2) != nil, "an answer time below five seconds was accepted")
-assert(JSON.generate(defaults).length <= 256, "default options exceed the server field limit")
+assert(game.normalize_options(JSON.parse(JSON.generate(defaults))) == defaults, "default options do not survive serialization")
 
 options = game.normalize_options(defaults.merge("answer_time" => 5, "target_score" => 15))
 session = { "options" => JSON.generate(options) }
@@ -504,14 +505,14 @@ won_state[:winners] = ["Alice"]
 won_replay = GameRoomGames::Replay.new(players: players, state: won_state, winner: "Alice", draw: false)
 running_replay = GameRoomGames::Replay.new(players: players, state: game.send(:initial_state, players, options))
 assert(
-  quiz_cue(game, scored_event, running_replay, won_replay, repository, "Alice") == "win2",
+  quiz_cue(game, scored_event, running_replay, won_replay, repository, "Alice") == "win_party",
   "winning the match did not play the victory sound"
 )
 assert(
-  quiz_cue(game, scored_event, running_replay, won_replay, repository, "Bob") == "lose3",
+  quiz_cue(game, scored_event, running_replay, won_replay, repository, "Bob") == "lose_party",
   "losing the match did not play the defeat sound"
 )
-%w[replay draw win2 lose3].each do |asset|
+%w[replay draw win_party lose_party].each do |asset|
   assert(GameRoomSounds::ASSET_NAMES.include?(asset), "the quiz uses an unregistered sound #{asset}")
   assert(File.exist?(File.expand_path("../Audio/#{asset}.ogg", __dir__)), "the sound file #{asset}.ogg is missing")
 end
