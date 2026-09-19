@@ -81,7 +81,7 @@ module GameRoomScreens
           end
         end
         help_tips = invitation_entries.map do |_requested, label, _key, help_key|
-          _("Press %{key} for %{action}.") % { key: help_key, action: label }
+          GameRoomContextHelp.shortcut_tip(help_key, label)
         end
         GameRoomContextHelp.replace([options, history], help_tips)
       end

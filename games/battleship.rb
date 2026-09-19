@@ -298,6 +298,17 @@ module GameRoomGames
       entries.empty? ? nil : entries.map(&:text)
     end
 
+    def describe_event_for_display(event, repository, replay, viewer, surface_state: {})
+      if event["action"].to_s == "place" && surface_state["setup_mode"] == "random"
+        entry = replay.history.find do |item|
+          item.kind == :seal && item.event_id.to_i == repository.event_id(event).to_i && same_user?(item.actor, viewer)
+        end
+        return [_("Your ships have been placed automatically.")] if entry != nil
+      end
+
+      super
+    end
+
     def bot_observation(replay, actor)
       state = replay.state
       {
@@ -405,6 +416,10 @@ module GameRoomGames
         winner: nil,
         tie: false
       }
+    end
+
+    def turn_phase_kind(replay)
+      replay&.state&.dig(:phase) == :placing ? :placement : super
     end
 
     def apply_place(state, event, actor, repository, history)

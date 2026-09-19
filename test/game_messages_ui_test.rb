@@ -37,7 +37,7 @@ inherited_tips = field.get_tips.uniq
 5.times { screen.send(:bind_game_shortcuts, layout.form, [field], shortcuts) {} }
 tips = field.get_tips
 expected_tips = shortcuts.map do |shortcut|
-  "Press #{screen.send(:shortcut_key_label, shortcut)} for #{shortcut.label}."
+  "#{screen.send(:shortcut_key_label, shortcut)}, #{shortcut.label}."
 end + inherited_tips
 # Enter/Shift+Enter belong to the card control, not the dynamic shortcut list.
 assert(tips == expected_tips.uniq, "Help accumulates or drops control tips on retained fields")

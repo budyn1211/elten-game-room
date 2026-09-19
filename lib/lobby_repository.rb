@@ -1,3 +1,4 @@
+require_relative "game_room_clock"
 require_relative "game_room_transport"
 require_relative "game_participants"
 require_relative "game_room_server_tables"
@@ -133,7 +134,7 @@ class LobbyRepository
     existing = current_table_for(owner, tables: tables, members: members)
     return CreateResult.new(table: existing, created: false) if existing != nil
 
-    timestamp = Time.now.to_i
+    timestamp = GameRoomClock.now.to_i
     inserted = tables_table.insert(
       "name" => clean_name,
       "game" => game.to_s,
@@ -199,7 +200,7 @@ class LobbyRepository
       return JoinResult.new(table: target, status: :full, members: current_members)
     end
 
-    timestamp = Time.now.to_i
+    timestamp = GameRoomClock.now.to_i
     inserted = members_table.insert(
       "table_id" => table_id(target),
       "username" => user.to_s,
@@ -412,7 +413,7 @@ class LobbyRepository
     status = active ? "playing" : "waiting"
     return current if current["status"].to_s == status
 
-    updated = tables_table.update(id, "status" => status, "updated_at" => Time.now.to_i)
+    updated = tables_table.update(id, "status" => status, "updated_at" => GameRoomClock.now.to_i)
     current.replace(updated) if updated.is_a?(Hash)
     current["status"] = status
     row.replace(current) if row.is_a?(Hash)
@@ -512,7 +513,7 @@ class LobbyRepository
     return if owner_of(row).casecmp(Session.name.to_s) != 0
     return if !membership_rows_for(row, owner, source: members).empty?
 
-    timestamp = Time.now.to_i
+    timestamp = GameRoomClock.now.to_i
     inserted = members_table.insert(
       "table_id" => table_id(row),
       "username" => owner.to_s,
@@ -532,7 +533,7 @@ class LobbyRepository
     id = member_row_id(row)
     return if id <= 0 || row["status"].to_s != "active" || !own_member?(row)
 
-    updated = members_table.update(id, "status" => "left", "updated_at" => Time.now.to_i)
+    updated = members_table.update(id, "status" => "left", "updated_at" => GameRoomClock.now.to_i)
     row.replace(updated) if updated.is_a?(Hash)
     row["status"] = "left"
   end
@@ -547,7 +548,7 @@ class LobbyRepository
       "max_players" => capacity_of(row),
       "bot_count" => bot_count(row),
       "player_count" => player_count.to_i + bot_count(row),
-      "updated_at" => Time.now.to_i
+      "updated_at" => GameRoomClock.now.to_i
     )
     updated.is_a?(Hash) ? updated : row
   end
@@ -568,7 +569,7 @@ class LobbyRepository
       id,
       "status" => "closed",
       "player_count" => 0,
-      "updated_at" => Time.now.to_i
+      "updated_at" => GameRoomClock.now.to_i
     )
     row.replace(updated) if updated.is_a?(Hash)
     row["status"] = "closed"
@@ -643,7 +644,7 @@ class LobbyRepository
       id,
       "bot_count" => requested,
       "player_count" => names.length + requested,
-      "updated_at" => Time.now.to_i
+      "updated_at" => GameRoomClock.now.to_i
     )
     current.replace(updated) if updated.is_a?(Hash)
     current["bot_count"] = requested

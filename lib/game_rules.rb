@@ -107,10 +107,11 @@ module GameRoomRules
     raise ArgumentError, "Ctrl+F1 requires an action" if handler == nil
 
     form.extend(ShortcutFormEvents)
+    tip = GameRoomContextHelp.shortcut_tip("Ctrl+F1", _("Game rules"))
     fields.to_a.each do |field|
-      field.add_tip(_("Press Ctrl+F1 to read the game rules.")) if field.respond_to?(:add_tip)
+      field.add_tip(tip) if field.respond_to?(:add_tip)
     end
-    GameRoomContextHelp.exclude_from_game_help(fields, [_("Press Ctrl+F1 to read the game rules.")])
+    GameRoomContextHelp.exclude_from_game_help(fields, [tip])
     form.on(:key_f1) do |parameters|
       next if !ctrl_f1_event?(parameters)
 

@@ -1,3 +1,4 @@
+require_relative "game_room_clock"
 require "securerandom"
 require_relative "invitation_response_outbox"
 
@@ -90,7 +91,7 @@ class InvitationRepository
     end
   end
 
-  def create(table:, sender:, recipient:, now: Time.now.to_i, ttl: DEFAULT_TTL)
+  def create(table:, sender:, recipient:, now: GameRoomClock.now.to_i, ttl: DEFAULT_TTL)
     table_id = row_id(table)
     clean_sender = sender.to_s.strip
     clean_recipient = recipient.to_s.strip
@@ -145,7 +146,7 @@ class InvitationRepository
     InvitationResult.new(invitation: inserted, created: true)
   end
 
-  def pending_for(recipient, tables:, now: Time.now.to_i)
+  def pending_for(recipient, tables:, now: GameRoomClock.now.to_i)
     table_by_id = tables.to_a.each_with_object({}) do |table, result|
       id = row_id(table)
       result[id] = table if id > 0 && %w[waiting playing].include?(table["status"].to_s)
@@ -170,14 +171,14 @@ class InvitationRepository
     end
   end
 
-  def pending_by_id(id, recipient, tables:, now: Time.now.to_i)
+  def pending_by_id(id, recipient, tables:, now: GameRoomClock.now.to_i)
     wanted = id.to_i
     return nil if wanted <= 0
 
     pending_for(recipient, tables: tables, now: now).find { |pending| pending.id == wanted }
   end
 
-  def respond(invitation, recipient:, response:, now: Time.now.to_i)
+  def respond(invitation, recipient:, response:, now: GameRoomClock.now.to_i)
     row = invitation.respond_to?(:invitation) ? invitation.invitation : invitation
     invitation_id = row_id(row)
     clean_recipient = recipient.to_s.strip

@@ -1,6 +1,19 @@
 # Translate the host's already received server time to the founder's game
 # epoch. No HTTP, no clock tolerance and no change to saved/wire timestamps.
+require_relative "game_room_clock"
+
 class GameRoomSessionClock
+  def self.attach(state, session)
+    state[:clock_epoch_offset] = session["__server_started_at"].to_i > 0 && session["created_at"].to_i > 0 ?
+      session["created_at"].to_i - session["__server_started_at"].to_i : 0
+    state[:clock_offset] = session["__clock_offset"].to_i
+    state[:frozen_at] = session["__frozen_at"]
+    state
+  end
+
+  def self.for_state(state)
+    (state[:frozen_at] || GameRoomClock.now).to_f + state[:clock_epoch_offset].to_i - state[:clock_offset].to_i
+  end
   def self.from_server(session, time)
     started = session["__server_started_at"].to_i
     epoch = session["created_at"].to_i
@@ -8,10 +21,8 @@ class GameRoomSessionClock
     (time + shift - session["__clock_offset"].to_i).to_i
   end
 
-  def initialize(sample: -> {
-    EltenAPI::NotificationService.server_time if defined?(EltenAPI::NotificationService) &&
-      EltenAPI::NotificationService.respond_to?(:server_time)
-  }, elapsed: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, wall: -> { Time.now.to_f })
+  def initialize(sample: -> { GameRoomClock.now if GameRoomClock.synchronized? },
+    elapsed: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, wall: -> { GameRoomClock.now })
     @sample, @elapsed, @wall = sample, elapsed, wall
     @lock = Mutex.new
   end

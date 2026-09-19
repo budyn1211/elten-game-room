@@ -152,6 +152,7 @@ module GameRoomGames
         event_id = repository.event_id(event)
         value = event["value"].to_s
         timestamp = event_timestamp(event)
+        timestamp = GameRoomSessionClock.from_server(session, timestamp) if timestamp != nil
         accepted_event = false
 
         case action
@@ -272,10 +273,10 @@ module GameRoomGames
               )
               winner, draw = update_match_ending(state, history, event_id)
               state[:phase] = :finished if winner != nil || draw
-              state[:resume_at] = event["created_at"].to_i + NEXT_QUESTION_PAUSE if state[:phase] == :drawing
+              state[:resume_at] = timestamp.to_i + NEXT_QUESTION_PAUSE if state[:phase] == :drawing
             else
               state[:phase] = :starting
-              state[:resume_at] = event["created_at"].to_i + NEXT_QUESTION_PAUSE
+              state[:resume_at] = timestamp.to_i + NEXT_QUESTION_PAUSE
             end
           end
         end
@@ -285,6 +286,7 @@ module GameRoomGames
 
       state[:winner] = winner
       state[:draw] = draw
+      GameRoomSessionClock.attach(state, session)
       Replay.new(
         board: [],
         players: players,
@@ -378,8 +380,9 @@ module GameRoomGames
       nil
     end
 
-    def timer_announcements(replay, viewer, now: Time.now.to_i)
+    def timer_announcements(replay, viewer, now: nil)
       state = replay.state
+      now ||= GameRoomSessionClock.for_state(state).to_i
       return [] if state[:phase] != :answering || state[:deadline].to_i <= 0
 
       remaining = state[:deadline].to_i - now.to_i
@@ -1221,7 +1224,7 @@ module GameRoomGames
     def remaining_time_text(state)
       return _("The answer time has ended.") if state[:phase] != :answering || state[:deadline].to_i <= 0
 
-      _("%{seconds} seconds remaining.") % { seconds: [state[:deadline].to_i - Time.now.to_i, 0].max }
+      _("%{seconds} seconds remaining.") % { seconds: [state[:deadline].to_i - GameRoomSessionClock.for_state(state).to_i, 0].max }
     end
 
     def scores_text(state, sorted: false)

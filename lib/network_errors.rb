@@ -6,9 +6,10 @@ module GameRoomNetworkErrors
   class UncertainWrite < StandardError; end
   class UnsupportedInvitation < StandardError; end
   class GamePaused < StandardError; end
+  class ClockUnavailable < IOError; end
 
   def self.expected?(error)
-    error.is_a?(PendingMove) || error.is_a?(UncertainWrite) || error.is_a?(UnsupportedInvitation) || error.is_a?(GamePaused) ||
+    error.is_a?(PendingMove) || error.is_a?(UncertainWrite) || error.is_a?(UnsupportedInvitation) || error.is_a?(GamePaused) || error.is_a?(ClockUnavailable) ||
       (defined?(EltenLink::Error) && error.is_a?(EltenLink::Error)) ||
       (defined?(EltenAPI::LiveSessions::Error) && error.is_a?(EltenAPI::LiveSessions::Error))
   end
@@ -18,7 +19,7 @@ module GameRoomNetworkErrors
   end
 
   def self.transient?(error)
-    return true if error.is_a?(PendingMove) || error.is_a?(UncertainWrite) || cancelled?(error)
+    return true if error.is_a?(PendingMove) || error.is_a?(UncertainWrite) || error.is_a?(ClockUnavailable) || cancelled?(error)
     return false if !expected?(error)
 
     name = error.class.name.to_s.split("::").last

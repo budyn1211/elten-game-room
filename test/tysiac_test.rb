@@ -50,7 +50,8 @@ game = GameRoomGames::Tysiac.new
 repository = TysiacRepository.new(players)
 session = { "options" => JSON.generate(game.default_options) }
 
-assert(game.minimum_players == 3 && game.maximum_players == 3, "Tysiac is not restricted to three players")
+assert(game.minimum_players == 2 && game.maximum_players == 3, "Tysiac player range changed")
+assert(game.default_options["variant"] == "three_players", "legacy three-player default changed")
 assert(game.supports_bots?, "Tysiac does not expose computer players")
 assert(game.default_options["score_limit"] == 1_000, "Tysiac has the wrong target score")
 

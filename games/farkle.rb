@@ -554,8 +554,10 @@ module GameRoomGames
       else
         if reached && !state[:final_round]
           state[:final_round] = true
-          history << HistoryEntry.new(key: "final_round:#{event_id}",event_id: event_id,actor: player,kind: :game,
-            text: _("%{player} reached the score limit. Finish the current round of turns.") % { player: participant_name(player) })
+          unless same_user?(next_player(state[:players], actor), state[:players].first)
+            history << HistoryEntry.new(key: "final_round:#{event_id}",event_id: event_id,actor: player,kind: :game,
+              text: _("%{player} reached the score limit. Finish the current round of turns.") % { player: participant_name(player) })
+          end
         end
         finish_turn(state, actor, event_id, history)
       end

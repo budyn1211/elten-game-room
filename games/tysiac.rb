@@ -3,7 +3,7 @@ require_relative "base"
 require_relative "../lib/tysiac_strategy"
 
 module GameRoomGames
-  # The three-player Tysiac variant used by QuentinC's Playroom/QC Salon.
+  # Three-player Tysiac and the two-player, two-talon variant.
   # Card identities are reconstructed from the public deal seed, just as in
   # the other card games in Game Room. The interface never announces cards
   # passed by the taker to the other defenders.
@@ -57,11 +57,17 @@ module GameRoomGames
       # Generated from docs/rulebooks/tysiac.json; see tools/compile-rulebooks.rb.
       [
         rule_section(:auction, GameRoomRules.translate("Win the auction, then fulfil your promise"),
-          GameRoomRules.translate("Tysiac is played by exactly three people, individually. The deck has 24 cards: nine, jack, queen, king, ten and ace in every suit. Each player receives seven; three more form the talon. Players bid for the right to take that talon. The winning bidder promises to collect at least the contracted number of points during the deal."),
+          GameRoomRules.translate("Tysiac is played individually, by two or three people. Choose the player count when creating the table; the default is three. The deck has 24 cards: nine, jack, queen, king, ten and ace in every suit. Players bid for the right to take a talon. The winning bidder promises to collect at least the contracted number of points during the deal."),
           GameRoomRules.translate("The player after the dealer opens at no less than 100. Later bids rise in steps of five. Passing removes you from this auction, not from the game. You may bid up to 120 plus the values of the marriages you currently hold, with an overall maximum of 400. A marriage is a king and queen of the same suit."),
-          GameRoomRules.translate("The winner takes the three revealed talon cards, then gives one card to each opponent in the announced order. Each recipient learns only their own card. After these transfers, the bidder can raise the final contract within the limit allowed by the marriages still held. Playing the first card accepts the current contract, so a second bid is not compulsory.")),
+          GameRoomRules.translate("With three players, each receives seven cards and the three remaining cards form one talon. The auction winner takes those three revealed cards, then gives one card to each opponent in the announced order. Each recipient learns only their own card. Everyone then has eight cards, to be played in eight tricks."),
+          GameRoomRules.translate("Once the cards have been given away or set aside, the bidder can raise the final contract within the limit allowed by the marriages still held. Playing the first card accepts the current contract, so a second bid is not compulsory.")),
+        rule_section(:two_players, GameRoomRules.translate("Two players: choose one of two talons"),
+          GameRoomRules.translate("The two-player variant uses two separate, face-down talons. Choose two or three cards in each talon in the table settings. With two-card talons, each player is dealt ten cards. With three-card talons, each receives nine. Three cards is the default. The auction works as described above."),
+          GameRoomRules.translate("The auction winner chooses the first or second talon without seeing either one's contents. Only the chosen talon is then revealed and added to the winner's hand. The other remains face down. The bidder now sets aside as many cards as were taken, one at a time, using Enter on a card. These discards are not shown to the opponent, and no card is passed to them. The players finish with ten cards each for two-card talons, or nine each for three-card talons."),
+          GameRoomRules.translate("The checkbox Set-aside cards go to the last trick winner is enabled by default. It awards the card points from both the unchosen talon and the bidder's discards to whoever takes the last trick, before checking the contract. Thus all 120 card points remain in play. It does not award marriages from those cards or add the cards to the winner's hand. If the checkbox is disabled, nobody scores those cards, so fewer than 120 card points may be available in tricks."),
+          GameRoomRules.translate("For example, suppose the unchosen talon contains an ace and a nine, and the bidder sets aside a king and a jack. Those four cards are worth 17 points. With the checkbox enabled, winning the last trick gives its winner these 17 points in addition to the points in the trick itself. With it disabled, those 17 points are not awarded.")),
         rule_section(:tricks, GameRoomRules.translate("Taking tricks and declaring marriages"),
-          GameRoomRules.translate("The bidder leads the first trick. Everyone plays one card, and the winner of those three cards leads next. You must follow the first card's suit if possible. If you have none of that suit, you must use a trump if a trump suit has been established and you hold one. Only otherwise may you discard any card. You do not have to beat a higher card merely because you can."),
+          GameRoomRules.translate("The bidder leads the first trick. Everyone plays one card, and the trick's winner leads next. A trick contains two cards with two players, or three cards with three. You must follow the first card's suit if possible. If you have none of that suit, you must use a trump if a trump suit has been established and you hold one. Only otherwise may you discard any card. You do not have to beat a higher card merely because you can."),
           GameRoomRules.translate("The order from strongest to weakest is ace, ten, king, queen, jack, nine. A trump beats every non-trump. With no trump in the trick, the highest card of the led suit wins. At the beginning of the deal there is no trump suit."),
           GameRoomRules.translate("After the first trick, a player leading a trick may declare a marriage by playing its king or queen while still holding the matching partner. The declared suit becomes trump immediately. Hearts add 100 points, diamonds 80, clubs 60 and spades 40. A later marriage changes trump again. Simply owning the pair, or playing it without the declaration, does not award that bonus.")),
         rule_section(:points, GameRoomRules.translate("Points in cards are not the same as the score you receive"),
@@ -70,9 +76,10 @@ module GameRoomGames
           GameRoomRules.translate("The target is normally 1000. You can choose another multiple of five, at least 200. Reaching the target ends the game, subject to the barrel rules below. There are no team or alternative-deck settings.")),
         rule_section(:barrel, GameRoomRules.translate("Near the target: the barrel"),
           GameRoomRules.translate("When your score reaches the interval from 120 below the target to just below the target, it is set to exactly 120 below and you go onto the barrel. At the usual target this means 880. Defender points no longer increase your score there. You have three deals to win and fulfil a contract of at least 120."),
-          GameRoomRules.translate("Failing a contract on the barrel subtracts its normal value and takes you off. Using up all three chances without success costs 120 and also takes you off. If someone else takes the talon and surrenders before play, that deal does not use one of your chances. You cannot surrender your own contract while on the barrel. A different target moves the barrel threshold with it.")),
+          GameRoomRules.translate("Failing a contract on the barrel subtracts its normal value and takes you off. Using up all three chances without success costs 120 and also takes you off. If someone else takes the talon and surrenders before play, that deal does not use one of your chances. You cannot surrender your own contract while on the barrel. A different target moves the barrel threshold with it."),
+          GameRoomRules.translate("The game announces when someone goes onto the barrel and records it in the history. S reads scores and marks the players currently on the barrel. Shift+S also tells you how many barrel chances they have left.")),
         rule_section(:penalties, GameRoomRules.translate("Surrendering and collecting no points"),
-          GameRoomRules.translate("After seeing the talon but before giving away the first card, the bidder may surrender, unless on the barrel. Each defender receives at least 60, or half the contract if that is higher, rounded upwards to five. The bidder normally receives zero. Every third surrender additionally costs the bidder 120 points."),
+          GameRoomRules.translate("After seeing the talon but before giving away or setting aside the first card, the bidder may surrender, unless on the barrel. Each defender receives at least 60, or half the contract if that is higher, rounded upwards to five. With two players there is only one defender, receiving the same award. No last-trick award applies to a surrendered deal. The bidder normally receives zero. Every third surrender additionally costs the bidder 120 points."),
           GameRoomRules.translate("Collecting exactly zero unrounded points in three played deals costs 120. A small result that merely rounds to zero does not count as a zero deal. These zeroes are not accumulated while you are on the barrel.")),
         rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
           GameRoomRules.translate("Arrows: choose a bid, talon card or trick card."),
@@ -95,7 +102,7 @@ module GameRoomGames
     end
 
     def minimum_players
-      3
+      2
     end
 
     def maximum_players
@@ -115,7 +122,7 @@ module GameRoomGames
     end
 
     # A Tysiac bot may inspect its own hand and everything already announced
-    # at the table, but never the other two private hands.
+    # at the table, but never an opponent's hand or an unchosen talon.
     def bot_observation(replay, actor)
       state = replay.state
       player = player_key(state, actor)
@@ -133,6 +140,7 @@ module GameRoomGames
         "contract" => state[:contract],
         "hand" => player == nil ? [] : state[:hands].fetch(player, []),
         "talon" => state[:talon_visible] ? state[:talon] : [],
+        "discarded_cards" => same_user?(player, state[:taker]) ? state[:discarded_cards].to_a : [],
         "trump" => state[:trump],
         "trick_number" => state[:trick_number],
         "current_trick" => state[:current_trick],
@@ -150,7 +158,7 @@ module GameRoomGames
       case state[:phase]
       when :bidding
         bot_bid_score(state, actor, action, final: false)
-      when :passing
+      when :passing, :discarding
         if action["action"].to_s == "surrender"
           bot_surrender_score(state, actor)
         else
@@ -167,6 +175,16 @@ module GameRoomGames
 
     def option_definitions
       [
+        OptionDefinition.new(key: "variant", label: _("Tysiac variant"), kind: :choice, default: "three_players", choices: [
+          OptionChoice.new(value: "three_players", label: _("Three players")),
+          OptionChoice.new(value: "two_players", label: _("Two players"))
+        ]),
+        OptionDefinition.new(key: "talon_size", label: _("Cards in each talon"), kind: :choice, default: "3", choices: [
+          OptionChoice.new(value: "2", label: _("2 cards")),
+          OptionChoice.new(value: "3", label: _("3 cards"))
+        ], visible_if: { "variant" => "two_players" }),
+        OptionDefinition.new(key: "last_trick_talon", label: _("Set-aside cards go to the last trick winner"),
+          kind: :boolean, default: true, visible_if: { "variant" => "two_players" }),
         OptionDefinition.new(
           key: "score_limit",
           label: _("Target score"),
@@ -177,9 +195,13 @@ module GameRoomGames
     end
 
     def options_error(options, player_count: nil)
-      target = normalize_options(options)["score_limit"].to_i
+      values = normalize_options(options)
+      target = values["score_limit"].to_i
       return _("The target score must be at least 200 and divisible by 5.") if target < 200 || target % 5 != 0
-      return _("Tysiac requires exactly 3 players.") if player_count != nil && player_count.to_i != 3
+      required = values["variant"] == "two_players" ? 2 : 3
+      if player_count != nil && player_count.to_i != required
+        return _("This Tysiac variant requires exactly %{count} players.") % { count: required }
+      end
 
       nil
     end
@@ -207,6 +229,8 @@ module GameRoomGames
         when "deal" then apply_deal(state, event, actor, repository, history)
         when "bid" then apply_bid(state, event, actor, repository, history)
         when "pass_card" then apply_pass_card(state, event, actor, repository, history)
+        when "take_talon" then apply_take_talon(state, event, actor, repository, history)
+        when "discard_card" then apply_discard_card(state, event, actor, repository, history)
         when "contract" then apply_contract(state, event, actor, repository, history)
         when "surrender" then apply_surrender(state, event, actor, repository, history)
         when "play" then apply_play(state, event, actor, repository, history)
@@ -250,7 +274,9 @@ module GameRoomGames
         legal_bid_values(state, actor).map do |value|
           { "kind" => "command", "action" => "bid", "bid" => value }
         end
-      when :passing
+      when :choosing_talon
+        [0, 1].map { |index| { "kind" => "question", "action" => "submit", "question_id" => "choose_talon", "answer" => index.to_s } }
+      when :passing, :discarding
         actions = hand_for(state, actor).map do |card|
           { "kind" => "card", "action" => "select", "card" => card }
         end
@@ -277,7 +303,7 @@ module GameRoomGames
 
     def playable_card_navigation(replay, viewer)
       state = replay.state
-      return nil if state == nil || ![:passing, :playing].include?(state[:phase])
+      return nil if state == nil || ![:passing, :discarding, :playing].include?(state[:phase])
       return nil if !same_user?(state[:current_player], viewer)
 
       actions = legal_actions(replay, viewer).select do |action|
@@ -301,11 +327,13 @@ module GameRoomGames
         return [:not_your_turn, nil] if !same_user?(actor, replay.players.first)
         return [:invalid, nil] if ![:awaiting_deal, :round_complete].include?(state[:phase])
         return [:invalid, nil] if context == nil || context.random_source == nil
+        return [:invalid, nil] if options_error(state[:options], player_count: state[:players].length)
 
         round = state[:round].to_i + 1
-        dealer = state[:dealer_index] == nil ? nil : (state[:dealer_index].to_i + 1) % 3
+        count = state[:players].length
+        dealer = state[:dealer_index] == nil ? nil : (state[:dealer_index].to_i + 1) % count
         seed = random_seed(context.random_source)
-        dealer = seed.to_i(16) % 3 if dealer == nil
+        dealer = seed.to_i(16) % count if dealer == nil
         return [:ok, event_plan("deal", [round, dealer, seed].join("|"))]
       end
 
@@ -338,7 +366,11 @@ module GameRoomGames
         value = Integer(value, 10) if value != "pass"
         return [:invalid_bid, nil] if !legal_bid_values(state, actor).map(&:to_s).include?(value.to_s)
         [:ok, event_plan("bid", value)]
-      when :passing
+      when :choosing_talon
+        return [:invalid, nil] unless selection["kind"].to_s == "question" && action == "submit" && selection["question_id"].to_s == "choose_talon"
+        return [:invalid, nil] unless %w[0 1].include?(selection["answer"].to_s)
+        [:ok, event_plan("take_talon", selection["answer"])]
+      when :passing, :discarding
         if selection["kind"].to_s == "command" && action == "surrender"
           return [:cannot_surrender, nil] if !surrender_available?(state, actor)
           return [:ok, event_plan("surrender", "")]
@@ -346,6 +378,7 @@ module GameRoomGames
         return [:invalid, nil] if selection["kind"].to_s != "card" || action != "select"
         card = selection["card"].to_s
         return [:card_not_in_hand, nil] if !hand_for(state, actor).include?(card)
+        return [:ok, event_plan("discard_card", card)] if state[:phase] == :discarding
         target = pass_recipients(state)[state[:pass_index].to_i]
         return [:invalid, nil] if target == nil
         [:ok, event_plan("pass_card", "#{target}|#{card}")]
@@ -384,6 +417,15 @@ module GameRoomGames
 
     def surface_spec(replay, viewer)
       state = replay.state
+      if state[:phase] == :choosing_talon && same_user?(state[:taker], viewer)
+        return GameSurfaces::QuestionSpec.new(
+          id: "choose_talon", prompt: _("Choose a talon"), mode: :single_choice,
+          options: [
+            GameSurfaces::QuestionOption.new(id: "0", label: _("First talon"), value: "0"),
+            GameSurfaces::QuestionOption.new(id: "1", label: _("Second talon"), value: "1")
+          ], value: "0", required: true, submit_on_select: true
+        )
+      end
       hand_cards = hand_for(state, viewer).sort_by { |card| card_sort_key(card) }.map do |card|
         item = surface_card(state, viewer, card)
         item.sort_keys = standard_hand_sort_keys(rank: card_rank(card), suit: card_suit(card), position: hand_for(state, viewer).index(card))
@@ -465,10 +507,14 @@ module GameRoomGames
 
     def history_entries_for_display(replay, viewer, surface_state: {})
       replay.history.map do |entry|
-        next entry if entry.kind != :pass_card
+        next entry if ![:pass_card, :discard_card].include?(entry.kind)
 
         displayed = entry.dup
-        displayed.text = passed_card_text(entry.actor, entry.field, entry.value, viewer)
+        displayed.text = if entry.kind == :discard_card
+          same_user?(entry.actor, viewer) ? _("You set aside %{card}.") % { card: card_label(entry.value) } : entry.text
+        else
+          passed_card_text(entry.actor, entry.field, entry.value, viewer)
+        end
         displayed
       end
     end
@@ -501,6 +547,9 @@ module GameRoomGames
     def turn_announcement(replay, viewer)
       prompt = passing_prompt(replay.state, viewer)
       return prompt if prompt != nil
+      if replay.state[:phase] == :choosing_talon && same_user?(replay.current_player, viewer)
+        return _("Choose a talon.")
+      end
       if replay.state[:phase] == :auction && same_user?(replay.current_player, viewer)
         return _("Press Enter to bid.")
       end
@@ -526,6 +575,9 @@ module GameRoomGames
         current_player: nil,
         hands: players.each_with_object({}) { |player, result| result[player] = [] },
         talon: [],
+        talons: [],
+        set_aside: [],
+        discarded_cards: [],
         talon_visible: false,
         bids: players.each_with_object({}) { |player, result| result[player] = nil },
         passed: players.each_with_object({}) { |player, result| result[player] = false },
@@ -545,32 +597,37 @@ module GameRoomGames
     end
 
     def apply_deal(state, event, actor, repository, history)
-      return false if state[:players].length != 3
+      return false if options_error(state[:options], player_count: state[:players].length)
       return false if !same_user?(actor, state[:players].first)
       return false if ![:awaiting_deal, :round_complete].include?(state[:phase])
       round, dealer, seed = parse_deal(event["value"])
       return false if round != state[:round].to_i + 1
-      return false if !dealer.between?(0, 2)
+      count = state[:players].length
+      return false if !dealer.between?(0, count - 1)
       if state[:dealer_index] != nil
-        return false if dealer != (state[:dealer_index].to_i + 1) % 3
+        return false if dealer != (state[:dealer_index].to_i + 1) % count
       end
 
       deck = shuffled_deck(seed)
       hands = {}
+      hand_size = two_players?(state) ? 12 - talon_size(state) : 7
       state[:players].each_with_index do |player, index|
-        hands[player] = deck.slice(index * 7, 7)
+        hands[player] = deck.slice(index * hand_size, hand_size)
       end
       state[:round] = round
       state[:dealer_index] = dealer
       state[:phase] = :bidding
       state[:hands] = hands
-      state[:talon] = deck.last(3)
+      state[:talon] = two_players?(state) ? [] : deck.last(3)
+      state[:talons] = two_players?(state) ? deck.last(talon_size(state) * 2).each_slice(talon_size(state)).to_a : []
+      state[:set_aside] = []
+      state[:discarded_cards] = []
       state[:talon_visible] = false
       state[:bids] = state[:players].each_with_object({}) { |player, result| result[player] = nil }
       state[:passed] = state[:players].each_with_object({}) { |player, result| result[player] = false }
       state[:current_bid] = nil
       state[:current_bidder] = nil
-      state[:first_bidder] = state[:players][(dealer + 1) % 3]
+      state[:first_bidder] = state[:players][(dealer + 1) % count]
       state[:current_player] = state[:first_bidder]
       state[:taker] = nil
       state[:contract] = nil
@@ -642,9 +699,13 @@ module GameRoomGames
     def finish_bidding(state, event_id, history)
       state[:taker] = state[:current_bidder]
       state[:contract] = state[:current_bid]
-      state[:hands][state[:taker]].concat(state[:talon])
-      state[:talon_visible] = true
-      state[:phase] = :passing
+      if two_players?(state)
+        state[:phase] = :choosing_talon
+      else
+        state[:hands][state[:taker]].concat(state[:talon])
+        state[:talon_visible] = true
+        state[:phase] = :passing
+      end
       state[:current_player] = state[:taker]
       state[:pass_index] = 0
       history << HistoryEntry.new(
@@ -657,6 +718,10 @@ module GameRoomGames
         actor: state[:taker],
         kind: :auction_won
       )
+      reveal_talon(state, event_id, history) unless two_players?(state)
+    end
+
+    def reveal_talon(state, event_id, history)
       history << HistoryEntry.new(
         key: "talon:#{event_id}",
         text: _("The talon is %{cards}.") % {
@@ -666,6 +731,40 @@ module GameRoomGames
         actor: state[:taker],
         kind: :talon
       )
+    end
+
+    def apply_take_talon(state, event, actor, repository, history)
+      return false unless state[:phase] == :choosing_talon && same_user?(state[:taker], actor)
+      return false unless %w[0 1].include?(event["value"].to_s)
+      index = event["value"].to_i
+      state[:talon] = state[:talons].fetch(index).dup
+      state[:set_aside] = state[:talons].fetch(1 - index).dup
+      state[:hands][state[:taker]].concat(state[:talon])
+      state[:talon_visible] = true
+      state[:phase] = :discarding
+      event_id = repository.event_id(event)
+      history << HistoryEntry.new(key: "take_talon:#{event_id}",
+        text: _("%{player} chose talon %{number}.") % { player: participant_name(state[:taker]), number: index + 1 },
+        event_id: event_id, actor: state[:taker], kind: :take_talon)
+      reveal_talon(state, event_id, history)
+      true
+    end
+
+    def apply_discard_card(state, event, actor, repository, history)
+      return false unless state[:phase] == :discarding && same_user?(state[:taker], actor)
+      card = event["value"].to_s
+      hand = state[:hands][state[:taker]]
+      return false unless hand.include?(card)
+      hand.delete_at(hand.index(card))
+      state[:set_aside] << card
+      state[:discarded_cards] << card
+      state[:pass_index] += 1
+      event_id = repository.event_id(event)
+      history << HistoryEntry.new(key: "discard:#{event_id}",
+        text: _("%{player} set aside a card.") % { player: participant_name(state[:taker]) },
+        event_id: event_id, actor: state[:taker], kind: :discard_card, value: card)
+      state[:phase] = :contract if state[:pass_index] == talon_size(state)
+      true
     end
 
     def apply_pass_card(state, event, actor, repository, history)
@@ -777,7 +876,7 @@ module GameRoomGames
         kind: :play
       )
 
-      if state[:current_trick].length < 3
+      if state[:current_trick].length < state[:players].length
         state[:current_player] = next_player(state, player)
         return true
       end
@@ -798,7 +897,15 @@ module GameRoomGames
       )
       state[:current_trick] = []
       state[:trick_number] += 1
-      if state[:trick_number] >= 8
+      if state[:hands].values.all?(&:empty?)
+        if two_players?(state) && state[:options]["last_trick_talon"]
+          extra = state[:set_aside].sum { |card| CARD_POINTS.fetch(card_rank(card)) }
+          state[:round_points][winner] += extra
+          history << HistoryEntry.new(key: "set_aside:#{event_id}",
+            text: _("%{player} receives %{points} points from the set-aside cards for winning the last trick.") % {
+              player: participant_name(winner), points: extra
+            }, event_id: event_id, actor: winner, kind: :set_aside, value: extra)
+        end
         complete_round(state, event_id, history, surrendered: false)
       else
         state[:current_player] = winner
@@ -845,6 +952,14 @@ module GameRoomGames
           event_id: event_id,
           actor: state[:taker],
           kind: :round_result
+        )
+      end
+      state[:players].each do |player|
+        next if barrel_before[player][:active] || !state[:barrels][player][:active]
+        history << HistoryEntry.new(
+          key: "barrel:#{state[:round]}:#{event_id}:#{player}",
+          text: _("%{player} is now on the barrel.") % { player: participant_name(player) },
+          event_id: event_id, actor: player, kind: :barrel
         )
       end
       if state[:winner] != nil
@@ -986,7 +1101,7 @@ module GameRoomGames
     end
 
     def surrender_available?(state, actor)
-      state[:phase] == :passing && state[:pass_index].to_i == 0 &&
+      [:passing, :discarding].include?(state[:phase]) && state[:pass_index].to_i == 0 &&
         same_user?(state[:taker], actor) && !state[:barrels][state[:taker]][:active]
     end
 
@@ -1338,12 +1453,23 @@ module GameRoomGames
     end
 
     def passing_prompt(state, viewer)
+      if state[:phase] == :discarding && same_user?(state[:taker], viewer)
+        return _("Choose a card to set aside. Remaining: %{count}.") % { count: talon_size(state) - state[:pass_index] }
+      end
       return nil if state[:phase] != :passing || !same_user?(state[:taker], viewer)
 
       target = pass_recipients(state)[state[:pass_index].to_i]
       return nil if target == nil
 
       _("Choose a card to give to %{player}.") % { player: participant_name(target) }
+    end
+
+    def two_players?(state)
+      state[:options]["variant"] == "two_players"
+    end
+
+    def talon_size(state)
+      two_players?(state) ? state[:options]["talon_size"].to_i : 3
     end
 
     def surrender_command(state, viewer)
@@ -1418,10 +1544,12 @@ module GameRoomGames
       players = sorted ? score_announcement_order(state[:players], state[:scores]) : state[:players]
       _("Scores: %{scores}.") % {
         scores: players.map do |player|
-          _("%{player}: %{score}") % {
+          text = _("%{player}: %{score}") % {
             player: participant_name(player),
             score: state[:scores][player]
           }
+          text += _(", on the barrel") if state[:barrels][player][:active]
+          text
         end.join("; ")
       }
     end

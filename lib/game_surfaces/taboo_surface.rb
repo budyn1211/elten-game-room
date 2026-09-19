@@ -1,4 +1,5 @@
 # encoding: UTF-8
+require_relative "../game_session_clock"
 module GameSurfaces
   TabooSpec = Struct.new(:token, :phase, :lines, :status, :action, :master, :review, :results, :opponent, keyword_init: true)
   class TabooSurface
@@ -40,7 +41,7 @@ module GameSurfaces
     def handle_command(command, payload = {})
       case command
       when "taboo_time"
-        now = (payload["frozen"] || Time.now.to_i).to_i - payload["offset"].to_i
+        now = GameRoomSessionClock.for_state(frozen_at: payload["frozen"], clock_offset: payload["offset"], clock_epoch_offset: payload["epoch"]).to_i
         seconds = [payload["deadline"].to_i-now,0].max
         speak(payload["deadline"].to_i > 0 ? (_("%{seconds} seconds remaining.") % { seconds: seconds }) : _("The turn clock is not running."))
         true

@@ -42,8 +42,7 @@ module GameRoomGames
         accepted << event
         seen[event_id] = true
       end
-      state[:clock_offset] = session["__clock_offset"].to_i
-      state[:frozen_at] = session["__frozen_at"]
+      GameRoomSessionClock.attach(state, session)
       Replay.new(board: nil, players: state[:players], current_player: state[:current_player],
         winner: state[:winner], draw: false, accepted_events: accepted, history: history, state: state)
     end

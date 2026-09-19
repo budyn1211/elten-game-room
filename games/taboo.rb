@@ -60,8 +60,7 @@ module GameRoomGames
         accepted.concat(batch)
         batch.each { |event| seen[repository.event_id(event)] = true }
       end
-      state[:clock_offset] = session["__clock_offset"].to_i
-      state[:frozen_at] = session["__frozen_at"]
+      GameRoomSessionClock.attach(state, session)
       Replay.new(board: [], players: state[:players], current_player: state[:current_player],
         winner: state[:winner], draw: state[:draw], state: state, history: history, accepted_events: accepted)
     end
@@ -86,7 +85,7 @@ module GameRoomGames
     end
     def automatic_action(replay, actor, context: nil)
       return nil unless same_user?(actor, replay.players.first)
-      state, now = replay.state, (context&.now || Time.now.to_i).to_i
+      state, now = replay.state, (context&.now || GameRoomSessionClock.for_state(replay.state)).to_i
       return { "action" => "deal" } if state[:phase] == :awaiting_deal
       return nil unless state[:deadline] > 0 && now >= state[:deadline]
       return { "action" => "begin", "token" => token(state) } if state[:phase] == :preparing

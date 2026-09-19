@@ -1112,6 +1112,7 @@ module GameSurfaces
       @ships = @epoch == spec.epoch.to_s ? stored.to_a.map { |cells| cells.to_a.map(&:to_i) } : []
       @bow = @epoch == spec.epoch.to_s ? state_value(state, "bow", -1) : -1
       @setup_mode = @epoch == spec.epoch.to_s ? state_value_object(state, "setup_mode").to_s : ""
+      @setup_announced = @epoch == spec.epoch.to_s && state_value_object(state, "setup_announced") == true
       @setup_mode = "manual" if spec.setup_header.to_s.empty? || !@ships.empty? || @bow.to_i >= 0
       @epoch = spec.epoch.to_s
       @bow = nil if @bow.to_i.negative?
@@ -1128,6 +1129,7 @@ module GameSurfaces
       )
       @setup_choice.on(:select) do
         if @setup_choice.index.to_i == 0
+          @setup_mode = "random"
           emit_action("command", "random_fleet")
         else
           @setup_mode = "manual"
@@ -1145,9 +1147,18 @@ module GameSurfaces
       fields.first.suppress_next_focus!
     end
 
+    # Automatic game initialization enters the form silently. Queue this local
+    # prompt once through the same non-interrupting channel as cursor updates.
+    def take_cursor_announcement(field_index = nil)
+      return nil if field_index != 0 || @setup_mode == "manual" || @setup_announced
+
+      @setup_announced = true
+      [@fleet.setup_header.to_s, @setup_choice.options[@setup_choice.index.to_i].to_s].join(" ")
+    end
+
     def state
       super.merge("ships" => @ships, "bow" => @bow == nil ? -1 : @bow, "epoch" => @epoch,
-        "setup_mode" => @setup_mode, "setup_index" => @setup_choice.index.to_i)
+        "setup_mode" => @setup_mode, "setup_index" => @setup_choice.index.to_i, "setup_announced" => @setup_announced)
     end
 
     def movement_command(arguments)

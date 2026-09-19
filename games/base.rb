@@ -1,3 +1,4 @@
+require_relative "../lib/game_session_clock"
 require "json"
 require_relative "../lib/game_participants"
 require_relative "../lib/game_teams"
@@ -577,7 +578,7 @@ module GameRoomGames
 
     # Timer announcements are local UI cues. A stable key lets the screen say
     # each cue once without writing cosmetic events to the shared game log.
-    def timer_announcements(_replay, _viewer, now: Time.now.to_i)
+    def timer_announcements(_replay, _viewer, now: GameRoomClock.now.to_i)
       []
     end
 
@@ -633,14 +634,16 @@ module GameRoomGames
 
     # Optional local pacing; human actions and network synchronization do not wait.
     def bot_move_delay(replay, _actor, context: nil)
-      options = context&.options || replay.state[:options] || {}
+      # Simple board games keep their position in Replay#board and omit state.
+      # Their configured delay still comes from the shared action context.
+      state = replay.state || {}
+      options = context&.options || state[:options] || {}
       delay = [[normalize_options(options)["bot_delay"].to_f, 0.0].max, 5.0].min
-      state = replay.state
       deadline = state[:turn_deadline].to_f
       deadline = state[:deadline].to_f if state[:phase] == :answering
       deadline = state[:auction_deadline].to_f if state[:phase] == :auction
       if deadline > 0
-        now = context&.now || Time.now.to_f
+        now = context&.now || GameRoomSessionClock.for_state(state)
         delay = [delay, [deadline - now.to_f - 1.0, 0.0].max].min
       end
       delay

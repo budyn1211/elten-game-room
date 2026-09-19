@@ -106,6 +106,13 @@ ids = ["reversi"] + (EltenGameRoom::GAME_REGISTRY.ids - ["reversi"])
     game = EltenGameRoom::GAME_REGISTRY.build(id)
     actual = app.send(:configure_game_options, game)
     raise "Encoding fix changed defaults for #{id}" unless actual == game.default_options
+    if id == "tysiac"
+      %w[2 3].product([false, true]).each do |size, award|
+        changed = game.normalize_options("variant" => "two_players", "talon_size" => size, "last_trick_talon" => award)
+        actual = app.send(:configure_game_options, game, initial_options: changed, submit_label: "Save changes")
+        raise "Editing Tysiac changed selected variants" unless actual == changed
+      end
+    end
     next unless id == "reversi"
 
     changed = game.normalize_options("allow_passing" => false, "mandatory_capture" => false)

@@ -24,7 +24,7 @@ module GameRoomGames
           GameRoomRules.translate("Escape leaves the table. Starting Daily Krowa consumes today's puzzle for the account, so it cannot be reopened after leaving. Other variants use the standard Game Room table-leaving rules.")),
         rule_section(:variants, GameRoomRules.translate("Variants and table options"),
           GameRoomRules.translate("Daily Krowa: a common 3-to-9-letter word selected for the Warsaw date using server time. Random word: 3 to 13 letters or a random length. Race: the same lengths and a choice between time and attempt scoring. Word Tower: random lengths from 3 to 8 without a length setting."),
-          GameRoomRules.translate("The table form shows only settings relevant to the chosen variant. Length is available in Random word and Race; the scoring criterion appears only in Race. Daily Krowa and Word Tower select their own lengths."),
+          GameRoomRules.translate("The table form shows only settings relevant to the chosen variant. Number of letters is available in Random word and Race; Scoring criterion appears only in Race. Daily Krowa and Word Tower select their own lengths and hide both settings."),
           GameRoomRules.translate("The Race host can draw a different word. The previous word is revealed and every player's attempts and time are reset. This is not a win or a completed round."),
           GameRoomRules.translate("Music and Krowa's additional effects are off by default. Ctrl+D opens their switches and separate volume lists, together with your dictionary. These sounds also respect Game Room's shared game-sound switch and volume. Race and Word Tower have separate background tracks; Daily Krowa and Random word share a track.")),
         rule_section(:gallery, GameRoomRules.translate("Your gallery, dictionary and rankings"),
@@ -32,6 +32,8 @@ module GameRoomGames
           GameRoomRules.translate("The main menu's Leaderboards entry gives access to Krowa word results and Word Tower results, including round details. Your gallery and custom dictionary are local and separate for each account. To remove custom words, open My dictionary in Krowa settings, select them with Space and use Remove selected. Removing a word does not rewrite attempts already made in a game."),
           GameRoomRules.translate("The host can save Race or Word Tower after the current word is ready and all submitted attempts have been checked. The local save includes the private solution and can be resumed with the same players in a new table. The table closes only after the save is verified. Daily Krowa and Random word cannot be saved for later.")),
         rule_section(:controls, GameRoomRules.translate("Controls"),
+          GameRoomRules.translate("Tab: move to the next field. In table settings, fields unrelated to the selected variant are hidden, so you do not need to skip them."),
+          GameRoomRules.translate("Shift+Tab: move to the previous field."),
           GameRoomRules.translate("Enter in the answer field: submit the typed noun and clear the field for the next attempt."),
           GameRoomRules.translate("Ctrl+D: open Krowa settings for music, effects and your custom dictionary."))
       ]

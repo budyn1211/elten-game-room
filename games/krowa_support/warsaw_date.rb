@@ -1,4 +1,5 @@
 # encoding: UTF-8
+require_relative "../../lib/game_room_clock"
 
 module GameRoomKrowa
   module WarsawDate
@@ -8,7 +9,7 @@ module GameRoomKrowa
 
     module_function
 
-    def today_id(clock: -> { Time.now })
+    def today_id(clock: -> { Time.at(GameRoomClock.now) })
       utc = clock.call.getutc
       offset = daylight_saving_time?(utc) ? CEST_OFFSET : CET_OFFSET
       (utc + offset).strftime("%Y-%m-%d")

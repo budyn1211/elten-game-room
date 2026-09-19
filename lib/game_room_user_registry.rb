@@ -1,3 +1,4 @@
+require_relative "game_room_clock"
 class GameRoomUserRegistry
   TABLE_NAME = "game_room_users".freeze
   PAGE_LIMIT = 1_000
@@ -17,7 +18,7 @@ class GameRoomUserRegistry
       "capabilities" => Array(capabilities).map(&:to_s).reject(&:empty?).uniq.sort.join(",")
     }
     existing = rows_for(clean_username).find { |row| owned_identity?(row, clean_username) }
-    return users_table.insert(values.merge("registered_at" => Time.now.to_i)) if existing == nil
+    return users_table.insert(values.merge("registered_at" => GameRoomClock.now.to_i)) if existing == nil
 
     changes = values.reject { |key, value| existing[key].to_s == value.to_s }
     return existing if changes.empty?

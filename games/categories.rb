@@ -431,6 +431,7 @@ module GameRoomGames
 
       state[:winner] = winner
       state[:draw] = draw
+      GameRoomSessionClock.attach(state, session)
       Replay.new(
         board: [],
         players: players,
@@ -553,8 +554,9 @@ module GameRoomGames
       surface.submission_action
     end
 
-    def timer_announcements(replay, viewer, now: Time.now.to_i)
+    def timer_announcements(replay, viewer, now: nil)
       state = replay.state
+      now ||= GameRoomSessionClock.for_state(state).to_i
       return [] if state[:phase] != :answering || state[:deadline].to_i <= 0
 
       remaining = state[:deadline].to_i - now.to_i
@@ -1347,7 +1349,7 @@ module GameRoomGames
     def round_status_text(state)
       return _("The first round is being prepared.") if state[:round].to_i <= 0
       time = if state[:phase] == :answering && state[:deadline].to_i > 0
-        _("%{seconds} seconds remaining") % { seconds: [state[:deadline] - Time.now.to_i, 0].max }
+        _("%{seconds} seconds remaining") % { seconds: [state[:deadline] - GameRoomSessionClock.for_state(state).to_i, 0].max }
       else
         phase_label(state[:phase])
       end
@@ -1372,7 +1374,7 @@ module GameRoomGames
       return _("The answer time has ended.") if state[:phase] != :answering
 
       _("%{seconds} seconds remaining.") % {
-        seconds: [state[:deadline].to_i - Time.now.to_i, 0].max
+        seconds: [state[:deadline].to_i - GameRoomSessionClock.for_state(state).to_i, 0].max
       }
     end
 

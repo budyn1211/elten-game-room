@@ -36,7 +36,7 @@ class SavedGames
     rows.sort_by { |row| -row["saved_at"] }
   end
 
-  def put(game:, table:, snapshot:, repository:, now: Time.now.to_i)
+  def put(game:, table:, snapshot:, repository:, now: GameRoomClock.now.to_i)
     raise ArgumentError, "Unsupported saved game" unless game.supports_saved_games?
     raise ArgumentError, "Only the founder may save the game" unless GameRoomParticipants.same?(table["owner"], @owner)
     replay = game.replay(snapshot.session, snapshot.events, repository)
@@ -110,7 +110,7 @@ class SavedGames
     raise ArgumentError, "Invalid saved game data"
   end
 
-  def restored_data(row, game:, table_id:, now: Time.now.to_i)
+  def restored_data(row, game:, table_id:, now: GameRoomClock.now.to_i)
     validate(row, game: game)
     bot_number = 0
     mapping = row["players"].to_h do |player|

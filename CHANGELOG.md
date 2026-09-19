@@ -1,5 +1,11 @@
 # Historia zmian
 
+## 2.0.1.1 — build 230
+
+Tysiąc dla dwóch osób i komunikaty o beczce, wspólny czas serwera,
+poprawki Statków, Monopoly, Krowy, Farkle oraz pomocy i opóźnienia bota.
+Pełna lista PL/EN: [zmiany 2.0.1.1](docs/CHANGELOG_2_0_1_1.md).
+
 ## 1.1.8 — build 223 (kandydat do testów)
 
 - Lista „Co nowego” jest teraz prawidłowo zapamiętywana po jej zamknięciu,

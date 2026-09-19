@@ -1,3 +1,5 @@
+require_relative "game_room_clock"
+require_relative "notification_time"
 class InvitationNotifications
   NOTIFICATION_TYPE = "game_room.invitation".freeze
 
@@ -55,7 +57,7 @@ class InvitationNotifications
     ids.length
   end
 
-  def pending(recipient:, now: Time.now.to_i)
+  def pending(recipient:, now: GameRoomClock.now.to_i)
     rows = @gateway.list(@client, all: false, app_uuids: [@app_uuid]).to_a.filter_map do |notification|
       pending_row(notification, recipient: recipient, now: now)
     end
@@ -69,7 +71,9 @@ class InvitationNotifications
     return nil if notification == nil || (allow_read && notification_id(notification) == nil)
 
     metadata = invitation_metadata(notification, allow_read: allow_read)
-    return nil if metadata == nil || hash_value(metadata, "expires_at").to_i <= now.to_i
+    return nil if metadata == nil
+    expiration = GameRoomNotificationTime.expires_at(notification, metadata)
+    return nil if expiration <= now.to_i
     return nil if hash_value(metadata, "invitation_id").to_i <= 0 || hash_value(metadata, "table_id").to_i <= 0
     return nil if hash_value(metadata, "live_session_id").to_s.empty?
 
@@ -79,8 +83,8 @@ class InvitationNotifications
       "live_session_id" => hash_value(metadata, "live_session_id").to_s,
       "sender" => hash_value(metadata, "sender").to_s,
       "recipient" => recipient.to_s,
-      "created_at" => hash_value(metadata, "created_at").to_i,
-      "expires_at" => hash_value(metadata, "expires_at").to_i,
+      "created_at" => GameRoomNotificationTime.created_at(notification) || hash_value(metadata, "created_at").to_i,
+      "expires_at" => expiration,
       "notification_id" => notification_id(notification),
       "status" => "pending"
     }

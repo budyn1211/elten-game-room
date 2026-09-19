@@ -1,5 +1,6 @@
 require_relative "game_participants"
 require_relative "game_history_navigation"
+require_relative "game_room_clock"
 
 class TableActivityRepository
   Entry = Struct.new(
@@ -13,6 +14,7 @@ class TableActivityRepository
     :subject,
     :invitation_id,
     :created_at,
+    :stack_sequence,
     keyword_init: true
   )
 
@@ -78,7 +80,7 @@ class TableActivityRepository
       "message" => clean_message,
       "subject" => invitation_activity ? subject.to_s : "",
       "invitation_id" => invitation_activity ? invitation_id.to_i : 0,
-      "created_at" => Time.now.to_i
+      "created_at" => GameRoomClock.now.to_i
     )
     entry_from(inserted, table)
   end
@@ -97,7 +99,7 @@ class TableActivityRepository
     if native_live_sessions?
       entries = @transport.activity_records(table)
         .filter_map { |row| entry_from(row, table) }
-        .sort_by { |entry| [entry.created_at, entry.id] }
+        .sort_by { |entry| entry.id }
         .last([[limit.to_i, 1].max, TABLE_LIMIT].min)
       return entries_for_current_visit(entries, table, viewer)
     end
@@ -105,12 +107,12 @@ class TableActivityRepository
     entries = activity_table
       .select(
         where: { "table_id" => table_id },
-        order: [["created_at", "asc"]],
+        order: [["__id", "asc"]],
         limit: [[limit.to_i, 1].max, TABLE_LIMIT].min
       )
       .to_a
       .filter_map { |row| entry_from(row, table) }
-      .sort_by { |entry| [entry.created_at, entry.id] }
+      .sort_by(&:id)
     entries_for_current_visit(entries, table, viewer)
   rescue StandardError => error
     Log.warning("ELTEN Game Room could not load table activity: #{error.class}: #{error.message}") if defined?(Log)
@@ -122,7 +124,7 @@ class TableActivityRepository
     # filter would hide them; the kind allowlist below still excludes chat.
     activity_table
       .select(
-        order: [["created_at", "desc"]],
+        order: [["__id", "desc"]],
         limit: GLOBAL_LIMIT
       )
       .to_a
@@ -136,7 +138,7 @@ class TableActivityRepository
         }
         entry_from(row, table)
       end
-      .sort_by { |entry| [entry.created_at, entry.id] }
+      .sort_by(&:id)
       .last([[limit.to_i, 1].max, GLOBAL_LIMIT].min)
   rescue EltenLink::Error => error
     Log.warning("ELTEN Game Room could not load lobby activity: #{error.class}: #{error.message}") if defined?(Log)
@@ -145,7 +147,7 @@ class TableActivityRepository
 
   def latest_global_id
     rows = activity_table.select(
-      order: [["created_at", "desc"]],
+      order: [["__id", "desc"]],
       limit: 20
     ).to_a.select { |row| GLOBAL_KINDS.include?(row["kind"].to_s) }
     return 0 if rows.empty?
@@ -214,8 +216,10 @@ class TableActivityRepository
   end
 
   def merged_history_entries(game_entries:, game_events:, activity_entries:, game_name:)
+    native_order = game_events.to_a.any? { |e| e["__stack_sequence"] || e["move_id"].to_s.start_with?("archive:") } ||
+      activity_entries.to_a.any? { |e| e.stack_sequence }
     event_times = game_events.to_a.each_with_object({}) do |event, result|
-      result[row_id(event)] = event["created_at"].to_i
+      result[row_id(event)] = native_order ? event["__stack_sequence"].to_i : event["created_at"].to_i
     end
     records = game_entries.to_a.each_with_index.map do |entry, index|
       item = GameRoomHistory::Entry.new(text: entry.text.to_s, category: :game)
@@ -225,7 +229,7 @@ class TableActivityRepository
       text = text_for(entry, game_name: game_name, global: false)
       category = entry.kind == "chat" ? :chat : :room
       item = GameRoomHistory::Entry.new(text: text.to_s, category: category)
-      records << [entry.created_at.to_i, entry.id.to_i, 1, index, item] if !text.to_s.empty?
+      records << [native_order ? entry.stack_sequence.to_i : entry.created_at.to_i, entry.id.to_i, 1, index, item] if !text.to_s.empty?
     end
     records.sort_by { |record| record[0, 4] }.map(&:last)
   end
@@ -244,7 +248,7 @@ class TableActivityRepository
       "table_owner" => table_owner(table),
       "game" => table["game"].to_s,
       "message" => message,
-      "created_at" => Time.now.to_i
+      "created_at" => GameRoomClock.now.to_i
     )
   rescue StandardError => error
     Log.warning("ELTEN Game Room could not save lobby activity: #{error.class}: #{error.message}") if defined?(Log)
@@ -303,7 +307,8 @@ class TableActivityRepository
       message: message,
       subject: subject,
       invitation_id: row["invitation_id"].to_i,
-      created_at: row["created_at"].to_i
+      created_at: row["created_at"].to_i,
+      stack_sequence: row["__stack_sequence"]
     )
   end
 

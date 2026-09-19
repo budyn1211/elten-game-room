@@ -86,8 +86,7 @@ module GameRoomGames
         accepted.concat(batch)
         batch.each { |e| seen[repository.event_id(e)] = true }
       end
-      state[:clock_offset] = session["__clock_offset"].to_i
-      state[:frozen_at] = session["__frozen_at"]
+      GameRoomSessionClock.attach(state, session)
       Replay.new(board: nil, players: state[:players], current_player: state[:current_player],
         winner: state[:winner], draw: state[:draw], accepted_events: accepted, history: history, state: state)
     end
@@ -103,7 +102,7 @@ module GameRoomGames
       %w[groups].each { |key| data[key] = JSON.parse(data[key]) if data[key].is_a?(String) }
       data["round"] = replay.state[:round]
       data["turn"] = replay.state[:turn]
-      data["time"] = (context&.now || Time.now.to_i).to_i
+      data["time"] = (context&.now || GameRoomSessionClock.for_state(replay.state)).to_i
       if data["action"] == "deal"
         return [:invalid, nil] unless context&.random_source
         data["seed"] = card_seed(context.random_source)

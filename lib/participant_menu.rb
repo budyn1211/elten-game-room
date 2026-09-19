@@ -100,7 +100,7 @@ module GameRoomParticipantMenu
     tips = entries.filter_map do |entry|
       next if !actions.include?(entry.action) || entry.help_key == nil
 
-      _("Press %{key} for %{action}.") % { key: entry.help_key, action: entry.label }
+      GameRoomContextHelp.shortcut_tip(entry.help_key, entry.label)
     end
     help_fields = layout.form.fields.reject { |field| field.equal?(layout.back_button) }
     GameRoomContextHelp.replace(help_fields, tips)

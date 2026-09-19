@@ -920,7 +920,7 @@ class GameScreen
       end
     end
     tips = shortcuts.map do |shortcut|
-      _("Press %{key} for %{action}.") % { key: shortcut_key_label(shortcut), action: shortcut.label }
+      GameRoomContextHelp.shortcut_tip(shortcut_key_label(shortcut), shortcut.label)
     end
     GameRoomContextHelp.replace(fields, tips, source: :game)
     if form.respond_to?(:game_shortcut_signatures=)
@@ -1399,6 +1399,9 @@ class GameScreen
     return [:new_session, latest_id] if latest_id > 0 && latest_id != current_id
     return [:refresh, nil] if latest != nil && latest["__aborted"] != @session["__aborted"]
     return [:refresh, nil] if latest != nil && latest["__frozen"] != @session["__frozen"]
+    if latest != nil && %w[__clock_revision __server_started_at __clock_offset __frozen_at].any? { |key| latest[key] != @session[key] }
+      return [:refresh, nil]
+    end
     return [:refresh, nil] if @repository.event_revision(@session, known_revision: revision) != revision
 
     [nil, nil]
@@ -1500,7 +1503,7 @@ class GameScreen
 
     @activity_entries ||= []
     @activity_entries << entry if !@activity_entries.any? { |candidate| candidate.id.to_i == entry.id.to_i }
-    @activity_entries.sort_by! { |candidate| [candidate.created_at.to_i, candidate.id.to_i] }
+    @activity_entries.sort_by!(&:id)
     GameRoomSounds.play(@program, "chatmsg")
     text = @activity_repository&.text_for(entry, game_name: @game_name, global: false)
     speak(text, stop: false, break_sequence: false) if !text.to_s.empty?

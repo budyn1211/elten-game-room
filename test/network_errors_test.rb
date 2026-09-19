@@ -34,7 +34,7 @@ def assert(value, message); raise message unless value; end
   alerts = []
   target.define_singleton_method(:alert) { |text| alerts << text }
   [EltenLink::Error, EltenAPI::LiveSessions::TimeoutError,
-    EltenAPI::LiveSessions::SessionClosed, EltenAPI::LiveSessions::StackFull].each do |error|
+    EltenAPI::LiveSessions::SessionClosed, EltenAPI::LiveSessions::StackFull, GameRoomNetworkErrors::ClockUnavailable].each do |error|
     before = alerts.length
     result = target.send(method, "Network operation") { raise error, "test failure" }
     assert(result == nil && alerts.length == before + 1, "#{klass} did not handle #{error}")
@@ -51,8 +51,9 @@ def assert(value, message); raise message unless value; end
   assert(target.send(method, "Success") { :ok } == :ok, "success changed")
 end
 
-# Exercise the actual invitation UI path as well: neither false nor an
-# exception from native delivery may send a fallback notification or say sent.
+# Exercise private invitations: neither false nor an exception from native
+# authorization may send a fallback notification or say sent. Public tables
+# intentionally use a notification without a native invitation.
 module Session
   def self.name; "Bob"; end
 end
@@ -66,6 +67,7 @@ module EltenLink
   end
 end
 [:online, :contacts].each do |source|
+  InvitationRepository::SENT_LOCK.synchronize { InvitationRepository::SENT.clear }
   app = EltenGameRoom.allocate
   app.define_singleton_method(:invitation_sending_available?) { true }
   app.define_singleton_method(:announce_server_table_access) { nil }
@@ -74,8 +76,10 @@ end
     offered_users << users.dup
     users.first
   end
-  app.define_singleton_method(:invitation_metadata) { |_row, id| { "invitation_id" => id } }
-  table = { "__id" => 7, "owner" => "Alice" }
+  app.define_singleton_method(:invitation_metadata) do |_row, id|
+    { "invitation_id" => id, "created_at" => GameRoomClock.now.to_i, "expires_at" => GameRoomClock.now.to_i + 300 }
+  end
+  table = { "__id" => 7, "owner" => "Alice", "private" => true }
   snapshot = LobbyRepository::TableSnapshot.new(table: table, members: %w[Alice Bob], bots: [])
   lobby = Object.new
   lobby.define_singleton_method(:snapshot_for) { |_row| snapshot }
@@ -93,6 +97,10 @@ end
   app.instance_variable_set(:@game_room_users, registry)
   app.instance_variable_set(:@transport, transport)
   app.instance_variable_set(:@invitations, InvitationRepository.new(transport: transport))
+  history = []
+  activity = Object.new
+  activity.define_singleton_method(:append) { |**entry| history << entry }
+  app.instance_variable_set(:@table_activity, activity)
   notifications = []
   alerts = []
   app.define_singleton_method(:alert) { |text| alerts << text }
@@ -102,9 +110,11 @@ end
     app.send(:show_invite_users, table, source: source)
     assert(notifications.empty? && !alerts.include?("Invitation sent."), "#{source} announced an unsent invitation")
   end
-  outcome = true
-  app.send(:show_invite_users, table, source: source)
-  assert(notifications.length == 1 && alerts.last == "Invitation sent.", "#{source} did not recover after delivery failure")
+  outcome = { "expires_at" => GameRoomClock.now.to_i + 300 }
+  before = alerts.length
+  result = app.send(:show_invite_users, table, source: source)
+  assert(result == true && notifications.length == 1 && alerts.length == before, "#{source} did not recover after delivery failure")
+  assert(history.length == 1 && history.first[:kind] == "invited", "#{source} did not record the successful invitation once")
   expected_users = source == :contacts ? ["Carol"] : ["Carol", "Eve"]
   assert(offered_users.all? { |users| users == expected_users }, "#{source} invitation candidates do not respect online contacts")
 end

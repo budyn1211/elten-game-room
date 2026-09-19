@@ -10,6 +10,7 @@ module GameRoomGames
         editable: state[:phase] == :playing && same_user?(viewer, state[:current_player]),
         exchange: state[:bag].length >= 8, deadline: state[:turn_deadline],
         clock_offset: state[:clock_offset].to_i, frozen_at: state[:frozen_at],
+        clock_epoch_offset: state[:clock_epoch_offset].to_i,
         preview: ->(placements) { preview(state, placements) }, error_message: method(:move_error))
     end
 

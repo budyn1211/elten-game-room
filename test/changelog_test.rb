@@ -195,4 +195,19 @@ polish_229, english_229 = document_229.split("## English", 2)
 assert(polish_229.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } == release_229.values, "2.0.1 Polish document differs")
 assert(english_229.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } == entry_229.changes, "2.0.1 English document differs")
 
-puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, main menu, preserved build 228 and bilingual 2.0.1/build 229 notes"
+entry_230 = entries.find { |entry| entry.build == 230 }
+release_230 = JSON.parse(File.read(File.expand_path("../locale/changelog-build-230-pl.json", __dir__), encoding: "UTF-8"))
+assert(entry_230.version == "2.0.1.1" && entry_230.changes == release_230.keys, "2.0.1.1 changelog and translations differ")
+assert(entry_230.changes.length == 9 && entry_230.changes.uniq.length == 9, "2.0.1.1 has duplicate/missing notes")
+release_230.each { |source, translation| assert(catalog[source] == translation, "uncompiled 2.0.1.1 translation: #{source}") }
+assert(GameRoomChangelog.pending_entries(229, 230).map(&:build) == [230], "2.0.1.1 repeats the previous release")
+assert(GameRoomChangelog.pending_entries(nil, 230).map(&:build) == [230], "first 2.0.1.1 launch repeats history")
+assert(GameRoomChangelog.pending_entries(230, 230).empty?, "2.0.1.1 reopens after being read")
+assert(GameRoomChangelog.list_items([entry_230]).first == "Version 2.0.1.1, build 230", "2.0.1.1 heading differs")
+document_230 = File.read(File.expand_path("../docs/CHANGELOG_2_0_1_1.md", __dir__), encoding: "UTF-8")
+assert(document_230.start_with?("# Game Room 2.0.1.1 — build 230"), "2.0.1.1 document heading differs")
+polish_230, english_230 = document_230.split("## English", 2)
+assert(polish_230.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } == release_230.values, "2.0.1.1 Polish document differs")
+assert(english_230.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } == entry_230.changes, "2.0.1.1 English document differs")
+
+puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, old notes preserved and bilingual 2.0.1.1/build 230 notes"

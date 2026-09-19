@@ -80,9 +80,9 @@ check.call("position and holdings lists include the agreed context") do
   state[:owners].merge!(1 => "Alice", 3 => "Alice", 6 => "Bob")
   assert(game.send(:positions_text, state).include?("Alice: field 3, Baltic avenue"), "I omits field number")
   holdings = game.send(:property_choices, state, group_progress: true) { |square| state[:owners][square[:index]] == "Alice" }
-  assert(holdings.any? { |choice| choice.label.include?("group ownership 2 of 2") }, "holdings omit group ownership")
+  assert(holdings.any? { |choice| choice.label.include?("group 2 of 2") }, "holdings omit group ownership")
   trade_fields = game.send(:trade_form_fields, state, "Alice", "Bob")
-  assert(trade_fields.flat_map { |field| field.choices.to_a }.none? { |choice| choice.label.include?("group ownership") },
+  assert(trade_fields.flat_map { |field| field.choices.to_a }.none? { |choice| choice.label.match?(/group \d+ of \d+/) },
     "trade list unexpectedly includes holdings progress")
 end
 

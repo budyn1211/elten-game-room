@@ -121,7 +121,8 @@ class GameRoomTransport
       ENTRY_TTL = 300
       RESOLVED_TTL = 300
 
-      def initialize
+      def initialize(clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) })
+        @clock = clock
         @invitations = {}
         @resolutions = {}
         @resolved = {}
@@ -136,7 +137,7 @@ class GameRoomTransport
 
           stored = @invitations.delete(key)
           if stored == nil
-            @resolutions[key] = { value: resolution, expires_at: Time.now.to_i + ENTRY_TTL }
+            @resolutions[key] = { value: resolution, expires_at: @clock.call + ENTRY_TTL }
             [:deferred, nil, key]
           else
             [:ready, stored[:invitation], key]
@@ -152,7 +153,7 @@ class GameRoomTransport
 
           stored_resolution = @resolutions.delete(key)
           if stored_resolution == nil
-            @invitations[key] = { invitation: invitation, expires_at: Time.now.to_i + ENTRY_TTL }
+            @invitations[key] = { invitation: invitation, expires_at: @clock.call + ENTRY_TTL }
             [:stored, nil, key]
           else
             [:resolve, stored_resolution[:value], key]
@@ -164,7 +165,7 @@ class GameRoomTransport
         @mutex.synchronize do
           @invitations.delete(key)
           @resolutions.delete(key)
-          @resolved[key] = Time.now.to_i + RESOLVED_TTL
+          @resolved[key] = @clock.call + RESOLVED_TTL
         end
       end
 
@@ -184,12 +185,12 @@ class GameRoomTransport
       end
 
       def prune
-        now = Time.now.to_i
+        now = @clock.call
         @invitations.delete_if do |_key, stored|
-          stored[:expires_at].to_i <= now || !stored[:invitation].pending?
+          stored[:expires_at] <= now || !stored[:invitation].pending?
         end
-        @resolutions.delete_if { |_key, stored| stored[:expires_at].to_i <= now }
-        @resolved.delete_if { |_key, expires_at| expires_at.to_i <= now }
+        @resolutions.delete_if { |_key, stored| stored[:expires_at] <= now }
+        @resolved.delete_if { |_key, expires_at| expires_at <= now }
       end
     end
 

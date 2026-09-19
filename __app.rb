@@ -3,8 +3,8 @@
   "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
-  "version": "2.0.1",
-  "build_id": "229",
+  "version": "2.0.1.1",
+  "build_id": "230",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -109,8 +109,8 @@ require_relative "games/registry"
 class EltenGameRoom < Program
   extend GameRoomTableWatchRuntime
   extend GameRoomContactFiltersRuntime
-  GAME_ROOM_VERSION = "2.0.1".freeze
-  GAME_ROOM_BUILD_ID = 229
+  GAME_ROOM_VERSION = "2.0.1.1".freeze
+  GAME_ROOM_BUILD_ID = 230
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
 
@@ -320,12 +320,13 @@ class EltenGameRoom < Program
 
     initialize_services
     check_server_table_access
-    run_network_task(_("Connecting to Elten")) { @transport.start }
+    connected = run_network_task(_("Connecting to Elten")) { @transport.start }
+    return true unless connected
     invitation_id = notification.metadata.to_h["invitation_id"].to_i
-    expiry = notification.metadata.to_h["expires_at"].to_i
+    expiry = GameRoomNotificationTime.expires_at(notification)
     # Older notifications did not carry an expiry. Their actual invitation
     # still needs the authoritative lookup below, not a false "expired".
-    if expiry > 0 && expiry <= Time.now.to_i
+    if expiry > 0 && expiry <= GameRoomClock.now.to_i
       revoke_invitation_notification(invitation_id, notification_id: notification.id)
       alert(_("This invitation has expired."))
       return true
@@ -486,7 +487,7 @@ class EltenGameRoom < Program
     new_entries.each do |entry|
       @lobby_activity_entries << entry if !known_ids.key?(entry.id.to_i)
     end
-    @lobby_activity_entries.sort_by! { |entry| [entry.created_at.to_i, entry.id.to_i] }
+    @lobby_activity_entries.sort_by!(&:id)
     @lobby_activity_entries = @lobby_activity_entries.last(TableActivityRepository::GLOBAL_LIMIT)
 
     settings = game_room_settings
@@ -596,7 +597,7 @@ class EltenGameRoom < Program
       prefixes << _("Alt") if shortcut.modifiers.include?(:alt)
       prefixes << _("Shift") if shortcut.modifiers.include?(:shift)
       key = shortcut.key == "space" ? _("Space") : shortcut.key.upcase
-      form.add_tip(_("Press %{key} for %{action}.") % {key: (prefixes + [key]).join("+"), action: shortcut.label})
+      form.add_tip(GameRoomContextHelp.shortcut_tip((prefixes + [key]).join("+"), shortcut.label))
     end
   end
 
@@ -971,9 +972,8 @@ class EltenGameRoom < Program
           announce_table_options(game_definition(game_id), snapshots[tables.index.to_i]&.table)
         end
       end
-      GameRoomContextHelp.replace([tables], [_("Press %{key} for %{action}.") % {
-        key: "Ctrl+R", action: _("Read the table variant and settings")
-      }])
+      GameRoomContextHelp.replace([tables], [GameRoomContextHelp.shortcut_tip(
+        "Ctrl+R", _("Read the table variant and settings"))])
       form.wait
       return false if action != :join
 
@@ -1633,12 +1633,15 @@ class EltenGameRoom < Program
         delivered = @transport.invite_user(table_id: @lobby.table_id(table), user: recipient, metadata: metadata)
         next false if !delivered
         expiry = delivered.is_a?(Hash) ? (delivered["expires_at"] || delivered.dig("invitation", "expires_at")).to_i : 0
-        raise GameRoomNetworkErrors::UnsupportedInvitation, "The server did not provide the private invitation expiration" if expiry <= Time.now.to_i
+        raise GameRoomNetworkErrors::UnsupportedInvitation, "The server did not provide the private invitation expiration" if expiry <= GameRoomClock.now.to_i
         invitation["expires_at"] = [invitation["expires_at"], expiry].min
         metadata["expires_at"] = invitation["expires_at"]
+        metadata["native_expires_at"] = expiry
       end
-      send_notification(recipient, type: "game_room.invitation", metadata: metadata,
-        expires_in: [metadata["expires_at"].to_i - Time.now.to_i, 1].max)
+      remaining = [metadata["expires_at"].to_i - GameRoomClock.now.to_i, 0].max
+      raise GameRoomNetworkErrors::UnsupportedInvitation, "The invitation expired before delivery" if remaining <= 0
+      metadata["expires_in"] = [remaining, InvitationRepository::DEFAULT_TTL].min
+      send_notification(recipient, type: "game_room.invitation", metadata: metadata, expires_in: metadata["expires_in"])
       true
     end
     # Delivery succeeded: a later history failure must not release the duplicate
@@ -1739,7 +1742,7 @@ class EltenGameRoom < Program
   end
 
   def accept_pending_invitation(invitation, notification_id: nil)
-    if invitation.expires_at <= Time.now.to_i
+    if invitation.expires_at <= GameRoomClock.now.to_i
       revoke_invitation_notification(invitation.id, notification_id: notification_id)
       alert(_("This invitation has expired."))
       return nil
@@ -1759,7 +1762,7 @@ class EltenGameRoom < Program
     return nil if payload == nil
 
     current_invitation, snapshot, current = payload
-    if invitation.expires_at <= Time.now.to_i
+    if invitation.expires_at <= GameRoomClock.now.to_i
       revoke_invitation_notification(invitation.id, notification_id: notification_id)
       alert(_("This invitation has expired."))
       return nil
@@ -1943,6 +1946,7 @@ class EltenGameRoom < Program
   end
 
   def invitation_metadata(row, invitation_id)
+    now = GameRoomClock.now.to_i
     {
       "kind" => "game_room_invitation",
       "invitation_id" => invitation_id,
@@ -1952,8 +1956,8 @@ class EltenGameRoom < Program
       "game" => row["game"].to_s,
       "game_name" => game_name(row["game"]),
       "sender" => Session.name.to_s,
-      "created_at" => Time.now.to_i,
-      "expires_at" => Time.now.to_i + InvitationRepository::DEFAULT_TTL
+      "created_at" => now,
+      "expires_at" => now + InvitationRepository::DEFAULT_TTL
     }
   end
 
@@ -2104,18 +2108,19 @@ class EltenGameRoom < Program
 
   def open_new_table_notification(notification)
     receiver = self.class.table_watch_receiver
-    unless receiver.visible?(notification)
-      alert(_("This table announcement has expired or is no longer available."))
-      return true
-    end
     initialize_services
-    metadata = receiver.data(notification)
-    rows = run_network_task(_("Checking table")) do
+    result = run_network_task(_("Checking table")) do
       @transport.start
-      @lobby.open_table_snapshots(game: metadata["game"])
+      if receiver.visible?(notification)
+        metadata = receiver.data(notification)
+        [metadata, @lobby.open_table_snapshots(game: metadata["game"])]
+      else
+        [nil, nil]
+      end
     end
-    return true if rows == nil
-    unless receiver.visible?(notification)
+    return true if result == nil
+    metadata, rows = result
+    unless metadata && receiver.visible?(notification)
       alert(_("This table announcement has expired or is no longer available."))
       return true
     end

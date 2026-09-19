@@ -1,5 +1,7 @@
 # Optional clock envelope for turn-based card games. Games retain ownership
 # of their phases and timeout consequences; this module only records time.
+require_relative "game_session_clock"
+
 module GameRoomTurnClock
   module_function
 
@@ -11,7 +13,7 @@ module GameRoomTurnClock
     now = if context && context.now != nil
       context.now.to_i
     else
-      (state[:frozen_at] || Time.now.to_i).to_i - state[:clock_offset].to_i
+      GameRoomSessionClock.for_state(state).to_i
     end
     # Sending a new action cannot precede the accepted state on which it is
     # based. Keep strict turn/revision/time validation on received events.
@@ -52,7 +54,6 @@ module GameRoomTurnClock
 
   def attach_session(state, session)
     return unless enabled?(state)
-    state[:clock_offset] = session["__clock_offset"].to_i
-    state[:frozen_at] = session["__frozen_at"]
+    GameRoomSessionClock.attach(state, session)
   end
 end

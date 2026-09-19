@@ -1,5 +1,72 @@
 # Instrukcje dla agentów pracujących nad ELTEN Game Room
 
+## Tysiąc dla dwóch osób; wydanie 2.0.1.1 — 19 września 2026
+
+Zatwierdzono i wdrożono wariant dwóch osób: dwa zakryte musiki po 2/3 karty,
+wybór jednego przez rozgrywającego, odłożenie tej samej liczby kart bez oddawania
+przeciwnikowi, opcjonalne punkty z obu rezerw dla zwycięzcy ostatniej lewy.
+Domyślne: trzy osoby; po wybraniu dwóch osób musik 3 i checkbox włączony.
+Obie osoby potrzebują nowej wersji. Planer nie może czytać cudzych odłożeń
+ani rzeczywistego niewybranego musiku. Zachowano dotychczasowe ziarno RNG
+i trzyosobowe zdarzenia; liczba lew wynika z rozmiaru rąk. Nowe fazy objęto
+zapisem/wznowieniem. Beczka ogłaszana raz przy wejściu, oznaczenie pod S
+znika po opuszczeniu; Shift+S bez zmiany. docs/TYSIAC_TWO_PLAYER.md.
+
+Najnowsze polecenie upoważnia do zbudowania i podpisania 2.0.1.1/build 230
+z wcześniejszymi niewydanymi poprawkami. Starsze zakazy pakowania nie są
+aktualną blokadą. Zachować podpisaną 229, historyczne changelogi i API 3.0.3.
+Nowy changelog PL/EN ma dziewięć punktów. Bez instalacji, publikacji, GitHuba
+i zmian serwera. Przed pakowaniem celowane testy, po nim binarne wczytanie
+gotowej paczki, podpis autora i zgodność wszystkich plików ze snapshotem.
+Wyniki: ../diagnostics/release-2-0-1-1/{SOURCE,PACKAGE}.json; obecność tego
+wpisu nie zastępuje końcowego wyniku weryfikacji.
+
+## Czas serwera, historia i krótsze F1 — niewydane, 19 września 2026
+
+Na polecenie „napraw farkle” usunięto nadmiarowe „dokończcie obieg”, gdy
+limit osiąga ostatni gracz. Stan `final_round` i `finish_turn` bez zmian;
+ogłoszenie powstaje tylko wtedy, gdy następny gracz nie jest pierwszym
+w kolejności miejsc. Nie dodawać dodatkowych tur ani zmieniać punktacji.
+Nowa regresja odtworzyła błąd przed naprawą; po niej trzy celowane skrypty
+Farkle/dźwięków i składnia poprawne. Szczegóły i granice testów:
+docs/FARKLE_FINAL_CIRCUIT_MESSAGES.md. Nie budowano nowej paczki.
+
+Na polecenie użytkownika przejrzano zegary całego dodatku. Wspólny
+GameRoomClock synchronizuje czas w istniejącym zadaniu sieciowym/tle;
+odczyt nie robi HTTP, upływ mierzy monotonicznie. Zaproszenia/ogłoszenia
+liczą ważność od koperty serwera, także dla starych nadawców. Historia
+LiveSessions używa kolejności stosu, korekty dat nie powtarzają ruchów.
+GameRoomSessionClock zachowuje epokę, pauzę i czas zapisanej partii; używany
+także przez odczyty limitów, Quiz i dzienną Krowę. Liczniki UI/botów/retry
+pozostają monotoniczne. Nie wracać do Time.now dla wspólnych terminów ani
+sortowania zdarzeń. Nowe testy muszą obejmować różne zegary obu klientów.
+
+Dodatkowo wspólne opisy F1/skrótów w zasadach mają formę „Ctrl+R, Odczytaj
+wariant i ustawienia stołu.”, bez „Naciśnij …, aby:”. Klawisze bez zmian.
+Szczegóły: docs/SERVER_CLOCK_AUDIT_229.md. 58/59 celowanych uruchomień;
+niezaliczony stary test rules_shortcut_reference wskazuje zastany zbiorczy
+wpis Tab/Shift+Tab w Krowie. Nie przerabiano go ani nie osłabiano asercji.
+Bez pełnego runnera i żywej gry. ELTEN ma osobne lokalne porównanie ważności
+w głównej liście powiadomień i natywnej kolejce zaproszeń; tego kodu nie
+zmieniano. Nie twierdzić, że dodatek naprawia również tę granicę hosta.
+Wersja/changelog, instalacja, serwer, GitHub i podpisana paczka 229 f3935830…
+bez zmian. Paczka NIE zawiera tych ani wcześniejszych lokalnych poprawek UI.
+
+## Komunikaty i listy — niewydane, 19 września 2026
+
+Skrócono warunkowe opcje Krowy i dopasowano zasady/sterowanie PL/EN.
+Statki odczytują raz pytanie o rozstawienie, potwierdzają przyjętą własną
+losową flotę i rozpoznają pierwszą turę po fazie rozstawiania. Monopoly:
+grupy w Shift+D, „grupa 2 z 3”, numer budowanego domu, czynsz pod V/Enter
+(także Shift+V). Zachowano ekonomię, transport i prywatność flot.
+Zgłoszenia własnego czatu użytkownik nie potrafi potwierdzić; nie zmieniać
+tego mechanizmu na podstawie samego wcześniejszego przypuszczenia.
+Opis i granice testów: docs/UI_FEEDBACK_229.md. Zachowano wcześniejszą
+poprawkę nil-state opóźnienia bota. Tylko testy celowane, także binarne
+PL/EN/fallback; bez pełnego runnera i żywej gry. Nie przebudowano ani nie
+podpisano paczki, nie zmieniano changelogu, instalacji, serwera lub GitHuba.
+Nie traktować historycznych zgód na wydanie poniżej jako nowego polecenia.
+
 ## Krowa i ponowne wydanie 229 — 18 września 2026
 
 Najnowsze polecenie zezwala po zakończeniu weryfikacji zbudować i podpisać
@@ -921,6 +988,11 @@ definicje co rzeczywiste skróty (`GameRoomContextHelp`), nie dopisuj na stałe
 tipsów zależnych od fazy. Szczegóły: `docs/VOLUME_AND_HELP_224.md`.
 
 - Najpierw odtwórz problem i wskaż warstwę, która jest jego właścicielem.
+- `Replay#state` jest opcjonalne: Kółko i krzyżyk oraz Czwórki przechowują
+  pozycję w polach `board`/`players` i zwracają `state: nil`. Wspólne hooki
+  nie mogą wymagać Hasha stanu; opcje partii pochodzą również z ActionContext.
+  Przy ich zmianach testuj prawdziwy replay klas gier, nie tylko sztucznie
+  zbudowany Hash. Regresja opóźnienia botów: `test/bot_delay_replay_test.rb`.
 - Kodowanie tekstów UI sprawdzaj również w paczce: ELTEN może wczytać źródła
   jako ASCII-8BIT, a brak tłumaczenia w `_()` pozostawia taki tekst bez zmiany.
   Nawet angielska etykieta z myślnikiem „—”, znakiem „×” lub innym znakiem

@@ -105,11 +105,14 @@ types.each do |type|
   assert(snapshot.events.map { |event| repo.event_id(event) } == row["events"].map { |event| event["id"] }, "#{game.id}: old event IDs changed")
   remapped = JSON.generate(after.state).gsub(/bot:#{restored_table['__id']}:/, "bot:#{table['__id']}:")
   expected = JSON.generate(before.state)
-  if game.id == "uno"
-    remapped = JSON.generate(JSON.parse(remapped).reject { |key, _| %w[clock_offset frozen_at].include?(key) })
-    expected = JSON.generate(JSON.parse(expected).reject { |key, _| %w[clock_offset frozen_at].include?(key) })
+  # Session clock metadata changes when a frozen archive is resumed. Compare
+  # the actual game state separately, and verify the preserved game time below.
+  if before.state.is_a?(Hash) && after.state.is_a?(Hash)
+    remapped = JSON.generate(JSON.parse(remapped).reject { |key, _| %w[clock_epoch_offset clock_offset frozen_at].include?(key) })
+    expected = JSON.generate(JSON.parse(expected).reject { |key, _| %w[clock_epoch_offset clock_offset frozen_at].include?(key) })
   end
   assert(remapped == expected, "#{game.id}: restored state differs")
+  assert(GameRoomSessionClock.from_server(snapshot.session, snapshot.session.fetch("__server_started_at")) == row["game_time"], "#{game.id}: restored game time changed")
   remote_repo = GameRepository.new(ProgramDouble.new(broker.endpoint("Bob", fresh: true)), transport: bob, server_tables: {})
   remote = remote_repo.session_for_table(selected)
   assert(remote_repo.snapshot_for(remote).events.length == snapshot.events.length, "#{game.id}: remote client did not import archive")

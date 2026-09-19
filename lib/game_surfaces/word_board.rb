@@ -1,9 +1,10 @@
 # encoding: UTF-8
 require_relative "../scrabble_rules"
+require_relative "../game_session_clock"
 
 module GameSurfaces
   WordBoardSpec = Struct.new(:board, :rack, :tiles, :alphabet, :epoch, :editable, :exchange,
-    :deadline, :clock_offset, :frozen_at, :preview, :error_message, keyword_init: true)
+    :deadline, :clock_offset, :frozen_at, :clock_epoch_offset, :preview, :error_message, keyword_init: true)
 
   class WordBoardSurface
     include ActionEmitter
@@ -105,7 +106,8 @@ module GameSurfaces
     def position; @control.y * 15 + @control.x; end
     def available; @order - @draft.map(&:first); end
     def editable?
-      now = (@spec.frozen_at || Time.now.to_i).to_i - @spec.clock_offset.to_i
+      now = GameRoomSessionClock.for_state(frozen_at: @spec.frozen_at,
+        clock_offset: @spec.clock_offset, clock_epoch_offset: @spec.clock_epoch_offset)
       @spec.editable && (@spec.deadline.to_i == 0 || now.to_i < @spec.deadline)
     end
     def say(text); speak(text); true; end

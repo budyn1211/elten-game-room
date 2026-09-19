@@ -1,6 +1,6 @@
 require_relative "game_bots"
 
-# Information-set planning for the three-player Tysiac game. The planner never
+# Information-set planning for two- and three-player Tysiac. The planner never
 # reads the identities of cards in an opponent's real hand. Instead it samples
 # complete deals consistent with the bot's own hand, public plays, auction
 # information and suits in which a player has publicly shown a void.
@@ -28,6 +28,10 @@ module TysiacPlanning
         planner.choose_play(choices, samples: PLAY_SAMPLES)
       when :passing
         planner.choose_passing(choices, samples: PASSING_SAMPLES)
+      when :choosing_talon
+        planner.choose_talon(choices)
+      when :discarding
+        planner.choose_discarding(choices, samples: PASSING_SAMPLES)
       when :contract
         planner.choose_contract(choices, samples: CONTRACT_SAMPLES)
       end
@@ -281,6 +285,53 @@ module TysiacPlanning
       chosen[0]
     end
 
+    # Both talons are face down. Their indices carry no information about
+    # their cards, even though the deterministic replay contains those cards.
+    def choose_talon(actions)
+      actions[@random.rand(actions.length)]
+    end
+
+    def choose_discarding(actions, samples:)
+      card_actions = actions.select { |action| action["kind"] == "card" }
+      return nil if card_actions.empty?
+      hand = @state[:hands].fetch(@actor)
+      remaining = @game.send(:talon_size, @state) - @state[:pass_index].to_i
+      # Shortlist full discard sets, not greedy single-card choices. Keep a
+      # candidate for every selectable card without increasing the old
+      # passing planner's simulation budget (up to 90 pairs x 40 worlds).
+      ranked = ranked_discards(hand, remaining, actor: @actor)
+      candidates = ranked.first(12)
+      card_actions.each do |action|
+        candidate = ranked.find { |cards| cards.include?(action["card"]) }
+        candidates << candidate if candidate && !candidates.include?(candidate)
+      end
+      worlds = sampled_worlds(samples)
+      return nil if worlds.empty?
+      scored = candidates.map do |cards|
+        outcomes = worlds.map do |world|
+          simulated = clone_world(world)
+          cards.each do |card|
+            simulated[:hands][@actor].delete(card)
+            simulated[:set_aside] << card
+          end
+          simulated[:current_player] = @actor
+          finish_round(simulated)
+          simulated[:round_points].fetch(@actor, 0)
+        end
+        probability = outcomes.count { |points| points >= @state[:contract].to_i }.to_f / outcomes.length
+        ordered = outcomes.sort
+        score = probability * 20_000 + outcomes.sum.to_f / outcomes.length * 25 + ordered[((ordered.length - 1) * 0.25).floor] * 12
+        [cards, score, probability]
+      end
+      chosen = scored.max_by { |_cards, score, _probability| score }
+      return nil unless chosen
+      surrender = actions.find { |action| action["action"] == "surrender" }
+      if surrender && surrender_better_than_playing?(chosen[2], @state[:contract].to_i)
+        return surrender
+      end
+      card_actions.find { |action| chosen[0].include?(action["card"]) }
+    end
+
     private
 
     def marriage_control_opening_actions(actions)
@@ -303,6 +354,9 @@ module TysiacPlanning
 
     def late_contract_control_actions(actions)
       choices = actions.to_a
+      # Cashing an ace now can give away the set-aside cards on the last
+      # trick. In this variant evaluate every legal continuation instead.
+      return choices if two_players? && @state[:options]["last_trick_talon"]
       return choices if !same_player?(@state[:taker], @actor)
       return choices if !@state[:current_trick].to_a.empty?
 
@@ -349,7 +403,8 @@ module TysiacPlanning
       opponents = @players.reject { |player| same_player?(player, @actor) }
       sizes = opponents.to_h { |player| [player, @state[:hands].fetch(player, []).length] }
       talon_size = unknown.length - sizes.values.sum
-      return nil if talon_size != 3
+      expected = two_players? ? @game.send(:talon_size, @state) * 2 : 3
+      return nil if talon_size != expected
 
       shuffled = deterministic_shuffle(unknown, @random)
       hands = { @actor => own_hand }
@@ -361,19 +416,32 @@ module TysiacPlanning
       talon = shuffled.slice(offset, talon_size).to_a
       return nil if publicly_promised_marriage_missing?(hands)
 
-      world_from_state(hands: hands).merge(talon: talon)
+      if two_players?
+        size = @game.send(:talon_size, @state)
+        world_from_state(hands: hands).merge(talon: talon.first(size), set_aside: talon.last(size))
+      else
+        world_from_state(hands: hands).merge(talon: talon)
+      end
     end
 
     def prepare_bidding_world(world, contract, taker: @actor)
       simulated = clone_world(world)
       ten_cards = simulated[:hands].fetch(taker, []).to_a + world.fetch(:talon, []).to_a
-      pair = recommended_pass_pair(ten_cards, actor: taker)
+      pair = if two_players?
+        ranked_discards(ten_cards, @game.send(:talon_size, @state), actor: taker).first
+      else
+        recommended_pass_pair(ten_cards, actor: taker)
+      end
       return nil if pair == nil
 
       retained = ten_cards.dup
       pair.each { |card| retained.delete_at(retained.index(card)) }
-      recipients = @players.reject { |player| same_player?(player, taker) }
-      recipients.each_with_index { |recipient, index| simulated[:hands].fetch(recipient) << pair[index] }
+      if two_players?
+        simulated[:set_aside].concat(pair)
+      else
+        recipients = @players.reject { |player| same_player?(player, taker) }
+        recipients.each_with_index { |recipient, index| simulated[:hands].fetch(recipient) << pair[index] }
+      end
       simulated[:hands][taker] = retained
       simulated[:current_player] = taker
       simulated[:taker] = taker
@@ -383,6 +451,24 @@ module TysiacPlanning
       simulated[:trick_number] = 0
       simulated[:round_points] = @players.to_h { |player| [player, 0] }
       simulated
+    end
+
+    def two_players?
+      @game.send(:two_players?, @state)
+    end
+
+    def ranked_discards(hand, count, actor:)
+      public_hands = @players.to_h { |player| [player, []] }
+      public_hands[actor] = hand
+      public_state = @state.merge(phase: :discarding, hands: public_hands, taker: actor)
+      hand.combination(count).sort_by do |cards|
+        retained_state = public_state.merge(hands: public_hands.merge(actor => hand - cards))
+        estimate = @game.send(:bot_contract_estimate, retained_state, actor)
+        disposal = cards.sum { |card| @game.send(:bot_pass_card_score, public_state, actor, card) }
+        # No passed-marriage penalty: these cards cannot form a marriage in
+        # the opponent's hand. The retained-hand estimate values our pairs.
+        [-(estimate * 100 + disposal), cards.join]
+      end
     end
 
     def recommended_pass_pair(hand, actor: @actor)
@@ -543,6 +629,7 @@ module TysiacPlanning
     end
 
     def sample_world
+      return sample_two_player_world if two_players?
       own_hand = @state[:hands].fetch(@actor, []).to_a.dup
       played = @public_played_cards
       fixed = @known_passed_cards.transform_values do |cards|
@@ -570,6 +657,43 @@ module TysiacPlanning
       return nil if public_talon_assignment_impossible?(hands)
 
       world_from_state(hands: hands)
+    end
+
+    def sample_two_player_world
+      own_hand = @state[:hands].fetch(@actor, []).dup
+      taker = player_key(@state[:taker])
+      opponent = @players.find { |player| player != @actor }
+      # Only the bidder knows which cards they discarded. Never derive this
+      # from somebody else's discard events or from the actual reserve.
+      known_discards = @actor == taker ? @state[:discarded_cards].to_a.dup : []
+      unknown = deck - own_hand - @public_played_cards - known_discards
+      size = @game.send(:talon_size, @state)
+      hidden_discards = @actor == taker ? 0 : @state[:pass_index].to_i
+      opponent_size = @state[:hands].fetch(opponent).length
+      return nil unless unknown.length == opponent_size + size + hidden_discards
+      shuffled = deterministic_shuffle(unknown, @random)
+      allowed = shuffled.reject { |card| @inferred_void_suits.fetch(opponent).include?(card_suit(card)) }
+      return nil if allowed.length < opponent_size
+      public_talon = @state[:talon].to_a - @public_played_cards
+      mandatory = if opponent == taker
+        count = [public_talon.length - hidden_discards, 0].max
+        (allowed & public_talon).first(count)
+      else
+        []
+      end
+      opponent_hand = mandatory + (allowed - mandatory).first(opponent_size - mandatory.length)
+      remaining = shuffled - opponent_hand
+      public_discards = opponent == taker ? remaining & public_talon : []
+      return nil if public_discards.length > hidden_discards
+      discards = public_discards + (remaining - public_discards).first(hidden_discards - public_discards.length)
+      unused = remaining - discards
+      discards += known_discards
+      hands = { @actor => own_hand, opponent => opponent_hand }
+      # Publicly revealed talon cards can be held, played or discarded by
+      # the taker, but cannot secretly belong to the unused talon/defender.
+      return nil unless (public_talon - hands.fetch(taker) - discards).empty?
+      return nil if publicly_promised_marriage_missing?(hands)
+      world_from_state(hands: hands).merge(set_aside: unused + discards)
     end
 
     def public_talon_assignment_impossible?(hands)
@@ -619,6 +743,8 @@ module TysiacPlanning
         surrender_uses: @state[:surrender_uses].each_with_object({}) do |(player, count), result_hash|
           result_hash[player_key(player)] = count.to_i
         end,
+        last_trick_talon: two_players? && @state[:options]["last_trick_talon"] == true,
+        set_aside: [],
         score_limit: @state[:options]["score_limit"].to_i
       }
     end
@@ -728,6 +854,9 @@ module TysiacPlanning
       world[:current_trick] = []
       world[:trick_number] += 1
       world[:current_player] = world[:hands].values.all?(&:empty?) ? nil : winner
+      if world[:current_player] == nil && world[:last_trick_talon]
+        world[:round_points][winner] += world[:set_aside].sum { |item| @card_points.fetch(card_rank(item)) }
+      end
       true
     end
 
@@ -1075,6 +1204,8 @@ module TysiacPlanning
         barrels: world[:barrels].transform_values(&:dup),
         zero_rounds: world[:zero_rounds].dup,
         surrender_uses: world[:surrender_uses].dup,
+        last_trick_talon: world[:last_trick_talon],
+        set_aside: world.fetch(:set_aside, []).dup,
         score_limit: world[:score_limit]
       }
     end

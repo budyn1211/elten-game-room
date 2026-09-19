@@ -1,3 +1,4 @@
+require_relative "game_room_clock"
 require "securerandom"
 require "json"
 require_relative "game_room_transport"
@@ -219,7 +220,7 @@ class GameRepository
       )
     end
 
-    timestamp = Time.now.to_i
+    timestamp = GameRoomClock.now.to_i
     inserted = commands.each_with_index.map do |command, offset|
       action = command_value(command, "action").to_s
       value = command_value(command, "value").to_s
@@ -318,7 +319,7 @@ class GameRepository
       return inserted
     end
 
-    timestamp = Time.now.to_i
+    timestamp = GameRoomClock.now.to_i
     inserted = sessions_table.insert(
       "table_id" => row_id(table),
       "game" => game.to_s,

@@ -94,10 +94,10 @@ module GameRoomGames
           ["daily", _("Daily Krowa")], ["random", _("Random word")],
           ["race", _("Race")], ["tower", _("Word Tower")]
         ]),
-        choice("length", _("Number of letters - Random word and Race"), 0,
+        choice("length", _("Number of letters"), 0,
           [[0, _("Random")]] + (3..13).map { |size| [size, size.to_s] },
           visible_if: ->(options) { %w[random race].include?(options["variant"]) }),
-        choice("race_scoring", _("Race - scoring criterion"), "attempts", [
+        choice("race_scoring", _("Scoring criterion"), "attempts", [
           ["attempts", _("Number of attempts")], ["time", _("Guessing time")]
         ], visible_if: ->(options) { options["variant"] == "race" })
       ]

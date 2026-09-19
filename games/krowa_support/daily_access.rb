@@ -19,7 +19,9 @@ module GameRoomGames
         user: @user
       )
       @fetch = fetch || -> {
-        EltenLink::System.server_time(EltenLink::Client.new, timeout: 5)
+        GameRoomClock.synchronize
+        raise GameRoomNetworkErrors::ClockUnavailable, "Unconfirmed server time" unless GameRoomClock.synchronized?
+        Time.at(GameRoomClock.now)
       }
       @date = nil
       @completed = nil

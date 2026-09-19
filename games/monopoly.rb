@@ -52,7 +52,7 @@ module GameRoomGames
           GameRoomRules.translate("Put unsold properties up for auction is off by default. Turn it on if you want a declined purchase to be offered to the active players through bidding. Players take turns bidding or passing. Passing withdraws you from this auction. The remaining highest bidder pays their final bid and receives the property; the printed purchase price is not the amount automatically charged."),
           GameRoomRules.translate("Auction decision time is the number of seconds for one bid or pass. Zero, the default, gives unlimited time. A positive limit starts afresh for the next bidder after every accepted decision; exceeding it means an automatic pass. B lets you enter a total purchase bid, above the current bid and within your cash. Enter or G accepts the suggested next bid. You cannot save the game during an auction.")),
         rule_section(:rent, GameRoomRules.translate("Rent follows the deed"),
-          GameRoomRules.translate("Landing on someone else's chargeable property makes you pay its owner. For a street, the amount depends on its rent schedule, colour group and buildings. Stations depend on how many stations the owner has. Utilities also use the dice total. A mortgaged property charges no rent. The deed inspection shows the figures used on your board, which matters especially on larger regional boards."),
+          GameRoomRules.translate("Landing on someone else's chargeable property makes you pay its owner. For a street, the amount depends on its rent schedule, colour group and buildings. Stations depend on how many stations the owner has. Utilities also use the dice total. A mortgaged property charges no rent. Open your holdings with V or another player's holdings with Shift+V, then press Enter on a property to check its current rent. For a utility, the description gives the multiplier of the visitor's dice total rather than using an earlier roll."),
           GameRoomRules.translate("Pay rents automatically is enabled by default. Without it, the owner decides whether to request or waive each eligible rent, and the visitor's move waits for this decision. Do not collect rent while in jail is a separate option, off by default. Enabling it removes rent income for an owner who is currently imprisoned; it does not remove their ownership.")),
         rule_section(:building, GameRoomRules.translate("Develop a group evenly"),
           GameRoomRules.translate("Manage your properties on your own turn before rolling, or while resolving your debt on that turn. To build, you need the complete colour group and no mortgages in that group. Add houses to the least developed streets first. In a three-street group you can reach one house on each before putting a second on any street. Four houses may be replaced by a hotel, the fifth development level."),
@@ -183,6 +183,7 @@ module GameRoomGames
           accepted << event
         end
       end
+      GameRoomSessionClock.attach(state, session)
       Replay.new(board: state[:board], players: players, current_player: state[:current_player], winner: state[:winner],
         draw: false, accepted_events: accepted, history: history, state: state)
     end
@@ -264,7 +265,7 @@ module GameRoomGames
       if action == "auction_bid"
         amount = Integer(selection["amount"].to_s, 10)
         return [:invalid_auction_bid, nil] if state[:phase] != :auction || amount <= state[:auction_bid] || amount > state[:cash][player_key(state, actor)]
-        return [:ok, event_plan(action, "#{amount}|#{auction_action_time(context)}")]
+        return [:ok, event_plan(action, "#{amount}|#{auction_action_time(context, state)}")]
       end
       if action == "trade_offer"
         return [:invalid, nil] if ![:awaiting_roll, :turn_complete].include?(state[:phase])
@@ -316,7 +317,7 @@ module GameRoomGames
       elsif action == "trade_offer"
         candidate["offer"].to_s
       elsif %w[decline auction_pass].include?(action)
-        auction_action_time(context).to_s
+        auction_action_time(context, state).to_s
       else ""
       end
       [:ok, event_plan(action, value)]
@@ -700,7 +701,13 @@ module GameRoomGames
       case action
       when "build"
         return false if !can_build?(state, player, square)
-        description = state[:houses][index] == 4 ? _("%{player} builds a hotel on %{property}.") : _("%{player} builds a house on %{property}.")
+        description = [
+          _("%{player} builds the first house on %{property}."),
+          _("%{player} builds the second house on %{property}."),
+          _("%{player} builds the third house on %{property}."),
+          _("%{player} builds the fourth house on %{property}."),
+          _("%{player} builds a hotel on %{property}.")
+        ].fetch(state[:houses][index].to_i)
         state[:cash][player] -= square[:house_cost]
         state[:houses][index] += 1
       when "sell"
@@ -946,8 +953,8 @@ module GameRoomGames
       false
     end
 
-    def auction_action_time(context)
-      (context&.now || Time.now.to_i).to_i
+    def auction_action_time(context, state)
+      (context&.now || GameRoomSessionClock.for_state(state)).to_i
     end
 
     def set_auction_deadline(state, timestamp, event_id)
@@ -1830,24 +1837,44 @@ module GameRoomGames
     end
 
     def property_choices(state, group_progress: false)
-      labels = state[:board].select { |square| [:property, :railroad, :utility].include?(square[:type]) && yield(square) }.map do |square|
+      choices = state[:board].select { |square| [:property, :railroad, :utility].include?(square[:type]) && yield(square) }.map do |square|
         text = deed_text(state, square)
         if group_progress && square[:type] == :property
           owner = state[:owners][square[:index]]
           group = colour_group_squares(state, square[:group])
           owned = group.count { |member| same_user?(state[:owners][member[:index]], owner) }
-          text = _("%{property}; group ownership %{owned} of %{total}.") % {
+          text = _("%{property}; group %{owned} of %{total}.") % {
             property: text.sub(/\.\z/, ""), owned: owned, total: group.length
           }
         end
-        text
+        details = group_progress ? [ShortcutChoice.new(value: "rent", label: property_rent_text(state, square))] : square[:index]
+        ShortcutChoice.new(value: details, label: text)
       end
-      labels = [_('No matching property.')] if labels.empty?
-      labels.each_with_index.map { |label, index| ShortcutChoice.new(value: index, label: label) }
+      choices.empty? ? [ShortcutChoice.new(value: nil, label: _('No matching property.'))] : choices
     end
 
     def board_choices(state)
-      state[:board].map { |square| ShortcutChoice.new(value: square[:index], label: _("%{number}. %{name}") % { number: square[:index], name: square[:name] }) }
+      state[:board].map do |square|
+        name = [:property, :railroad, :utility].include?(square[:type]) ? property_name_and_group(square) : square[:name]
+        ShortcutChoice.new(value: square[:index], label: _("%{number}. %{name}") % { number: square[:index], name: name })
+      end
+    end
+
+    def property_rent_text(state, square)
+      owner = state[:owners][square[:index]]
+      return _("No rent: this property has no owner.") if owner == nil
+      return _("No rent: this property is mortgaged.") if state[:mortgaged][square[:index]]
+      if state[:options]["no_rent_in_jail"] && state[:jail][owner].to_i > 0
+        return _("No rent: %{owner} is in jail.") % { owner: participant_name(owner) }
+      end
+      if square[:type] == :utility
+        # Show the formula for a future visit, not the last player's roll.
+        multiplier = rent_for(state.merge(last_roll: 1), square, owner)
+        return _("Visitors pay %{multiplier} times their dice total to %{owner}.") % {
+          multiplier: multiplier, owner: participant_name(owner)
+        }
+      end
+      _("Visitors pay %{amount} to %{owner}.") % { amount: rent_for(state, square, owner), owner: participant_name(owner) }
     end
   end
 end

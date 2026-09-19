@@ -213,8 +213,7 @@ module GameRoomGames
           accepted << event
         end
       end
-      state = state.merge(clock_offset: session["__clock_offset"].to_i) if session["__clock_offset"].to_i != 0
-      state = state.merge(frozen_at: session["__frozen_at"]) if session["__frozen_at"] != nil
+      GameRoomSessionClock.attach(state, session)
       Replay.new(board: nil, players: players, current_player: state[:current_player], winner: state[:winner],
         draw: false, accepted_events: accepted, history: history,
         state: state)
@@ -447,7 +446,7 @@ module GameRoomGames
       announcement = super
       return announcement if announcement == nil || replay.finished? || replay.state[:turn_deadline].to_i <= 0
 
-      now = (replay.state[:frozen_at] || Time.now.to_i).to_i - replay.state.fetch(:clock_offset, 0).to_i
+      now = GameRoomSessionClock.for_state(replay.state).to_i
       remaining = [replay.state[:turn_deadline].to_i - now, 0].max
       _("%{turn} %{seconds} seconds remain.") % { turn: announcement, seconds: remaining }
     end
@@ -1349,7 +1348,7 @@ module GameRoomGames
       return 0 if duration <= 0
 
       now = context&.now
-      (now == nil ? Time.now.to_i : now.to_i) + duration
+      (now == nil ? GameRoomSessionClock.for_state(state).to_i : now.to_i) + duration
     end
 
     def finish_round(state, winner, event_id, history)

@@ -14,6 +14,11 @@ module GameRoomContextHelp
 
   module_function
 
+  def shortcut_tip(key, action)
+    label = GameRoomContent.utf8(action).strip.sub(/\.+\z/, "")
+    "#{GameRoomContent.utf8(key)}, #{label}."
+  end
+
   # F1 and the rules' in-game list read the same bound definitions. Removing
   # room actions does not remove a game action whose text happens to match one.
   def field_tips(field, include_context: true)

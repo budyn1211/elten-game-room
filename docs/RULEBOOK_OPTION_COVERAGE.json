@@ -138,6 +138,9 @@
   },
   "tic_tac_toe": {},
   "tysiac": {
+    "variant": "two_players",
+    "talon_size": "two_players",
+    "last_trick_talon": "two_players",
     "score_limit": "points"
   },
   "uno": {

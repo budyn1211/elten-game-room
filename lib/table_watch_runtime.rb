@@ -55,7 +55,10 @@ module GameRoomTableWatchRuntime
     runtime = Programs.current_runtime if defined?(Programs) && Programs.respond_to?(:current_runtime)
     @table_watch_loader = GameRoomBackground::Work.new(runtime: runtime)
     user = receiver.user
-    @table_watch_loader.start { table_watch_repository.load(user) }
+    @table_watch_loader.start do
+      GameRoomClock.synchronize
+      table_watch_repository.load(user)
+    end
   end
 
   def table_watch_set_games(games)
@@ -76,7 +79,7 @@ module GameRoomTableWatchRuntime
     end
     @table_watch_sender&.tick
     @table_watch_receipt_writer&.tick
-    if defined?(EltenAPI::NotificationService) && EltenAPI::NotificationService.respond_to?(:active_notifications)
+    if (!GameRoomClock.server_available? || GameRoomClock.synchronized?) && defined?(EltenAPI::NotificationService) && EltenAPI::NotificationService.respond_to?(:active_notifications)
       GameRoomTableWatch::Timing.measure(:list_cleanup) do
         ids = EltenAPI::NotificationService.active_notifications.filter_map do |row|
           next unless row.cat.to_s == "app" && row.app_uuid.to_s.casecmp?(server_app_uuid.to_s)
@@ -112,7 +115,7 @@ module GameRoomTableWatchRuntime
         clock: @table_watch_clock,
         online: -> { EltenLink::Users.online(client) }, send_notice: ->(user, metadata, expires) {
           EltenLink::Apps.notify(client, appid: server_app_uuid, user: user, type: GameRoomTableWatch::TYPE,
-            metadata: metadata, expires_in: expires) if expires > 0
+            metadata: metadata.merge("expires_in" => expires), expires_in: expires) if expires > 0
         })
     end
     @table_watch_sender.enqueue(row)

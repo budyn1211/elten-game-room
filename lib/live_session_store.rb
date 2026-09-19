@@ -48,6 +48,7 @@ class GameRoomLiveSessionStore
     @native_session_ids = {}
     @records = Hash.new { |hash, key| hash[key] = [] }
     @record_keys = Hash.new { |hash, key| hash[key] = {} }
+    @clock_revisions = Hash.new(0)
     @message_records = Hash.new { |hash, key| hash[key] = {} }
     @pending_moves = {}
     @recovered_moves = Hash.new { |hash, key| hash[key] = [] }
@@ -61,6 +62,7 @@ class GameRoomLiveSessionStore
   end
 
   def start
+    GameRoomClock.synchronize
     current = endpoint
     current.sessions.to_a.each { |session| attach_supported_session(session) } if current.respond_to?(:sessions)
     true
@@ -103,7 +105,7 @@ class GameRoomLiveSessionStore
       "game_options" => game_options.to_s,
       "private" => private_table == true,
       "resume_save_id" => resume_save_id.to_s,
-      "created_at" => Time.now.to_i
+      "created_at" => GameRoomClock.now.to_i
     }
     discovery = metadata.dup
     session = endpoint.create(
@@ -242,7 +244,7 @@ class GameRoomLiveSessionStore
       name = key.to_s
       result[name] = value if allowed.include?(name)
     end
-    values["updated_at"] = Time.now.to_i
+    values["updated_at"] = GameRoomClock.now.to_i
     append_record(table_id, "room_state", values, actor: actor)
     table_for(table_id)
   end
@@ -335,7 +337,7 @@ class GameRoomLiveSessionStore
     record = append_record(table_id, "room_state", {
       "game_options" => options.to_s, "options_changed" => true,
       "expected_options" => expected_options.to_s, "expected_session_id" => expected_session_id.to_i,
-      "updated_at" => Time.now.to_i
+      "updated_at" => GameRoomClock.now.to_i
     }, actor: endpoint.user)
     _projection, applied = project_room_records(table_id, {})
     record != nil && applied.include?(record.sequence)
@@ -416,12 +418,12 @@ class GameRoomLiveSessionStore
       "game" => game.to_s,
       "players" => players.to_a.map(&:to_s),
       "options" => options.to_s,
-      "created_at" => Time.now.to_i
+      "created_at" => GameRoomClock.now.to_i
     }
     if restore != nil
       payload.merge!("archive_id" => archive_id, "archive_events" => restore.fetch(:events).length,
         "event_id_base" => restore.fetch(:events).map { |event| event["id"] }.max.to_i,
-        "clock_offset" => restore[:game_time] == nil ? restore.fetch(:clock_offset).to_i : Time.now.to_i - restore[:game_time].to_i)
+        "clock_offset" => restore[:game_time] == nil ? restore.fetch(:clock_offset).to_i : GameRoomClock.now.to_i - restore[:game_time].to_i)
     end
     record = append_record(table_id, "game_started", payload, actor: actor)
     trim_previous_games(table_id, checkpoint.sequence - 1) if record != nil && checkpoint != nil
@@ -736,7 +738,7 @@ class GameRoomLiveSessionStore
         id: invitation_id,
         table_id: table_id,
         invitation: invitation,
-        created_at: Time.now.to_i
+        created_at: GameRoomClock.now.to_i
       }
     end
     emit_change(table_id, :invitation, invitation_id)
@@ -765,12 +767,12 @@ class GameRoomLiveSessionStore
   def resolve_invitation(id)
     @mutex.synchronize do
       @pending_invitations.delete(id.to_i)
-      @resolved_invitations[id.to_i] = Time.now.to_i + INVITATION_TTL
+      @resolved_invitations[id.to_i] = GameRoomClock.now.to_i + INVITATION_TTL
     end
   end
 
   def prune_invitations
-    now = Time.now.to_i
+    now = GameRoomClock.now.to_i
     expired = []
     @mutex.synchronize do
       @pending_invitations.delete_if do |_id, stored|
@@ -965,14 +967,9 @@ class GameRoomLiveSessionStore
     end
     result = session.stack_push(pending[:packet], message_id: pending[:message_id])
     sequence = extract_push_sequence(result)
-    clock_boundary = %w[game_started game_boundary].include?(pending[:packet]["kind"])
     server_time = result.is_a?(Hash) ? (result.dig("entry", "created_at") || result["created_at"]) : nil
     server_time = nil unless server_time.respond_to?(:to_i) && server_time.to_i.positive?
-    if clock_boundary
-      timestamp = server_time || (@record_clock ||= GameRoomSessionClock.new).server_now
-    else
-      timestamp = Time.now.to_i
-    end
+    timestamp = server_time || (@record_clock ||= GameRoomSessionClock.new).server_now
     record = ingest_record(
       table_id,
       sequence: sequence,
@@ -980,7 +977,7 @@ class GameRoomLiveSessionStore
       sender: pending[:sender],
       packet: pending[:packet],
       created_at: timestamp,
-      estimated_time: clock_boundary && server_time == nil
+      estimated_time: server_time == nil
     )
     record || confirmed_record(table_id, pending)
   rescue StandardError => error
@@ -1040,6 +1037,10 @@ class GameRoomLiveSessionStore
       if @record_keys[table_id].key?(key)
         previous = @message_records[table_id][[sender.to_s.downcase, identity]]
         if previous && previous.sequence == seq && previous.estimated_time && !estimated_time
+          if previous.created_at != record.created_at
+            session_id = previous.packet.dig("data", "session_id").to_i
+            @clock_revisions[[table_id, session_id]] += 1 if session_id > 0
+          end
           previous.created_at = record.created_at
           previous.estimated_time = false
           corrected = previous
@@ -1072,7 +1073,13 @@ class GameRoomLiveSessionStore
       true
     end
     emit_record_change(table_id, record) if inserted
-    emit_change(table_id, :game, corrected.packet.dig("data", "session_id").to_i) if corrected
+    if corrected
+      if corrected.packet["kind"] == "game_started"
+        emit_change(table_id, :game, corrected.packet.dig("data", "session_id").to_i)
+      else
+        emit_record_change(table_id, corrected)
+      end
+    end
     inserted ? record : nil
   rescue JSON::GeneratorError, JSON::ParserError
     nil
@@ -1153,6 +1160,7 @@ class GameRoomLiveSessionStore
       when "room_created"
         data = record.packet["data"].to_h
         row.merge!(data)
+        row["created_at"] = record.created_at.to_i
       when "room_state"
         data = record.packet["data"].to_h
         if data["options_changed"] == true
@@ -1163,7 +1171,9 @@ class GameRoomLiveSessionStore
       when "game_started"
         current_game_id = record.packet.dig("data", "session_id").to_i
       end
-      row["updated_at"] = [row["updated_at"].to_i, record.created_at.to_i].max
+      # Order is provided by the stack, including old clients whose payload
+      # contains a skewed wall-clock timestamp.
+      row["updated_at"] = record.created_at.to_i
     end
     [row, changes]
   end
@@ -1196,6 +1206,9 @@ class GameRoomLiveSessionStore
     return nil if table_id == nil
 
     row = table_from_metadata(metadata, table_id)
+    if item.respond_to?(:created_at) && item.created_at.to_i > 0
+      row["created_at"] = row["updated_at"] = item.created_at.to_i
+    end
     row["max_players"] = bounded_capacity(item.capacity)
     row["player_count"] = item.participant_count.to_i
     row["__live_session_id"] = item.id.to_s
@@ -1233,6 +1246,7 @@ class GameRoomLiveSessionStore
       "updated_at" => data["created_at"].to_i,
       "__stack_sequence" => record.sequence.to_i,
       "__server_started_at" => record.created_at.to_i,
+      "__clock_revision" => @mutex.synchronize { @clock_revisions[[record.table_id, id]] },
       "__archive_id" => data["archive_id"], "__event_id_base" => data["event_id_base"].to_i,
       "__clock_offset" => clock[:offset], "__frozen_at" => clock[:frozen_at],
       "__frozen" => clock[:frozen_at] != nil,
@@ -1287,6 +1301,7 @@ class GameRoomLiveSessionStore
       "subject" => data["subject"].to_s,
       "invitation_id" => data["invitation_id"].to_i,
       "created_at" => record.created_at.to_i,
+      "__stack_sequence" => record.sequence.to_i,
       "__insertion_user" => record.sender.to_s
     }
   end
@@ -1296,7 +1311,7 @@ class GameRoomLiveSessionStore
     { "__id" => record.sequence * EVENT_ID_MULTIPLIER, "table_id" => record.table_id,
       "kind" => kind, "actor" => record.sender, "__insertion_user" => record.sender,
       "table_owner" => row.to_h["owner"], "game" => row.to_h["game"],
-      "message" => "", "created_at" => record.created_at }
+      "message" => "", "created_at" => record.created_at, "__stack_sequence" => record.sequence.to_i }
   end
 
   def table_id_for_record(record)
@@ -1317,6 +1332,8 @@ class GameRoomLiveSessionStore
         "session_id" => data["session_id"].to_i,
         "table_id" => table_id,
         "sequence" => data["sequence"].to_i + offset,
+        "__stack_sequence" => record.sequence.to_i,
+        "__stack_offset" => offset,
         "move_id" => command["move_id"].to_s,
         "actor" => actor,
         "__controller" => data["controller"] == true,
@@ -1544,7 +1561,7 @@ class GameRoomLiveSessionStore
   def normalize_time(value)
     return value.to_i if value.respond_to?(:to_i) && value.to_i.positive?
 
-    Time.now.to_i
+    GameRoomClock.now.to_i
   end
 
   def unique_users(users)

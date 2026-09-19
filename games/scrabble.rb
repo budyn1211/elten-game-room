@@ -58,8 +58,7 @@ module GameRoomGames
         accepted.concat(batch)
         batch.each { |event| seen[repository.event_id(event)] = true }
       end
-      state[:clock_offset] = session["__clock_offset"].to_i
-      state[:frozen_at] = session["__frozen_at"]
+      GameRoomSessionClock.attach(state, session)
       Replay.new(board: state[:board], players: state[:players], current_player: state[:current_player],
         winner: state[:winner], draw: state[:draw], state: state, history: history, accepted_events: accepted)
     end

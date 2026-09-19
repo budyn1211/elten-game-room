@@ -1,6 +1,8 @@
 require "json"
 require_relative "game_room_background"
 require_relative "network_errors"
+require_relative "game_room_clock"
+require_relative "notification_time"
 
 # Public interests, not saved games. Identity always comes from the server's
 # immutable insertion author. A forged username can never subscribe somebody.
@@ -20,8 +22,8 @@ module GameRoomTableWatch
   # until the host has supplied its first timestamp (also useful offline).
   class Clock
     def initialize(sample: -> {
-      EltenAPI::NotificationService.server_time if defined?(EltenAPI::NotificationService) && EltenAPI::NotificationService.respond_to?(:server_time)
-    }, elapsed: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, fallback: -> { Time.now.to_f })
+      GameRoomClock.now if GameRoomClock.synchronized?
+    }, elapsed: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, fallback: -> { GameRoomClock.now })
       @sample, @elapsed, @fallback = sample, elapsed, fallback
       @mutex = Mutex.new
     end
@@ -37,6 +39,10 @@ module GameRoomTableWatch
         @anchor ||= [@fallback.call.to_f, tick]
         @anchor.first + tick - @anchor.last
       end
+    end
+
+    def ready?
+      !GameRoomClock.server_available? || GameRoomClock.synchronized?
     end
   end
 
@@ -239,6 +245,7 @@ module GameRoomTableWatch
     end
 
     def data(notification)
+      return nil if @clock.respond_to?(:ready?) && !@clock.ready?
       return nil unless notification.type.to_s == TYPE && notification.app_uuid.to_s.casecmp?(@uuid)
       value = notification.metadata
       return nil unless value.is_a?(Hash) && value["format"] == 1 && @allowed.include?(value["game"])
@@ -249,11 +256,13 @@ module GameRoomTableWatch
       return nil unless session_id.is_a?(String) && session_id.match?(/\A[A-Za-z0-9_-]{1,256}\z/)
       return nil unless value["table_id"].is_a?(Integer) && value["table_id"] > 0
       expiry, created = value["expires_at"], value["created_at"]
-      return nil unless expiry.is_a?(Integer) && created.is_a?(Integer) && expiry - created == 300 &&
-        expiry > @clock.call && created <= @clock.call + 60
+      return nil unless expiry.is_a?(Integer) && created.is_a?(Integer) && expiry - created == 300
+      created = GameRoomNotificationTime.created_at(notification) || created
+      expiry = GameRoomNotificationTime.expires_at(notification, value)
+      return nil unless expiry > @clock.call && created <= @clock.call + 60
       sender = notification.sender.to_s
       return nil if sender.empty? || sender.length > 64 || sender.match?(/[\x00-\x1f]/) || sender.casecmp?(@user)
-      value
+      value.merge("created_at" => created, "expires_at" => expiry)
     end
 
     def visible?(notification)
@@ -287,6 +296,13 @@ module GameRoomTableWatch
     private
 
     def trim
+      if @clock.respond_to?(:ready?) && !@clock.ready?
+        # Do not erase saved receipts using the provisional OS clock while
+        # the extension's first background synchronization is still pending.
+        @seen = @seen.to_a.last(1024).to_h
+        @resolved = @resolved.to_a.last(1024).to_h
+        return
+      end
       @seen = @seen.select { |_key, value| value.is_a?(Hash) && value["expires"].to_i > @clock.call }.to_a.last(1024).to_h
       @resolved = @resolved.select { |_key, expiry| expiry.to_i > @clock.call }.to_a.last(1024).to_h
     end

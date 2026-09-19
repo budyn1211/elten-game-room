@@ -1,3 +1,4 @@
+require_relative "game_room_clock"
 module GameRoomRounds
   PhaseDefinition = Struct.new(
     :id,
@@ -16,11 +17,11 @@ module GameRoomRounds
     :metadata,
     keyword_init: true
   ) do
-    def expired?(now = Time.now.to_i)
+    def expired?(now = GameRoomClock.now.to_i)
       deadline.to_i > 0 && now.to_i >= deadline.to_i
     end
 
-    def remaining_seconds(now = Time.now.to_i)
+    def remaining_seconds(now = GameRoomClock.now.to_i)
       return nil if deadline.to_i <= 0
 
       [deadline.to_i - now.to_i, 0].max
@@ -46,11 +47,11 @@ module GameRoomRounds
       @transitions = build_transitions(transitions)
     end
 
-    def start(round: 1, now: Time.now.to_i, metadata: {})
+    def start(round: 1, now: GameRoomClock.now.to_i, metadata: {})
       build_state(@initial_id, round: round, now: now, metadata: metadata)
     end
 
-    def transition(state, target, now: Time.now.to_i, metadata: nil)
+    def transition(state, target, now: GameRoomClock.now.to_i, metadata: nil)
       from = state.id.to_s
       destination = target.to_s
       raise ArgumentError, "the current phase is not defined" if !@definitions.key?(from)

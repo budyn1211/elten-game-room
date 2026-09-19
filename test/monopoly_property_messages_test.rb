@@ -23,10 +23,17 @@ state = fresh_state.call
 name = state[:board][1][:name]
 label = game.send(:action_label, { "action" => "build", "property" => 1 }, state, "Alice")
 assert(label.include?("cost: 50") && label.include?("buildings:"), "Building menu lost details")
-check.call(state, "build", 1, "Alice builds a house on #{name}.")
+check.call(state, "build", 1, "Alice builds the first house on #{name}.")
 assert(state[:houses][1] == 1 && state[:cash]["Alice"] == 4950, "Building economics changed")
 check.call(state, "sell", 1, "Alice sells a house on #{name}.")
 assert(state[:houses][1] == 0 && state[:cash]["Alice"] == 4975, "Selling economics changed")
+
+%w[second third fourth].each_with_index do |ordinal, index|
+  state = fresh_state.call
+  state[:houses].merge!(1 => index + 1, 3 => index + 1)
+  check.call(state, "build", 1, "Alice builds the #{ordinal} house on #{name}.")
+  assert(state[:houses][1] == index + 2 && state[:cash]["Alice"] == 4950, "Numbered building changed the operation")
+end
 
 state = fresh_state.call
 state[:houses].merge!(1 => 4, 3 => 4)

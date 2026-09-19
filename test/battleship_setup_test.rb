@@ -16,6 +16,11 @@ empty = game.replay(session, [], repo)
 surface = GameSurfaces.build(game.surface_spec(empty, "Alice"))
 assert(surface.fields.first.is_a?(ListBox), "setup must ask before showing the grid")
 assert(surface.fields.first.options == ["Randomly", "Manually"], "wrong setup choices")
+assert(surface.take_cursor_announcement(nil) == nil, "setup prompt stole focus from another field")
+assert(surface.take_cursor_announcement(0) == "How would you like to arrange your fleet? Randomly", "silent game start did not announce the setup question")
+assert(surface.take_cursor_announcement(0) == nil, "setup prompt repeated")
+assert(GameSurfaces.build(game.surface_spec(empty, "Alice"), state: surface.state).take_cursor_announcement(0) == nil,
+  "setup prompt repeated after a network refresh")
 selections = []
 surface.on_action { |selection| selections << selection }
 surface.fields.first.index = 1
@@ -47,6 +52,7 @@ assert(GameSurfaces.build(game.surface_spec(empty, "Bob"), state: manual.state).
     chooser.on_action { |action| selection = action }
     chooser.fields.first.trigger(:select)
     assert(selection.name == "random_fleet", "random choice did not activate")
+    assert(chooser.state["setup_mode"] == "random", "random choice was not remembered locally")
     status, plan = game.action_for(selection, replay, "Alice", context: context)
     assert(status == :ok && plan.events.length == 1, "random choice did not seal the fleet")
     event = plan.events.first
@@ -56,6 +62,13 @@ assert(GameSurfaces.build(game.surface_spec(empty, "Bob"), state: manual.state).
     status, retry_plan = game.action_for(selection, replay, "Alice", context: context)
     assert(status == :ok && retry_plan.events.first.value == event.value, "retry changed a pending fleet")
     sealed = game.replay(local_session, [{ "id" => 1, "actor" => "Alice", "action" => "place", "value" => event.value }], repo)
+    accepted_event = sealed.accepted_events.first
+    assert(game.describe_event_for_display(accepted_event, repo, sealed, "Alice", surface_state: chooser.state) == ["Your ships have been placed automatically."],
+      "accepted random placement has no confirmation")
+    assert(game.describe_event_for_display(accepted_event, repo, sealed, "Bob", surface_state: chooser.state) == ["Alice sealed the fleet."],
+      "another player's fleet was announced as the viewer's")
+    assert(game.describe_event_for_display(accepted_event, repo, sealed, "Alice", surface_state: {"setup_mode" => "manual"}) == ["Alice sealed the fleet."],
+      "manual placement was announced as random")
     assert(!game.surface_spec(sealed, "Alice").is_a?(GameSurfaces::FleetGridSpec), "sealed player was asked again")
     assert(game.action_for(selection, sealed, "Alice", context: context).first == :invalid, "sealed fleet can be replaced")
     assert(game.action_for(selection, replay, "Observer", context: context).first == :invalid, "observer can place ships")

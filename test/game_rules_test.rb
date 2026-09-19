@@ -191,7 +191,7 @@ fake_form.define_singleton_method(:on) do |event, &handler|
 end
 called = false
 GameRoomRules.bind_ctrl_f1(fake_form, [tip_field]) { called = true }
-assert(tips == ["Press Ctrl+F1 to read the game rules."], "F1 help does not advertise Ctrl+F1")
+assert(tips == ["Ctrl+F1, Game rules."], "F1 help does not advertise Ctrl+F1")
 assert(bound_handler[0] == :key_f1, "Ctrl+F1 was bound to the wrong form event")
 bound_handler[1].call([false, true, false])
 assert(called, "the Ctrl+F1 handler was not called")

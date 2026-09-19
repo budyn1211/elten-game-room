@@ -1,4 +1,6 @@
 require_relative "game_room_contacts"
+require_relative "game_room_clock"
+require_relative "notification_time"
 
 module GameRoomContactFiltersRuntime
   CACHE_LOCK = Mutex.new
@@ -42,6 +44,12 @@ module GameRoomContactFiltersRuntime
   def contact_notification_received(notification, presentation, deferred: false)
     contacts_cache if @contacts_cache
     allowed = contact_notification_allowed?(notification)
+    if allowed != false && ["game_room.invitation", GameRoomTableWatch::TYPE].include?(notification.type.to_s) &&
+        GameRoomClock.server_available? && !GameRoomClock.synchronized?
+      # Reuse the bounded receipt queue until the startup clock read finishes.
+      # Creating this cache does not request contacts when filters are disabled.
+      allowed = nil
+    end
     if allowed == nil
       contacts_cache
       @contact_pending.add(notification, active: contact_notice_active_ids&.include?(notification.id.to_i))
@@ -64,8 +72,9 @@ module GameRoomContactFiltersRuntime
     active_ids = contact_notice_active_ids
     queue = @contact_pending
     queue.entries.each do |notification, _deadline, was_active|
-      expires = notification.metadata.to_h["expires_at"].to_i
-      expired = expires > 0 && expires <= Time.now.to_i
+      next if GameRoomClock.server_available? && !GameRoomClock.synchronized?
+      expires = GameRoomNotificationTime.expires_at(notification)
+      expired = expires > 0 && expires <= GameRoomClock.now.to_i
       expired ||= was_active && active_ids && !active_ids.include?(notification.id.to_i)
       expired ||= notification.type.to_s == GameRoomTableWatch::TYPE && !table_watch_receiver.visible?(notification)
       allowed = expired ? false : contact_notification_allowed?(notification)
