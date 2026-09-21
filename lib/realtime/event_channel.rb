@@ -5,11 +5,13 @@ module GameRoomRealtime
   # position. Reliable RPC is finite background work, never a wait in a frame.
   class EventChannel < Channel
     LIMIT = 128
+    attr_writer :required_members
 
-    def initialize(event_work: nil, **args)
+    def initialize(event_work: nil, event_work_factory: nil, **args)
       super(**args)
-      @event_work = event_work || GameRoomBackground::Work.new
+      @event_work = Operation.new(clock: @clock, work: event_work, factory: event_work_factory)
       @event_outbox, @event_inbox = [], []
+      @deliveries = []
       @event_generation = 0
     end
 
@@ -25,15 +27,44 @@ module GameRoomRealtime
         elsif error && !@closed
           @last_error = error.class.to_s
           reconnect
+        elsif value.is_a?(Array) && value[0] == @event_generation && value[2].respond_to?(:results)
+          @deliveries << [value[2], @clock.call, value[3]]
         end
       end
+      if @event_work.expired?
+        @last_error = 'ReliableSendTimeout'
+        trace('reliable_send_timeout')
+        reconnect
+      end
+      @deliveries.delete_if do |delivery, started_at, required_ids|
+        statuses = delivery.results.select do |recipient, _status|
+          id = recipient.respond_to?(:id) ? recipient.id.to_s : recipient.to_s
+          required_ids.include?(id)
+        end.values
+        failed = statuses.any? { |status| ![:pending, :delivered].include?(status) }
+        expired = statuses.include?(:pending) && @clock.call - started_at >= Operation::TIMEOUT
+        if failed || expired
+          @last_error = failed ? 'ReliableDeliveryFailed' : 'ReliableDeliveryTimeout'
+          trace('delivery_failed', error: @last_error)
+          reconnect
+          break
+        end
+        !statuses.include?(:pending)
+      end
       return if @closed || @event_work.busy? || @event_outbox.empty?
+      if @deliveries.length >= LIMIT
+        reconnect
+        return
+      end
       session, generation, data, targets = @event_outbox.shift
       return unless session.equal?(@session) && generation == @event_generation
-      @event_work.start do
+      required_ids = targets.select do |target|
+        @required_members == nil || @required_members.any? { |name| name.to_s.casecmp?(target.user.to_s) }
+      end.map { |target| target.id.to_s }
+      @event_work.start(:reliable) do
         begin
-          session.send_reliable(data, to: targets)
-          [generation, nil]
+          delivery = session.send_reliable(data, to: targets)
+          [generation, nil, delivery, required_ids]
         rescue StandardError => error
           # Keep the generation even on failure: an old send must not tear
           # down a replacement channel which already works.
@@ -62,7 +93,9 @@ module GameRoomRealtime
     end
 
     def reconnect
+      return if @reconnect_requested || @closed
       invalidate_events
+      @event_work.cancel
       super
     end
 
@@ -74,10 +107,17 @@ module GameRoomRealtime
 
     private
 
+    def reset_connection(now, **options)
+      invalidate_events
+      @event_work.cancel
+      super
+    end
+
     def invalidate_events
       @event_generation += 1
       @event_outbox.clear
       @event_inbox.clear
+      @deliveries.clear
     end
 
     def metadata
@@ -99,6 +139,12 @@ module GameRoomRealtime
         next unless packet && packet['k'] == 'event'
         key = sender.downcase
         next if packet['n'] <= @event_sequences.fetch(key, -1)
+        if @event_sequences.key?(key) && packet['n'] != @event_sequences[key] + 1
+          @last_error = 'ReliableSequenceGap'
+          trace('reliable_sequence_gap')
+          reconnect
+          next
+        end
         if @event_inbox.length >= LIMIT
           reconnect
           next

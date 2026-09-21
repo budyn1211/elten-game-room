@@ -20,6 +20,7 @@ class PongTestAudio
   def suspend; end
   def tick; end
   def point(_scores, viewer:, **_options); end
+  def goal(viewer:, winner:); end
   def start_match; end
   def close; end
   def update(s, viewer:, paused:); @updates << [s, viewer, paused]; end

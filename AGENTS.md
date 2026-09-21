@@ -1,5 +1,30 @@
 # Instrukcje dla agentów pracujących nad ELTEN Game Room
 
+## Pong: ponowna paczka 231 zatwierdzona — 21 września 2026
+
+Najnowsze polecenie: przebudować i podpisać tę samą 2.0.2/build 231,
+API 3.0.3, z poprawkami docs/PONG_CONNECTION_RECOVERY_231.md.
+Changelog PL/EN dokładnie bez zmian. Poprzednią podpisaną 30d12a13…
+zachować jako before-connection-recovery-signed.eltsetup. Nowy snapshot
+i raporty: ../diagnostics/pong-connection-recovery-release-231/
+SOURCE.json i PACKAGE.json. Ten wpis jest zgodą, nie potwierdzeniem
+ukończenia. Tylko testy celowane i binarne, bez pełnego runnera, nowej
+żywej partii, instalacji, publikacji, GitHuba, restartów i zmian serwera/profili.
+Poniższy opis „źródła, bez paczki” dotyczy wcześniejszego etapu.
+
+## Pong: ponawianie Communications i bramki — źródła, 21 września 2026
+
+Na najnowsze polecenie naprawiono zestawianie kanału, brak odpowiedzi przed
+pierwszą sesją, blokowanie reconnect przez zajętą operację, kontrolę Delivery
+oraz zatrzymanie klienta podczas zapisu/odczytu LiveSessions. Bramkę słychać
+po uzgodnieniu przez graczy; wynik i zwycięstwo nadal wymagają trwałego replaya.
+Zachowano deduplikację i gotowość obu stron przed kolejnym serwisem.
+Szczegóły, celowane regresje i ograniczenia: docs/PONG_CONNECTION_RECOVERY_231.md.
+To zmiany źródeł po wydanej 231, NIE nowa podpisana paczka. Wersja/changelog
+bez zmian. Bez instalacji, GitHuba, serwera, restartu lub testów żywych kont.
+Nie uruchamiać pełnego runnera. Dawna zgoda na wydanie/push lobby została
+już wykonana i nie jest poleceniem publikacji tych nowych poprawek.
+
 ## Lobby: obecne i przyszłe nowe gry; wydanie i GitHub — 21 września 2026
 
 Użytkownik polecił zaznaczyć w komunikatach lobby również obecne nowsze

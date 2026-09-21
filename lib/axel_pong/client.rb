@@ -4,6 +4,7 @@ require_relative 'audio'
 require_relative 'mouse'
 require_relative '../realtime/event_channel'
 require_relative '../realtime/timer'
+require_relative '../realtime/task_ui'
 require_relative 'peer_play'
 
 module GameRoomPong
@@ -30,6 +31,7 @@ module GameRoomPong
 
     def bind_screen(session_id:, table_id:, owner:, viewer:, members:)
       @owner, @viewer = owner.to_s, viewer.to_s
+      @connection_started_at = @clock.call
       @match = Digest::SHA256.hexdigest("GameRoom:axel_pong:#{table_id}:#{session_id}")[0, 24]
       @channel = @channel_factory.call(program: @program, match: @match, owner: @owner,
         viewer: @viewer, clock: @clock, members: members)
@@ -40,6 +42,9 @@ module GameRoomPong
         alert(_('This ELTEN version does not provide Communications.'))
         return false
       end
+      # Register the endpoint while loading the recordings. Session metadata
+      # is selected by before_wait before any subsequent setup tick.
+      @channel.tick
       @audio.load
       true
     end
@@ -60,7 +65,16 @@ module GameRoomPong
       return if @replay && rally < @replay.state[:rally]
       side = after.players.index { |player| player.to_s.casecmp?(viewer.to_s) }
       winner = [0, 1].find { |i| after.state[:scores][i] > before.state[:scores][i] }
-      @audio.point(after.state[:scores], viewer: side || 0, winner: winner, finished: after.finished?)
+      preview = @goal_preview if @goal_preview && @goal_preview[:rally] == before.state[:rally] && @goal_preview[:winner] == winner
+      @audio.point(after.state[:scores], viewer: side || 0, winner: winner, finished: after.finished?, goal_at: preview && preview[:at])
+      if preview
+        score_at = [@clock.call, preview[:at] + 3.0].max
+        @ready_at, @serve_announce_at = score_at + 2.7, score_at + 2.0
+        if defined?(Log) && Log.respond_to?(:debug)
+          Log.debug("Game Room Pong point_confirmed rally=#{before.state[:rally]} elapsed_ms=#{((@clock.call - preview[:at]) * 1000).round}")
+        end
+      end
+      @goal_preview = nil
     end
     def after_events(replay, viewer, context:); before_wait(replay, viewer); end
 
@@ -70,6 +84,7 @@ module GameRoomPong
       @players = replay.players
       @side = @players.index { |p| p.to_s.casecmp?(viewer.to_s) }
       @required = @players.reject { |p| GameRoomParticipants.bot?(p) || p.to_s.casecmp?(@viewer) }
+      @channel.required_members = host? ? @required : [@owner] if @channel.respond_to?(:required_members=)
       if @players.none? { |p| GameRoomParticipants.bot?(p) } && !is_a?(PeerPlay)
         @channel.enable_events
         extend PeerPlay
@@ -110,6 +125,24 @@ module GameRoomPong
       @channel.tick
     end
 
+    def network_task_ui(**options)
+      GameRoomRealtime::TaskUI.new(**options, clock: @clock, tick: -> {
+        # Only an actually updated game form drives its own timer. A chat
+        # control passed on its own does not. Never take game input from a
+        # network/progress window or the chat-only update path.
+        if !@replay || @replay.finished? || (@form && options[:ui].equal?(@form))
+          tick
+        else
+          begin
+            @network_wait = true
+            frame
+          ensure
+            @network_wait = false
+          end
+        end
+      })
+    end
+
     def frame
       return if @closed || !@replay || @replay.finished?
       tick
@@ -134,14 +167,15 @@ module GameRoomPong
       deadlines = if host?
         @required.map do |user|
           received = @peers[user.downcase]&.ack_updated_at
-          received ? received + STREAM_TIMEOUT : (@epoch_since && @epoch_since + HANDSHAKE_TIMEOUT)
+          received ? received + STREAM_TIMEOUT : handshake_deadline
         end
       else
         received = @peers[@owner.downcase]&.received_at
-        [received ? received + STREAM_TIMEOUT : (@epoch_since && @epoch_since + HANDSHAKE_TIMEOUT)]
+        [received ? received + STREAM_TIMEOUT : handshake_deadline]
       end
       if deadlines.compact.any? { |deadline| now > deadline } && now - @last_reconnect > 10
         @last_reconnect = now
+        @connection_started_at = now
         @channel.reconnect
       end
       delta = @last_frame ? now - @last_frame : 0
@@ -238,6 +272,20 @@ module GameRoomPong
 
     private
 
+    def handshake_deadline
+      [@epoch_since, @connection_started_at].compact.max + HANDSHAKE_TIMEOUT
+    end
+
+    def awaiting_point?
+      @pending_point || (@goal_preview && @goal_preview[:rally] == @replay.state[:rally])
+    end
+
+    def preview_goal(winner)
+      return if @goal_preview && @goal_preview[:rally] == @replay.state[:rally]
+      @goal_preview = { rally: @replay.state[:rally], winner: winner, at: @clock.call }
+      @audio.goal(viewer: @side || 0, winner: winner)
+    end
+
     def local_command(command)
       case command
       when 'echo'
@@ -264,7 +312,7 @@ module GameRoomPong
         @mouse.suspend
       end
       @mouse_sample_at = now
-      active = healthy && !@settings_open && @side != nil && @surface && @form &&
+      active = healthy && !@settings_open && !@network_wait && @side != nil && @surface && @form &&
         @surface.respond_to?(:input_active?) && @surface.input_active?(@form)
       @mouse.sample(active: active)
       # Keep independent counters: a recreated keyboard field may restart at
@@ -381,6 +429,10 @@ module GameRoomPong
       @initial_ready_since = nil
       @ready_at = initial ? Float::INFINITY : @clock.call + 5.7
       @serve_announce_at = initial ? Float::INFINITY : @clock.call + 5.0
+      if @goal_preview && @goal_preview[:rally] == @replay.state[:rally] - 1
+        score_at = [@clock.call, @goal_preview[:at] + 3.0].max
+        @ready_at, @serve_announce_at = score_at + 2.7, score_at + 2.0
+      end
       @server_announced = false
       @paused = true
     end
@@ -416,6 +468,7 @@ module GameRoomPong
     def valid_state?(body)
       data = body['state']
       return false unless [true, false].include?(body['paused']) && data.is_a?(Hash)
+      return false if body.key?('ready_in') && !finite?(body['ready_in'], 0, 10)
       return false if body.key?('waiting') && ![true, false].include?(body['waiting'])
       return false unless data['tick'].is_a?(Integer) && data['tick'].between?(0, 2**40)
       return false unless [0, 1].include?(data['server']) && [nil, 0, 1].include?(data['goal'])
@@ -528,7 +581,7 @@ module GameRoomPong
     end
 
     def surface_input
-      raw = @surface && @form ? @surface.input(@form) : { 'move' => 0, 'hit' => false }
+      raw = @surface && @form && !@network_wait ? @surface.input(@form) : { 'move' => 0, 'hit' => false }
       @settings_open ? raw.merge('move' => 0, 'aim' => 0, 'hit' => false) : raw
     end
 

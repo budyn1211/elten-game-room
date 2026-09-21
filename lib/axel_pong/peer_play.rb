@@ -14,9 +14,12 @@ module GameRoomPong
       if @channel.epoch && @epoch != @channel.epoch
         @epoch, @epoch_since = @channel.epoch, now
         @peers.clear
+        @connection_peers = {}
         @sequence = @event_sequence = 0
         @deferred_events = []
-        reset_rally
+        # A point already agreed by both players is waiting for durable
+        # confirmation, not an unfinished rally to replay after reconnection.
+        reset_rally unless awaiting_point?
       end
       receive_peer_packets(now)
       receive_peer_events
@@ -25,14 +28,16 @@ module GameRoomPong
       else
         @host_ready == true && @snapshot != nil
       end
-      times = host? ? @required.map { |u| @peers[u.downcase]&.ack_updated_at } :
-        [@peers[@owner.downcase]&.received_at]
+      connection_peers = @connection_peers || {}
+      times = host? ? @required.map { |u| connection_peers[u.downcase]&.ack_updated_at } :
+        [connection_peers[@owner.downcase]&.received_at]
       expired = times.any? do |received|
         received ? now - received > Client::STREAM_TIMEOUT :
-          @epoch_since && now - @epoch_since > Client::HANDSHAKE_TIMEOUT
+          now > handshake_deadline
       end
       if expired && now - @last_reconnect > 10
         @last_reconnect = now
+        @connection_started_at = now
         @channel.reconnect
       end
       healthy = @channel.connected? && established && !expired
@@ -95,8 +100,13 @@ module GameRoomPong
     def receive_peer_packets(now)
       @channel.take_packets.each do |user, packet|
         body = packet['d']
-        next unless body['r'] == @replay.state[:rally] && body['local'] == 1
+        next unless body['r'].is_a?(Integer) && (body['r'] - @replay.state[:rally]).abs <= 1 && body['local'] == 1
         next unless host? ? valid_peer_position?(body) : valid_state?(body) && valid_peer_turn?(body)
+        connection = ((@connection_peers ||= {})[user] ||= GameRoomRealtime::PeerState.new)
+        next unless connection.receive(packet, now: now, last_sent: @sequence)
+        # The other client can receive the durable point first. Its fresh
+        # traffic must not look like a failed relay during our snapshot read.
+        next unless body['r'] == @replay.state[:rally]
         peer = (@peers[user] ||= GameRoomRealtime::PeerState.new)
         next unless peer.receive(packet, now: now, last_sent: @sequence)
         if host?
@@ -104,6 +114,13 @@ module GameRoomPong
           @engine.remote_paddle(side, body['x'], edges: body['edges']) if side != nil && side != @side
         else
           @host_ready = body['ready'] == true
+          if body['ready_in'] && body['ready_in'] > 0 && @engine.turn.zero?
+            # Relative time, never the other computer's wall clock. A guest
+            # may receive the durable score before the owner does; that must
+            # not allow a serve before the owner's next rally is ready.
+            @ready_at = [@ready_at, now + body['ready_in']].max
+            @serve_announce_at = [@serve_announce_at, now + body['ready_in'] - 0.7].max unless @initial_rally
+          end
           if @side == nil
             @snapshot = body['state']
             @observer_turn = body['turn']
@@ -149,6 +166,11 @@ module GameRoomPong
         # nor put the actor's outgoing ball back on their baseline.
         next if !host? && side == @side && %w[serve hit shield_hit goal].include?(data['action'])
         applied = case data['action']
+        when 'point'
+          agrees = @side == nil ? @snapshot && @snapshot['goal'] == side && @observer_turn == data['turn'] :
+            @engine.goal == side && @engine.turn == data['turn']
+          preview_goal(side) if !host? && agrees
+          next
         when 'hurry_request'
           accept_hurry(data) if host?
           next
@@ -187,6 +209,7 @@ module GameRoomPong
         return [0, 1].include?(data['side']) && data['turn'] == (action == 'timeout' ? 1 : 0)
       end
       return false if data['turn'].zero?
+      return [0, 1].include?(data['side']) if action == 'point'
       if action == 'wall'
         return data['side'] == nil && finite?(data['x'], 0, 30) && finite?(data['y'], -1000, 1020)
       end
@@ -231,16 +254,19 @@ module GameRoomPong
       if host?
         ready = @required.all? { |u| (p = @peers[u.downcase]) && p.body['r'] == @replay.state[:rally] }
         body.merge!('paused' => @paused, 'ready' => ready, 'state' => @snapshot)
+        body['ready_in'] = [[@ready_at - now, 0.0].max, 10.0].min if @ready_at.finite?
       else
         body['x'] = @side == nil ? 15.0 : @engine.paddles[@side]
         body['edges'] = @side == nil ? 0 : @engine.edge_attempts[@side]
       end
-      ack = !host? && @peers[@owner.downcase] ? @peers[@owner.downcase].sequence : 0
+      owner_connection = (@connection_peers || {})[@owner.downcase]
+      ack = !host? && owner_connection ? owner_connection.sequence : 0
       @channel.send(GameRoomRealtime::Protocol.encode(match: @match, epoch: @epoch, sequence: @sequence,
         kind: host? ? 'state' : 'input', body: body, ack: ack))
     end
 
     def commit_peer_goal(now)
+      return if @pending_point
       return unless @engine.goal != nil && @engine.turn > 0 && !@paused
       return unless @required.all? do |user|
         peer = @peers[user.downcase]
@@ -249,6 +275,10 @@ module GameRoomPong
       end
       @pending_point = "#{@replay.state[:rally]}:#{@engine.goal}"
       @pending_point += ':timeout' if @point_reason == 'timeout'
+      # This is presentation only. GameScreen still submits exactly this point
+      # through action_for/repository and waits for authoritative replay.
+      preview_goal(@engine.goal)
+      emit_peer_event('action' => 'point', 'side' => @engine.goal, 'turn' => @engine.turn)
     end
   end
 end

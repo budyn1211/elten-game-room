@@ -49,9 +49,9 @@ module GameRoomPong
       play_voice('pong_gamestart')
     end
 
-    # Accepted LiveSessions points only, never replaceable datagrams. Score
-    # voices use the original 500 ms spacing without blocking the UI.
-    def point(scores, viewer:, winner: nil, finished: false)
+    # A reliable, mutually agreed miss can sound immediately. The score and
+    # match result still come exclusively from an accepted LiveSessions point.
+    def goal(viewer:, winner: nil)
       clear_announcements
       crowd_reset
       return unless gain('pong_goal') > 0
@@ -60,8 +60,15 @@ module GameRoomPong
       play_announcement(@sounds[goal] ? goal : 'pong_goal')
       play_voice(GOAL_VOICES[@rng.rand(GOAL_VOICES.length)])
       crowd_event(winner == viewer ? 'cheer' : 'epicfail') if winner != nil
+    end
+
+    # Original 500 ms voice spacing; a delayed durable write must not replay
+    # the goal or add another three-second pause in front of the score.
+    def point(scores, viewer:, winner: nil, finished: false, goal_at: nil)
+      goal(viewer: viewer, winner: winner) unless goal_at
+      return unless gain('pong_goal') > 0
       ordered = viewer == 1 ? scores.reverse : scores
-      at = @clock.call + 3.0
+      at = [@clock.call, (goal_at || @clock.call) + 3.0].max
       # The original only records numbers 0..21. Regular speech still reads
       # scores beyond this range; never play a partial, misleading score.
       if ordered.all? { |n| n.is_a?(Integer) && n.between?(0, 21) }
@@ -70,7 +77,7 @@ module GameRoomPong
         end
       end
       if finished
-        final_at = @clock.call + 5.7
+        final_at = at + 2.7
         @score_queue << [final_at, winner == viewer ? 'pong_youwin' : 'pong_theywin']
         @crowd_result = [final_at, winner == viewer ? 'won' : 'lost'] if winner != nil
         if ordered.all? { |n| n.is_a?(Integer) && n.between?(0, 21) }

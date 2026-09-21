@@ -1994,6 +1994,11 @@ class GameScreen
 
     options = { title: title, cancellable: true, show_after: 5.0 }
     options[:ui] = ui if ui != nil
+    if @game_client.respond_to?(:network_task_ui)
+      token = EltenAPI::Tasks::CancellationToken.new
+      task_ui = @game_client.network_task_ui(ui: ui, title: title, show_after: 5.0, cancellation_token: token)
+      options[:ui], options[:cancellation_token] = task_ui, token
+    end
     EltenAPI::Tasks.run(**options) do |progress, token|
       token.raise_if_cancelled!
       operation.call
@@ -2017,6 +2022,8 @@ class GameScreen
     Log.warning("ELTEN Game Room network operation failed: #{error.class}: #{error.message}")
     alert(_("The operation could not be completed. Please try again.")) if !silent
     nil
+  ensure
+    task_ui&.close
   end
 
   def connection_recovery_pending?
