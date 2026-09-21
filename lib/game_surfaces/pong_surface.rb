@@ -1,6 +1,6 @@
 # encoding: UTF-8
 module GameSurfaces
-  PongSpec = Struct.new(:game_id, :header, :players, :viewer, :scores, :finished, keyword_init: true)
+  PongSpec = Struct.new(:game_id, :header, :players, :viewer, :scores, :finished, :score_labels, keyword_init: true)
 
   class PongField < Button
     attr_reader :input
@@ -84,13 +84,26 @@ module GameSurfaces
 
     def handle_command(command, _payload = {})
       case command
-      when 'echo', 'crowd', 'hurry', 'perspective_first', 'perspective_second'
+      when 'echo', 'crowd', 'hurry', 'perspective_first', 'perspective_second', 'perspective_third', 'perspective_fourth'
         @on_pong_command&.call(command)
       when 'scores'
-        order = [0, 1].sort_by { |i| [-@spec.scores[i].to_i, i] }
-        speak(order.map { |i| "#{@spec.players[i]}, #{@spec.scores[i]}" }.join('. '))
+        if @spec.score_labels
+          speak(@spec.score_labels.each_with_index.map do |label, i|
+            _('%{team}. Points: %{points}.') % { team: label, points: @spec.scores[i] }
+          end.join(' '))
+        else
+          order = [0, 1].sort_by { |i| [-@spec.scores[i].to_i, i] }
+          speak(order.map { |i| "#{@spec.players[i]}, #{@spec.scores[i]}" }.join('. '))
+        end
       when 'server'
-        text = @snapshot ? (_('%{player} serves.') % { player: @spec.players[@snapshot['server']] }) : ''
+        text = if @snapshot && @spec.score_labels
+          _('%{server} will serve against %{receiver}.') % {
+            server: @spec.players[@snapshot['server']], receiver: @spec.players[@snapshot['receiver']] }
+        elsif @snapshot
+          _('%{player} serves.') % { player: @spec.players[@snapshot['server']] }
+        else
+          ''
+        end
         speak([text, @status].reject(&:empty?).join(' '))
       when 'position'
         return true if @spec.viewer == nil

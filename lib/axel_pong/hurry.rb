@@ -4,7 +4,7 @@ module GameRoomPong
   module Hurry
     def request_hurry
       return false unless @side != nil && @engine && !@paused &&
-        @engine.goal == nil && @engine.turn.zero? && @side != @engine.server
+        @engine.goal == nil && @engine.turn.zero? && @rotation.team(@side) != @rotation.team(@engine.server)
       data = {'action' => 'hurry_request', 'side' => @side, 'turn' => 0}
       host? ? accept_hurry(data) : emit_peer_event(data)
       true
@@ -15,7 +15,8 @@ module GameRoomPong
     def accept_hurry(data)
       side = data['side']
       now = @clock.call
-      return false if @paused || now < @ready_at || @engine.goal || !@engine.turn.zero? || side == @engine.server
+      return false if @paused || now < @ready_at || @engine.goal || !@engine.turn.zero? ||
+        @rotation.team(side) == @rotation.team(@engine.server)
       return false if @hurry_until || now < (@hurry_cooldowns || {}).fetch(side, 0.0)
       @hurry_cooldowns ||= {}
       @hurry_cooldowns[side] = now + 15.0

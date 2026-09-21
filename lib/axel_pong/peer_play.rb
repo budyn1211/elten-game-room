@@ -45,13 +45,15 @@ module GameRoomPong
       raw = surface_input
       prepare_first_serve(now, healthy)
       announce_ready(now) if healthy
-      set_paused(!healthy || now < @ready_at, waiting: healthy && now < @ready_at)
+      waiting = serve_announcement_waiting? || now < @ready_at || (host? && peer_service_waiting?) ||
+        (!host? && @engine.turn.zero? && (@host_serve_wait == true || now < @host_ready_at))
+      set_paused(!healthy || waiting, waiting: healthy && waiting)
       @engine.automatic_for(@side, Preferences.read(@program)['auto_return']) if @side != nil
       raw = sample_pointer_input(raw, healthy)
       input = playable_input(raw, active: was_playable && !@paused && @engine.goal == nil, moving: healthy)
       input['move'] = raw.fetch('move', 0) if healthy
       if host? || @side != nil
-        inputs = [{}, {}]
+        inputs = Array.new(@players.length) { {} }
         inputs[@side] = input if @side != nil
         each_physics_frame(now) do |frame_at|
           inputs[@side] = pointer_input(input, frame_at) if @side != nil
@@ -81,17 +83,17 @@ module GameRoomPong
       options = @replay.state[:options]
       seed = Digest::SHA256.hexdigest("#{@match}:#{@epoch}:#{@replay.state[:rally]}")[0, 12].to_i(16)
       owner_side = @players.index { |p| p.to_s.casecmp?(@owner) }
-      # Table/channel authority may be an observer. The original physics
-      # still has exactly one server player and one guest player.
       physics_server = owner_side || 0
+      guests = @players.each_index.reject { |side| side == physics_server }
       previous = @snapshot
       @engine = PeerEngine.new(side: @side, authority: host?, level: options['difficulty'],
         arcade: options['arcade'], automatic: local_automatic, rally: @replay.state[:rally],
-        first_server: first_server, guest: 1 - physics_server,
+        first_server: first_server, teams: @teams, guest: @rotation.doubles? ? guests : guests.first,
         paddles: previous && previous['p'], shields: previous && previous['shields'], rng: Random.new(seed))
       @snapshot = host? ? @engine.snapshot : nil
       reset_rally_feedback
       @host_ready = false
+      @host_serve_wait = false
       @last_wall = 0
       @event_sequence ||= 0
       @hurry_until = @point_reason = nil
@@ -114,19 +116,26 @@ module GameRoomPong
           @engine.remote_paddle(side, body['x'], edges: body['edges']) if side != nil && side != @side
         else
           @host_ready = body['ready'] == true
+          @host_serve_wait = body['serve_wait'] == true
           if body['ready_in'] && body['ready_in'] > 0 && @engine.turn.zero?
             # Relative time, never the other computer's wall clock. A guest
             # may receive the durable score before the owner does; that must
             # not allow a serve before the owner's next rally is ready.
-            @ready_at = [@ready_at, now + body['ready_in']].max
-            @serve_announce_at = [@serve_announce_at, now + body['ready_in'] - 0.7].max unless @initial_rally
+            if @rotation.doubles?
+              @host_ready_at = [@host_ready_at, now + body['ready_in']].max
+            else
+              @ready_at = [@ready_at, now + body['ready_in']].max
+              @serve_announce_at = [@serve_announce_at, now + body['ready_in'] - 0.7].max unless @initial_rally
+            end
           end
           if @side == nil
             @snapshot = body['state']
             @observer_turn = body['turn']
           else
-            side = 1 - @side
-            @engine.remote_paddle(side, body['state']['p'][side], edges: body['state']['edges']&.[](side))
+            @players.each_index do |side|
+              next if side == @side
+              @engine.remote_paddle(side, body['state']['p'][side], edges: body['state']['edges']&.[](side))
+            end
             @snapshot ||= @engine.snapshot
           end
         end
@@ -139,7 +148,8 @@ module GameRoomPong
 
     def valid_peer_position?(body)
       valid_peer_turn?(body) && finite?(body['x'], 1, 29) &&
-        (!body.key?('edges') || valid_input_count?(body['edges']))
+        (!body.key?('edges') || valid_input_count?(body['edges'])) &&
+        (!body.key?('serve_wait') || [true, false].include?(body['serve_wait']))
     end
 
     def receive_peer_events
@@ -206,21 +216,25 @@ module GameRoomPong
       return false unless data['r'].is_a?(Integer) && data['r'] >= 0
       action = data['action']
       if %w[hurry_request hurry timeout].include?(action)
-        return [0, 1].include?(data['side']) && data['turn'] == (action == 'timeout' ? 1 : 0)
+        return @players.each_index.include?(data['side']) && data['turn'] == (action == 'timeout' ? 1 : 0)
       end
       return false if data['turn'].zero?
       return [0, 1].include?(data['side']) if action == 'point'
       if action == 'wall'
         return data['side'] == nil && finite?(data['x'], 0, 30) && finite?(data['y'], -1000, 1020)
       end
-      return false unless [0, 1].include?(data['side'])
+      return false unless @players.each_index.include?(data['side'])
       if action == 'effects'
         return [true, false].include?(data['renew']) && [true, false].include?(data['invisible'])
       end
       return false unless %w[serve hit shield_hit goal].include?(action)
+      if @rotation.doubles?
+        rotation = Rotation.new(teams: @teams, rally: data['r'], first_server: first_server)
+        return false unless data['side'] == rotation.hitter(data['turn'] - 1)
+      end
       b = data['ball']
       return false unless valid_ball?(b)
-      direction = action == 'goal' ? 0 : (data['side'].zero? ? 1 : -1)
+      direction = action == 'goal' ? 0 : (@rotation.team(data['side']).zero? ? 1 : -1)
       b['dy'] == direction && (action == 'goal' || b['speed'] > 0)
     end
 
@@ -254,8 +268,10 @@ module GameRoomPong
       if host?
         ready = @required.all? { |u| (p = @peers[u.downcase]) && p.body['r'] == @replay.state[:rally] }
         body.merge!('paused' => @paused, 'ready' => ready, 'state' => @snapshot)
+        body['serve_wait'] = @serve_speech != nil || peer_service_waiting? if @rotation.doubles?
         body['ready_in'] = [[@ready_at - now, 0.0].max, 10.0].min if @ready_at.finite?
       else
+        body['serve_wait'] = serve_announcement_waiting? || now < @ready_at if @rotation.doubles?
         body['x'] = @side == nil ? 15.0 : @engine.paddles[@side]
         body['edges'] = @side == nil ? 0 : @engine.edge_attempts[@side]
       end

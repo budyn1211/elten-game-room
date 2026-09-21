@@ -21,7 +21,8 @@ module EltenAPI
     class FormField; end
   end
 end
-load File.expand_path('../../work/elten-3.0.1-app-dev/src/ui/controls/check_box.rb', __dir__)
+host = ENV['ELTEN_HOST_SOURCE'] || File.expand_path('../../work/elten-3.0.1-app-dev', __dir__)
+load File.join(host, 'src/ui/controls/check_box.rb')
 native_checkbox = EltenAPI::Controls.const_get(:CheckBox)
 def p_(_context, source); "Флажок #{source}"; end
 
