@@ -15,7 +15,7 @@ module GameRoomRealtime
       @event_generation = 0
     end
 
-    def enable_events; @event_protocol = 'pong-local-1'; end
+    def enable_events(mode = 'pong-local-1'); @event_protocol = mode; end
 
     def tick
       super

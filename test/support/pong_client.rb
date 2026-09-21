@@ -35,7 +35,8 @@ class PongTestChannel
     @epoch, @connected, @resets = 'generation1', true, 0
     network[@viewer] = self
   end
-  def enable_events; @events = true; end
+  def enable_events(mode = 'pong-local-1'); @events = mode; end
+  def event_protocol; @events; end
   def tick; end
   def take_events; result, @event_inbox = @event_inbox, []; result; end
   def connected?; @connected; end

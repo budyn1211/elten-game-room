@@ -5,11 +5,9 @@ module GameRoomPong
   # misses. BE starts a new incoming flight at the far baseline, not a predicted
   # current Y. Original P/BD/BX keep the same X axis on both machines.
   class PeerEngine < Engine
-    attr_reader :turn
-
     def initialize(side:, authority:, **args)
       super(**args)
-      @side, @authority, @turn = side, authority, 0
+      @side, @authority = side, authority
     end
 
     def strike(side, **args)
@@ -55,9 +53,9 @@ module GameRoomPong
       @turn = data['turn']
       @ball.merge!(data['ball'])
       @ball['x'] = @ball['x'].clamp(MIN_X, MAX_X)
-      @ball['y'] = side.zero? ? 0.0 : DEPTH
-      @ball['dy'] = side.zero? ? 1 : -1
-      @previous_inbound = [nil, nil]
+      @ball['y'] = @rotation.team(side).zero? ? 0.0 : DEPTH
+      @ball['dy'] = @rotation.team(side).zero? ? 1 : -1
+      @previous_inbound = Array.new(@paddles.length)
       @invisible = false unless data['action'] == 'shield_hit'
       cue(data['action'], side)
       true
@@ -65,7 +63,6 @@ module GameRoomPong
 
     def apply_miss(data)
       return false unless data['turn'] == @turn + 1 && !@goal && incoming?(data['side'])
-      @turn = data['turn']
       Engine.instance_method(:miss).bind(self).call(data['side'])
       true
     end
@@ -79,9 +76,9 @@ module GameRoomPong
       # The owner's confirmed timeout wins that race, but cannot override an
       # already exchanged return or be applied twice.
       late_local_serve = confirmed && @turn == 1 && @side == @server &&
-        @ball['dy'] == (@server.zero? ? 1 : -1)
+        @ball['dy'] == (@rotation.team(@server).zero? ? 1 : -1)
       return false unless !@goal && ((@turn.zero? && @ball['dy'].zero?) || late_local_serve)
-      @turn = 1
+      @turn = 0
       @transition = nil
       Engine.instance_method(:miss).bind(self).call(@server)
       true
@@ -107,7 +104,6 @@ module GameRoomPong
     end
 
     def transition(action, side)
-      @turn += 1
       # Original BD/BS/BQ/BX messages encode thousandths, truncating rather
       # than rounding. Local physics keeps its full precision.
       transmitted = @ball.transform_values { |v| v.is_a?(Float) ? (v * 1000).to_i / 1000.0 : v }

@@ -8,6 +8,7 @@ module GameRoomGames
 
     def id; 'axel_pong'; end
     def name; _('Axel Pong'); end
+    def maximum_players; 4; end
     def supports_bots?; true; end
     def supports_bot_move_delay?; false; end
     def supports_saved_games?; false; end
@@ -19,11 +20,77 @@ module GameRoomGames
     def option_definitions
       [
         OptionDefinition.new(key: 'arcade', label: _('Arcade: shields and invisible ball'), kind: :boolean, default: false),
+        OptionDefinition.new(key: 'team_size', label: _('Match type'), kind: :choice, default: 0,
+          choices: [OptionChoice.new(value: 0, label: _('Single')), OptionChoice.new(value: 2, label: _('Doubles'))]),
         OptionDefinition.new(key: 'difficulty', label: _('Difficulty and ball speed'), kind: :choice, default: 2,
           choices: [_('Easy'), _('Normal'), _('Hard'), _('Insane'), _('Impossible'), _('Nightmare')].each_with_index.map { |label, i| OptionChoice.new(value: i + 1, label: label) }),
         OptionDefinition.new(key: 'target', label: _('Points to win'), kind: :choice, default: 11,
           choices: [7, 11, 21].map { |n| OptionChoice.new(value: n, label: n.to_s) })
       ]
+    end
+
+    def team_size(options, player_count:)
+      normalize_options(options)['team_size']
+    end
+
+    def options_error(options, player_count: nil)
+      values = normalize_options(options)
+      doubles = values['team_size'] == 2
+      if player_count && player_count != (doubles ? 4 : 2)
+        return doubles ? _('Doubles requires exactly four players.') : _('Single requires exactly two players.')
+      end
+      source = options.is_a?(Hash) ? options : {}
+      has_seats = source.key?(GameRoomTeams::OPTION_KEY) || source.key?(GameRoomTeams::OPTION_KEY.to_sym)
+      seats = source.fetch(GameRoomTeams::OPTION_KEY, source[GameRoomTeams::OPTION_KEY.to_sym])
+      if doubles && has_seats && (!seats.is_a?(Array) || seats.length != 4 ||
+          !seats.all? { |seat| seat.is_a?(Integer) } || seats.count(0) != 2 || seats.count(1) != 2)
+        _('Doubles requires two teams of two players.')
+      end
+    end
+
+    def valid_roster?(players, options)
+      GameRoomParticipants.unique(players).length == players.length && options_error(options, player_count: players.length) == nil
+    end
+
+    def score_labels(options, players)
+      assignment = team_assignment(options, players: players)
+      if assignment
+        assignment.team_ids.map.with_index do |team, index|
+          names = assignment.members_for(team).map { |player| participant_name(player) }
+          _('Team %{team}: %{players}') % { team: %w[A B][index],
+            players: _('%{first} and %{second}') % { first: names[0], second: names[1] } }
+        end
+      else
+        players.map { |player| participant_name(player) }
+      end
+    end
+
+    def participant_scores(replay)
+      assignment = team_assignment(replay.state[:options], players: replay.players)
+      replay.players.each_with_index.to_h do |player, index|
+        [player, replay.state[:scores][assignment ? assignment.team_index_for(player) : index]]
+      end
+    end
+
+    def bot_reward(replay, actor)
+      return 0.0 if !replay.finished? || !GameRoomParticipants.includes?(replay.players, actor)
+      assignment = team_assignment(replay.state[:options], players: replay.players)
+      assignment ? (replay.winner == "team:#{assignment.team_index_for(actor)}" ? 1.0 : -1.0) : super
+    end
+
+    def bot_allied?(replay, first, second)
+      assignment = team_assignment(replay.state[:options], players: replay.players)
+      assignment ? assignment.teammates_for(first).any? { |player| same_user?(player, second) } : super
+    end
+
+    def result_text(replay)
+      assignment = team_assignment(replay.state[:options], players: replay.players)
+      if assignment && replay.winner
+        label = score_labels(replay.state[:options], replay.players)[assignment.team_ids.index(replay.winner)]
+        _('%{player} won the game.') % { player: label }
+      else
+        super
+      end
     end
 
     def build_client(program, **_services)
@@ -36,7 +103,15 @@ module GameRoomGames
       owner = session['__insertion_user'].to_s
       owner = session['player_one'].to_s if owner.empty?
       owner = players.first.to_s if owner.empty?
-      options = options_from_json(session['options'])
+      raw_options = begin
+        JSON.parse(session['options'].to_s.empty? ? '{}' : session['options'])
+      rescue JSON::ParserError
+        {}
+      end
+      options = normalize_options(raw_options)
+      valid = valid_roster?(players, raw_options)
+      assignment = valid ? team_assignment(options, players: players) : nil
+      labels = valid ? score_labels(options, players) : players.map { |player| participant_name(player) }
       scores = [0, 0]
       accepted = []
       history = [starting_history(players)]
@@ -46,22 +121,23 @@ module GameRoomGames
         author = event['__insertion_user'] || repository.actor_of(event, session)
         next unless event['action'] == 'pong_point' && same_user?(author, owner)
         match = /\A(\d{1,8}):([01])(:timeout)?\z/.match(event['value'].to_s)
-        next unless match && match[1].to_i == accepted.length && players.length == 2
+        next unless valid && match && match[1].to_i == accepted.length
         side = match[2].to_i
         scores[side] += 1
         accepted << event
         event_id = repository.event_id(event)
         if match[3]
-          history << HistoryEntry.new(key: "timeout:#{event_id}", event_id: event_id, actor: players[1 - side], kind: :move,
-            text: _('%{player} did not serve in time. The opponent receives a point.') % { player: participant_name(players[1 - side]) })
+          history << HistoryEntry.new(key: "timeout:#{event_id}", event_id: event_id, actor: assignment ? assignment.team_ids[1 - side] : players[1 - side], kind: :move,
+            text: _('%{player} did not serve in time. The opponent receives a point.') % { player: labels[1 - side] })
         end
-        history << HistoryEntry.new(key: "point:#{event_id}", event_id: event_id, actor: players[side], kind: :move,
+        history << HistoryEntry.new(key: "point:#{event_id}", event_id: event_id, actor: assignment ? assignment.team_ids[side] : players[side], kind: :move,
           text: _('%{player} scores. %{first}: %{one}; %{second}: %{two}.') % {
-            player: participant_name(players[side]), first: participant_name(players[0]), one: scores[0],
-            second: participant_name(players[1]), two: scores[1] })
+            player: labels[side], first: labels[0], one: scores[0], second: labels[1], two: scores[1] })
         if scores[side] >= options['target'] && (scores[0] - scores[1]).abs >= 2
-          winner = players[side]
-          history << result_history(event_id: event_id, winner: winner)
+          winner = assignment ? assignment.team_ids[side] : players[side]
+          result = result_history(event_id: event_id, winner: winner)
+          result.text = _('%{player} won the game.') % { player: labels[side] } if assignment
+          history << result
         end
       end
       Replay.new(board: nil, players: players, current_player: nil, winner: winner, draw: false,
@@ -71,6 +147,7 @@ module GameRoomGames
 
     def action_for(selection, replay, actor, context: nil)
       return [:finished, nil] if replay.finished?
+      return [:invalid, nil] unless valid_roster?(replay.players, replay.state[:options])
       authority = context && same_user?(context.table_owner, replay.state[:owner]) &&
         (same_user?(actor, context.table_owner) || same_user?(actor, replay.players.first))
       return [:invalid, nil] unless authority &&
@@ -95,6 +172,7 @@ module GameRoomGames
     def surface_spec(replay, viewer)
       GameSurfaces::PongSpec.new(game_id: id, players: replay.players.map { |p| participant_name(p) },
         viewer: player_index(replay.players, viewer), scores: replay.state[:scores],
+        score_labels: replay.state[:options]['team_size'] == 2 ? score_labels(replay.state[:options], replay.players) : nil,
         header: _('Pong playfield'), finished: replay.finished?)
     end
 
@@ -122,13 +200,17 @@ module GameRoomGames
         rule_section(:origin, GameRoomRules.translate("About this adaptation"),
           GameRoomRules.translate("Axel Pong is not an original project by papierek. The game was originally called Dragon-Pong, was later improved by Axel and balteam, and has now been ported to ELTEN with their permission.")),
         rule_section(:court, GameRoomRules.translate("Follow the ball by sound"),
-          GameRoomRules.translate("Axel Pong is an audio paddle game for two players. Move your paddle along your end of the court and return the ball before it passes you. You score one point when your opponent misses. You can play with another person or add a bot to the table. Headphones make it much easier to hear where the ball is."),
+          GameRoomRules.translate("Axel Pong is an audio paddle game for two players, or four players in doubles. Move your paddle along your end of the court and return the ball before it passes you. You score one point when your opponent misses. You can play with other people or add bots to the table. Headphones make it much easier to hear where the ball is."),
           GameRoomRules.translate("Each player hears the court from their own end. A ball to your left sounds on the left; a ball to your right sounds on the right. It grows louder as it approaches you. A side-wall bounce has a higher pitch near your end and a lower pitch near the opponent. Paddle steps also have a pitch cue for position. There is no need to announce every movement: use C when you want to check your paddle's position.")),
         rule_section(:rally, GameRoomRules.translate("Serving and returning"),
           GameRoomRules.translate("Keep focus on the Pong playfield. Hold Left or Right to move, and press Up or Space to serve or hit. To serve diagonally, hold a direction while serving. A return is possible only when the ball is approaching your end and your paddle is close enough to it. A centred hit goes straight; an off-centre hit sends the ball diagonally. Hits speed up the ball, while lateral motion gradually weakens and loses more speed at a wall."),
-          GameRoomRules.translate("The first server is chosen at the start of a human match; against a bot, the human starts. Service changes after every two completed points. Choose a target of 7, 11 or 21, with a lead of at least two points required to win. At 10\u201310 in an 11-point match, 11\u201310 is not enough; 12\u201310 wins. After a point there is a three-second break for the goal recording, followed by the score and a further 2.7-second serve delay. You can reposition your paddle during this pause, but serving requires a new press after it ends."),
+          GameRoomRules.translate("In Single, the first server is chosen at the start of a human match; against a bot, the human starts. Service changes after every two completed points. Choose a target of 7, 11 or 21, with a lead of at least two points required to win. At 10\u201310 in an 11-point match, 11\u201310 is not enough; 12\u201310 wins. After a point there is a three-second break for the goal recording, followed by the score and a further 2.7-second serve delay. You can reposition your paddle during this pause, but serving requires a new press after it ends."),
           GameRoomRules.translate("Automatic return is a personal setting, off by default. When enabled, your paddle returns a reachable ball automatically near your end. You still position the paddle and serve yourself. Open Pong settings with Ctrl+P to change it; your opponent chooses independently."),
           GameRoomRules.translate("The first serve of a human match becomes available after both sides are ready and a three-second countdown. You hear the variant, difficulty and target, then who serves. A bot match starts without this countdown. This does not change the break after subsequent points.")),
+        rule_section(:doubles, GameRoomRules.translate("Doubles"),
+          GameRoomRules.translate("Choose Single or Doubles immediately after Arcade when creating the table. Doubles requires four players. Before starting, the table master assigns two players to each team in the standard team selection window. Each player has their own paddle and can reposition at any time. Partners must return alternately: if A serves to C, the rally continues C, B, D, A, C. Only the designated player can return, including automatic returns and shield returns. Your teammate uses the same footstep sound as you; both opponents use the other footstep sound. Each step is positioned at the paddle of the player who moved."),
+          GameRoomRules.translate("The starting team is chosen once for the match. Each service block lasts two points. For teams A and B against C and D, the first cycle is A to C, D to B, B to D, C to A. The next cycle is A to D, C to B, B to C, D to A; then these cycles repeat. If the other team starts, exchange the teams' roles. Within every rally, the order is server, receiver, server's partner, receiver's partner, repeated until the point ends. Both partners share their team's points and victory."),
+          GameRoomRules.translate("At the beginning of each two-point service block, the game announces who will serve against whom. After the spoken announcement, the pause is twice the normal Single serve delay: 5.4 seconds instead of 2.7. The second serve uses the normal Single delay without repeating the announcement. You can move your paddle during the break, but serving requires a fresh press when the break ends. S reads Team A and Team B, both partners' names and the scores, separated by punctuation. T reads the server, receiver and connection status; C still reads your own paddle position.")),
         rule_section(:mouse, GameRoomRules.translate("Moving with the mouse"),
           GameRoomRules.translate("On Windows, mouse control is always available in the Pong playfield; you do not need to enable it. Move the mouse mainly left or right to move your paddle in steps; a large sweep does not jump across the court. Click the left mouse button to serve or return the ball. Holding it can also return a reachable ball just before it passes your goal, but it does not automatically serve after the pause between points. Up, Space and the arrow keys still work. As in the original audio mode, a click hits before the mouse movement from the same frame is applied."),
           GameRoomRules.translate("Mouse movement works only while the Pong playfield and the ELTEN window are active. The pointer is kept near the centre of that window so the screen edge does not stop you. Chat, settings, help, another application or a lost connection suspends mouse control. Returning to play discards movement made elsewhere. This option adds no graphics and changes no Windows mouse settings. There is no mouse on/off switch.")),

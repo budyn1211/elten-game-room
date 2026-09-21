@@ -41,7 +41,8 @@ assert(global.options.empty?, "widget actions leaked to global context")
 
 # Exercise the host's real modifier/first-press helper as well. Only its
 # physical keyboard state is substituted; no running ELTEN is touched.
-load File.expand_path("../../work/elten-3.0.1-app-dev/src/ui/input.rb", __dir__)
+host = ENV["ELTEN_HOST_SOURCE"] || File.expand_path("../../work/elten-3.0.1-app-dev", __dir__)
+load File.join(host, "src/ui/input.rb")
 module EltenAPI::KeyboardScheme
   def self.main_modifier; :control; end
   def self.key_code(key); key.is_a?(Integer) ? key : nil; end

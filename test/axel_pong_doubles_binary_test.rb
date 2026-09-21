@@ -1,0 +1,47 @@
+require_relative 'axel_pong_ui_test'
+
+def assert(value, message); raise message unless value; end
+
+rules = GameRoomGames::AxelPong.new
+repository = Object.new
+def repository.players_for(session); session['__players']; end
+def repository.actor_of(event, _session); event['actor']; end
+def repository.event_id(event); event['__id']; end
+names = ['Łucja', 'Żaneta', 'Ścibor', 'Józef']
+options = rules.with_team_assignment({'team_size' => 2}, players: names, seats: [1, 0, 1, 0])
+session = {'__players' => names.map(&:b), '__insertion_user' => 'Owner', 'options' => JSON.generate(options)}
+events = 11.times.map { |i| {'__id' => i + 1, '__insertion_user' => 'Owner', 'action' => 'pong_point', 'value' => "#{i}:1"} }
+dictionary, english = $rules_dictionary, $rules_english
+begin
+  [:pl, :en, :fallback].each do |language|
+    $rules_english = language == :en
+    $rules_dictionary = language == :fallback ? BinaryRuleDictionary.new({}) : dictionary
+    replay = rules.replay(session, events.take(3), repository)
+    spec = rules.surface_spec(replay, names[3].b)
+    surface = GameSurfaces.build(spec)
+    state = GameRoomPong::Engine.new(teams: [1, 0, 1, 0]).snapshot
+    state['p'] = [4.0, 8.0, 12.0, 16.0]
+    surface.present(state, 'Ready.')
+    $spoken_messages.clear
+    surface.handle_command('scores')
+    text = $spoken_messages.last
+    assert(text.encoding == Encoding::UTF_8 && text.valid_encoding?, "#{language}: binary doubles score encoding")
+    assert(names.all? { |name| text.include?(name) }, "#{language}: the team score omitted a participant")
+    assert(text.index(names[1]) < text.index(names[3]) && text.index(names[3]) < text.index(names[0]), "#{language}: team scores ignored chosen assignments")
+    %w[server position effects].each { |command| surface.handle_command(command) }
+    assert($spoken_messages.all? { |message| message.encoding == Encoding::UTF_8 && message.valid_encoding? }, "#{language}: binary doubles readout encoding")
+    assert(replay.history.all? { |entry| entry.text.valid_encoding? }, "#{language}: binary doubles history encoding")
+    before = rules.replay(session, events.take(10), repository)
+    after = rules.replay(session, events, repository)
+    names.each_with_index do |player, index|
+      expected = [0, 2].include?(index) ? 'win_party' : 'lose_party'
+      assert(GameRoomSounds.result_cue(rules, before, after, player.b) == expected, "#{language}: teammate received the wrong result sound")
+    end
+    assert(GameRoomSounds.result_cue(rules, before, after, 'Watcher') == nil, "#{language}: spectator received a participant result")
+    assert(GameRoomSounds.result_cue(rules, after, after, names.first.b) == nil, "#{language}: duplicate result sound")
+    assert(rules.result_text(after).encoding == Encoding::UTF_8 && rules.result_text(after).valid_encoding?, "#{language}: binary team result encoding")
+  end
+ensure
+  $rules_dictionary, $rules_english = dictionary, english
+end
+puts 'PASS binary doubles: native PL/EN/fallback dictionary, four non-ASCII names, team readouts/history and both partners result sounds'

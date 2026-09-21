@@ -13,6 +13,8 @@ module GameRoomPong
     MAX_PHYSICS_STEPS = 4
     HANDSHAKE_TIMEOUT = 10.0
     STREAM_TIMEOUT = 4.0
+    SINGLE_SERVE_DELAY = 2.7
+    DOUBLES_SERVE_DELAY = 2 * SINGLE_SERVE_DELAY
     attr_reader :engine, :snapshot, :paused
     def _(source); GameRoomContent.utf8(super(source)); end
 
@@ -64,12 +66,14 @@ module GameRoomPong
       # Catch-up can contain many old points. Present the current score only.
       return if @replay && rally < @replay.state[:rally]
       side = after.players.index { |player| player.to_s.casecmp?(viewer.to_s) }
+      assignment = @game.team_assignment(after.state[:options], players: after.players)
+      team = assignment ? assignment.seats[side || 0] : side || 0
       winner = [0, 1].find { |i| after.state[:scores][i] > before.state[:scores][i] }
       preview = @goal_preview if @goal_preview && @goal_preview[:rally] == before.state[:rally] && @goal_preview[:winner] == winner
-      @audio.point(after.state[:scores], viewer: side || 0, winner: winner, finished: after.finished?, goal_at: preview && preview[:at])
+      @audio.point(after.state[:scores], viewer: team, winner: winner, finished: after.finished?, goal_at: preview && preview[:at])
       if preview
         score_at = [@clock.call, preview[:at] + 3.0].max
-        @ready_at, @serve_announce_at = score_at + 2.7, score_at + 2.0
+        @ready_at, @serve_announce_at = score_at + SINGLE_SERVE_DELAY, score_at + 2.0
         if defined?(Log) && Log.respond_to?(:debug)
           Log.debug("Game Room Pong point_confirmed rally=#{before.state[:rally]} elapsed_ms=#{((@clock.call - preview[:at]) * 1000).round}")
         end
@@ -83,10 +87,14 @@ module GameRoomPong
       @replay = replay
       @players = replay.players
       @side = @players.index { |p| p.to_s.casecmp?(viewer.to_s) }
+      assignment = @game.team_assignment(replay.state[:options], players: @players)
+      @teams = assignment ? assignment.seats : [0, 1]
+      @rotation = Rotation.new(teams: @teams, rally: replay.state[:rally], first_server: first_server)
       @required = @players.reject { |p| GameRoomParticipants.bot?(p) || p.to_s.casecmp?(@viewer) }
       @channel.required_members = host? ? @required : [@owner] if @channel.respond_to?(:required_members=)
+      @channel.enable_events('pong-doubles-1') if @rotation.doubles?
       if @players.none? { |p| GameRoomParticipants.bot?(p) } && !is_a?(PeerPlay)
-        @channel.enable_events
+        @channel.enable_events unless @rotation.doubles?
         extend PeerPlay
       end
       reset_rally if changed
@@ -156,7 +164,7 @@ module GameRoomPong
         if first_local_connection
           @engine_epoch = @epoch
         else
-          reset_rally
+          reset_rally unless @rotation.doubles? && awaiting_point?
         end
       end
       receive_packets(now)
@@ -190,7 +198,7 @@ module GameRoomPong
         healthy &&= @channel.connected? unless @required.empty?
         healthy = false if delta < 0
         if !healthy
-          @ready_at = now + 1.0
+          @ready_at = @rotation.doubles? ? [@ready_at, now + 1.0].max : now + 1.0
           # Do not ratify a goal first seen only after an actual stream outage.
           # Replace the channel/epoch so both clients restart this rally, and
           # old delayed snapshots cannot reintroduce that unconfirmed goal.
@@ -201,7 +209,8 @@ module GameRoomPong
         end
         prepare_first_serve(now, healthy)
         announce_ready(now) if healthy
-        set_paused(!healthy || @abandoned_goal == true || now < @ready_at, waiting: healthy && now < @ready_at)
+        waiting = serve_announcement_waiting? || now < @ready_at || peer_service_waiting?
+        set_paused(!healthy || @abandoned_goal == true || waiting, waiting: healthy && waiting)
         raw_input = sample_pointer_input(raw_input, healthy)
         local = playable_input(raw_input, active: was_playable && !@paused && @engine.goal == nil, moving: healthy)
         local['move'] = raw_input.fetch('move', 0) if healthy
@@ -233,7 +242,8 @@ module GameRoomPong
         waiting = healthy && peer.body['waiting'] == true
         prepare_first_serve(now, healthy)
         announce_ready(now) if healthy && (!@paused || waiting)
-        set_paused(!healthy || peer.body['paused'] != false, waiting: waiting)
+        local_wait = @rotation.doubles? && (serve_announcement_waiting? || now < @ready_at || now < @host_ready_at)
+        set_paused(!healthy || peer.body['paused'] != false || local_wait, waiting: waiting || healthy && local_wait)
         raw_input = sample_pointer_input(raw_input, healthy)
         local = playable_input(raw_input, active: was_playable && !@paused && @snapshot['goal'] == nil, moving: healthy)
         local['move'] = raw_input.fetch('move', 0) if healthy
@@ -283,7 +293,7 @@ module GameRoomPong
     def preview_goal(winner)
       return if @goal_preview && @goal_preview[:rally] == @replay.state[:rally]
       @goal_preview = { rally: @replay.state[:rally], winner: winner, at: @clock.call }
-      @audio.goal(viewer: @side || 0, winner: winner)
+      @audio.goal(viewer: @rotation ? @rotation.team(@side || 0) : @side || 0, winner: winner)
     end
 
     def local_command(command)
@@ -359,7 +369,7 @@ module GameRoomPong
 
     def first_server
       human = @players.index { |p| !GameRoomParticipants.bot?(p) }
-      return human || 0 if @players.any? { |p| GameRoomParticipants.bot?(p) }
+      return human || 0 if @teams.length == 2 && @players.any? { |p| GameRoomParticipants.bot?(p) }
       # One shared once-per-match choice, like original time parity, but not
       # separately sampled from each computer's potentially incorrect clock.
       @match[-1].to_i(16) % 2
@@ -406,7 +416,7 @@ module GameRoomPong
       previous = @snapshot
       feedback = @engine&.movement_feedback if @engine && @engine_rally == @replay.state[:rally] - 1 && @engine_epoch == @epoch
       @engine = Engine.new(level: options['difficulty'], arcade: options['arcade'], automatic: local_automatic,
-        rally: @replay.state[:rally], bots: bots, rng: Random.new(seed), first_server: first_server,
+        rally: @replay.state[:rally], bots: bots, rng: Random.new(seed), first_server: first_server, teams: @teams,
         paddles: previous && previous['p'], shields: previous && previous['shields'], movement_feedback: feedback) if host?
       @engine_rally, @engine_epoch = @replay.state[:rally], @epoch
       @bots = bots.map { |side| Bot.new(side, level: options['difficulty'], rng: Random.new(seed + side + 1)) }
@@ -415,6 +425,7 @@ module GameRoomPong
     end
 
     def reset_rally_feedback
+      @serve_speech = @serve_speech_token = nil
       @mouse.reset_rally
       @pending_point = @goal_sequence = nil
       @abandoned_goal = false
@@ -427,11 +438,12 @@ module GameRoomPong
       initial = @replay.state[:rally].zero?
       @initial_rally = initial
       @initial_ready_since = nil
-      @ready_at = initial ? Float::INFINITY : @clock.call + 5.7
+      @host_ready_at = 0.0
+      @ready_at = initial ? Float::INFINITY : @clock.call + (3.0 + SINGLE_SERVE_DELAY)
       @serve_announce_at = initial ? Float::INFINITY : @clock.call + 5.0
       if @goal_preview && @goal_preview[:rally] == @replay.state[:rally] - 1
         score_at = [@clock.call, @goal_preview[:at] + 3.0].max
-        @ready_at, @serve_announce_at = score_at + 2.7, score_at + 2.0
+        @ready_at, @serve_announce_at = score_at + SINGLE_SERVE_DELAY, score_at + 2.0
       end
       @server_announced = false
       @paused = true
@@ -445,13 +457,19 @@ module GameRoomPong
         next unless valid
         peer = (@peers[user] ||= GameRoomRealtime::PeerState.new)
         next unless peer.receive(packet, now: now, last_sent: @sequence)
-        @snapshot = body['state'] unless host?
+        unless host?
+          @snapshot = body['state']
+          if @rotation.doubles? && @snapshot['b']['dy'].zero? && body['ready_in']
+            @host_ready_at = [@host_ready_at, now + body['ready_in']].max
+          end
+        end
       end
     end
 
     def valid_input?(body)
       [-1, 0, 1].include?(body['move']) && [true, false].include?(body['hit']) &&
         (!body.key?('auto_return') || [true, false].include?(body['auto_return'])) &&
+        (!body.key?('serve_wait') || [true, false].include?(body['serve_wait'])) &&
         (!body.key?('aim') || [-1, 0, 1].include?(body['aim'])) &&
         KeyboardMovement::COUNTERS.all? { |key| !body.key?(key) || valid_input_count?(body[key]) } &&
         body['press'].is_a?(Integer) && body['press'].between?(0, 2**31 - 1) &&
@@ -470,19 +488,25 @@ module GameRoomPong
       return false unless [true, false].include?(body['paused']) && data.is_a?(Hash)
       return false if body.key?('ready_in') && !finite?(body['ready_in'], 0, 10)
       return false if body.key?('waiting') && ![true, false].include?(body['waiting'])
+      return false if body.key?('serve_wait') && ![true, false].include?(body['serve_wait'])
       return false unless data['tick'].is_a?(Integer) && data['tick'].between?(0, 2**40)
-      return false unless [0, 1].include?(data['server']) && [nil, 0, 1].include?(data['goal'])
+      return false unless @players.each_index.include?(data['server']) && [nil, 0, 1].include?(data['goal'])
+      if @rotation.doubles?
+        return false unless data['teams'] == @teams && @players.each_index.include?(data['receiver'])
+        rotation = Rotation.new(teams: @teams, rally: body['r'], first_server: first_server)
+        return false unless data['server'] == rotation.server && data['receiver'] == rotation.receiver
+      end
       return false unless [true, false].include?(data['invisible'])
-      return false unless data['p'].is_a?(Array) && data['p'].length == 2 && data['p'].all? { |n| finite?(n, 1, 29) }
-      return false if data.key?('edges') && !(data['edges'].is_a?(Array) && data['edges'].length == 2 &&
+      return false unless data['p'].is_a?(Array) && data['p'].length == @players.length && data['p'].all? { |n| finite?(n, 1, 29) }
+      return false if data.key?('edges') && !(data['edges'].is_a?(Array) && data['edges'].length == @players.length &&
         data['edges'].all? { |n| valid_input_count?(n) })
-      return false unless data['shields'].is_a?(Array) && data['shields'].length == 2 && data['shields'].all? { |n| n.is_a?(Integer) && n.between?(0, 625) }
+      return false unless data['shields'].is_a?(Array) && data['shields'].length == @players.length && data['shields'].all? { |n| n.is_a?(Integer) && n.between?(0, 625) }
       b = data['b']
       return false unless valid_ball?(b)
       data['fx'].is_a?(Array) && data['fx'].length <= 8 && data['fx'].all? do |fx|
         fx.is_a?(Array) && fx.length == 5 && fx[0].is_a?(Integer) && fx[0] >= 0 &&
           %w[step edge serve hit wall shield_on shield_off shield_hit invisible goal].include?(fx[1]) &&
-          [nil, 0, 1].include?(fx[2]) && finite?(fx[3], 0, 30) && finite?(fx[4], -1000, 1020)
+          (fx[2] == nil || @players.each_index.include?(fx[2])) && finite?(fx[3], 0, 30) && finite?(fx[4], -1000, 1020)
       end
     end
 
@@ -502,6 +526,9 @@ module GameRoomPong
       @sequence += 1
       body = { 'r' => @replay.state[:rally], 'paused' => @paused,
         'waiting' => @waiting_for_serve == true, 'state' => @snapshot }
+      if @rotation.doubles?
+        body['ready_in'] = [[@ready_at - now, 0.0].max, 10.0].min if @ready_at.finite?
+      end
       packet = GameRoomRealtime::Protocol.encode(match: @match, epoch: @epoch, sequence: @sequence, kind: 'state', body: body)
       sent = @channel.send(packet)
       @goal_sequence ||= @sequence if @engine.goal != nil && (sent || @required.empty?)
@@ -514,6 +541,7 @@ module GameRoomPong
       # Spectators acknowledge for diagnostics, but can never move a paddle.
       body = { 'r' => @replay.state[:rally], 'move' => input['move'], 'hit' => input['hit'], 'press' => input['press'] }
       body['auto_return'] = Preferences.read(@program)['auto_return'] == true
+      body['serve_wait'] = serve_announcement_waiting? || now < @ready_at if @rotation.doubles?
       body['paddle'] = input['paddle'] if input.key?('paddle')
       %w[aim left_press right_press pointer_before pointer_seq pointer_edges pointer_start pointer_keys].each do |key|
         body[key] = input[key] if input.key?(key)
@@ -559,8 +587,49 @@ module GameRoomPong
         return
       end
       @server_announced = true
-      speak(_('%{player} serves.') % { player: GameRoomContent.utf8(GameRoomParticipants.display_name(@players[@snapshot['server']])) })
+      if @rotation&.doubles?
+        rally = @replay.state[:rally]
+        return if rally.odd? || @serve_announced_block == rally / 2
+        @serve_announced_block = rally / 2
+        announce_service_pair(_('%{server} will serve against %{receiver}.') % {
+          server: GameRoomContent.utf8(GameRoomParticipants.display_name(@players[@rotation.server])),
+          receiver: GameRoomContent.utf8(GameRoomParticipants.display_name(@players[@rotation.receiver])) })
+      else
+        speak(_('%{player} serves.') % { player: GameRoomContent.utf8(GameRoomParticipants.display_name(@players[@snapshot['server']])) })
+      end
       @audio.start_match
+    end
+
+    def announce_service_pair(text)
+      if defined?(EltenAPI::SpeechSequence) && defined?(EltenAPI::SpeechCommands::CustomCommand) &&
+          respond_to?(:speech_indexes_supported?, true) && speech_indexes_supported? &&
+          respond_to?(:current_speechsequence, true)
+        token = @serve_speech_token = Object.new
+        completion = EltenAPI::SpeechCommands::CustomCommand.new { complete_service_speech(token) }
+        @serve_speech = EltenAPI::SpeechSequence.new(text, completion)
+        speak(@serve_speech)
+      else
+        speak(text)
+        @ready_at = [@ready_at, @clock.call + DOUBLES_SERVE_DELAY].max
+      end
+    end
+
+    def complete_service_speech(token)
+      return if @closed || !token.equal?(@serve_speech_token)
+      @serve_speech = @serve_speech_token = nil
+      @ready_at = [@ready_at, @clock.call + DOUBLES_SERVE_DELAY].max
+    end
+
+    def peer_service_waiting?
+      @rotation.doubles? && @engine.turn.zero? &&
+        @required.any? { |user| @peers[user.downcase]&.body&.[]('serve_wait') == true }
+    end
+
+    def serve_announcement_waiting?
+      if @serve_speech && !current_speechsequence.equal?(@serve_speech)
+        complete_service_speech(@serve_speech_token)
+      end
+      @serve_speech != nil
     end
 
     def prepare_first_serve(now, healthy)
@@ -577,7 +646,7 @@ module GameRoomPong
     end
 
     def local_automatic
-      [0, 1].map { |side| side == @side && Preferences.read(@program)['auto_return'] == true }
+      @players.each_index.map { |side| side == @side && Preferences.read(@program)['auto_return'] == true }
     end
 
     def surface_input

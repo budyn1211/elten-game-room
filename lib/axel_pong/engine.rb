@@ -1,5 +1,6 @@
 # encoding: UTF-8
 require_relative 'keyboard'
+require_relative 'rotation'
 
 module GameRoomPong
   # One original 16 ms simulation frame, without UI, sockets or global clocks.
@@ -20,38 +21,41 @@ module GameRoomPong
     INC_MAX = [0.20, 0.15, 0.08, 0.05, 0.05, 0.05].freeze
 
     attr_reader :paddles, :ball, :tick, :server, :goal, :invisible,
-      :shields, :level, :base_speed, :events, :now_ms, :edge_attempts
+      :shields, :level, :base_speed, :events, :now_ms, :edge_attempts, :rotation, :turn
 
     def initialize(level: 2, arcade: false, automatic: false, rally: 0, rng: Random.new, bots: [],
-        first_server: 0, paddles: nil, shields: nil, guest: nil, movement_feedback: nil)
+        first_server: 0, paddles: nil, shields: nil, guest: nil, movement_feedback: nil, teams: [0, 1])
       raise ArgumentError, 'invalid Pong difficulty' unless (1..6).include?(level)
       @level, @arcade, @rng = level, arcade, rng
-      @automatic = automatic.is_a?(Array) ? automatic.map { |value| value == true } : [automatic == true] * 2
+      @rotation = Rotation.new(teams: teams, rally: rally, first_server: first_server)
+      @turn = 0
+      count = @rotation.teams.length
+      @automatic = automatic.is_a?(Array) ? automatic.map { |value| value == true } : [automatic == true] * count
       @bots = bots.freeze
       @base_speed = (@bots.empty? ? BASE_SPEED : BOT_SPEED)[level - 1]
-      @server = (first_server + rally / 2) % 2
+      @server = @rotation.server
       @guest = guest
-      @paddles = paddles ? paddles.dup : [15.0, 15.0]
+      @paddles = paddles ? paddles.dup : Array.new(count, 15.0)
       @audible_paddles = @paddles.dup
-      @step_distance = movement_feedback ? movement_feedback.fetch(:distance).dup : [0.0, 0.0]
-      @last_step_ms = movement_feedback ? movement_feedback.fetch(:last_ms).dup : [0, 0]
-      @ball = { 'x' => 15.0, 'y' => @server.zero? ? 0.0 : 20.0,
+      @step_distance = movement_feedback ? movement_feedback.fetch(:distance).dup : Array.new(count, 0.0)
+      @last_step_ms = movement_feedback ? movement_feedback.fetch(:last_ms).dup : Array.new(count, 0)
+      @ball = { 'x' => 15.0, 'y' => @rotation.team(@server).zero? ? 0.0 : DEPTH,
         'speed' => 0.0, 'lateral' => 0.0, 'dx' => 0, 'dy' => 0 }
       @tick = 0
-      @keyboard = [KeyboardMovement.new, KeyboardMovement.new]
-      @last_press = [0, 0]
-      @pointer_seq = [0, 0]
-      @pointer_edges = [0, 0]
-      @edge_attempts = [0, 0]
-      @hit_held = [false, false]
-      @shields = shields ? shields.dup : [0, 0]
+      @keyboard = Array.new(count) { KeyboardMovement.new }
+      @last_press = Array.new(count, 0)
+      @pointer_seq = Array.new(count, 0)
+      @pointer_edges = Array.new(count, 0)
+      @edge_attempts = Array.new(count, 0)
+      @hit_held = Array.new(count, false)
+      @shields = shields ? shields.dup : Array.new(count, 0)
       @shield_fraction = 0.0
       @now_ms = 0
       @controllers = {}
-      @inputs = [{}, {}]
-      @control_held = [false, false]
-      @released_at = [nil, nil]
-      @previous_inbound = [nil, nil]
+      @inputs = Array.new(count) { {} }
+      @control_held = Array.new(count, false)
+      @released_at = Array.new(count)
+      @previous_inbound = Array.new(count)
       @invisible = false
       @events = []
       @event_seq = 0
@@ -78,7 +82,7 @@ module GameRoomPong
       advance_ball
       return if @goal
       @controllers.each_value { |bot| bot.prepare(self) } if @ball['dy'].zero?
-      2.times do |side|
+      @paddles.each_index do |side|
         next if @bots.include?(side) || !controls_side?(side)
         input = inputs[side] || {}
         pointer_frame = pointer_frame?(side, input)
@@ -94,7 +98,7 @@ module GameRoomPong
         finish_pointer_frame(side, input) if pointer_frame
       end
       @controllers.each_value { |bot| bot.track(self) }
-      2.times do |side|
+      @paddles.each_index do |side|
         # The original remembers release in HandleInput, after ball contact.
         held = control_active?(side)
         @released_at[side] = @now_ms if @control_held[side] && !held
@@ -110,7 +114,7 @@ module GameRoomPong
     # the client, not queued until the next serve becomes available.
     def position(inputs, now_ms: nil)
       @now_ms = now_ms if now_ms
-      2.times do |side|
+      @paddles.each_index do |side|
         move_input(side, inputs[side] || {}) if controls_side?(side) && !@bots.include?(side)
       end
     end
@@ -202,7 +206,7 @@ module GameRoomPong
       if @ball['dy'].zero?
         return false unless side == @server
         @ball['x'] = @paddles[side]
-        @ball['y'] = side.zero? ? 0.0 : DEPTH
+        @ball['y'] = @rotation.team(side).zero? ? 0.0 : DEPTH
         @ball['speed'] = @base_speed * 1.2
         @ball['dx'] = aim
         @ball['lateral'] = if aim.zero?
@@ -212,10 +216,11 @@ module GameRoomPong
         else
           [MAX_LATERAL, 0.03 + (@paddles[side] - 15).abs * 0.02].min
         end
-        @ball['dy'] = side.zero? ? 1 : -1
+        @ball['dy'] = @rotation.team(side).zero? ? 1 : -1
         @invisible = false
-        @previous_inbound = [nil, nil]
+        @previous_inbound = Array.new(@paddles.length)
         @controllers.each { |other, controller| controller.served(self, opening: other != side && !bot) }
+        @turn += 1
         cue('serve', side)
         return true
       end
@@ -230,8 +235,9 @@ module GameRoomPong
       @ball['speed'] += uniform(@base_speed * INC_MIN[@level - 1], @base_speed * INC_MAX[@level - 1])
       @ball['lateral'] += uniform(0.0035, 0.005) * lateral_scale
       @ball['lateral'] = [@ball['lateral'], MAX_LATERAL * lateral_scale].min if bot
-      @ball['dy'] = side.zero? ? 1 : -1
+      @ball['dy'] = @rotation.team(side).zero? ? 1 : -1
       @previous_inbound[side] = nil
+      @turn += 1
       cue('hit', side)
       @invisible = false
       roll_effects(side)
@@ -252,10 +258,11 @@ module GameRoomPong
     end
 
     def incoming?(side)
-      @ball['dy'] == (side.zero? ? -1 : 1)
+      (!@rotation.doubles? || side == @rotation.hitter(@turn)) &&
+        @ball['dy'] == (@rotation.team(side).zero? ? -1 : 1)
     end
 
-    def distance_to(side); side.zero? ? @ball['y'] : DEPTH - @ball['y']; end
+    def distance_to(side); @rotation.team(side).zero? ? @ball['y'] : DEPTH - @ball['y']; end
 
     def hit_width(side)
       width = Array(@guest).include?(side) ? 4.5 : 4.0
@@ -282,11 +289,13 @@ module GameRoomPong
     end
 
     def snapshot
-      { 'tick' => @tick, 'p' => @paddles.map { |x| x.round(4) },
+      state = { 'tick' => @tick, 'p' => @paddles.map { |x| x.round(4) },
         'b' => @ball.transform_values { |v| v.is_a?(Float) ? v.round(5) : v },
         'server' => @server, 'goal' => @goal, 'invisible' => @invisible,
         'shields' => @shields.dup, 'edges' => @edge_attempts.dup,
         'fx' => @events.last(8).map(&:dup) }
+      state.merge!('teams' => @rotation.teams.dup, 'receiver' => @rotation.receiver) if @rotation.doubles?
+      state
     end
 
     private
@@ -337,7 +346,8 @@ module GameRoomPong
     end
 
     def miss(side)
-      @goal = 1 - side
+      @turn += 1
+      @goal = 1 - @rotation.team(side)
       @ball['dy'] = 0
       @invisible = false
       cue('goal', @goal)
@@ -345,16 +355,17 @@ module GameRoomPong
 
     def shield_return(side)
       @ball['dy'] *= -1
-      @ball['y'] = side.zero? ? 1.0 : DEPTH - 1
+      @ball['y'] = @rotation.team(side).zero? ? 1.0 : DEPTH - 1
       @ball['dx'] = 0
       @ball['lateral'] = 0.0
       @ball['speed'] += uniform(@base_speed * INC_MIN[@level - 1], @base_speed * INC_MAX[@level - 1])
+      @turn += 1
       cue('shield_hit', side)
     end
 
     def advance_ball
       return if @ball['dy'].zero?
-      target = @ball['dy'].positive? ? 1 : 0
+      target = @rotation.doubles? ? @rotation.hitter(@turn) : (@ball['dy'].positive? ? 1 : 0)
       distance = distance_to(target)
       boundary = @bots.include?(target) ? distance <= 0 : distance < 1
       if boundary && controls_side?(target)
@@ -379,7 +390,7 @@ module GameRoomPong
 
     def advance_motion
       return if @ball['dy'].zero?
-      target = @ball['dy'].positive? ? 1 : 0
+      target = @rotation.doubles? ? @rotation.hitter(@turn) : (@ball['dy'].positive? ? 1 : 0)
       old = [@ball['x'], distance_to(target)]
       # A remote outgoing ball waits at the far baseline for a return event,
       # but its lateral movement continues, as in the active original code.

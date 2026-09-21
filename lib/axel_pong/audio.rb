@@ -41,7 +41,12 @@ module GameRoomPong
       end
     end
 
-    def reset; @last_effect = 0; crowd_reset; suspend; end
+    def reset
+      @last_effect = 0
+      @movement_cue_sources = {}
+      crowd_reset
+      suspend
+    end
 
     def start_match
       return if @started
@@ -122,7 +127,7 @@ module GameRoomPong
     def update(snapshot, viewer:, paused:)
       return suspend unless snapshot
       paddle, ball = snapshot['p'][viewer], snapshot['b']
-      pan, volume = spatial(paddle, ball['x'], ball['y'], viewer)
+      pan, volume = spatial(paddle, ball['x'], ball['y'], court_side(snapshot, viewer))
       level = paused || snapshot['invisible'] || ball['dy'] == 0 ? 0 : volume
       loop_sound('pong_ball', pan: pan, level: level)
       update_echo(paddle)
@@ -141,7 +146,7 @@ module GameRoomPong
         crowd_event('chant') if kind == 'serve'
         crowd_event('increase') if kind == 'hit'
       end
-      update_opponent_cues(snapshot, viewer)
+      update_movement_cues(snapshot, viewer)
     end
 
     def silence
@@ -164,10 +169,17 @@ module GameRoomPong
 
     private
 
-    def update_opponent_cues(snapshot, viewer)
-      pan, = spatial(snapshot['p'][viewer], snapshot['p'][1 - viewer], viewer.zero? ? 20 : 0, viewer)
-      %w[pong_op_move pong_op_edge].each do |name|
+    def court_side(snapshot, participant)
+      snapshot['teams'] ? snapshot['teams'][participant] : participant
+    end
+
+    def update_movement_cues(snapshot, viewer)
+      %w[pong_move pong_op_move pong_op_edge].each do |name|
         next unless @sounds[name]&.playing?
+        source = @movement_cue_sources[name]
+        next if source == nil
+        pan, = spatial(snapshot['p'][viewer], snapshot['p'][source],
+          court_side(snapshot, source) * 20, court_side(snapshot, viewer))
         @pans[name] = pan
         apply_mix(name, pan, @levels[name])
       end
@@ -189,21 +201,24 @@ module GameRoomPong
     def play_effect(kind, side, x, y, snapshot, viewer)
       paddle = snapshot['p'][viewer]
       own = side == viewer
-      distance = (viewer.zero? ? y : 20 - y).clamp(0, 20)
-      pan, volume = spatial(paddle, x, y, viewer)
+      viewer_side = court_side(snapshot, viewer)
+      distance = (viewer_side.zero? ? y : 20 - y).clamp(0, 20)
+      pan, volume = spatial(paddle, x, y, viewer_side)
       pitch = 1.0
       case kind
       when 'step', 'edge'
         return if side == nil
+        own = court_side(snapshot, side) == viewer_side if kind == 'step'
         x = snapshot['p'][side]
-        pan, volume = spatial(paddle, x, side.zero? ? 0 : 20, viewer)
+        pan, volume = spatial(paddle, x, court_side(snapshot, side) * 20, viewer_side)
         name = kind == 'step' ? (own ? 'pong_move' : 'pong_op_move') : (own ? 'pong_edge' : 'pong_op_edge')
+        @movement_cue_sources[name] = side if kind == 'step' || !own
         volume = own ? OWN_MOVEMENT_LEVEL : OPPONENT_MOVEMENT_LEVEL if kind == 'step'
         pitch = 1.3 - (x.to_i - 15).abs.clamp(0, 14) * (0.6 / 14) if kind == 'step'
       when 'hit', 'serve'
         @sounds['pong_ball'].position = 0 if @sounds['pong_ball']
         name = own ? 'pong_hit' : 'pong_op_hit'
-        pan, volume = own ? [0, 1.0] : spatial(paddle, snapshot['p'][side], viewer.zero? ? 20 : 0, viewer)
+        pan, volume = own ? [0, 1.0] : spatial(paddle, snapshot['p'][side], court_side(snapshot, side) * 20, viewer_side)
       when 'wall'
         name = 'pong_wall'
         pitch = WALL_PITCH[(distance / 4).to_i.clamp(0, 4)]
@@ -216,7 +231,7 @@ module GameRoomPong
         @sounds['pong_ball'].position = 0 if @sounds['pong_ball']
         name = "pong_#{own ? 'own' : 'op'}_shield_hit#{@rng.rand(10) + 1}"
         name = 'pong_shield_hit' unless @sounds[name]
-        pan, = spatial(paddle, x, side.zero? ? 0 : 20, viewer)
+        pan = panorama(x - paddle)
         volume = own ? 2.0 : OPPONENT_SHIELD_HIT_LEVEL
       when 'invisible'
         name = 'pong_invisible'
