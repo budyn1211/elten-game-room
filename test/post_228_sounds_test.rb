@@ -124,7 +124,7 @@ end
 
 %w[farkle_bank ninety3366 1000_mariage win_party lose_party].each do |name|
   assert(GameRoomSounds::ASSET_NAMES.include?(name), "unregistered asset #{name}")
-  assert(File.binread(File.expand_path("../Audio/#{name}.ogg", __dir__), 4) == "OggS", "invalid asset #{name}")
+  assert(File.binread(File.expand_path("../Audio/#{name}.opus", __dir__), 4) == "OggS", "invalid asset #{name}")
 end
 
 require_relative "../lib/game_room_preferences"

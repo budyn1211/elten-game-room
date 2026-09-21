@@ -225,7 +225,7 @@ sound_cases.each do |game, action, value, expected|
   actual = GameRoomSounds.event_cue(game: game, event: event(action, value), before_replay: view(state),
     after_replay: view(state), repository: REPOSITORY, viewer: "Alice")
   assert(actual == expected, "#{game.id}/#{action}: missing or wrong sound #{actual}")
-  assert(File.file?(File.expand_path("../Audio/#{expected}.ogg", __dir__)), "Missing sound asset #{expected}")
+  assert(File.file?(File.expand_path("../Audio/#{expected}.opus", __dir__)), "Missing sound asset #{expected}")
   checks += 1
 end
 uno = GameRoomGames::Uno.new

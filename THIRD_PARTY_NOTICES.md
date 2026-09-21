@@ -24,15 +24,25 @@ scalenia PR-ów na GitHubie. Źródła pomocnicze i zakres zmian opisuje
 
 ## Dźwięki
 
+21 września 2026 r. ujednolicono wszystkie 123 nagrania do Ogg Opus
+144 kb/s VBR (48 kHz, ramki 20 ms, libopus audio, complexity 10).
+Trzy podkłady Krowy miały już te parametry; pozostałe 120 plików
+przekodowano z dotychczasowych źródeł WAV/Vorbis, nie przez zmianę
+samego rozszerzenia. Zachowano mono/stereo, informacje o autorach
+i pozostałe dostępne metadane, bez normalizacji głośności i przycinania.
+Powielony rok i pełną datę w niektórych WAV-ach reprezentuje pełna data.
+Oryginały zachowano poza dystrybucją. Konwersja stratna nie nadaje
+nowych praw do nagrań i nie gwarantuje identycznego brzmienia.
+
 Większość plików w katalogu `Audio/` pochodzi z opublikowanego buildu 176.
-Dźwięki `connect.ogg` i `disconnect.ogg` zostały później zastąpione, a
-`chatmsg.ogg` dodany z dostarczonego przez autora zestawu dźwięków. Repozytorium
+Dźwięki `connect.opus` i `disconnect.opus` zostały później zastąpione, a
+`chatmsg.opus` dodany z dostarczonego przez autora zestawu dźwięków. Repozytorium
 nie zawiera osobnego dokumentu potwierdzającego pierwotne źródło i licencję
 tych plików. Przed objęciem zasobów jednolitą licencją należy uzupełnić tę
 informację albo zastąpić je dźwiękami o jednoznacznej licencji.
 
-Plik `hit1.ogg`, używany przy skompletowaniu grupy w Monopoly, oraz plik
-`notice.ogg`, używany przez powiadomienia Game Roomu, pochodzą z dostarczonego
+Plik `hit1.opus`, używany przy skompletowaniu grupy w Monopoly, oraz plik
+`notice.opus`, używany przez powiadomienia Game Roomu, pochodzą z dostarczonego
 zestawu Quentin Playroom. Dla tych plików również nie ma w repozytorium
 osobnego potwierdzenia licencji.
 
@@ -41,27 +51,28 @@ osobnego potwierdzenia licencji.
 Trzy nagrania autora **poenia**, dostarczone przez użytkownika wraz z
 informacją o licencji [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/):
 
-- `Audio/domino_refill.ogg` — [Domino_sfx_refillPlayers](https://freesound.org/s/745031/), rozdawanie kostek;
-- `Audio/domino_move_tile.ogg` — [Domino_sfx_moveTile](https://freesound.org/s/745028/), zagranie kostki;
-- `Audio/domino_take_chip.ogg` — [Domino_sfx_takeChip](https://freesound.org/s/745032/), dobranie ze stosu.
+- `Audio/domino_refill.opus` — [Domino_sfx_refillPlayers](https://freesound.org/s/745031/), rozdawanie kostek;
+- `Audio/domino_move_tile.opus` — [Domino_sfx_moveTile](https://freesound.org/s/745028/), zagranie kostki;
+- `Audio/domino_take_chip.opus` — [Domino_sfx_takeChip](https://freesound.org/s/745032/), dobranie ze stosu.
 
-Są to pliki Freesound `preview-hq-ogg`, pobrane 18 września 2026 r.
-Nagrania zachowano bez zmian zawartości, zmieniono jedynie nazwy plików.
+Źródłem są pliki Freesound `preview-hq-ogg`, pobrane 18 września 2026 r.
+Pierwotnie zmieniono tylko nazwy; następnie wykonano opisaną wyżej konwersję.
 
 ### Ponowne tasowanie kart
 
-`Audio/card-shuffle.ogg` — [Card Shuffle](https://freesound.org/s/201253/)
+`Audio/card-shuffle.opus` — [Card Shuffle](https://freesound.org/s/201253/)
 autorstwa **empraetorius**, na licencji
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 Użytkownik dostarczył plik Freesound `preview-hq-ogg` wraz z informacją
-licencyjną, pobrany 18 września 2026 r. Nagrania nie edytowano ani nie
-przekodowywano; zmieniono wyłącznie nazwę pliku.
+licencyjną, pobrany 18 września 2026 r. Pierwotnie zmieniono wyłącznie nazwę;
+21 września przekodowano nagranie do Opusa według powyższych parametrów.
 
 ### Nowe dźwięki Statków
 
 Użytkownik dostarczył z własnego katalogu Freesound pliki `hit_ship1.ogg`,
 `hit_ship2.ogg`, `rocket_launch1.ogg`, `rocket_launch2.ogg`, `rocket_launch3.ogg`
-i `rocket_miss.ogg`. Zachowano ich nazwy i zawartość bez przekodowania.
+i `rocket_miss.ogg`. Początkowo zachowano ich nazwy i zawartość bez przekodowania;
+obecne odpowiedniki mają rozszerzenie `.opus` i parametry opisane wyżej.
 Nie dodawano niedostarczonego `hit_ship3.ogg`. Wśród materiałów użytkownika
 są informacje licencyjne nagrań, ale nie potwierdzono jednoznacznego
 przyporządkowania oryginalnych nazw do tych sześciu przemianowanych plików.
@@ -71,7 +82,16 @@ Nie przypisuje się im na tej podstawie jednej wspólnej licencji.
 
 Gra Krowa została dostarczona przez **paulinux** w PR #10 z konta GitHub
 `paoscripts` (commit `50ea3081e6d6e7a59ee63eee8b7809cb643d7e50`). Bazę
-rzeczowników oraz osiem nagrań `Audio/krowa-*` zachowano bez zmiany bajtów.
+rzeczowników oraz osiem nagrań `Audio/krowa-*` pierwotnie zachowano bez zmiany bajtów.
+21 września 2026 r., na polecenie użytkownika, trzy podkłady muzyczne
+`krowa-single`, `krowa-race` i `krowa-word-tower` przekodowano do Opusa
+144 kb/s VBR stereo (48 kHz, ramki 20 ms), bez filtrów zmiany głośności. Ostatni plik
+zmienił rozszerzenie z `.mp3` na `.opus`. Następnie również pięć efektów
+przekodowano do tego formatu, zachowując ich liczbę kanałów; muzyki nie
+kodowano ponownie. Bazy nie zmieniano. Oryginały zachowano poza dystrybucją.
+Metadane podkładu Wieży słów wskazują utwór „Once Again”, Moavii, 2024,
+wydawca „Free To Use Music”; zachowano je w pliku Opus. Nie zastępują
+one informacji o warunkach licencyjnych.
 Nie usuwano powtórzeń ani nie zmieniano kolejności słów. Zgłoszenie nie
 podaje pełnego pochodzenia bazy i warunków dystrybucji nagrań; przed
 publicznym rozpowszechnieniem należy uzyskać te informacje od autora.

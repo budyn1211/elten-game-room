@@ -363,14 +363,14 @@ assert(EltenLink::Contacts.calls == 1, "contact filter queried the server for ev
 EltenGameRoom.define_singleton_method(:read_json) do |_path, default:|
   default.merge("invitation_notifications" => "everyone", "invitation_sounds" => true)
 end
-EltenGameRoom.define_singleton_method(:sound_asset_path) { |name| name == "notice" ? "C:/program-assets/notice.ogg" : nil }
+EltenGameRoom.define_singleton_method(:sound_asset_path) { |name| name == "notice" ? "C:/program-assets/notice.opus" : nil }
 audible = EltenGameRoom.map_notification(FakeNotification.new("Bob"))
-assert(audible.sound == "C:/program-assets/notice.ogg", "Game Room notification did not use notice.ogg")
-assert(File.file?(File.expand_path("../Audio/notice.ogg", __dir__)), "notice.ogg is missing from packaged assets")
+assert(audible.sound == "C:/program-assets/notice.opus", "Game Room notification did not use notice.opus")
+assert(File.file?(File.expand_path("../Audio/notice.opus", __dir__)), "notice.opus is missing from packaged assets")
 manifest = JSON.parse(File.read(File.expand_path("../manifest.json", __dir__), encoding: "UTF-8"))
-assert(manifest.dig("required_assets", "sounds").include?("notice"), "notice.ogg is missing from manifest assets")
+assert(manifest.dig("required_assets", "sounds").include?("notice"), "notice.opus is missing from manifest assets")
 app_source = File.read(File.expand_path("../__app.rb", __dir__), encoding: "UTF-8")
 embedded_manifest = JSON.parse(app_source[/\A=begin Elten3AppInfo\s+(\{.*?\})\s+=end Elten3AppInfo/m, 1])
-assert(embedded_manifest.dig("required_assets", "sounds").include?("notice"), "notice.ogg is missing from the embedded manifest")
+assert(embedded_manifest.dig("required_assets", "sounds").include?("notice"), "notice.opus is missing from the embedded manifest")
 
 puts "Game Room settings, sounds, invitation filter and main-tab tests passed"

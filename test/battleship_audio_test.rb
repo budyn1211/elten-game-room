@@ -6,19 +6,19 @@ require_relative "../lib/game_room_preferences"
 require "digest"
 
 assets = {
-  "hit_ship1" => "91e292315a0f24f9f0af8a3719108a03036e52270c065724c5b75ba7ada26dd5",
-  "hit_ship2" => "ad34b35ac6ea5902dbf7348a7fe6949a6fc271400401a2fa748d9055969a0e40",
-  "rocket_launch1" => "c684cf43f12ea35c6fb254512303dd7eb0cfa80caf021758702bdbe6b5b21016",
-  "rocket_launch2" => "b97a02404c6f788f18fa0a98cb3f20ebbeaf7d3ebb817daf63403b714c2fc7cf",
-  "rocket_launch3" => "02ef3d0de47efccff88bd0f68b6dcab8465acfd46f812627336ed45fdc769b0a",
-  "rocket_miss" => "5d41e4588ff283d3d82c15de81569580017cd1bcc0fe90a06c31dcccd771572e"
+  "hit_ship1" => "d470f12aa263041c99026210dd5419ac43953fe61efc261e64b771da84f1b5b5",
+  "hit_ship2" => "7472f93bbea2dc6bdaed09ab21a75fe0f163f36dcb840e62ed06910aa63cf936",
+  "rocket_launch1" => "9dee002f48495bc43932679f1bf8b378cdf73d5ff746443ef0ff1d3632587ed7",
+  "rocket_launch2" => "65e86b69b871c0fda6c4a537f6536ab0045d8d7bd0c74f02fb31fcc54177ffb1",
+  "rocket_launch3" => "aaed65dcba7931ca6b9337bb2a1d934da64ef6972049eff89db7225adc1aaefb",
+  "rocket_miss" => "4ee9eb016b3f21d399f317ab85415b5b1e0d7ec62bffcce8e449be1cf2fd806d"
 }
 manifest = JSON.parse(File.read(File.expand_path("../manifest.json", __dir__)))
 app = File.read(File.expand_path("../__app.rb", __dir__))
 embedded = JSON.parse(app.split("=begin Elten3AppInfo", 2).last.split("=end Elten3AppInfo", 2).first)
 assert(manifest == embedded, "sound manifests disagree")
 assets.each do |name, hash|
-  path = File.expand_path("../Audio/#{name}.ogg", __dir__)
+  path = File.expand_path("../Audio/#{name}.opus", __dir__)
   assert(GameRoomSounds::ASSET_NAMES.include?(name) && manifest.dig("required_assets", "sounds").include?(name), "unregistered sound #{name}")
   assert(File.binread(path, 4) == "OggS" && Digest::SHA256.file(path).hexdigest == hash, "altered audio #{name}")
 end

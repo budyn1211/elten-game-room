@@ -1,5 +1,76 @@
 # Instrukcje dla agentów pracujących nad ELTEN Game Room
 
+## Wszystkie nagrania: Opus 144 VBR i ponowna paczka 232 — 21 września 2026
+
+Najnowsze polecenie obejmuje wszystkie 123 nagrania, nie tylko muzykę Krowy
+i Ponga. Domyślny format dla każdego nowego efektu, głosu, pętli i muzyki:
+Ogg Opus `.opus`, 144 kb/s VBR, 48 kHz, ramki 20 ms, libopus audio,
+complexity 10. Zachowuj mono/stereo, metadane i poziomy; nie normalizuj,
+nie przycinaj i nie przekodowuj wielokrotnie plików już zgodnych.
+Używaj `tools/encode_audio.rb` oraz oryginału poza paczką. Samo przemianowanie
+pliku nie jest konwersją. Pakowanie odrzuca inne formaty i fałszywy nagłówek
+Opus, ale nie koduje ponownie; identyfikatory dźwięków pozostają bez rozszerzeń.
+`tools/generate-pong-echo.rb` również produkuje Opus z deterministycznego PCM.
+Szczegóły procedury: `docs/BUILDING.md`. Licencje i autorstwo zachowaj.
+
+120 WAV/Vorbis przekodowano; trzy podkłady Krowy 144 VBR pozostają identyczne.
+Kopie 123 wejściowych plików: ../artifacts/game-room/source-audio/before-all-opus-232/.
+Raporty obecnego etapu: ../diagnostics/all-audio-opus-144-232/.
+Użytkownik następnie polecił spakować wszystko do tego samego buildu dla
+testów dźwięków: 2.0.2.1/build 232/API 3.0.3, bez zmiany changelogu.
+Poprzednią e4740b5e… zachować jako before-all-opus-signed.eltsetup.
+Ten wpis rejestruje zakres i zgodę, nie potwierdza zakończenia pakowania.
+Tylko celowane kontrole, bez pełnego runnera, instalacji, publikacji,
+GitHuba, zmian serwera/profili i restartów. Raporty wcześniejszych etapów
+zachowaj; poprzednie ograniczenie „tylko muzyka” zostało zastąpione.
+
+## Muzyka Krowy: 144 kb/s VBR w źródłach — 21 września 2026
+
+Najnowsza korekta użytkownika zastępuje docelowe 128 kb/s przez 144 kb/s
+VBR. Trzy podkłady przekodowano ponownie z zachowanych oryginałów, nie
+z wersji 128: stereo 48 kHz, libopus audio, complexity 10, ramki 20 ms.
+Łącznie 8 624 675 B. Pozostałych 120 nagrań nie zmieniano. Metadane
+Wieży słów zachowane. Oryginały nadal w ../artifacts/game-room/source-audio/
+krowa-original-232; kopie 128 i nowe raporty w ../diagnostics/music-opus-144-232/.
+Pełne dekodowanie i zapętlenie przez BASS/bassopus bez urządzenia audio
+poprawne; długości niezmienione, różnica głośności najwyżej 0,1 LU.
+Nie jest to odsłuch ani gwarancja identycznej jakości stratnego kodowania.
+Nie przebudowano paczki: podpisana 232 e4740b5e… nadal zawiera 128 kb/s.
+Wersja/build/changelog bez zmian, bez instalacji, GitHuba, serwera lub
+restartu ELTEN-a. Dyskusja o kompresji pozostałych WAV-ów nie stanowi
+jeszcze polecenia ich podmiany. Starsze raporty wydania zachować.
+
+## Odchudzona paczka 232 — zatwierdzone, 21 września 2026
+
+Najnowsze polecenie: testowo przekodować trzy podkłady Krowy do Opusa
+128 kb/s VBR stereo, zachowując oryginały poza repo/paczką. Z instalatora
+wyłączyć uzgodnione materiały deweloperskie, nie usuwać ich ze źródeł.
+Następnie przebudować i podpisać tę samą 2.0.2.1/build 232, API 3.0.3,
+z niezmienionym changelogiem. Poprzednią 232 7c29e1ca… zachować jako
+before-runtime-only-signed.eltsetup. Wyniki: ../diagnostics/runtime-release-232/.
+Nie zmieniać słowników ani innych nagrań; bez deduplikacji dźwięków Ponga.
+Tylko celowane kontrole i binarne wczytanie gotowej paczki. Bez instalacji,
+GitHuba, publikacji, zmian serwera/profili oraz restartu ELTEN-a.
+Ten wpis odnotowuje zgodę, nie ukończenie podpisywania.
+
+## Pakować tylko zawartość potrzebną graczowi
+
+Nigdy nie przekazuj całego repozytorium do rekursywnego pakowania ELTEN-a.
+Najpierw przygotuj oddzielny katalog przez `tools/release_files.rb`.
+Wspólna lista dopuszcza kod produkcyjny, dane gier, nagrania, gotowe MO,
+manifesty oraz licencje i informacje o źródłach. Testy, narzędzia, docs,
+AGENTS/README/CONTRIBUTING/CHANGELOG.md, źródłowe katalogi tłumaczeń,
+raporty importu i materiały redakcyjne pozostają w repo, nie w instalatorze.
+Zasady i changelog aplikacji są w przygotowanym kodzie/tłumaczeniach.
+Nowy nietypowy zasób wykonawczy dodawaj jawnie do reguł pakowania wraz
+z celowanym testem; nie naprawiaj brakującego pliku kopiowaniem całego repo.
+Przed wydaniem sprawdzaj dokładny zbiór plików, zależności, wymagane dźwięki,
+zgodność bajtów ze snapshotem, podpis i binarne wczytanie gier/treści/PL/EN.
+Testy uruchamiaj z katalogu źródeł przeciw gotowej paczce. Brak testów
+w paczce jest oczekiwany; brak produkcyjnego pliku nigdy nie może być
+maskowany wczytaniem jego odpowiednika z dysku. Zachowaj ochronę krótkiej
+ścieżki stagingu na Windows i nie wydawaj archiwum z samym manifestem.
+
 ## Ponowna paczka 232 zatwierdzona — 21 września 2026
 
 Najnowsze polecenie: przebudować i podpisać poprawki historii jako

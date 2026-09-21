@@ -96,7 +96,7 @@ uno_declared = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, st
   history: [History.new(event_id: 1461, kind: :game, key: "uno:1461")])
 assert(cue("uno", { "id" => 1461, "action" => "uno" }, playing, uno_declared, repository, viewer) == "buzzer2", "saying UNO did not use buzzer2")
 assert(cue("uno", { "id" => 1462, "action" => "uno" }, playing, playing, repository, viewer) == nil, "a rejected UNO declaration played its sound")
-assert(File.file?(File.expand_path("../Audio/buzzer2.ogg", __dir__)), "the UNO declaration sound asset is missing")
+assert(File.file?(File.expand_path("../Audio/buzzer2.opus", __dir__)), "the UNO declaration sound asset is missing")
 makao_declared = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: {},
   history: [History.new(event_id: 1463, kind: :game, key: "makao:1463")])
 assert(cue("makao", { "id" => 1463, "action" => "makao" }, playing, makao_declared, repository, viewer) == "buzzer2", "saying Makao did not use buzzer2")

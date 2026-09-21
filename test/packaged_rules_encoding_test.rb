@@ -10,7 +10,11 @@ module BinaryRulesLoad
 
   def self.read(path)
     relative = path.delete_prefix(ROOT + "/")
-    @entries ? @entries.fetch(relative.downcase).b : File.binread(path)
+    # Test/support code belongs to the checkout, not the player installer.
+    # Production code/data MUST still come from the package: no disk fallback
+    # for a missing runtime record, which would hide an incomplete release.
+    development_source = relative.start_with?("test/", "tools/")
+    @entries && !development_source ? @entries.fetch(relative.downcase).b : File.binread(path)
   end
 
   def self.package=(path)

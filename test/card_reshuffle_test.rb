@@ -152,9 +152,9 @@ manifest = JSON.parse(File.read(File.expand_path("../manifest.json", __dir__)))
 embedded = JSON.parse(File.read(File.expand_path("../__app.rb", __dir__)).split("=begin Elten3AppInfo", 2).last.split("=end Elten3AppInfo", 2).first)
 assert(manifest == embedded, "source manifests disagree")
 assert(manifest.dig("required_assets", "sounds").include?(asset) && GameRoomSounds::ASSET_NAMES.include?(asset), "unregistered reshuffle asset")
-path = File.expand_path("../Audio/#{asset}.ogg", __dir__)
+path = File.expand_path("../Audio/#{asset}.opus", __dir__)
 assert(File.binread(path, 4) == "OggS", "not an Ogg sound")
-assert(Digest::SHA256.file(path).hexdigest == "313fbb765b613fd36d325262ebfa916bcfa7aa75e2eef8a8a1de8ced6f1943df", "reshuffle sound differs from supplied recording")
+assert(Digest::SHA256.file(path).hexdigest == "50c1f9d26f6b6ff930aede6823a8ea16fb28f913aa5666a8ec38e13e87afce41", "reshuffle sound differs from the validated Opus conversion")
 levels = { "sound_volumes" => { "all" => 50, "game" => 40 } }
 played = []
 program = Object.new

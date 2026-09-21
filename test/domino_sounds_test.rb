@@ -158,16 +158,16 @@ sounds = tile_sound_step(game, state, "timeout", repo, time: 105)
 assert(sounds.values.all?(&:empty?), "timeout without drawing has a cue")
 
 assets = {
-  "domino_refill" => "e563e8c0a93654f91cdd890b60cad9bcf36134d4799b191e2c8a3fbb6e35c784",
-  "domino_move_tile" => "0abca16407716981c716c99bea5237c32c2d95b85a17c5f0d9d16ca36dd6dd43",
-  "domino_take_chip" => "306be52b5f5363cdf98b4eae0582deb5b342d32a869a64b9d69969e539645e15"
+  "domino_refill" => "209459958aab87ef37c3bcd20cc323354c17b3d18e5c817288ede4be4c55a869",
+  "domino_move_tile" => "695df75536d42400a0f813efc7a4dbd05845d6d99dc2fadbe39be677e2f5c40c",
+  "domino_take_chip" => "654ffaf653c5cecfa772b3aea22329e791bdbdd75adf21475b6a1980655444c5"
 }
 manifest = JSON.parse(File.read(File.expand_path("../manifest.json", __dir__)))
 app = File.read(File.expand_path("../__app.rb", __dir__))
 embedded = JSON.parse(app.split("=begin Elten3AppInfo", 2).last.split("=end Elten3AppInfo", 2).first)
 assert(manifest == embedded, "source manifests disagree")
 assets.each do |name, hash|
-  path = File.expand_path("../Audio/#{name}.ogg", __dir__)
+  path = File.expand_path("../Audio/#{name}.opus", __dir__)
   assert(GameRoomSounds::ASSET_NAMES.include?(name) && manifest.dig("required_assets", "sounds").include?(name), "unregistered #{name}")
   assert(File.binread(path, 4) == "OggS" && Digest::SHA256.file(path).hexdigest == hash, "changed #{name}")
 end

@@ -514,7 +514,7 @@ assert(
 )
 %w[replay draw win_party lose_party].each do |asset|
   assert(GameRoomSounds::ASSET_NAMES.include?(asset), "the quiz uses an unregistered sound #{asset}")
-  assert(File.exist?(File.expand_path("../Audio/#{asset}.ogg", __dir__)), "the sound file #{asset}.ogg is missing")
+  assert(File.exist?(File.expand_path("../Audio/#{asset}.opus", __dir__)), "the sound file #{asset}.opus is missing")
 end
 
 2.times do |index|
