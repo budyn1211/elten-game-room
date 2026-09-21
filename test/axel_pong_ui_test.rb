@@ -68,7 +68,7 @@ native_dictionary = $rules_dictionary
   assert(shortcuts.map(&:key).sort == %w[c e e s t w], 'missing/extra Pong shortcuts')
   assert(shortcuts.all? { |s| s.label.valid_encoding? }, 'shortcut encoding')
   echo_shortcut = shortcuts.find { |s| s.key == 'e' && s.modifiers == [:shift] }
-  assert(echo_shortcut && echo_shortcut.label.include?(language == :pl ? 'echolokacj' : 'echolocation'),
+  assert(echo_shortcut && echo_shortcut.label.include?(language == :pl ? 'brzmienie band' : 'side-wall cues'),
     'new shortcut not translated')
   assert(shortcuts.none? { |s| s.key == 'c' && s.modifiers == [:shift] }, 'unavailable crowd shortcut')
   assert(rules.game_shortcuts(replay, 'Observer').none? { |s| s.key == 'w' }, 'observer can hurry')
@@ -86,8 +86,8 @@ native_dictionary = $rules_dictionary
   local.attach_view(form, surface)
   $spoken_messages.clear
   3.times { surface.handle_command('echo') }
-  expected_echo = language == :pl ? ['Echolokacja: szum.', 'Echolokacja: tony.', 'Echolokacja wyłączona.'] :
-    ['Echolocation: noise.', 'Echolocation: tones.', 'Echolocation off.']
+  expected_echo = language == :pl ? ['Brzmienie band: szum.', 'Brzmienie band: tony.', 'Brzmienie band: wyłączone.'] :
+    ['Side-wall cues: noise.', 'Side-wall cues: tones.', 'Side-wall cues: off.']
   assert($spoken_messages == expected_echo && $spoken_messages.all? { |s| s.encoding == Encoding::UTF_8 },
     "#{language} echo callback/encoding")
   local.define_singleton_method(:request_hurry) { @hurry_called = true }

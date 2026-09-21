@@ -1,6 +1,34 @@
 module GameRoomHistory
   Entry = Struct.new(:text, :category, keyword_init: true)
 
+  def self.bind(form, &handler)
+    keys = { 'comma' => -1, ',' => -1, '<' => -1, 'period' => 1, '.' => 1, '>' => 1 }
+    signatures = keys.keys.flat_map { |key| [[key, [:control]], [key, [:control, :shift]]] }
+    signatures.concat([['home', [:control]], ['end', [:control]]])
+    form.history_navigation_signatures = signatures
+    form.game_room_general_help_tips = [
+      _('Ctrl+Comma: read the previous entry in the selected history category.'),
+      _('Ctrl+Period: read the next entry in the selected history category.'),
+      _('Ctrl+Shift+Comma: select the previous history category.'),
+      _('Ctrl+Shift+Period: select the next history category.'),
+      _('Ctrl+Home: read the first entry in the selected history category.'),
+      _('Ctrl+End: read the last entry in the selected history category.')
+    ]
+    keys.merge('home' => :first, 'end' => :last).each do |key, value|
+      form.on(("key_" + key).to_sym) do |parameters|
+        shift, control, alt = parameters.to_a
+        next unless control == true && alt != true
+        next if [:first, :last].include?(value) && shift == true
+        field = form.fields[form.index.to_i]
+        next if field.is_a?(EditBox) && (field.flags.to_i & EditBox::Flags::ReadOnly) == 0
+        operation = value.is_a?(Symbol) ? :jump : (shift == true ? :category : :move)
+        form.send(:getkeychar) if %w[comma period , . < >].include?(key) && form.respond_to?(:getkeychar, true)
+        EltenAPI::KeyboardState.clear_current_frame if defined?(EltenAPI::KeyboardState)
+        handler.call(operation, value)
+      end
+    end
+  end
+
   class Navigator
     CATEGORIES = [:all, :game, :chat, :room].freeze
 
@@ -10,6 +38,29 @@ module GameRoomHistory
     end
 
     attr_reader :category
+
+    def selected_index(entries)
+      return nil if @position == nil
+      indices = entries.to_a.each_index.select { |i| @category == :all || entries[i].category.to_sym == @category }
+      indices[[@position, indices.length - 1].min] unless indices.empty?
+    end
+
+    def select_index(entries, index)
+      indices = entries.to_a.each_index.select { |i| @category == :all || entries[i].category.to_sym == @category }
+      @position = indices.index(index)
+    end
+
+    def navigate(entries, operation, value, view: nil, focused: false)
+      select_index(entries, view.entry_index) if focused && operation == :move
+      message = case operation
+      when :category then change_category(entries, value)
+      when :move then move(entries, value)
+      when :jump then jump(entries, value)
+      end
+      selected = selected_index(entries)
+      view.entry_index = selected if focused && view && selected != nil && operation != :category
+      message
+    end
 
     def change_category(entries, direction)
       index = CATEGORIES.index(@category).to_i

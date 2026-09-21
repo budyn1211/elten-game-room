@@ -118,8 +118,11 @@ driver = lambda do |current|
   else
     list = current.fields.first
     assert(current.fields.length == 2 && current.hidden_controls == [current.accept_button], "F1 has extra tab stops")
-    assert(list.options.first(4) == ["Game action", "Duplicate", "Room action", "Native field tip"], "help order/deduplication")
-    assert(list.options[-3] == "History action" && list.options.uniq == list.options, "general order/duplicates")
+    assert(list.is_a?(EditBox) && (list.flags & EditBox::Flags::ReadOnly) != 0 && (list.flags & EditBox::Flags::MultiLine) != 0, "help is not read-only multiline text")
+    lines = list.text.split("\n")
+    assert(lines.first(4) == ["Game action", "Duplicate", "Room action", "Native field tip"], "help order/deduplication")
+    assert(lines[-5] == "History action" && lines.uniq == lines, "general order/duplicates")
+    assert(list.key_processed(:key_enter) == false, "Enter cannot close help")
     EltenAPI::QuickActions.hotkey_actions(1).each(&:call)
     EltenAPI::QuickActions.hotkey_actions(1).each(&:call)
     assert(current.instance_variable_get(:@game_room_help_open), "repeated F1 permits recursive help")
@@ -184,8 +187,8 @@ driver = lambda do |current|
   if current.equal?(chat_form)
     EltenAPI::QuickActions.hotkey_actions(1).each(&:call)
   else
-    assert(current.fields.first.options.first == "Chat editing", "chat help missing")
-    assert(!current.fields.first.options.include?("History action"), "history advertised inside editable chat")
+    assert(current.fields.first.text.split("\n").first == "Chat editing", "chat help missing")
+    assert(!current.fields.first.text.include?("History action"), "history advertised inside editable chat")
     current.cancel_button.trigger(:press)
   end
 end
@@ -217,4 +220,4 @@ before = played.length
 mapped.sound
 assert(played.length == before, "master mute ignored at delivery")
 
-puts "Game Room volume, migration, scoped native F1 dispatch and list help passed"
+puts "Game Room volume, migration, scoped native F1 dispatch and read-only help passed"

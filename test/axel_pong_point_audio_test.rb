@@ -132,6 +132,9 @@ client.tick
 assert(program.sounds['pong_number7'].plays == 1, 'final winning score missing')
 now += 1.7
 client.tick
+assert(program.sounds['pong_number7'].playing? && program.sounds['pong_theywin'].plays.zero?, 'final number cut off by result')
+program.sounds['pong_number7'].pause
+client.tick
 assert(program.sounds['pong_theywin'].plays == 1, 'missing original final losing announcement')
 assert(program.sounds['pong_youwin'].plays.zero?, 'wrong final perspective')
 client.close

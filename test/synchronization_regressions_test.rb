@@ -24,7 +24,7 @@ def recovery_screen(h, user, context: nil, clock: [100.0])
     table_id: h.table["__id"], session_id: h.session["__id"], clock: -> { clock[0] })
   drain_wakeups(sync)
   screen = GameScreen.allocate
-  { repository: h.repositories[user], game: h.game, session: h.session,
+  { repository: h.repositories[user], game: h.game || GameRoomGames::Base.new, game_services: {}, session: h.session,
     table: h.table, table_owner: h.users.first, synchronizer: sync,
     bot_turn_controller: h.repositories[user].bot_turn_controller(h.table["__id"]),
     room_snapshot_provider: -> {

@@ -42,16 +42,20 @@ module GameRoomScreens
         index: @index,
         quiet: true
       )
-      history = ListBox.new(
-        @history_items,
-        header: _("Game Room history"),
-        index: [@history_items.length - 1, 0].max,
-        quiet: true,
-        empty_label: _("No Game Room events yet")
-      )
+      require_relative 'game_history_view'
+      history = GameRoomHistory::View.new(header: _("Game Room history"))
+      history.replace_entries(@history_items)
       open_button = Button.new(_("Open"))
       exit_button = Button.new(_("Exit"))
       form = GameRoomUI::Form.new([options, history, open_button, exit_button], program: @program, quiet: true)
+      form.extend(GameRoomLayout::ShortcutFormBehavior)
+      navigator = GameRoomHistory::Navigator.new
+      GameRoomHistory.bind(form) do |operation, value|
+        entries = history.items.map { |text| GameRoomHistory::Entry.new(text: text, category: :room) }
+        message = navigator.navigate(entries, operation, value, view: history,
+          focused: form.fields[form.index.to_i].equal?(history))
+        speak(message.to_s) unless message.to_s.empty?
+      end
       form.accept_button = open_button
       form.cancel_button = exit_button
       form.hide(open_button)

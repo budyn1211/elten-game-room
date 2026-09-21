@@ -3,8 +3,8 @@
   "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
-  "version": "2.0.2",
-  "build_id": "231",
+  "version": "2.0.2.1",
+  "build_id": "232",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -150,8 +150,8 @@ require_relative "games/registry"
 class EltenGameRoom < Program
   extend GameRoomTableWatchRuntime
   extend GameRoomContactFiltersRuntime
-  GAME_ROOM_VERSION = "2.0.2".freeze
-  GAME_ROOM_BUILD_ID = 231
+  GAME_ROOM_VERSION = "2.0.2.1".freeze
+  GAME_ROOM_BUILD_ID = 232
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
 
@@ -561,9 +561,7 @@ class EltenGameRoom < Program
     end
     return false if newest_id == nil || newest_id.to_i <= @last_seen_lobby_activity_id.to_i
 
-    index = history.index.to_i
-    history.options = load_lobby_history
-    history.index = bounded_index(index, history.options)
+    history.replace_entries(load_lobby_history)
     false
   ensure
     @lobby_activity_polling = false
@@ -1411,6 +1409,13 @@ class EltenGameRoom < Program
       layout.begin_bindings
       layout.back_button.label = _("Leave")
       form = layout.form
+      history_navigator ||= GameRoomHistory::Navigator.new
+      GameRoomHistory.bind(form) do |operation, value|
+        entries = room_history_entries(state, state.activity_entries)
+        message = history_navigator.navigate(entries, operation, value, view: layout.history,
+          focused: form.fields[form.index.to_i].equal?(layout.history))
+        speak(message.to_s) unless message.to_s.empty?
+      end
       action = nil
       participant = nil
       dispatch = lambda do |requested, selected = nil|
@@ -2387,9 +2392,13 @@ class EltenGameRoom < Program
   end
 
   def room_history_items(state, room_activity = [])
+    room_history_entries(state, room_activity).map(&:text)
+  end
+
+  def room_history_entries(state, room_activity = [])
     replay = state.replay
     game_events = replay == nil ? [] : replay.accepted_events
-    @table_activity.merge_history(
+    @table_activity.merged_history_entries(
       game_entries: state.history,
       game_events: game_events,
       activity_entries: room_activity,

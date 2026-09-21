@@ -207,6 +207,11 @@ class EditBox < FakeControl
     @last_focus_spoken = spk
   end
 
+  def set_text(text, reset = true, **_options)
+    @text = text.to_s.delete("\r").sub(/\n+\z/, '')
+    @index = reset ? 0 : @index.to_i.clamp(0, @text.length)
+  end
+
   def context(menu, _submenu = false)
     menu.submenu("Edit") do |edit_menu|
       edit_menu.option("Quick translation", nil, "t") {}

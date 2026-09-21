@@ -84,7 +84,7 @@ module GameSurfaces
 
     def handle_command(command, _payload = {})
       case command
-      when 'echo', 'crowd', 'hurry'
+      when 'echo', 'crowd', 'hurry', 'perspective_first', 'perspective_second'
         @on_pong_command&.call(command)
       when 'scores'
         if @spec.score_labels

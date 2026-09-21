@@ -177,6 +177,18 @@ module GameRoomChangelog
         "Added a Draw another word button to Krowa's Random word variant. It reveals the previous word and resets attempts without recording a win.",
         "Games added since version 2.0 are now selected for lobby messages, and future games will be selected automatically. Later manual deselections are remembered. This does not enable main-screen notifications."
       ].freeze
+    ).freeze,
+    Entry.new(
+      version: "2.0.2.1",
+      build: 232,
+      changes: [
+        "Pong reconnects for a new match at the same table, including after changing the score target. Improved connection recovery and reduced goal-announcement delays.",
+        "Pong's first table setting is now a Classic/Arcade mode list. Shift+E changes side-wall cues: off, noise or tones.",
+        "Pong lets number and victory recordings finish before the next announcement. Scores beyond 21 are read in full using ELTEN speech.",
+        "Pong observers can press 1 or 2 in the playfield to listen from the first or second player's perspective. This does not give control of a paddle.",
+        "History and F1 help are now read-only text fields, with normal text navigation, selection and copying. Each help shortcut has its own line. Enter or Escape closes help.",
+        "Use Ctrl+Comma and Ctrl+Period for the previous and next entry in the selected history category; Ctrl+Shift+Comma and Ctrl+Shift+Period change the category. Ctrl+Home and Ctrl+End read its first and last entry. These shortcuts leave normal editing intact in chat. New history entries preserve your reading position and selection."
+      ].freeze
     ).freeze
   ].freeze
 

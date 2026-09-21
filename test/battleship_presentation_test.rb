@@ -82,7 +82,7 @@ Form.driver = lambda do |form|
   when 2
     assert(clips.length == 1 && GameRoomSounds::BATTLESHIP_LAUNCHES.include?(clips.last.name), "batched answer overtook launch")
     assert(queue.visible_replay.state[:phase] == :answering, "future answer leaked into board")
-    assert(!layout.history.options.any? { |line| line.include?("A1: hit") }, "future hit leaked into history")
+    assert(!layout.history.text.include?("A1: hit"), "future hit leaked into history")
     assert([layout.chat.text, layout.chat.index, layout.chat.check] == ["draft ąę", 7, 2], "queued shot lost chat characters/selection")
     layout.surface.fields.first.trigger(:select, [1,0])
     assert(screen.instance_variable_get(:@selected_surface_action) == nil, "input during playback submitted another shot")

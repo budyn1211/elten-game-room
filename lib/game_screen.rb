@@ -117,12 +117,7 @@ class GameScreen
   end
 
   def run
-    @game_client = @game.build_client(@program, **@game_services)
-    if @game_client.respond_to?(:bind_screen)
-      @game_client.bind_screen(session_id: @repository.session_id(@session), table_id: table_id,
-        owner: @table_owner, viewer: Session.name, members: -> { game_recipients })
-    end
-    return :back if @game_client && !@game_client.start
+    return :back unless start_game_client
     loop do
       signal_received_at = @pending_signal_received_at
       confirmation_pending = @bot_turn_controller.waiting_for_confirmation?
@@ -169,7 +164,7 @@ class GameScreen
           return :room_closed if event.kind == :closed
           if event.kind == :game_started
             @new_session_id = event.session_id
-            switch_to_new_session
+            return :back if switch_to_new_session == false
           end
           next
         end
@@ -251,7 +246,7 @@ class GameScreen
         @clear_chat_after_action = false
         @suppress_surface_focus = true
       when :new_session
-        switch_to_new_session
+        return :back if switch_to_new_session == false
       when :rules
         show_game_rules(replay)
       when :save_game
@@ -446,14 +441,8 @@ class GameScreen
     )
     bind_history_navigation(form) do |operation, value|
       entries = combined_history_entries(replay)
-      message = case operation
-      when :category
-        @history_navigator.change_category(entries, value)
-      when :move
-        @history_navigator.move(entries, value)
-      when :jump
-        @history_navigator.jump(entries, value)
-      end
+      message = @history_navigator.navigate(entries, operation, value, view: history,
+        focused: form.fields[form.index.to_i].equal?(history))
       speak(message.to_s) if !message.to_s.empty?
     end
     GameRoomParticipantMenu.bind(layout, available: -> do
@@ -948,41 +937,7 @@ class GameScreen
   end
 
   def bind_history_navigation(form, &handler)
-    signatures = [
-      ["left", [:shift]],
-      ["right", [:shift]],
-      ["left", [:control]],
-      ["right", [:control]],
-      ["left", [:control, :shift]],
-      ["right", [:control, :shift]]
-    ]
-    form.history_navigation_signatures = signatures if form.respond_to?(:history_navigation_signatures=)
-    form.game_room_general_help_tips = [
-      _("Press Shift+Left or Shift+Right to select the previous or next history category."),
-      _("Press Ctrl+Left or Ctrl+Right to read the previous or next history message."),
-      _("Press Ctrl+Shift+Left or Ctrl+Shift+Right to read the first or last history message.")
-    ]
-    {
-      left: -1,
-      right: 1
-    }.each do |key, direction|
-      form.on(("key_" + key.to_s).to_sym) do |parameters|
-        shift, control, alt = parameters.to_a
-        next if alt == true
-
-        operation, value = if shift == true && control == true
-          [:jump, direction < 0 ? :first : :last]
-        elsif shift == true && control != true
-          [:category, direction]
-        elsif control == true && shift != true
-          [:move, direction]
-        end
-        next if operation == nil
-
-        consume_game_shortcut_key(key)
-        handler.call(operation, value)
-      end
-    end
+    GameRoomHistory.bind(form, &handler)
   end
 
   def consume_game_shortcut_key(key)
@@ -1337,6 +1292,15 @@ class GameScreen
     end
   end
 
+  def start_game_client
+    @game_client = @game.build_client(@program, **@game_services)
+    if @game_client.respond_to?(:bind_screen)
+      @game_client.bind_screen(session_id: @repository.session_id(@session), table_id: table_id,
+        owner: @table_owner, viewer: Session.name, members: -> { game_recipients })
+    end
+    @game_client == nil || !!@game_client.start
+  end
+
   def switch_to_new_session
     requested_id = @new_session_id
     session = synchronized_network_task(_("Opening the new game"), complete: false) do
@@ -1346,7 +1310,17 @@ class GameScreen
       @synchronizer.request_recovery!(delay: GameRoomSync::ERROR_BACKOFF) if @synchronizer.next_reconcile_at.infinite?
       return
     end
+    if @repository.session_id(session) == @repository.session_id(@session)
+      @new_session_id = nil
+      return true
+    end
 
+    # A screen survives rematches, but its client belongs to one game session.
+    # In particular Pong closes Communications at the final point and retains
+    # match-scoped packet/announcement counters. Never reopen that old channel.
+    # Wait for a confirmed new session before disposing the current client.
+    @game_client&.close
+    @game_client = nil
     @session = session
     @new_session_id = nil
     @event_presentation&.close
@@ -1374,6 +1348,7 @@ class GameScreen
     @last_game_payload = nil
     @clear_chat_after_action = false
     @history_navigator = GameRoomHistory::Navigator.new
+    start_game_client
   end
 
   def fetch_room_snapshot
@@ -1393,7 +1368,7 @@ class GameScreen
     @layout.update_users(room_user_items(replay), header: users_header)
     @layout.update_history(combined_history_items(replay))
     @users_index = users.index.to_i
-    @history_index = history.index.to_i
+    @history_index = history.entry_index
   end
 
   def remote_game_update(revision, force: false)
@@ -1469,7 +1444,7 @@ class GameScreen
 
   def refresh_history_control(history, replay)
     @layout.update_history(combined_history_items(replay))
-    @history_index = history.index.to_i
+    @history_index = history.entry_index
   end
 
   def process_new_table_activity(replay)
@@ -1856,6 +1831,7 @@ class GameScreen
     descriptions = normalize_event_descriptions(
       @game.describe_event_for_display(event, @repository, description_replay, Session.name, surface_state: @surface_state)
     )
+    descriptions = [] if @game_client&.respond_to?(:presents_game_event?) && @game_client.presents_game_event?(event)
     # The result remains in canonical history, but the common result presenter
     # owns its automatic announcement (also after serialized sound playback).
     result = @game.result_text(after_replay) if after_replay != nil
@@ -1876,6 +1852,7 @@ class GameScreen
   end
 
   def present_game_result(replay, signal_received_at)
+    return if @game_client&.respond_to?(:presents_game_result?) && @game_client.presents_game_result?(replay)
     result = @game.result_text(replay)
     return if result == nil
 

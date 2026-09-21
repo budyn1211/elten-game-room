@@ -7,14 +7,24 @@ require_relative "context_help"
 # holds no application/runtime reference and is installed just once.
 module GameRoomUI
   HostForm = Form
+  # Read-only text retains the native reading/selection/copy commands, but
+  # Enter belongs to the dialog's Close button rather than a multiline editor.
+  class HelpText < EditBox
+    def key_processed(key)
+      return false if key.to_s.sub(/\Akey_/, '') == 'enter'
+      super
+    end
+  end
   VOLUME_LABELS = {
     "all" => "All Game Room sounds", "game" => "Game sounds",
     "room" => "Sounds when someone enters or leaves a room",
     "chat" => "Chat sounds", "notifications" => "Invitation and Game Room notification sounds"
   }.freeze
   GLOBAL_TIPS = [
-    "Press F2 to lower and F3 to raise the selected Game Room sound volume.",
-    "Press Shift+F2 or Shift+F3 to select the previous or next sound group."
+    "F2: lower the selected Game Room sound volume.",
+    "F3: raise the selected Game Room sound volume.",
+    "Shift+F2: select the previous sound group.",
+    "Shift+F3: select the next sound group."
   ].freeze
   HotkeyAction = Struct.new(:callback) do
     def call
@@ -97,7 +107,9 @@ module GameRoomUI
       @game_room_help_open = true
       opened_here = true
       clear_game_room_key
-      list = ListBox.new(items, header: _("Keyboard shortcuts"), quiet: true)
+      list = HelpText.new(GameRoomContent.utf8(_("Keyboard shortcuts")),
+        type: EditBox::Flags::ReadOnly | EditBox::Flags::MultiLine,
+        text: items.map { |item| GameRoomContent.utf8(item) }.join("\n"), quiet: true)
       close = Button.new(_("Close"))
       dialog = GameRoomUI::Form.new([list, close], program: @game_room_program, quiet: true)
       dialog.instance_variable_set(:@game_room_help_open, true)

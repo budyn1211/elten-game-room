@@ -67,10 +67,15 @@ module GameRoomPong
       return if @replay && rally < @replay.state[:rally]
       side = after.players.index { |player| player.to_s.casecmp?(viewer.to_s) }
       assignment = @game.team_assignment(after.state[:options], players: after.players)
-      team = assignment ? assignment.seats[side || 0] : side || 0
+      perspective = side || observer_side(after.players)
+      team = assignment ? assignment.seats[perspective] : perspective
       winner = [0, 1].find { |i| after.state[:scores][i] > before.state[:scores][i] }
       preview = @goal_preview if @goal_preview && @goal_preview[:rally] == before.state[:rally] && @goal_preview[:winner] == winner
-      @audio.point(after.state[:scores], viewer: team, winner: winner, finished: after.finished?, goal_at: preview && preview[:at])
+      labels = @game.score_labels(after.state[:options], after.players)
+      order = team == 1 ? [1, 0] : [0, 1]
+      score_text = order.map { |i| "#{labels[i]}: #{after.state[:scores][i]}" }.join('; ') + '.'
+      @audio.point(after.state[:scores], viewer: team, winner: winner, finished: after.finished?,
+        goal_at: preview && preview[:at], score_text: score_text, result_text: @game.result_text(after), observer: side == nil)
       if preview
         score_at = [@clock.call, preview[:at] + 3.0].max
         @ready_at, @serve_announce_at = score_at + SINGLE_SERVE_DELAY, score_at + 2.0
@@ -79,6 +84,12 @@ module GameRoomPong
         end
       end
       @goal_preview = nil
+    end
+    def presents_game_event?(event)
+      event['action'] == 'pong_point' && @audio.respond_to?(:presents_point) && @audio.presents_point
+    end
+    def presents_game_result?(replay)
+      replay.state[:rally] == @announced_rally && @audio.respond_to?(:presents_point) && @audio.presents_point
     end
     def after_events(replay, viewer, context:); before_wait(replay, viewer); end
 
@@ -90,6 +101,7 @@ module GameRoomPong
       assignment = @game.team_assignment(replay.state[:options], players: @players)
       @teams = assignment ? assignment.seats : [0, 1]
       @rotation = Rotation.new(teams: @teams, rally: replay.state[:rally], first_server: first_server)
+      observer_side(@players) if @side == nil
       @required = @players.reject { |p| GameRoomParticipants.bot?(p) || p.to_s.casecmp?(@viewer) }
       @channel.required_members = host? ? @required : [@owner] if @channel.respond_to?(:required_members=)
       @channel.enable_events('pong-doubles-1') if @rotation.doubles?
@@ -282,6 +294,16 @@ module GameRoomPong
 
     private
 
+    def observer_side(players = @players)
+      side = players.to_a.index { |player| player.to_s.casecmp?(@observed_player.to_s) }
+      @observed_player = players.to_a.first unless side
+      side || 0
+    end
+
+    def audio_side
+      @side || observer_side
+    end
+
     def handshake_deadline
       [@epoch_since, @connection_started_at].compact.max + HANDSHAKE_TIMEOUT
     end
@@ -293,15 +315,21 @@ module GameRoomPong
     def preview_goal(winner)
       return if @goal_preview && @goal_preview[:rally] == @replay.state[:rally]
       @goal_preview = { rally: @replay.state[:rally], winner: winner, at: @clock.call }
-      @audio.goal(viewer: @rotation ? @rotation.team(@side || 0) : @side || 0, winner: winner)
+      @audio.goal(viewer: @rotation ? @rotation.team(audio_side) : audio_side, winner: winner)
     end
 
     def local_command(command)
       case command
       when 'echo'
         mode = @audio.cycle_echo
-        speak({'off' => _('Echolocation off.'), 'noise' => _('Echolocation: noise.'),
-          'tone' => _('Echolocation: tones.')}[mode])
+        speak({'off' => _('Side-wall cues: off.'), 'noise' => _('Side-wall cues: noise.'),
+          'tone' => _('Side-wall cues: tones.')}[mode])
+      when 'perspective_first', 'perspective_second'
+        return true unless @side == nil && @surface && @form && !@replay.finished?
+        return true unless @surface.fields.include?(@form.fields[@form.index.to_i])
+        @observed_player = @players[command == 'perspective_first' ? 0 : 1]
+        present
+        speak(_('Perspective: %{player}.') % { player: @game.participant_name(@observed_player) })
       when 'crowd'
         if @audio.toggle_crowd
           speak(@audio.crowd ? _('Crowd on.') : _('Crowd off.'))
@@ -663,7 +691,7 @@ module GameRoomPong
         _('Match in progress.')
       end
       @surface&.present(@snapshot, status)
-      @audio.update(@snapshot, viewer: @side || 0, paused: @paused)
+      @audio.update(@snapshot, viewer: audio_side, paused: @paused)
     end
   end
 end
