@@ -32,7 +32,7 @@ def finish_service_speech(client)
   sequence.execute(sequence.indexes.last)
 end
 
-timing_check('native host speech dispatch releases only on the final index plus 5.4 seconds') do
+timing_check('native host speech dispatch releases only on the final index plus 2.7 seconds') do
   h = PongHarness.new(players: ['Alice', 'bot:7:1', 'bot:7:2', 'bot:7:3'], viewers: ['Alice'],
     options: {'team_size' => 2})
   begin
@@ -51,9 +51,9 @@ timing_check('native host speech dispatch releases only on the final index plus 
     sequence.execute(sequence.indexes.first)
     assert(host.paused && host.send(:serve_announcement_waiting?), 'native first index unlocked the service')
     sequence.execute(sequence.indexes.last)
-    advance_to(h, 25.399)
-    assert(host.paused && host.engine.turn.zero?, 'native completion unlocked before 5.4 seconds')
-    advance_to(h, 25.401)
+    advance_to(h, 22.699)
+    assert(host.paused && host.engine.turn.zero?, 'native completion unlocked before 2.7 seconds')
+    advance_to(h, 22.701)
     assert(!host.paused, 'native speech completion never unlocked the service')
   ensure
     h.close
@@ -174,9 +174,9 @@ timing_check('guest readiness excludes the owner completion wait') do
         assert(h.clients[name].paused, 'guest ignored the owner completion wait')
         assert(body['serve_wait'] == false, 'guest fed the owner completion wait back into local readiness')
       end
-      advance_to(h, 27.399)
+      advance_to(h, 24.699)
       assert(host.paused && host.engine.turn.zero?, 'remote serve preceded the owner completion delay')
-      advance_to(h, 27.6)
+      advance_to(h, 24.9)
       assert(h.clients.values.none?(&:paused), 'independent readiness never released the match')
     ensure
       h.close
@@ -211,9 +211,9 @@ timing_check('owner readiness never postpones peer pairing announcements') do
       assert(host.engine.turn.zero?, 'a remote human or bot served during required human speech')
       h.press(server_name) if humans.include?(server_name)
       finish_service_speech(h.clients.fetch(late_name))
-      advance_to(h, 35.399)
+      advance_to(h, 32.699)
       assert(host.engine.turn.zero? && host.paused, 'remote serve bypassed the late human completion delay')
-      advance_to(h, 35.6)
+      advance_to(h, 32.9)
       assert(!host.paused && humans.none? { |name| h.clients[name].paused },
         'readiness feedback deadlocked after every required human completed the delay')
       assert(h.clients.fetch('Watcher').send(:serve_announcement_waiting?),
@@ -258,7 +258,7 @@ timing_check('post-score pairing keeps the Single announcement schedule') do
   end
 end
 
-timing_check('non-indexed fallback waits 5.4 seconds from dispatch') do
+timing_check('non-indexed fallback waits 2.7 seconds from dispatch') do
   h = PongHarness.new(players: ['Alice', 'bot:7:1', 'bot:7:2', 'bot:7:3'], viewers: ['Alice'],
     options: {'team_size' => 2})
   begin
@@ -267,18 +267,18 @@ timing_check('non-indexed fallback waits 5.4 seconds from dispatch') do
     advance_to(h, 0.016)
     dispatched_at, text = messages.find { |_, value| value.to_s.include?('will serve against') }
     assert(text.is_a?(String), 'non-indexed fallback dispatched an indexed sequence')
-    assert((host.instance_variable_get(:@ready_at) - dispatched_at - 5.4).abs < 0.000001,
+    assert((host.instance_variable_get(:@ready_at) - dispatched_at - 2.7).abs < 0.000001,
       'non-indexed fallback did not start the full delay after dispatch')
-    advance_to(h, dispatched_at + 5.399)
+    advance_to(h, dispatched_at + 2.699)
     assert(host.paused, 'fallback allowed an early serve')
-    advance_to(h, dispatched_at + 5.401)
+    advance_to(h, dispatched_at + 2.701)
     assert(!host.paused, 'fallback never unlocked the serve')
   ensure
     h.close
   end
 end
 
-timing_check('indexed completion waits twice the shared Single delay') do
+timing_check('indexed completion waits the same shared Single delay') do
   h = PongHarness.new(players: ['Alice', 'bot:7:1', 'bot:7:2', 'bot:7:3'], viewers: ['Alice'],
     options: {'team_size' => 2})
   begin
@@ -291,14 +291,14 @@ timing_check('indexed completion waits twice the shared Single delay') do
     sequence.execute(sequence.indexes.first)
     assert(host.send(:serve_announcement_waiting?), 'first native speech index unlocked the serve')
     finish_service_speech(host)
-    assert((host.instance_variable_get(:@ready_at) - 25.4).abs < 0.000001,
-      'service did not wait 5.4 seconds after actual speech completion')
+    assert((host.instance_variable_get(:@ready_at) - 22.7).abs < 0.000001,
+      'service did not wait 2.7 seconds after actual speech completion')
     assert(GameRoomPong::Client::SINGLE_SERVE_DELAY == 2.7 &&
-      GameRoomPong::Client::DOUBLES_SERVE_DELAY == 2 * GameRoomPong::Client::SINGLE_SERVE_DELAY,
+      GameRoomPong::Client::DOUBLES_SERVE_DELAY == GameRoomPong::Client::SINGLE_SERVE_DELAY,
       'doubles delay was not derived from the shared standard Single delay')
-    advance_to(h, 25.399)
+    advance_to(h, 22.699)
     assert(host.paused && host.engine.turn.zero?, 'serve unlocked before the full completion delay')
-    advance_to(h, 25.401)
+    advance_to(h, 22.701)
     assert(!host.paused, 'serve did not unlock after the completion delay')
     deadline = host.instance_variable_get(:@ready_at)
     sequence.commands.last.execute

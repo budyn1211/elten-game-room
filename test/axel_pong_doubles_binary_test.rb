@@ -17,6 +17,13 @@ begin
     $rules_english = language == :en
     $rules_dictionary = language == :fallback ? BinaryRuleDictionary.new({}) : dictionary
     replay = rules.replay(session, events.take(3), repository)
+    views = rules.game_shortcuts(replay, 'Watcher').select { |shortcut| shortcut.key.match?(/\A[1-4]\z/) }
+    assert(views.map(&:key) == %w[1 2 3 4], "#{language}: missing individual spectator shortcuts")
+    assert(views.all? { |shortcut| shortcut.label.encoding == Encoding::UTF_8 && shortcut.label.valid_encoding? }, "#{language}: spectator shortcut encoding")
+    expected = language == :pl ? ['trzeciego gracza', 'czwartego gracza'] : ["third player's perspective", "fourth player's perspective"]
+    expected.each_with_index do |text, i|
+      assert(views[i + 2].label.include?(text), "#{language}: untranslated individual spectator shortcut")
+    end
     spec = rules.surface_spec(replay, names[3].b)
     surface = GameSurfaces.build(spec)
     state = GameRoomPong::Engine.new(teams: [1, 0, 1, 0]).snapshot

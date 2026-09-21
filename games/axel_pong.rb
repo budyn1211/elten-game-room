@@ -188,6 +188,10 @@ module GameRoomGames
       if !replay.finished? && player_index(replay.players, viewer) == nil
         shortcuts << surface_shortcut(key: '1', label: _('listen from the first player\'s perspective'), command: 'perspective_first')
         shortcuts << surface_shortcut(key: '2', label: _('listen from the second player\'s perspective'), command: 'perspective_second')
+        if replay.players.length == 4
+          shortcuts << surface_shortcut(key: '3', label: _('listen from the third player\'s perspective'), command: 'perspective_third')
+          shortcuts << surface_shortcut(key: '4', label: _('listen from the fourth player\'s perspective'), command: 'perspective_fourth')
+        end
       end
       if !replay.finished? && replay.players.any? { |p| same_user?(p, viewer) } &&
           replay.players.none? { |p| GameRoomParticipants.bot?(p) }
@@ -214,8 +218,9 @@ module GameRoomGames
           GameRoomRules.translate("The first serve of a human match becomes available after both sides are ready and a three-second countdown. You hear the variant, difficulty and target, then who serves. A bot match starts without this countdown. This does not change the break after subsequent points.")),
         rule_section(:doubles, GameRoomRules.translate("Doubles"),
           GameRoomRules.translate("Choose Single or Doubles immediately after Game mode when creating the table. Doubles requires four players. Before starting, the table master assigns two players to each team in the standard team selection window. Each player has their own paddle and can reposition at any time. Partners must return alternately: if A serves to C, the rally continues C, B, D, A, C. Only the designated player can return, including automatic returns and shield returns. Your teammate uses the same footstep sound as you; both opponents use the other footstep sound. Each step is positioned at the paddle of the player who moved."),
+          GameRoomRules.translate("The first player in each team has steps, serves and returns pitched three semitones lower than their partner. For teams A and B against C and D, A and C have the lower sound, while B and D keep the standard pitch. Everyone hears the same distinction, including spectators after changing perspective. Simultaneous paddle sounds do not cut each other off."),
           GameRoomRules.translate("The starting team is chosen once for the match. Each service block lasts two points. For teams A and B against C and D, the first cycle is A to C, D to B, B to D, C to A. The next cycle is A to D, C to B, B to C, D to A; then these cycles repeat. If the other team starts, exchange the teams' roles. Within every rally, the order is server, receiver, server's partner, receiver's partner, repeated until the point ends. Both partners share their team's points and victory."),
-          GameRoomRules.translate("At the beginning of each two-point service block, the game announces who will serve against whom. After the spoken announcement, the pause is twice the normal Single serve delay: 5.4 seconds instead of 2.7. The second serve uses the normal Single delay without repeating the announcement. You can move your paddle during the break, but serving requires a fresh press when the break ends. S reads Team A and Team B, both partners' names and the scores, separated by punctuation. T reads the server, receiver and connection status; C still reads your own paddle position.")),
+          GameRoomRules.translate("At the beginning of each two-point service block, the game announces who will serve against whom. After the spoken announcement, there is the same 2.7-second serve delay as in Single. The second serve uses the normal Single delay without repeating the announcement. You can move your paddle during the break, but serving requires a fresh press when the break ends. S reads Team A and Team B, both partners' names and the scores, separated by punctuation. T reads the server, receiver and connection status; C still reads your own paddle position.")),
         rule_section(:mouse, GameRoomRules.translate("Moving with the mouse"),
           GameRoomRules.translate("On Windows, mouse control is always available in the Pong playfield; you do not need to enable it. Move the mouse mainly left or right to move your paddle in steps; a large sweep does not jump across the court. Click the left mouse button to serve or return the ball. Holding it can also return a reachable ball just before it passes your goal, but it does not automatically serve after the pause between points. Up, Space and the arrow keys still work. As in the original audio mode, a click hits before the mouse movement from the same frame is applied."),
           GameRoomRules.translate("Mouse movement works only while the Pong playfield and the ELTEN window are active. The pointer is kept near the centre of that window so the screen edge does not stop you. Chat, settings, help, another application or a lost connection suspends mouse control. Returning to play discards movement made elsewhere. This option adds no graphics and changes no Windows mouse settings. There is no mouse on/off switch.")),
@@ -233,7 +238,7 @@ module GameRoomGames
         rule_section(:connection, GameRoomRules.translate("When the connection is interrupted"),
           GameRoomRules.translate("The table and score use Game Room's normal session; movement uses Communications. During a human match, each player calculates their own flight and return locally. Lost or delayed paddle-position updates alone do not stop the ball. Serves, returns and misses travel separately in order. An actual connection failure pauses the rally; a replacement connection restarts the unfinished point with the confirmed score unchanged. Observers may listen but cannot control a paddle. Unfinished matches cannot currently be saved.")),
         rule_section(:watching, GameRoomRules.translate("Watching a match"),
-          GameRoomRules.translate("As an observer, press 1 in the Pong playfield to listen from the first player's end, or 2 to listen from the second player's end. The game confirms the player's name. This changes only your listening perspective and score order; it does not let you move either paddle. The choice stays in place between points. The keys do not select a perspective while you are typing in chat or reading history.")),
+          GameRoomRules.translate("As an observer, use the number keys in the Pong playfield to choose a player's perspective: 1 selects the first player, 2 the second, and in Doubles 3 the third and 4 the fourth. The numbers follow the player order in the match, not the teams. The game confirms the player's name. This changes only your listening perspective and the order of the spoken score after a point; it does not let you move any paddle. The choice stays in place between points. The keys do not select a perspective while you are typing in chat or reading history.")),
         rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
           GameRoomRules.translate("Left arrow: move the paddle left."),
           GameRoomRules.translate("Right arrow: move the paddle right."),
@@ -247,6 +252,8 @@ module GameRoomGames
           GameRoomRules.translate("Shift+E: change side-wall cues."),
           GameRoomRules.translate("1: as an observer, listen from the first player's perspective."),
           GameRoomRules.translate("2: as an observer, listen from the second player's perspective."),
+          GameRoomRules.translate("3: as an observer in Doubles, listen from the third player's perspective."),
+          GameRoomRules.translate("4: as an observer in Doubles, listen from the fourth player's perspective."),
           GameRoomRules.translate("Ctrl+W: hurry the opponent before a serve."))
       ]
     end

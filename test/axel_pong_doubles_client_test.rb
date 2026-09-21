@@ -17,7 +17,7 @@ speech_client.instance_variable_set(:@ready_at, 7.2)
 $spoken_messages.clear
 speech_client.send(:announce_ready, clock)
 assert($spoken_messages == ['Dave will serve against Bob.'], 'doubles service did not name both participants')
-assert(speech_client.instance_variable_get(:@ready_at) == 13.4, 'late service speech did not retain its 5.4-second delay')
+assert(speech_client.instance_variable_get(:@ready_at) == 10.7, 'late service speech did not retain its 2.7-second delay')
 speech_client.instance_variable_set(:@server_announced, false)
 speech_client.send(:announce_ready, clock)
 assert($spoken_messages.length == 1, 're-render repeated the same service block')
@@ -67,21 +67,21 @@ assert(sequence.texts == [sequence.to_s, ''], 'completion command was not indexe
 sequence.execute(sequence.indexes.first)
 assert(speech_client.send(:serve_announcement_waiting?), 'first speech index prematurely unlocked service')
 sequence.execute(sequence.indexes.last)
-assert(!speech_client.send(:serve_announcement_waiting?) && speech_client.instance_variable_get(:@ready_at) == 25.4,
-  'service did not wait 5.4 seconds from actual completion')
+assert(!speech_client.send(:serve_announcement_waiting?) && speech_client.instance_variable_get(:@ready_at) == 22.7,
+  'service did not wait 2.7 seconds from actual completion')
 clock = 21.0
 sequence.commands.last.execute
-assert(speech_client.instance_variable_get(:@ready_at) == 25.4, 'repeated speech callback extended service delay')
+assert(speech_client.instance_variable_get(:@ready_at) == 22.7, 'repeated speech callback extended service delay')
 speech_client.instance_variable_set(:@replay, Struct.new(:state).new({rally: 6}))
 speech_client.instance_variable_set(:@server_announced, false)
 speech_client.send(:announce_ready, clock)
 cancelled = speech_client.current_speechsequence
 speech_client.speak('Another message')
-assert(!speech_client.send(:serve_announcement_waiting?) && speech_client.instance_variable_get(:@ready_at) == 26.4,
+assert(!speech_client.send(:serve_announcement_waiting?) && speech_client.instance_variable_get(:@ready_at) == 23.7,
   'interrupted speech left service waiting indefinitely')
 clock = 24.0
 cancelled.commands.last.execute
-assert(speech_client.instance_variable_get(:@ready_at) == 26.4, 'cancelled completion affected a newer announcement')
+assert(speech_client.instance_variable_get(:@ready_at) == 23.7, 'cancelled completion affected a newer announcement')
 speech_client.instance_variable_set(:@replay, Struct.new(:state).new({rally: 8}))
 speech_client.instance_variable_set(:@server_announced, false)
 speech_client.send(:announce_ready, clock)
@@ -129,13 +129,16 @@ begin
   assert($spoken_messages.grep(/will serve against/).length == messages, 'post-goal pairing was announced too early')
   h.now += 2.5
   h.clients.each_value(&:frame)
-  assert(h.clients.values.all?(&:paused), 'delayed pairing speech collapsed the 5.4-second pause')
+  assert(h.clients.values.all?(&:paused), 'delayed pairing speech collapsed the 2.7-second pause')
   assert($spoken_messages.grep(/will serve against/).length == messages + h.clients.length,
     'changed service block was not announced once on every client')
-  h.advance(337)
+  h.advance(168)
   assert(h.clients.values.all?(&:paused), 'delayed pairing speech unlocked service too early')
-  h.advance(5)
-  assert(h.clients.values.none?(&:paused), 'delayed pairing speech never unlocked service')
+  # Readiness crosses guest -> owner -> guest on the existing 25 Hz channel.
+  h.advance(10)
+  assert(h.clients.values.none?(&:paused), "delayed pairing speech never unlocked service at #{h.now}: " +
+    h.clients.map { |name, client| [name, client.paused, client.instance_variable_get(:@ready_at),
+      client.instance_variable_get(:@host_ready_at), client.instance_variable_get(:@host_serve_wait)] }.inspect)
 ensure
   h.close
 end
@@ -158,9 +161,9 @@ begin
   h.advance(140)
   assert(server.paused && server.engine.turn.zero?, 'server bypassed its own unfinished announcement')
   server.current_speechsequence.commands.last.execute
-  h.advance(337)
-  assert(server.paused, 'server unlocked before 5.4 seconds after speech completion')
-  h.advance(4)
+  h.advance(168)
+  assert(server.paused, 'server unlocked before 2.7 seconds after speech completion')
+  h.advance(10)
   assert(!server.paused && server.engine.turn.zero?, 'speech completion failed to unlock without replaying a paused press')
   h.press(server_name)
   h.advance(8)
@@ -231,13 +234,13 @@ begin
   h.advance(180)
   assert(host.engine.paddles.length == 4 && host.engine.turn.zero?, 'bot served before indexed announcement completion')
   host.current_speechsequence.commands.last.execute
-  h.advance(337)
-  assert(host.engine.turn.zero?, 'bot served before the 5.4-second completion delay')
+  h.advance(168)
+  assert(host.engine.turn.zero?, 'bot served before the 2.7-second completion delay')
   h.advance(120)
   assert(host.engine.turn.zero?, 'bot served while the sole human was still hearing the pairing')
   h.clients['Bob'].current_speechsequence.commands.last.execute
-  h.advance(337)
-  assert(host.engine.turn.zero?, 'bot ignored the sole human 5.4-second completion delay')
+  h.advance(168)
+  assert(host.engine.turn.zero?, 'bot ignored the sole human 2.7-second completion delay')
   h.advance(120)
   assert(host.engine.turn > 0 && h.clients.values.all? { |client| client.snapshot['p'].length == 4 },
     'four-participant owner simulation or guest snapshots failed with bots')

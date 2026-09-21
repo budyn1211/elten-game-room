@@ -14,7 +14,7 @@ module GameRoomPong
     HANDSHAKE_TIMEOUT = 10.0
     STREAM_TIMEOUT = 4.0
     SINGLE_SERVE_DELAY = 2.7
-    DOUBLES_SERVE_DELAY = 2 * SINGLE_SERVE_DELAY
+    DOUBLES_SERVE_DELAY = SINGLE_SERVE_DELAY
     attr_reader :engine, :snapshot, :paused
     def _(source); GameRoomContent.utf8(super(source)); end
 
@@ -97,6 +97,7 @@ module GameRoomPong
       changed = @replay == nil || @replay.state[:rally] != replay.state[:rally]
       @replay = replay
       @players = replay.players
+      @audio.prepare_players(@players.length) if @audio.respond_to?(:prepare_players)
       @side = @players.index { |p| p.to_s.casecmp?(viewer.to_s) }
       assignment = @game.team_assignment(replay.state[:options], players: @players)
       @teams = assignment ? assignment.seats : [0, 1]
@@ -324,10 +325,12 @@ module GameRoomPong
         mode = @audio.cycle_echo
         speak({'off' => _('Side-wall cues: off.'), 'noise' => _('Side-wall cues: noise.'),
           'tone' => _('Side-wall cues: tones.')}[mode])
-      when 'perspective_first', 'perspective_second'
+      when 'perspective_first', 'perspective_second', 'perspective_third', 'perspective_fourth'
         return true unless @side == nil && @surface && @form && !@replay.finished?
         return true unless @surface.fields.include?(@form.fields[@form.index.to_i])
-        @observed_player = @players[command == 'perspective_first' ? 0 : 1]
+        seat = %w[perspective_first perspective_second perspective_third perspective_fourth].index(command)
+        return true unless @players[seat]
+        @observed_player = @players[seat]
         present
         speak(_('Perspective: %{player}.') % { player: @game.participant_name(@observed_player) })
       when 'crowd'

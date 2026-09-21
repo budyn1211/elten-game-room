@@ -85,5 +85,5 @@ surface.handle_command('position')
 assert($spoken_messages.last == 'Paddle: 16.', 'fourth player reads another paddle position')
 doubles_rules = game.rule_sections.find { |section| section.id == :doubles }
 assert(doubles_rules, 'in-game rules omit doubles')
-assert(doubles_rules.paragraphs.join(' ').include?('twice the normal Single serve delay'), 'in-game rules omit the doubled first-serve break')
+assert(doubles_rules.paragraphs.join(' ').include?('same 2.7-second serve delay as in Single'), 'in-game rules omit the shared first-serve break')
 puts 'PASS Pong doubles options, shared assignments, player counts, durable team results, S/T/C readouts and rules'
