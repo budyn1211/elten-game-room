@@ -107,12 +107,12 @@ module PongDoublesLobbyTest
     assert(form.index == 0 && form.fields.first.is_a?(Static), "Creation skipped its opening instructions")
     assert(form.fields.first.text.start_with?("Choose game options"), "Creation lost its instructions")
     assert(form.fields[1..5].map(&:header) == [
-      "Private table", "Arcade: shields and invisible ball", "Match type",
+      "Private table", "Game mode", "Match type",
       "Difficulty and ball speed", "Points to win"
-    ], "Single/Doubles was not immediately after Arcade in the actual creation form")
+    ], "Single/Doubles was not immediately after Game mode in the actual creation form")
     privacy, arcade, mode, difficulty, target = form.fields[1..5]
     assert(privacy.is_a?(CheckBox) && !privacy.checked, "New tables stopped defaulting to public")
-    assert(arcade.is_a?(CheckBox) && !arcade.checked, "Arcade stopped defaulting to off")
+    assert(arcade.is_a?(ListBox) && arcade.options == ["Classic", "Arcade"] && arcade.index == 0, "Game mode stopped defaulting to Classic")
     assert(mode.is_a?(ListBox) && mode.options == ["Single", "Doubles"], "Match type is not a Single/Doubles list")
     assert(mode.index == 0, "Single was not initially selected")
     assert(difficulty.options[difficulty.index] == "Normal", "Match type changed the default difficulty")

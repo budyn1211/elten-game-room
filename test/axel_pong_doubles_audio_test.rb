@@ -17,6 +17,8 @@ class DoublesAudioSound
 
   def pause; @playing = false; end
   def playing?; @playing; end
+  def finished?; !playing?; end
+  def length; 2.0; end
   def close; pause; end
 end
 
@@ -347,15 +349,18 @@ check.call('doubles point and goal APIs still accept teams for score order and w
           audio.point([7, 3], viewer: teams[viewer], winner: winner, finished: true, goal_at: now)
           assert(GameRoomPong::Audio::GOALS.sum { |name| program.sounds[name].plays } == goals, 'durable point repeated the agreed goal')
           program.played.clear
-          final_at = 3.0 + 2.7
-          [3.0, 3.5, 4.0, final_at, final_at + 0.3, final_at + 0.8, final_at + 1.3].each do |at|
-            now = at + 0.001
-            audio.tick
-          end
           scores = teams[viewer].zero? ? [7, 3] : [3, 7]
           ordered = ['pong_scores', *scores.map { |score| "pong_number#{score}" }]
           result = teams[viewer] == winner ? 'pong_youwin' : 'pong_theywin'
-          assert(program.played == [*ordered, result, *ordered], "viewer #{viewer}: wrong team score/result #{program.played.inspect}")
+          expected = [*ordered, result, *ordered]
+          # Each recording now gates the next on its own announced length, not a
+          # fixed guess, so drain the queue by ticking until it catches up.
+          120.times do
+            now += 0.25
+            audio.tick
+            break if program.played.length >= expected.length
+          end
+          assert(program.played == expected, "viewer #{viewer}: wrong team score/result #{program.played.inspect}")
         end
       end
     end
