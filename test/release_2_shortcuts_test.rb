@@ -16,7 +16,7 @@ state[:turn_rolls] = 1
 replay = GameRoomGames::Replay.new(players: state[:players],current_player: 'A',state: state,history: [],accepted_events: [])
 before = Marshal.dump(state)
 keys = yahtzee.game_shortcuts(replay,'A')
-assert(keys.find { |s| s.key == 'd' }.message == 'Dice: 1, 2, 3, 4, 5.','D reads raw values')
+assert(keys.find { |s| s.key == 'd' }.message == '1, 2, 3, 4, 5.','D reads raw values without a redundant prefix')
 own = keys.find { |s| s.key == 'v' && s.modifiers.empty? }
 assert(own.choices.any? { |c| c.label == 'Ones: 0' },'filled zero')
 assert(own.choices.any? { |c| c.label == 'Twos: not filled' },'unused field')
@@ -29,9 +29,9 @@ assert(Marshal.dump(state) == before,'read-only sheet does not change state')
 state[:options]['extra_categories'] = false
 assert(yahtzee.score_sheet_choices(state,'A').none? { |c| c.label.start_with?('One pair:') },'hidden categories omitted')
 ludo = GameRoomGames::Ludo.new
-lr = GameRoomGames::Replay.new(players: %w[A B],current_player: 'A',state: {roll: 6})
-assert(ludo.shortcut_feature_data(:last_roll,lr,'B')[:message].include?('6'),'Ludo D available outside turn')
-lr.state[:roll] = nil
+lr = GameRoomGames::Replay.new(players: %w[A B],current_player: 'A',state: {roll: 6, last_roll: 6, last_roll_player: 'A'})
+assert(ludo.shortcut_feature_data(:last_roll,lr,'B')[:message] == 'A, 6.','Ludo D identifies the roller outside their turn')
+lr.state[:last_roll] = nil
 assert(ludo.shortcut_feature_data(:last_roll,lr,'A')[:message].include?('not been rolled'),'Ludo before roll')
 assert(GameRoomGames::NinetyNine.new.name == '99' && GameRoomGames::NinetyNine.new.id == 'ninety_nine','stable 99 ID')
 assert(GameRoomGames::Farkle.new.shortcut_features.include?(:last_roll),'Farkle D unchanged')

@@ -20,7 +20,7 @@ end
 
 repository = BotDelayReplayRepository.new
 games = EltenGameRoom::GAME_REGISTRY.ids.map { |id| EltenGameRoom::GAME_REGISTRY.build(id) }
-games.select!(&:supports_bots?)
+games.select!(&:supports_bot_move_delay?)
 without_state = []
 
 # Use each game's real replay, rather than manufacturing a state Hash. Simple

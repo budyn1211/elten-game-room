@@ -210,4 +210,25 @@ polish_230, english_230 = document_230.split("## English", 2)
 assert(polish_230.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } == release_230.values, "2.0.1.1 Polish document differs")
 assert(english_230.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } == entry_230.changes, "2.0.1.1 English document differs")
 
-puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, old notes preserved and bilingual 2.0.1.1/build 230 notes"
+entry_231 = entries.find { |entry| entry.build == 231 }
+release_231 = JSON.parse(File.read(File.expand_path("../locale/changelog-build-231-pl.json", __dir__), encoding: "UTF-8"))
+assert(entry_231.version == "2.0.2" && entry_231.changes == release_231.keys, "2.0.2 changelog and translations differ")
+assert(entry_231.changes.length == 10 && entry_231.changes.uniq.length == 10, "2.0.2 has duplicate/missing notes")
+assert(entry_231.changes.last.include?("selected for lobby messages") && entry_231.changes.last.include?("does not enable main-screen notifications"), "lobby defaults scope is missing")
+assert(entry_231.changes.take(2).last.start_with?("Added Axel Pong"), "Pong must be introduced as new since build 230")
+assert(entry_231.changes.none? { |text| text.match?(/Fixed slowdowns|Fixed an error|Restored the original|brought closer|no longer serve/) }, "unreleased Pong test fixes do not belong in public release notes")
+assert(entry_231.changes.first.include?("Dragon-Pong") && entry_231.changes.first.include?("Axel and balteam") && entry_231.changes.first.include?("with their permission"), "Pong attribution must lead the changelog")
+assert(entry_231.changes.any? { |text| text.include?("Ctrl+1 through Ctrl+0") && text.include?("Settings > Widget.") && text.include?("Table shortcuts list") && text.include?("saved immediately") && text.include?("Cancel in Settings does not undo") }, "inline widget setup and immediate-save instructions missing")
+release_231.each { |source, translation| assert(catalog[source] == translation, "uncompiled 2.0.2 translation: #{source}") }
+assert(GameRoomChangelog.pending_entries(230, 231).map(&:build) == [231], "2.0.2 repeats the previous release")
+assert(GameRoomChangelog.pending_entries(nil, 231).map(&:build) == [231], "first 2.0.2 launch repeats history")
+assert(GameRoomChangelog.pending_entries(231, 231).empty?, "2.0.2 reopens after being read")
+assert(GameRoomChangelog.list_items([entry_231]).first == "Version 2.0.2, build 231", "2.0.2 heading differs")
+
+document_231 = File.read(File.expand_path("../docs/CHANGELOG_2_0_2.md", __dir__), encoding: "UTF-8")
+assert(document_231.start_with?("# Game Room 2.0.2 — build 231"), "2.0.2 document heading differs")
+polish_231, english_231 = document_231.split("## English", 2)
+assert(polish_231.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } == release_231.values, "2.0.2 Polish document differs")
+assert(english_231.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } == entry_231.changes, "2.0.2 English document differs")
+
+puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, old notes preserved and bilingual 2.0.2/build 231 notes"

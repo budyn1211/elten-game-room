@@ -1,5 +1,7 @@
 require_relative "game_room_background"
 require_relative "network_errors"
+require_relative "context_help"
+require_relative "table_presets"
 
 module GameRoomWidget
   Loading = Struct.new(:label)
@@ -7,7 +9,7 @@ module GameRoomWidget
   class TableList < ListBox
     attr_reader :snapshots
 
-    def initialize(loader:, opener:, labeler:, id_for:, active: -> { true }, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, worker: nil, foreground: nil, manual_refresh: -> {})
+    def initialize(loader:, opener:, labeler:, id_for:, active: -> { true }, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, worker: nil, foreground: nil, manual_refresh: -> {}, creator: nil)
       @loader = loader
       @opener = opener
       @labeler = labeler
@@ -15,6 +17,7 @@ module GameRoomWidget
       @snapshots = []
       @active, @clock = active, clock
       @manual_refresh = manual_refresh
+      @creator = creator
       @foreground = foreground || ->(&operation) { operation.call }
       @load_mutex = Mutex.new
       @generation = 0
@@ -34,10 +37,11 @@ module GameRoomWidget
         empty_label: _("Loading Game Room tables")
       )
       on(:select) { open_selected }
+      bind_creation_actions if @creator
     end
 
     def focus(*arguments)
-      return if @entry_refresh
+      return if @entry_refresh || @creating
       # ListBox focuses its selected row while handling arrows. Only a host
       # entry from outside update is a real tab entry, not list navigation.
       if !@updating && active?
@@ -51,8 +55,17 @@ module GameRoomWidget
     end
 
     def update
-      return if @entry_refresh
+      return if @entry_refresh || @creating
       if active?
+        # Native first-press detection excludes repeats and checks the exact
+        # modifiers. Consume here before ListBox's character search.
+        if @creator
+          key = creation_actions.find { |item| main_shortcut_pressed?(item[0], first: true) }
+          if key
+            create_table(key[1])
+            return
+          end
+        end
         apply_ready_result
         if key_pressed?(0x52)
           @manual_refresh.call
@@ -86,6 +99,38 @@ module GameRoomWidget
     end
 
     private
+
+    def creation_actions
+      @creation_actions ||= [["n", nil, _("Create a new table")]] + GameRoomTablePresets::KEYS.each_with_index.map do |key, index|
+        [key, index, GameRoomContent.utf8(_("Create a table from preset %{number}")) % {number: key}]
+      end
+    end
+
+    def bind_creation_actions
+      # The widget lives inside ELTEN's main screen, not a Game Room Form.
+      # Do not register these shortcuts globally or on other main-screen tabs.
+      disable_contextinglobal
+      bind_context do |menu|
+        creation_actions.each do |_key, slot, label|
+          menu.option(GameRoomContent.utf8(label)) { create_table(slot) }
+        end
+      end
+      tips = creation_actions.map { |key, _slot, label| GameRoomContextHelp.shortcut_tip("Ctrl+#{key.upcase}", label) }
+      GameRoomContextHelp.replace([self], tips)
+    end
+
+    def create_table(slot)
+      return if @creating || @entry_refresh || !active?
+      begin
+        @creating = true
+        @creator.call(slot)
+      rescue StandardError => error
+        Log.warning("ELTEN Game Room widget creation failed: #{error.class}: #{error.message}") if defined?(Log)
+        alert(_("The table could not be created. Please try again."))
+      ensure
+        @creating = false
+      end
+    end
 
     def active?
       !@worker.closed? && @active.call

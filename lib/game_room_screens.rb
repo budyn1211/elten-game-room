@@ -1,5 +1,7 @@
 require_relative "context_help"
 require_relative "game_room_ui"
+require_relative "axel_pong/settings"
+require_relative "table_presets"
 
 module GameRoomScreens
   MenuResult = Struct.new(:action, :index, keyword_init: true)
@@ -109,16 +111,18 @@ module GameRoomScreens
   class Settings
     INVITATION_POLICIES = %w[contacts nobody everyone].freeze
 
-    def initialize(values, games:, program: nil)
+    def initialize(values, games:, program: nil, preset_editor: nil, preset_writer: nil)
       @program = program
       @values = values.to_h
       @games = games.to_a
+      @preset_editor = preset_editor
+      @preset_writer = preset_writer
     end
 
     def wait
       action = nil
       sections = ListBox.new(
-        [_("Lobby messages"), _("Notification settings"), _("Sounds"), _("Widget")],
+        [_("Lobby messages"), _("Notification settings"), _("Sounds"), _("Widget"), _("Axel Pong")],
         header: _("Settings"), quiet: true
       )
       lobby_games = multiple_game_list(_("Games covered by lobby messages"), @values["lobby_games"])
@@ -170,11 +174,16 @@ module GameRoomScreens
       save_button = Button.new(_("Save"))
       cancel_button = Button.new(_("Cancel"))
 
+      pong_fields = GameRoomPong::SettingsFields.new(@values['pong'])
+      presets = TablePresetList.new(@values["table_presets"], editor: @preset_editor,
+        writer: @preset_writer) if @preset_editor && @preset_writer
+
       groups = [
         [lobby_games, created, joined, left, computers],
         [invitation_policy, watched_games, watched_contacts],
         volume_fields.values,
-        [widget_enabled, widget_games, widget_unavailable, widget_contacts]
+        [widget_enabled, widget_games, widget_unavailable, widget_contacts, presets].compact,
+        pong_fields.fields
       ]
       form = GameRoomUI::Form.new([sections] + groups.flatten + [save_button, cancel_button], program: @program, quiet: true)
       # Function-key edits in Settings affect the same staged values as the
@@ -191,6 +200,12 @@ module GameRoomScreens
       sections.on(:move) { refresh_section.call }
       refresh_section.call
       save_button.on(:press) do
+        # Native ListBox leaves Enter to the form's accept button. Handle it
+        # only here, not again in :select, so one press opens one editor.
+        if presets && form.fields[form.index.to_i].equal?(presets)
+          presets.edit
+          next
+        end
         action = :save
         form.resume
       end
@@ -198,8 +213,14 @@ module GameRoomScreens
       form.wait
       return nil if action != :save
 
-      @values.merge({
+      # Assignments are independent, immediately saved operations. Returning
+      # an opening-time copy here could undo them when Settings is accepted.
+      @values.reject { |key, _| key == "table_presets" }.merge({
+        "pong" => pong_fields.values,
         "lobby_games" => selected_game_ids(lobby_games),
+        "lobby_known_games" => GameRoomPreferences.normalized_game_ids(
+          @values["lobby_known_games"].to_a + @games.map { |game| game.fetch(:id) }
+        ),
         "announce_table_created" => created.checked,
         "announce_player_joined" => joined.checked,
         "announce_player_left" => left.checked,
@@ -241,6 +262,63 @@ module GameRoomScreens
 
     def setting_enabled?(key)
       @values[key] != false
+    end
+  end
+
+  class TablePresetList < ListBox
+    def initialize(values, editor:, writer:)
+      @slots = GameRoomTablePresets.slots(values)
+      @editor, @writer = editor, writer
+      super(rows, header: GameRoomContent.utf8(_("Table shortcuts")), quiet: true)
+      disable_contextinglobal
+      bind_context do |menu|
+        menu.option(GameRoomContent.utf8(_("Assign or edit"))) { edit }
+        if @slots[index.to_i]
+          menu.option(GameRoomContent.utf8(_("Clear assignment"))) { clear_assignment }
+        end
+      end
+      GameRoomContextHelp.replace([self], [GameRoomContextHelp.shortcut_tip("Enter", _("Assign or edit"))])
+    end
+
+    def edit
+      return if @editing
+      begin
+        @editing = true
+        slot = index.to_i
+        entry = @editor.call(GameRoomTablePresets.slots(@slots)[slot])
+        persist(slot, entry) if entry
+      ensure
+        @editing = false
+        EltenAPI::KeyboardState.clear_current_frame if defined?(EltenAPI::KeyboardState)
+        focus
+      end
+    end
+
+    def clear_assignment
+      return if @editing || !@slots[index.to_i]
+      persist(index.to_i, nil)
+      focus
+    end
+
+    private
+
+    def rows
+      @slots.each_with_index.map do |entry, slot|
+        hint = entry ? _("Press Enter to edit.") : _("Press Enter to assign.")
+        "#{GameRoomTablePresets.label(slot, entry)}. #{GameRoomContent.utf8(hint)}"
+      end
+    end
+
+    def persist(slot, entry)
+      begin
+        @writer.call(slot, entry)
+      rescue StandardError
+        alert(GameRoomContent.utf8(_("The shortcut could not be saved. Please try again.")))
+        return
+      end
+      @slots[slot] = GameRoomTablePresets.slots([entry]).first
+      self.options = rows
+      self.index = slot
     end
   end
 

@@ -1,5 +1,295 @@
 # Instrukcje dla agentów pracujących nad ELTEN Game Room
 
+## Lobby: obecne i przyszłe nowe gry; wydanie i GitHub — 21 września 2026
+
+Użytkownik polecił zaznaczyć w komunikatach lobby również obecne nowsze
+gry pominięte w starych ustawieniach oraz automatycznie każdą przyszłą.
+Wdrożono osobny katalog `lobby_known_games` i zapis wyboru z formularza.
+Zatwierdzona migracja obejmuje dziesięć gier od wersji 2.0; późniejsze
+ręczne wyłączenia pozostają zapamiętane. Widget i subskrypcje powiadomień
+pozostają niezależne, bez zapisów podczas odczytu. Szczegóły i kontrola:
+docs/LOBBY_GAME_DEFAULTS_231.md.
+
+Po poprawce PRZEBUDOWAĆ I PODPISAĆ tę samą 2.0.2/build 231, API 3.0.3,
+a następnie WYSŁAĆ WSZYSTKIE ZMIANY REPOZYTORIUM NA GITHUB. To zastępuje
+wcześniejsze wstrzymanie wysyłki. Bez instalacji i publikacji w ELTEN-ie,
+zmian serwera lub profili. Tylko testy celowane i binarne, nie pełny runner.
+Poprzednią a221d435… zachować jako before-lobby-defaults-signed.eltsetup.
+Changelog PL/EN: dziesięć punktów (dotychczasowe dziewięć plus lobby).
+Nowy snapshot/wyniki: ../diagnostics/lobby-game-defaults-231/. Ten wpis
+odnotowuje zakres i zgodę; zakończenie potwierdzają dopiero raporty.
+
+## Ponowne wydanie 231 z listą skrótów Widget — zgoda, 21 września 2026
+
+Użytkownik polecił po ukończeniu poprawek przebudować i podpisać paczkę,
+a następnie uruchomić drugą kopię ELTEN-a dotychczasowym skryptem.
+Pozostają 2.0.2/build 231 i API 3.0.3. Aktualny changelog PL/EN ma dziewięć
+punktów i opisuje bezpośrednią listę przypisań w Ustawienia → Widget,
+natychmiastowy zapis oraz niezależność od Anuluj głównych ustawień.
+Zachować poprzednią 79757ec0… jako before-inline-presets-signed.eltsetup.
+Nowy snapshot i wyniki: ../diagnostics/widget-inline-release-231/
+SOURCE.json oraz PACKAGE.json. Nie nadpisywać poprzednich raportów.
+Ten wpis odnotowuje zgodę, nie potwierdza ukończenia. Tylko testy celowane
+i kontrola gotowej paczki, bez pełnego runnera, instalacji, publikacji,
+GitHuba, zmian serwera lub ręcznych zmian profili. Uruchomienie drugiej
+kopii nie jest instalacją nowej paczki ani próbą żywego meczu.
+
+## Skróty stołów bezpośrednio w Widget — 21 września 2026
+
+Ostatnia lista pod Tabem w kategorii Widget to Ctrl+1–Ctrl+0, stan i Enter.
+Enter otwiera wybór gry i wspólny formularz jej opcji/prywatności; bez
+osobnego okna listy oraz pytania o nazwę. Zatwierdzenie zapisuje skrót
+lokalnie od razu. Anuluj w głównych ustawieniach nie cofa przypisań;
+anulowanie gry/opcji nie zmienia skrótu. Główny Zapisz nie może nadpisać
+świeżych przypisań starą kopią. Inne ustawienia nadal są zatwierdzane
+głównym Zapisz. Lista zachowuje fokus i wybraną pozycję; wyczyszczenie
+z lokalnego menu zapisuje się od razu. Changelog PL/EN ma aktualną ścieżkę
+i dziewięć punktów względem publicznej 230, bez historii testowych napraw
+Ponga. Nie przebudowano paczki po tej korekcie; 79757ec0… pozostaje starsza.
+Bez instalacji, publikacji, GitHuba, zmian serwera/profili i pełnego runnera.
+
+## Widget, gry i zgoda na ponowne wydanie 231 — 21 września 2026
+
+Wdrożono Ctrl+N i dziesięć presetów Ctrl+1–Ctrl+0 tylko na widgecie,
+ustawiane w Ustawienia → Widget → Szybkie tworzenie stołów. Wspólna
+ścieżka tworzenia, lokalny zapis, zatwierdzenie całego formularza,
+ochrona istniejącego stołu i prywatności; bez automatycznego startu gry.
+Chińczyk: 1–4, D z autorem rzutu, Shift+V według wspólnego toru.
+Yahtzee: krótkie D, Jedynki–Szóstki zamiast „górnej części”, Nędza.
+Makao: dobieranie mimo legalnej karty domyślnie w trzech profilach,
+przełączane we własnym; tylko jedno dobranie, potem pas.
+Mexican Train nie powtarza tego samego obowiązku domknięcia.
+Krowa Losowe słowo: ręczny przycisk przelosowania, bez wyniku/galerii;
+Wyścig zachowuje istniejący ręczny przycisk, bez automatu.
+Opis: docs/WIDGET_AND_GAMES_FEEDBACK_231.md.
+
+Najnowsze polecenie zastępuje wcześniejsze „bez paczki”: przebudować
+i podpisać tę samą 2.0.2/build 231, API 3.0.3. Changelog PL/EN uzupełnić
+o wszystkie niewydane zmiany, Pong na początku. W zasadach i changelogu
+wspólna informacja: nie jest autorskim projektem papierka; Dragon-Pong,
+ulepszenia Axela i balteama, port za ich zgodą (potwierdzone przez użytkownika).
+Zachować wcześniejszą podpisaną 231 e39728b9… jako before-widget-games-feedback.
+Wyniki SOURCE.json/PACKAGE.json w ../diagnostics/widget-games-feedback-231.
+Ten wpis opisuje zakres i zgodę, nie potwierdza ukończenia podpisywania.
+Tylko testy celowane/binarne; bez instalacji, publikacji, GitHuba,
+serwera i żywych profili. Nie rozszerzać poprawek Ponga poza wcześniejszy
+zatwierdzony zakres. Historyczne wpisy poniżej odnoszą się do swoich etapów.
+
+## Pong: uzgodnienia z dostarczonych źródeł wdrożone — 20 września 2026
+
+Bieżące polecenie: wdrożyć R01–R07, R11, R12, R18, R25 i R28 raportu
+../outputs/pong-source-audit-20260920/POROWNANIE_AXEL_PONG.md. Nie mylić tych
+oznaczeń z dawnymi F01–F08. Zakres/postęp: docs/PONG_SOURCE_FIXES_231.md.
+Automatyczne odbijanie i trzy głośności są osobiste/lokalne, wspólny panel
+w ustawieniach Game Roomu oraz przy stole Ponga (menu i Ctrl+P). Mysz stale
+włączona tylko w aktywnym polu Ponga, bez M; zachować ochronę fokusu.
+Lektor bazowo 50% zamiast 25%; proporcje paletek nadal 50%/20%.
+Celowane testy lokalne, także dwie role/obserwator, boty, binarne źródła,
+rzeczywiste PL/EN/fallback i dotknięte UI; nie uruchamiać pełnego runnera.
+Showdown, ręczna pauza, globalna naprawa modalnej pomocy, transport/punkty,
+perspektywa widza i inne niezatwierdzone różnice pozostają poza zakresem.
+NIE budować/podpisywać, instalować, publikować, wysyłać na GitHub, zmieniać
+serwera ani profili. Numery, changelog i ostatnia podpisana 231 bez zmian.
+Ten wpis zastępuje wcześniejsze wstrzymanie implementacji i zgody na pakowanie.
+
+Wdrożenie ukończone w źródłach. Wyniki w
+../diagnostics/pong-source-fixes-231/SOURCE.json: 39/39 celowanych skryptów,
+33/33 kontrole składni, idempotencja kompilatorów i diff check poprawne.
+Sprawdzono także binarne źródła z rzeczywistym słownikiem ELTEN-a i szybki
+panel bez sieciowych preferencji. Bez fizycznej myszy, odsłuchu i żywej gry.
+Nie budowano ani nie podpisywano paczki; poprzednia 231 e39728b9… NIE ma
+tych zmian. Automatyczny powrót piłki domyślnie wyłączony, trzy lokalne
+głośności 0–200% domyślnie 100%, mysz zawsze aktywna tylko w polu Ponga.
+
+## Pong: F02–F08 poprawione; zgoda na ponowną 231 — 20 września 2026
+
+Użytkownik wyłączył punkt 1 z bieżących poprawek. F01 (timer w osobnej
+pomocy) zostawiono bez zmian. Pozostałe potwierdzone różnice F02–F08
+naprawione: role zasięgu, odgłos brzegu przeciwnika, ciągła panorama,
+oryginalny mnożnik tarczy i stereo, dwa kierunki naraz, cicha korekta bota.
+Raport: docs/PONG_PARITY_FIXES_231.md. Wcześniejszy audyt opisuje stan
+przed naprawami, nie bieżącą listę siedmiu otwartych błędów. Ręczna pauza,
+perspektywa widza i osobiste ustawienia nadal nie są nowymi funkcjami.
+
+Regresja odtworzyła wszystkie siedem problemów przed zmianami; po nich
+22/22 celowane skrypty i 12 kontroli składni poprawne, również binarne
+źródła/PL/EN. Weryfikacja wydania rozszerza te kontrole; końcowe wyniki
+w ../diagnostics/pong-parity-fixes-231/{SOURCE,PACKAGE}.json. Bez pełnego
+runnera, wykonywania oryginalnego Pythona, żywej gry i odsłuchu urządzenia.
+
+Najnowsze polecenie pozwala przebudować i podpisać tę samą 2.0.2/build 231,
+z niezmienionym changelogiem PL/EN i API 3.0.3. Poprzednią 82f84e12…
+zachować jako before-deep-parity-fixes-signed.eltsetup. Ten wpis nie jest
+jeszcze potwierdzeniem ukończenia pakowania. Bez instalacji, publikacji,
+GitHuba, zmian serwera/profili; nie wyłączać ochrony tabel.
+
+## Pong: pogłębiony audyt i mysz — źródła, bez nowej paczki
+
+20 września 2026: po żądaniu dokładniejszej zgodności powstał raport
+`docs/PONG_DEEP_PARITY_AUDIT_231.md`. Nie uznawać poprzednich testów za
+dowód pełnej zgodności. Nadal otwarte F01–F08: timery w modalnej pomocy,
+zasięg przy właścicielu-obserwatorze, brzeg przeciwnika, panorama podczas
+odtwarzania, mnożnik tarczy, nasycenie stereo, oba klawisze kierunku,
+drobna cicha korekta pozycji bota. Ponadto brak ręcznej pauzy, wyboru
+perspektywy widza i osobistych ustawień obecnych we wzorcu. Raport
+rozdziela błędy, braki i wcześniej uzgodnione odstępstwa; nie wdrażać
+nieuzgodnionych nowych reguł przy okazji diagnozy.
+
+W ramach wcześniejszego polecenia dodania myszy wdrożono lokalne opt-in M,
+ruch, lewy przycisk i oryginalną obronę przytrzymaniem. Kolejność w trybie
+audio to klawiatura, odbicie, mysz; priorytet klawiatury dotyczy jedynie
+oryginalnego trybu graficznego. Poprawiono też mały boczny limit piłki.
+Tylko natywny adapter bez hooków/globalnej pętli, tylko aktywne pole Ponga.
+21/21 celowanych skryptów źródeł/binarnych przeszło; bez pełnego runnera,
+żywych kont, fizycznej myszy i odsłuchu. Próba diagnostyczna F02–F06
+zapisuje rozbieżności, nie dowodzi ich naprawy.
+
+Nie budowano, nie podpisywano, nie instalowano i nie publikowano paczki.
+Wersja/changelog bez zmian; podpisana 231 z SHA 82f84e12… nie zawiera
+tych najnowszych zmian. Nie zmieniano serwera ani profili i GitHuba.
+
+## Pong: tempo i proporcje paletek — 20 września 2026
+
+Użytkownik zgłosił wolniejszy ruch i polecił poprawić, po czym ponownie
+podpisać tę samą 2.0.2/build 231 z niezmienionym changelogiem/API 3.0.3.
+Po porównaniu wybrał wprost oryginalne proporcje paletek: własna 0,50,
+przeciwnika 0,20. To zastępuje starsze zalecenie obu paletek 0,25.
+Lektor i wszystkie inne efekty pozostają bez zmian. Szczegóły:
+docs/PONG_TIMING_FIX_231.md. Nie zmieniać profili ani nagrań.
+
+ELTEN nie wywołuje formularza dokładnie co 16 ms. Zachować resztę czasu
+w planowaniu fizyki, do czterech kroków na wywołanie; dłuższego zatrzymania
+nie nadrabiać po wznowieniu. Regresje muszą przechodzić przez FormTimer
+z różnymi rytmami, nie tylko idealne 16 ms. Zachować pojedyncze zdarzenie
+odbicia i zabezpieczenie klawiszy podczas pauzy; bez ręcznej pętli UI.
+
+Wyniki źródeł i gotowej paczki: ../diagnostics/pong-timing-231/
+{SOURCE,PACKAGE}.json. Ten wpis odnotowuje zakres, nie ukończenie podpisu.
+Poprzednią 231 a853859a… zachować jako before-timing-fix-signed.eltsetup.
+Tylko celowane testy i kontrola binarna, bez pełnego runnera, instalacji,
+publikacji, GitHuba, zmian serwera/profili i nowych prób na żywych kontach.
+Nie utożsamiać parametrów dźwięku z odsłuchem urządzenia.
+
+## Wierniejsze odwzorowanie Ponga i ponowne wydanie 231 — 20 września 2026
+
+Użytkownik polecił poprawiać wykryte różnice względem oryginału, z wyjątkiem
+UI i usług zastępowanych przez ELTEN. Aktualny zakres i granice:
+docs/PONG_ORIGINAL_PARITY_231.md. Ten wpis zastępuje historyczne założenia
+poniżej o braku silnika gościa i zatrzymaniu po 0,6 s bez pozycji.
+Dwaj ludzie mają lokalny lot i własne kontakty, niezawodne zdarzenia
+Communications oraz zastępowalne pozycje. Punkty nadal przechodzą przez
+GameRepository/LiveSessions z akceptacją obu uczestników. Zachować ochronę
+nadawcy/roli/generacji/kolejności i ograniczone bufory; nie usuwać zdarzeń
+przez ciche obcięcie listy. W grze z botem silnik pozostaje u właściciela.
+
+Echolokacja Shift+E to zatwierdzone udostępnienie nieaktywnego kodu wzorca,
+nie istniejąca opcja menu oryginału. Ctrl+W tylko dla ludzi: jeden zegar
+właściciela, 10 s, odstęp 15 s, anulowanie przy serwisie/utracie kanału;
+uwzględniać wyścig serwisu z timeoutem. Publiczność pozostaje nieaktywna,
+bez reklamowania skrótu, bo brakuje nagrań. Zachować cichszy balans 25%.
+
+Najnowsze polecenie pozwala po kontroli przebudować i podpisać tę samą
+2.0.2/231, bez zmian changelogu i API 3.0.3. Wyniki:
+../diagnostics/pong-original-comparison-231/{SOURCE,PACKAGE}.json.
+Sam wpis nie potwierdza ukończenia paczki. Zachować starą 231 o SHA
+7281d98a… jako build-231-before-original-parity-signed.eltsetup.
+Tylko celowane testy oraz gotowej paczki, nie pełny runner. Bez instalacji,
+publikacji, GitHuba, zmian serwera/profili, wykonywania odzyskanego Pythona
+i nowych prób na żywych kontach. Nie utożsamiać symulacji ani poprzedniego
+testu Communications z ręcznym sprawdzeniem tego nowego modelu.
+
+## Ponowne podpisanie 2.0.2/231 — zatwierdzone, 20 września 2026
+
+Użytkownik polecił przebudować paczkę z poprawkami Ponga, pozostawiając
+changelog dokładnie bez zmian. Wersja 2.0.2/build 231 i API 3.0.3 bez zmian.
+Poprzednią 231 c77acf05… zachowano jako build-231-before-pong-feedback-signed.
+Wyniki w ../diagnostics/pong-feedback-231/{SOURCE,PACKAGE}.json. Ten wpis
+jest zgodą na pakowanie, nie potwierdzeniem zakończenia. Przed oddaniem
+sprawdzić podpis papierek, wszystkie pliki i binarne wczytanie nowych regresji,
+niezmienione changelogi PL/EN i starsze nagrania. Bez pełnego runnera,
+instalacji, publikacji, GitHuba i zmian serwera. Wpis „jeszcze bez paczki”
+poniżej opisuje stan sprzed tego polecenia.
+
+## Pong — poprawki źródeł po 231, 20 września 2026
+
+Naprawiono `nil.server` po punkcie odebranym przed nowym obrazem i przenoszenie
+naciśnięć Up/Spacji z pauzy do serwisu. Gość nie posiada silnika: wznowienie
+wymaga obrazu właściwej wymiany. Zachować świeże naciśnięcia podczas gry,
+ale nie kolejkować klawiszy z pauzy ani serwować powtórzeniem przytrzymania.
+Przytrzymanie w trakcie aktywnej gry nadal odbija przy bramce, jak w oryginale;
+użytkownik potwierdził to ręcznie. Nie usuwać tej odrębnej zasady.
+
+Audio punktu pochodzi z zaakceptowanego zdarzenia LiveSessions i nie może
+być ucinane przez zwykły detach/reset widoku. Kolejka lektora działa także
+na ekranie zakończonego meczu, bez sleep/pump i bez wpływu na sieć/fizykę.
+Obie paletki mają cichszy poziom 0,25 i ton rosnący do środka, opadający
+ku drugiemu brzegowi. Kroki bota sumują małe przesunięcia do progu dźwięku.
+Opis i ograniczenia: docs/PONG_FEEDBACK_FIXES_231.md; cztery nowe regresje
+`axel_pong_{rally_sync,serve_input,audio_feedback,point_audio}_test` wchodzą
+również do binarnego testu Ponga.
+
+Jeszcze bez nowej paczki; podpisana 2.0.2/231 c77acf05… pozostaje bez zmian
+i nie zawiera tych poprawek. Bez zmiany wersji/changelogu, instalacji,
+publikacji, GitHuba i serwera. Nowe testy lokalne nie zastępują odsłuchu
+ani poprzedniej próby rzeczywistego kanału. Wyniki końcowe w
+../diagnostics/pong-feedback-231/SOURCE.json, nie w raporcie starej paczki.
+Weryfikacja końcowa: 25 celowanych skryptów, 11 kontroli składni i binarne
+wczytanie źródeł, zgodność manifestów/nagrań, idempotencja kompilacji oraz
+diff check. Pełny runner nie był uruchamiany.
+
+## Testowe wydanie 2.0.2/build 231 — zatwierdzone, 20 września 2026
+
+Najnowsze polecenie użytkownika pozwala zbudować i podpisać testową paczkę
+z ukończoną adaptacją Ponga. Wersja 2.0.2/build 231, API nadal 3.0.3.
+Changelog PL/EN ma trzy nowe punkty pod jednym nagłówkiem; stare zachować.
+Build 230 o SHA 02801479338fde099f3e80efc69c25d56925f20f9e352ab27ebc84c162e7ad44
+pozostawić bez zmian. Nie instalować, nie publikować, nie wysyłać na GitHub
+ani nie zmieniać serwera/profili. Zgoda na testową paczkę nie potwierdza praw
+do publicznego rozpowszechniania oryginalnych nagrań.
+
+Celowane testy, nie pełny runner. Po podpisie sprawdzić binarne wczytanie,
+rzeczywisty słownik PL/EN/fallback, podpis papierek, manifest/runtime oraz
+zgodność wszystkich plików ze zweryfikowanym snapshotem. Wyniki końcowe:
+../diagnostics/release-2-0-2/SOURCE.json i PACKAGE.json. Sam wpis nie jest
+potwierdzeniem ukończenia paczki. Wcześniejszy zakaz pakowania Ponga poniżej
+opisuje etap przed tym nowym poleceniem.
+
+## Axel Pong i Communications — niewydane, 20 września 2026
+
+Dodano adaptację Classic/Arcade, silnik o kroku 16 ms, sześć poziomów,
+boty, dźwięk pozycyjny i instrukcję PL/EN. Stan trwały i punkty nadal idą
+przez GameRepository/LiveSessions. `lib/realtime` przenosi tylko zastępowalne
+obrazy i sterowanie; nie przywraca starego transportu turowego. Każda
+kolejna gra musi walidować swój payload, zdefiniować bezpieczny moment
+zatwierdzenia wyniku i własne zachowanie po utracie kanału. Nie wysyłać
+wyniku z powierzchni ani bezpośrednio z timera, z pominięciem replaya.
+
+Wymagane: uwierzytelniony nadawca natywny, identyfikator partii i generacji,
+rosnące numery, pełne obrazy, ograniczony bufor i rozmiar pakietu. Brak
+pakietów ma zatrzymać grę i prowadzić do ponowienia; nie odtwarzać minionych
+sekund fizyki w przyspieszeniu. Własność zasobów musi uwzględniać zamknięcie
+podczas tworzenia endpointu/sesji oraz zamknięcie przez sam transport.
+Początkowe zestawianie kanału musi dać czas na natywne ponowienie zaproszenia,
+a nie używać krótszego limitu milczącego już zestawionego strumienia.
+
+Nie dodawać ręcznego pump/loop_update, globalnych monkeypatchy ani HTTP
+w klatce. Używać wspólnego formularza i jego cyklu attach/detach, zegara
+monotonicznego, skończonych prac sieciowych w tle. `supports_bot_move_delay?`
+domyślnie zachowuje dotychczasowe gry; ciągły bot Ponga wyłącza tę opcję.
+Pong nie obsługuje zapisu niedokończonego meczu.
+
+Użytkownik dopuścił próbę między kontem głównym i testowym, przez tymczasowy
+prywatny kanał, bez instalacji i zmiany istniejących stołów. Raport kodu
+i granice sprawdzenia: docs/AXEL_PONG_PORT.md. Celowane wyniki są poza repo
+w ../diagnostics/axel-pong-port/. Test kanału nie jest ręcznym meczem ani
+testem publikacji punktów na serwerze. Nie wyciągać z niego gwarancji
+usunięcia wszystkich historycznych problemów synchronizacji.
+
+Nie budować, podpisywać, instalować ani publikować bez nowego polecenia.
+Build 230, changelog, GitHub i ochrona tabel pozostają bez zmian. Przed
+publiczną dystrybucją ustalić prawa do użytych oryginalnych nagrań.
+Nie dodawać do repo odzyskanego Pythona, telemetrii ani danych dostępowych.
+
 ## Tysiąc dla dwóch osób; wydanie 2.0.1.1 — 19 września 2026
 
 Zatwierdzono i wdrożono wariant dwóch osób: dwa zakryte musiki po 2/3 karty,

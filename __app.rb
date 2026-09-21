@@ -3,8 +3,8 @@
   "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
-  "version": "2.0.1.1",
-  "build_id": "230",
+  "version": "2.0.2",
+  "build_id": "231",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -27,7 +27,47 @@
       "farkle_bank", "ninety3366", "1000_mariage", "win_party", "lose_party",
       "domino_refill", "domino_move_tile", "domino_take_chip", "card-shuffle",
       "krowa-race", "krowa-word-tower", "krowa-single", "krowa-opponent-guessed",
-      "krowa-duplicate", "krowa-unknown", "krowa-length", "krowa-success"
+      "krowa-duplicate", "krowa-unknown", "krowa-length", "krowa-success",
+      "pong_ball", "pong_hit", "pong_wall", "pong_move", "pong_op_move", "pong_edge", "pong_goal",
+      "pong_shield_on", "pong_shield_off", "pong_shield_hit", "pong_invisible",
+      "pong_goal1", "pong_goal2", "pong_goal3", "pong_goal4", "pong_goal5",
+      "pong_goal6", "pong_goal7", "pong_goal8", "pong_score1", "pong_score2",
+      "pong_score3", "pong_score4", "pong_scores", "pong_number0", "pong_number1",
+      "pong_number2", "pong_number3", "pong_number4", "pong_number5", "pong_number6",
+      "pong_number7", "pong_number8", "pong_number9", "pong_number10", "pong_number11",
+      "pong_number12", "pong_number13", "pong_number14", "pong_number15", "pong_number16",
+      "pong_number17", "pong_number18", "pong_number19", "pong_number20", "pong_number21",
+      "pong_op_hit",
+      "pong_op_edge",
+      "pong_op_shield_on",
+      "pong_op_shield_off",
+      "pong_gamestart",
+      "pong_youwin",
+      "pong_theywin",
+      "pong_own_shield_hit1",
+      "pong_op_shield_hit1",
+      "pong_own_shield_hit2",
+      "pong_op_shield_hit2",
+      "pong_own_shield_hit3",
+      "pong_op_shield_hit3",
+      "pong_own_shield_hit4",
+      "pong_op_shield_hit4",
+      "pong_own_shield_hit5",
+      "pong_op_shield_hit5",
+      "pong_own_shield_hit6",
+      "pong_op_shield_hit6",
+      "pong_own_shield_hit7",
+      "pong_op_shield_hit7",
+      "pong_own_shield_hit8",
+      "pong_op_shield_hit8",
+      "pong_own_shield_hit9",
+      "pong_op_shield_hit9",
+      "pong_own_shield_hit10",
+      "pong_op_shield_hit10",
+      "pong_echo_noise_left",
+      "pong_echo_noise_right",
+      "pong_echo_tone_left",
+      "pong_echo_tone_right"
     ]
   }
 }
@@ -103,14 +143,15 @@ require_relative "games/biblios"
 require_relative "games/battleship"
 require_relative "games/mancala"
 require_relative "games/krowa"
+require_relative "games/axel_pong"
 require_relative "games/krowa_support/server_schema"
 require_relative "games/registry"
 
 class EltenGameRoom < Program
   extend GameRoomTableWatchRuntime
   extend GameRoomContactFiltersRuntime
-  GAME_ROOM_VERSION = "2.0.1.1".freeze
-  GAME_ROOM_BUILD_ID = 230
+  GAME_ROOM_VERSION = "2.0.2".freeze
+  GAME_ROOM_BUILD_ID = 231
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
 
@@ -183,7 +224,8 @@ class EltenGameRoom < Program
     GameRoomGames::Biblios,
     GameRoomGames::Battleship,
     GameRoomGames::Mancala,
-    GameRoomGames::Krowa
+    GameRoomGames::Krowa,
+    GameRoomGames::AxelPong
   ])
 
   DEFAULT_SETTINGS = GameRoomPreferences.defaults(GAME_REGISTRY.ids).freeze
@@ -694,6 +736,11 @@ class EltenGameRoom < Program
     configuration = configure_game_options(game, creating_table: true)
     return if configuration == nil
 
+    create_configured_table(game, configuration)
+  end
+
+  def create_configured_table(game, configuration)
+    game_id = game.id
     game_options = configuration.fetch(:game_options)
     privacy = configuration.fetch(:private_table) || game.private_table_required?(game_options)
 
@@ -1076,14 +1123,14 @@ class EltenGameRoom < Program
 
   # Creation returns table privacy separately from game rules; ordinary
   # editing (Ctrl+X) keeps its existing options-only result and controls.
-  def configure_game_options(game, initial_options: nil, submit_label: nil, creating_table: false)
+  def configure_game_options(game, initial_options: nil, submit_label: nil, creating_table: false, initial_private_table: false)
     return creating_table ? nil : {} if game == nil
 
     selected = initial_options == nil ? {} : game.normalize_options(initial_options)
     definitions = game.effective_option_definitions(selected).to_a
     return game.default_options if definitions.empty? && !creating_table
     built_language = selected.fetch(GameRoomContent::LANGUAGE_OPTION_KEY, game.default_options[GameRoomContent::LANGUAGE_OPTION_KEY]).to_s
-    private_table = false
+    private_table = initial_private_table == true
 
     loop do
       controls = [Static.new(_("Choose game options using Tab and the arrow keys. In lists allowing multiple selections, use Space to select or clear an item."))]
@@ -1396,7 +1443,8 @@ class EltenGameRoom < Program
             restoring: state.session == nil && !row["resume_save_id"].to_s.empty?
           )
       end, game: state.game, options: state.game&.options_from_json(row["game_options"]),
-        read_options: -> { announce_table_options(state.game, row) }, &dispatch)
+        read_options: -> { announce_table_options(state.game, row) },
+        pong_settings: state.game&.id == 'axel_pong' ? -> { show_pong_settings } : nil, &dispatch)
       form.add_timer(FormTimer.new(GameScreen::TIMER_INTERVAL, repeat: true) do
         next if action != nil
 
@@ -1967,10 +2015,28 @@ class EltenGameRoom < Program
 
   def game_room_settings(reload: false)
     if reload || @game_room_settings == nil
+      @pong_preferences = nil
       stored = read_json("settings.json", default: DEFAULT_SETTINGS.dup)
       @game_room_settings = GameRoomPreferences.normalize(stored, GAME_REGISTRY.ids)
     end
     @game_room_settings
+  end
+
+  def pong_preferences
+    @pong_preferences ||= GameRoomPong::Preferences.normalize(game_room_settings['pong']).freeze
+  end
+
+  def show_pong_settings(tick: nil, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) })
+    # The fast entry point is deliberately local: no notification preferences,
+    # contacts, or table requests are loaded while opening or saving this panel.
+    updated = GameRoomPong::Settings.new(pong_preferences, program: self, tick: tick, clock: clock).wait
+    return unless updated
+    update_json('settings.json', default: DEFAULT_SETTINGS.dup) do |state|
+      state['pong'] = updated
+      state
+    end
+    @game_room_settings = game_room_settings.merge('pong' => updated)
+    @pong_preferences = updated.freeze
   end
 
   def build_widget_control
@@ -1979,6 +2045,7 @@ class EltenGameRoom < Program
     @widget_control = GameRoomWidget::TableList.new(
       loader: -> { load_widget_table_snapshots },
       opener: ->(snapshot) { open_widget_table(snapshot) },
+      creator: ->(slot) { create_table_from_widget(slot) },
       labeler: ->(snapshot) { widget_table_label(snapshot) },
       manual_refresh: lambda {
         self.class.contacts_cache.snapshot(force: true) if game_room_settings(reload: true)["widget_contacts_only"]
@@ -2045,15 +2112,7 @@ class EltenGameRoom < Program
   end
 
   def open_widget_table(snapshot)
-    initialize_services
-    if @widget_program_prepared != true
-      check_server_table_access
-      run_network_task(_("Connecting to Elten"), silent: true) do
-        @transport.start
-        register_game_room_user
-      end
-      @widget_program_prepared = true
-    end
+    prepare_widget_program
 
     result = join_table_snapshot(snapshot)
     return if result == nil
@@ -2076,6 +2135,70 @@ class EltenGameRoom < Program
     end
   end
 
+  def prepare_widget_program
+    initialize_services
+    if @widget_program_prepared != true
+      check_server_table_access
+      run_network_task(_("Connecting to Elten"), silent: true) do
+        @transport.start
+        register_game_room_user
+      end
+      @widget_program_prepared = true
+    end
+  end
+
+  def create_table_from_widget(slot = nil)
+    if slot == nil
+      prepare_widget_program
+      show_create_table
+      return
+    end
+    return unless slot.is_a?(Integer) && slot.between?(0, 9)
+
+    entry = GameRoomTablePresets.slots(game_room_settings(reload: true)["table_presets"])[slot]
+    unless entry
+      alert(_("No table preset is assigned to this shortcut."))
+      return
+    end
+    game = game_definition(entry["game"])
+    unless GameRoomTablePresets.valid?(entry, game)
+      alert(_("This preset needs updating. Check its game and options before creating a table."))
+      entry = edit_table_preset(entry)
+      return unless entry
+      save_table_preset(slot, entry)
+      game = game_definition(entry["game"])
+    end
+    prepare_widget_program
+    create_configured_table(game, game_options: entry.fetch("options"), private_table: entry.fetch("private_table"))
+  end
+
+  def edit_table_preset(entry)
+    # Always offer a game choice, also when repairing a preset for a game
+    # removed by an update. Editing never creates or modifies a live table.
+    game_id = select_game(_("Choose a game for the preset"), GAME_REGISTRY.ids)
+    return unless game_id
+    game = game_definition(game_id)
+    previous = entry.is_a?(Hash) && entry["game"] == game_id ? entry : {}
+    configuration = configure_game_options(game,
+      initial_options: previous["options"] || game.default_options,
+      initial_private_table: previous["private_table"],
+      submit_label: _("Save preset"), creating_table: true)
+    return unless configuration
+    # The options confirmation is the final step; no separate naming dialog.
+    GameRoomTablePresets.build(game, configuration, name: game.name)
+  end
+
+  def save_table_preset(slot, entry)
+    # One local write only on explicit editing, never while navigating the widget.
+    update_json("settings.json", default: DEFAULT_SETTINGS.dup) do |state|
+      slots = GameRoomTablePresets.slots(state["table_presets"])
+      slots[slot] = entry
+      state["table_presets"] = slots
+      state
+    end
+    @game_room_settings = nil
+  end
+
   def show_settings
     settings = game_room_settings(reload: true)
     watched = run_network_task(_("Loading notification settings")) { self.class.table_watch_repository.load(Session.name) }
@@ -2083,7 +2206,9 @@ class EltenGameRoom < Program
     self.class.table_watch_set_games(watched)
     settings = settings.merge("table_watch_games" => watched)
     games = GAME_REGISTRY.ids.map { |game_id| { id: game_id, name: game_name(game_id) } }
-    updated = GameRoomScreens::Settings.new(settings, games: games, program: self).wait
+    updated = GameRoomScreens::Settings.new(settings, games: games, program: self,
+      preset_editor: ->(entry) { edit_table_preset(entry) },
+      preset_writer: ->(slot, entry) { save_table_preset(slot, entry) }).wait
     return if updated == nil
 
     if updated["table_watch_games"].to_a.sort != watched.sort
@@ -2093,14 +2218,15 @@ class EltenGameRoom < Program
       return if saved == nil
       self.class.table_watch_set_games(saved)
     end
-    updated = updated.reject { |key, _value| key == "table_watch_games" }
+    updated = updated.reject { |key, _value| %w[table_watch_games table_presets].include?(key) }
 
     normalized = GameRoomPreferences.normalize(updated, GAME_REGISTRY.ids)
     update_json("settings.json", default: DEFAULT_SETTINGS.dup) do |state|
       normalized.each { |key, value| state[key] = value }
       state
     end
-    @game_room_settings = normalized
+    @game_room_settings = nil
+    @pong_preferences = nil
     self.class.contacts_settings_changed(normalized)
     Programs::Extensions.refresh_ui if defined?(Programs::Extensions) && Programs::Extensions.respond_to?(:refresh_ui)
     alert(_("Settings saved."))

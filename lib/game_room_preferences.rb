@@ -13,6 +13,10 @@ module GameRoomPreferences
     four_in_a_row tic_tac_toe chess checkers reversi ludo spades farkle
     ninety_nine tysiac categories monopoly yahtzee uno poker makao quiz
   ].freeze
+  # Lobby per-game settings began with the same catalogue. Older files do
+  # not distinguish missing later games from later manual opt-outs; enable
+  # those additions once, then remember lobby choices independently.
+  LEGACY_LOBBY_GAME_IDS = LEGACY_WIDGET_GAME_IDS
 
   module_function
 
@@ -24,7 +28,8 @@ module GameRoomPreferences
       "announce_player_joined" => true,
       "announce_player_left" => true,
       "announce_computer_changes" => true,
-      "lobby_games" => games,
+      "lobby_games" => games.dup,
+      "lobby_known_games" => games.dup,
       "invitation_notifications" => "everyone",
       "table_watch_contacts_only" => false,
       "game_sounds" => true,
@@ -62,8 +67,12 @@ module GameRoomPreferences
     ].any? { |key| result[key] }
 
     allowed_games = normalized_game_ids(game_ids)
-    result["lobby_games"] = selected_games(source, "lobby_games", allowed_games)
-    result["widget_games"], result["widget_known_games"] = widget_selection(source, allowed_games)
+    result["lobby_games"], result["lobby_known_games"] = game_selection(
+      source, allowed_games, "lobby_games", "lobby_known_games", LEGACY_LOBBY_GAME_IDS
+    )
+    result["widget_games"], result["widget_known_games"] = game_selection(
+      source, allowed_games, "widget_games", "widget_known_games", LEGACY_WIDGET_GAME_IDS
+    )
     result["invitation_notifications"] = normalized_invitation_policy(result["invitation_notifications"])
     %w[widget_contacts_only table_watch_contacts_only].each { |key| result[key] = source[key] == true }
     %w[
@@ -151,21 +160,21 @@ module GameRoomPreferences
   end
   private_class_method :selected_games
 
-  def widget_selection(source, allowed)
-    known = if source["widget_known_games"].is_a?(Array)
-      normalized_game_ids(source["widget_known_games"])
-    elsif source.key?("widget_games")
-      LEGACY_WIDGET_GAME_IDS
+  def game_selection(source, allowed, selected_key, known_key, legacy_games)
+    known = if source[known_key].is_a?(Array)
+      normalized_game_ids(source[known_key])
+    elsif source.key?(selected_key)
+      legacy_games
     else
       allowed
     end
-    selected = selected_games(source, "widget_games", allowed)
-    # Keep this a pure read: widget refreshes and notification mapping must
+    selected = selected_games(source, selected_key, allowed)
+    # Keep this a pure read: lobby/widget refreshes and notification mapping must
     # not write settings. Settings Save persists both the choices and known
     # catalogue, so unchecking a new game is not undone on the next load.
     [allowed.select { |id| selected.include?(id) || !known.include?(id) }, (known + allowed).uniq]
   end
-  private_class_method :widget_selection
+  private_class_method :game_selection
 
   def duplicate(value)
     value.is_a?(Array) || value.is_a?(Hash) ? value.dup : value

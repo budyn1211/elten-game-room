@@ -65,11 +65,15 @@ module GameRoomGames
           GameRoomRules.translate("Three consecutive sixes lose the turn is on by default. The third six ends your turn without a move for that roll. Moves made after the first two sixes stay on the board: they are not undone."),
           GameRoomRules.translate("Two pawns of one player form a blockade is on by default. Turning it off removes the restrictions caused by opposing pairs on the track. It does not remove safe entry squares or change the length of the route.")),
         rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
+          GameRoomRules.translate("1: read your pawns; for an observer, read the first player's pawns."),
+          GameRoomRules.translate("2: read the next player's pawns in seating order."),
+          GameRoomRules.translate("3: read the next player's pawns, if present."),
+          GameRoomRules.translate("4: read the last player's pawns at a four-player table."),
           GameRoomRules.translate("Arrows: choose an available pawn move."),
           GameRoomRules.translate("Enter: roll the die or confirm a pawn move."),
-          GameRoomRules.translate("D: read the current die result without rolling."),
+          GameRoomRules.translate("D: read who rolled last and the result, without rolling again."),
           GameRoomRules.translate("V: browse your pawns."),
-          GameRoomRules.translate("Shift+V: browse everyone's pawns."),
+          GameRoomRules.translate("Shift+V: browse everyone's pawns in track order, then home lanes, bases and finished pawns."),
           GameRoomRules.translate("P: read your unfinished pawn positions, including the base."),
           GameRoomRules.translate("Shift+P: read opponents' unfinished pawn positions, including their bases."),
           GameRoomRules.translate("T: read whose turn it is."))
@@ -213,7 +217,17 @@ module GameRoomGames
     end
 
     def custom_game_shortcuts(replay, viewer)
-      [
+      player = player_index(replay.state[:players], viewer)
+      ordered = replay.state[:players].rotate(player || 0)
+      shortcuts = ordered.each_with_index.map do |owner, index|
+        announcement_shortcut(key: (index + 1).to_s,
+          label: _("read %{player}'s pawn positions") % { player: participant_name(owner) },
+          message: _("%{player}: %{positions}.") % {
+            player: participant_name(owner),
+            positions: pawn_status_labels(replay.state, player_index(replay.state[:players], owner)).join("; ")
+          })
+      end
+      shortcuts + [
         announcement_shortcut(
           key: "p",
           label: _("read your pawn positions"),
@@ -246,7 +260,8 @@ module GameRoomGames
     def shortcut_feature_data(feature, replay, viewer)
       return super unless feature == :last_roll
       roll = replay.state[:last_roll]
-      { message: roll == nil ? _("The dice have not been rolled.") : _("Last roll: %{dice}.") % { dice: roll } }
+      { message: roll == nil ? _("The dice have not been rolled.") : _("%{player}, %{dice}.") % {
+        player: participant_name(replay.state[:last_roll_player]), dice: roll } }
     end
 
     private
@@ -337,17 +352,26 @@ module GameRoomGames
     end
 
     def all_pawn_browse_choices(state)
-      labels = state[:players].each_index.flat_map do |player|
+      rows = state[:players].each_index.flat_map do |player|
         state[:pawns][player].each_with_index.map do |progress, pawn|
-          pawn_name = _("%{player}'s pawn %{pawn}") % {
-            player: participant_name(state[:players][player]),
-            pawn: pawn + 1
-          }
-          _("%{pawn}: %{position}") % {
-            pawn: pawn_name,
-            position: progress_label(player, progress)
-          }
+          [player, pawn, progress]
         end
+      end
+      # Shared field numbers expose neighbours across owners. Private home
+      # lanes, bases and finished pawns follow the common track, without loss.
+      rows.sort_by! do |player, pawn, progress|
+        if progress.between?(0, OUTER_LENGTH - 1)
+          [0, global_track_index(player, progress), player, pawn]
+        else
+          zone = progress < 0 ? 2 : progress == FINISH_PROGRESS ? 3 : 1
+          [zone, player, progress, pawn]
+        end
+      end
+      labels = rows.map do |player, pawn, progress|
+        _("%{position}, %{player}, pawn %{pawn}") % {
+          position: progress_label(player, progress),
+          player: participant_name(state[:players][player]), pawn: pawn + 1
+        }
       end
       shortcut_choices(labels)
     end
@@ -392,6 +416,7 @@ module GameRoomGames
 
       state[:roll] = value
       state[:last_roll] = value
+      state[:last_roll_player] = actor
       state[:consecutive_sixes] = value == 6 ? state[:consecutive_sixes] + 1 : 0
       event_id = repository.event_id(event)
       history << HistoryEntry.new(

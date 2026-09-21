@@ -1,0 +1,113 @@
+# encoding: UTF-8
+module GameSurfaces
+  PongSpec = Struct.new(:game_id, :header, :players, :viewer, :scores, :finished, keyword_init: true)
+
+  class PongField < Button
+    attr_reader :input
+    attr_accessor :on_input_reset
+    def initialize(label)
+      super(label)
+      @press = 0
+      @left_press = @right_press = 0
+      @left_held = @right_held = false
+      @input = { 'move' => 0, 'aim' => 0, 'hit' => false, 'press' => 0,
+        'left_press' => 0, 'right_press' => 0 }
+    end
+
+    def update
+      super
+      modified = key_held?(0x10) || key_held?(0x11) || key_held?(0x12)
+      @press += 1 if !modified && (key_pressed?(:key_up) || key_pressed?(:key_space))
+      @left_press += 1 if !modified && !@left_held && key_pressed?(:key_left)
+      @right_press += 1 if !modified && !@right_held && key_pressed?(:key_right)
+      @left_held, @right_held = key_held?(0x25), key_held?(0x27)
+      @input = if modified
+        { 'move' => 0, 'aim' => 0, 'hit' => false }
+      else
+        { 'move' => @left_held ? -1 : (@right_held ? 1 : 0),
+          'aim' => (@right_held ? 1 : 0) - (@left_held ? 1 : 0),
+          'hit' => key_held?(0x26) || key_held?(0x20) }
+      end
+      @input.merge!('press' => @press, 'left_press' => @left_press, 'right_press' => @right_press)
+    end
+
+    def key_processed(key)
+      return true if %w[left right up space].include?(key.to_s.sub(/\Akey_/, ''))
+      super
+    end
+
+    def focus(*args, **options)
+      @on_input_reset&.call
+      super
+    end
+
+    def blur
+      @on_input_reset&.call
+      super if defined?(super)
+    end
+  end
+
+  class PongSurface
+    include ActionEmitter
+    attr_reader :spec, :snapshot
+    attr_accessor :on_pong_command, :on_input_reset
+    def _(source); GameRoomContent.utf8(super(source)); end
+
+    def initialize(spec, state: {})
+      @spec = spec
+      @field = PongField.new(spec.header)
+      @field.on_input_reset = -> { @on_input_reset&.call }
+      @field.add_tip(_('Left arrow: move the paddle left.'))
+      @field.add_tip(_('Right arrow: move the paddle right.'))
+      @field.add_tip(_('Up arrow: serve or return the ball.'))
+      @field.add_tip(_('Space: serve or return the ball.'))
+      @status = _('Connecting the match.')
+    end
+
+    def fields; [@field]; end
+    def state; {}; end
+    def reusable_for?(spec); spec.is_a?(PongSpec) && spec.game_id == @spec.game_id; end
+    def update_spec(spec); @spec = spec; self; end
+    def present(snapshot, status); @snapshot, @status = snapshot, status; end
+
+    def input_active?(form)
+      # Only the game field drives the paddle. Arrow keys in chat, history,
+      # help, or a different application are not gameplay commands.
+      active = form.fields[form.index] == @field
+      active &&= $activecontrols.include?(@field) if defined?($activecontrols) && $activecontrols.is_a?(Array)
+      active && @spec.viewer != nil && !@spec.finished
+    end
+
+    def input(form)
+      input_active?(form) ? @field.input : @field.input.merge('move' => 0, 'aim' => 0, 'hit' => false)
+    end
+
+    def handle_command(command, _payload = {})
+      case command
+      when 'echo', 'crowd', 'hurry'
+        @on_pong_command&.call(command)
+      when 'scores'
+        order = [0, 1].sort_by { |i| [-@spec.scores[i].to_i, i] }
+        speak(order.map { |i| "#{@spec.players[i]}, #{@spec.scores[i]}" }.join('. '))
+      when 'server'
+        text = @snapshot ? (_('%{player} serves.') % { player: @spec.players[@snapshot['server']] }) : ''
+        speak([text, @status].reject(&:empty?).join(' '))
+      when 'position'
+        return true if @spec.viewer == nil
+        x = @snapshot && @snapshot['p'][@spec.viewer]
+        speak(x ? (_('Paddle: %{position}.') % { position: x.round }) : @status)
+      when 'effects'
+        if @snapshot
+          parts = @snapshot['shields'].each_with_index.filter_map do |ticks, i|
+            _('%{player}: shield, %{seconds} seconds.') % { player: @spec.players[i], seconds: (ticks * 0.016).ceil } if ticks > 0
+          end
+          parts << _('The ball is invisible.') if @snapshot['invisible']
+          speak(parts.empty? ? _('No active effects.') : parts.join(' '))
+        else
+          speak(@status)
+        end
+      end
+      true
+    end
+  end
+end

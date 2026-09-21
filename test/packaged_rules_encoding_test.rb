@@ -101,7 +101,7 @@ GameRoomBotNames::NAMES.each do |token, name|
     raise "Binary lobby bot announcement lost name" unless global.valid_encoding? && global.include?(name) && !global.include?("komputer")
   end
 end
-raise "Lost games during binary loading" unless registry.ids.length == 26
+raise "Lost games during binary loading" unless registry.ids.length == 27
 raise "Quiz Party was not loaded from binary sources" unless registry.ids.include?("quiz")
 %w[quiz.general.en quiz.wikidata.pl quiz.witcher.pl quiz.witcher.g.pl quiz.witcher.b.pl].each do |id|
   pack = GameRoomContent.registry.pack(id)

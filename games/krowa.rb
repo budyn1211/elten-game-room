@@ -224,8 +224,9 @@ module GameRoomGames
         return [:pending, nil] unless state[:pending].empty? || (!tower?(state) && !state[:pending].key?(player))
         return [:ok, event_plan("krowa_surrender", state[:round].to_s)]
       end
-      if kind == "command" && action == "reroll" && state[:options]["variant"] == "race"
+      if kind == "command" && action == "reroll" && %w[random race].include?(state[:options]["variant"])
         return [:not_host, nil] unless owner?(state, player)
+        return [:stale, nil] if selection.key?("round") && selection["round"] != state[:round]
         return [:pending, nil] unless state[:pending].empty?
         return [:ok, event_plan("krowa_reroll", state[:round].to_s)]
       end
@@ -461,9 +462,10 @@ module GameRoomGames
         # A solution for one player never belongs to the shared event log.
         return false
       when "krowa_reroll"
-        return false unless owner?(state, actor) && state[:options]["variant"] == "race" && state[:phase] == :active && state[:pending].empty? && value == state[:round].to_s
+        return false unless owner?(state, actor) && %w[random race].include?(state[:options]["variant"]) && state[:phase] == :active && state[:pending].empty? && value == state[:round].to_s
         state[:phase], state[:reason] = :revealing, :reroll
-        history << entry(event_id, _("The host changes the word. Race attempts and time start over."), actor, :reroll)
+        message = state[:options]["variant"] == "race" ? _("The host changes the word. Race attempts and time start over.") : _("Drawing another word. Attempts start over.")
+        history << entry(event_id, message, actor, :reroll)
       when "krowa_nonce"
         return false unless owner?(state, actor) && state[:phase] == :revealing && /\A[0-9a-f]{64}\z/.match?(value)
         state[:nonce] = value

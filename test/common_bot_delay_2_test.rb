@@ -10,6 +10,10 @@ def assert(value, message); raise message unless value; end
 games = EltenGameRoom::GAME_REGISTRY.ids.map { |id| EltenGameRoom::GAME_REGISTRY.build(id) }
 games.each do |game|
   next unless game.supports_bots?
+  unless game.supports_bot_move_delay?
+    assert(game.effective_option_definitions.none? { |d| d.key == 'bot_delay' }, "continuous bot has turn delay #{game.id}")
+    next
+  end
   default = %w[uno makao].include?(game.id) ? 1 : 0
   defs = game.effective_option_definitions.select { |d| d.key == "bot_delay" }
   assert(defs.length == 1 && defs.first.default == default, "shared option #{game.id}")

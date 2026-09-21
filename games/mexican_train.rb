@@ -111,7 +111,7 @@ module GameRoomGames
           GameRoomRules.translate("Allow drawing even when having a playable piece is off by default. Enabling it lets you draw voluntarily before playing. You still get only one draw for the current decision, not repeated draws by pressing Space. After playing a double and gaining another decision, you may draw once again if needed. Drawing does not let you ignore an unfinished double.")),
         rule_section(:doubles, GameRoomRules.translate("Doubles give another play, but leave an obligation"),
           GameRoomRules.translate("Playing a double, such as 9/9, gives you another play. During your own series you may choose any accessible train, and each further double lets you continue. A double left at a train's end is unfinished until a matching tile is put after it. You can close an earlier double in your own series while leaving a later one on another train unfinished."),
-          GameRoomRules.translate("Once your turn ends, any unfinished doubles become an obligation for the following players. The most recently left double must be covered first, even if its train is normally somebody else's closed train. Until it is covered, other trains are not legal destinations. If several remain, they are dealt with in reverse order. For example, leaving 5/5 and then 9/9 requires the next player to cover the 9 first."),
+          GameRoomRules.translate("Once your turn ends, any unfinished doubles become an obligation for the following players. The most recently left double must be covered first, even if its train is normally somebody else's closed train. Until it is covered, other trains are not legal destinations. If several remain, they are dealt with in reverse order. For example, leaving 5/5 and then 9/9 requires the next player to cover the 9 first. The game announces each newly required double once, not after every pass. Press T to check it again; choosing an illegal train also explains which double you must cover."),
           GameRoomRules.translate("If you cannot cover the required double, draw. If you still cannot, open your own train and pass; the obligation remains for the next player. A non-double play normally ends your turn. There is one important ending exception: if your final hand tile is a double, you win the round immediately without having to cover it.")),
         rule_section(:points, GameRoomRules.translate("Count the tiles left behind"),
           GameRoomRules.translate("The first player with an empty hand wins the round and receives zero points. Everyone else adds the numbers on their remaining tiles. The 0/0 always counts as 10 here, even alongside other tiles. If the boneyard is empty and nobody can make a legal play over a complete circuit, the round is blocked and all players count their hands. Opening a train may create a new legal move, so merely counting passes is not enough to declare a block."),
@@ -236,7 +236,7 @@ module GameRoomGames
       end
       trains["m"] = { owner: nil, open: true, end: station, chain: [] }
       state.merge!(phase: :playing, round: state[:round] + 1, station: station, trains: trains,
-        pending: [], series: false, starter: starter, current_player: starter, blocked: 0, voids: {}, round_winner: nil)
+        pending: [], announced_obligation: nil, series: false, starter: starter, current_player: starter, blocked: 0, voids: {}, round_winner: nil)
       begin_turn(state, data["time"])
       add_history(history, event_id, starter, :deal, _("Round %{round}. Station %{station}. Tiles dealt.") % { round: state[:round], station: "#{station}–#{station}" })
     end
@@ -301,7 +301,12 @@ module GameRoomGames
     def end_turn(state, time, event_id, history)
       next_turn(state, time)
       text = required_text(state)
-      add_history(history, event_id, nil, :game, text) unless text.empty?
+      key = state[:pending].last
+      obligation = key && [key, state[:trains][key][:end]]
+      if obligation != state[:announced_obligation] && !text.empty?
+        add_history(history, event_id, nil, :game, text)
+      end
+      state[:announced_obligation] = obligation
     end
 
     def pass(state, data, event_id, history, record_void: true)

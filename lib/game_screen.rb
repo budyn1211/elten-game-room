@@ -118,6 +118,10 @@ class GameScreen
 
   def run
     @game_client = @game.build_client(@program, **@game_services)
+    if @game_client.respond_to?(:bind_screen)
+      @game_client.bind_screen(session_id: @repository.session_id(@session), table_id: table_id,
+        owner: @table_owner, viewer: Session.name, members: -> { game_recipients })
+    end
     return :back if @game_client && !@game_client.start
     loop do
       signal_received_at = @pending_signal_received_at
@@ -471,7 +475,9 @@ class GameScreen
         ))
       end
       actions
-    end, game: @game, options: @game.options_from_json(@session["options"]), read_options: -> {
+    end, game: @game, options: @game.options_from_json(@session["options"]),
+      pong_settings: @game.id == 'axel_pong' && @game_client.respond_to?(:show_settings) ? -> { @game_client.show_settings } : nil,
+      read_options: -> {
       source = replay.finished? ? @room_snapshot&.table.to_h["game_options"] : @session["options"]
       speak(@game.table_options_announcement(@game.options_from_json(source)))
     }) do |requested, participant|
@@ -517,6 +523,7 @@ class GameScreen
         form.resume
       end
     end
+    @game_client.attach_view(form, surface) if @game_client.respond_to?(:attach_view)
     back_button.on(:press) do
       if surface.cancel_pending_action?
         surface.cancel_pending_action!
@@ -861,6 +868,7 @@ class GameScreen
     @rules_shortcut_snapshot = if action == :rules && @layout != nil
       GameRoomContextHelp.game_field_tips(@layout.game_help_fields)
     end
+    @game_client.detach_view if @game_client.respond_to?(:detach_view)
     @bot_turn_controller.cancel(bot_lease)
     @layout&.begin_bindings
   end

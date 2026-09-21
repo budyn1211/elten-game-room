@@ -403,7 +403,7 @@ assert(own_pawns_shortcut&.message == "Your pawns: Pawns in base: 1, 2, 3, 4.", 
 assert(opponent_pawns_shortcut&.message.to_s.include?("Bob: Pawns in base: 1, 2, 3, 4"), "Ludo Shift+P does not report opposing pawn positions")
 assert(own_pawn_list&.kind == :browse && own_pawn_list.choices.map(&:label) == ["Pawn 1: base", "Pawn 2: base", "Pawn 3: base", "Pawn 4: base"], "Ludo V does not expose one own pawn per row")
 assert(all_pawn_list&.kind == :browse && all_pawn_list.choices.length == 16, "Ludo Shift+V does not expose every pawn in one list")
-assert(all_pawn_list.choices.first.label == "Alice's pawn 1: base", "Ludo Shift+V does not identify a pawn owner")
+assert(all_pawn_list.choices.first.label == "base, Alice, pawn 1", "Ludo Shift+V does not identify a pawn owner after its position")
 ludo_waiting_surface = ludo.surface_spec(ludo_replay, "Alice")
 ludo_track_spec = ludo_waiting_surface
 assert(ludo_track_spec.is_a?(GameSurfaces::PawnTrackSpec), "Ludo still exposes a spatial board")
@@ -482,7 +482,7 @@ assert(
 
 ludo_rules = ludo.rule_book.sections.flat_map(&:paragraphs).join(" ")
 assert(ludo_rules.include?("1, 14, 27 and 40"), "Ludo rules do not explain the different shared-track starting fields")
-assert(ludo_rules.include?("wraps from 52 to 1"), "Ludo rules do not explain shared-track wrapping")
+assert(ludo_rules.include?("wraps from 52 back to 1"), "Ludo rules do not explain shared-track wrapping")
 
 [reversi, checkers, chess, ludo].each do |game|
   assert(!game.rule_book.sections.empty?, "#{game.id} has no rules")

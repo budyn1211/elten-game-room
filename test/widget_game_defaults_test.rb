@@ -9,6 +9,7 @@ raise "Release migration fixture must cover six new games" unless new_2_0.all? {
 legacy = {
   "widget_games" => %w[uno makao], "widget_enabled" => false,
   "widget_show_unavailable" => true, "lobby_games" => %w[uno],
+  "lobby_known_games" => current_ids,
   "table_watch_games" => [], "invitation_notifications" => "contacts",
   "custom_setting" => "preserve me"
 }

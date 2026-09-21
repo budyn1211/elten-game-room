@@ -48,7 +48,7 @@ module GameRoomGames
           GameRoomRules.translate("Makao is for two to eight players. The first person with an empty hand wins the game. You normally begin with five cards from a standard deck, with two jokers added only in the appropriate profile. The first card on the table is not a two, three, four, ace, king or joker. Play starts after the dealer and continues in one fixed direction."),
           GameRoomRules.translate("On your turn, play a card matching the suit or rank of the table card. For example, on an eight of hearts you may play another heart or an eight of another suit. Some special cards can change this rule. A pending penalty or requested rank can also restrict what you may play."),
           GameRoomRules.translate("You can play several cards as one packet if they share a rank. Only its first card has to start a legal move; later cards may be of other suits. Choose the order deliberately, because the last card becomes the new table card. A packet is one move, not several turns, and a joker must represent the same rank as the rest."),
-          GameRoomRules.translate("When you have no legal starting card, draw one. If it is playable and playing a drawn card is enabled, you can use it immediately, also as part of a packet, or end your turn. Otherwise the turn ends automatically. You cannot draw voluntarily when you already have a legal card. If the drawing pile runs out, discards other than the top card are recycled.")),
+          GameRoomRules.translate("When you have no legal starting card, draw one. The three ready-made profiles also allow you to draw voluntarily instead of playing a card you already have. Custom rules has an Allow drawing with a playable card checkbox, enabled by default, which you can turn off. If the drawn card is playable and playing a drawn card is enabled, you may play it immediately, also as part of a packet, or press Space again to end your turn without drawing another card. Otherwise the turn ends automatically, even if another card in your hand could be played. This choice does not cancel a drawing or waiting penalty. If the drawing pile runs out, discards other than the top card are recycled.")),
         rule_section(:penalties, GameRoomRules.translate("Drawing penalties and waiting turns"),
           GameRoomRules.translate("A two adds two cards to the next player's penalty, and a three adds three. Instead of paying, the attacked player can answer with a permitted attacking card. The debt then passes on and grows. With mixed twos and threes enabled, a two answered by a three makes five cards. With it disabled, the responding rank must match the attack."),
           GameRoomRules.translate("If you have no legal defence, the program takes the whole drawing penalty for you and ends your turn. A drawing attack targets the next seat, including a player who is waiting after a four. A waiting player cannot defend: they draw automatically, using up one of their waiting turns. The attack does not bounce back to its author merely because the next player is waiting."),
@@ -60,7 +60,7 @@ module GameRoomGames
           GameRoomRules.translate("Use two jokers adds two cards that can represent an ordinary or special card. You choose what the joker represents when playing it. It only defends a penalty if the represented card would be a legal defence. Representing an ace, jack or king uses its special effect only when that effect is enabled at the table.")),
         rule_section(:profiles, GameRoomRules.translate("Choose a profile, or make your own"),
           GameRoomRules.translate("Simple Makao is the default. It enables mixed twos and threes, accumulating fours, suit-changing aces and playing a drawn card. There are no jokers, jack requests, universal queens or attacking kings. Polish extended Makao adds jack requests, universal queens and attacking kings, but still no jokers."),
-          GameRoomRules.translate("Makao with jokers adds two jokers and attacking kings to the simple rules. Jack requests and universal queens stay off, and the starting hand is fixed at five. Custom rules lets you set each of these eight switches yourself. The custom choices are remembered locally for your next custom table; they do not change another person's room."),
+          GameRoomRules.translate("Makao with jokers adds two jokers and attacking kings to the simple rules. Jack requests and universal queens stay off, and the starting hand is fixed at five. Custom rules lets you set these switches individually. The custom choices are remembered locally for your next custom table; they do not change another person's room."),
           GameRoomRules.translate("Outside the fixed joker profile, the starting hand can have three to fifteen cards, normally five. There must be enough cards for all players and the first table card. The penalty for forgetting Makao is independent of the profile: one to ten cards, normally one."),
           GameRoomRules.translate("When one card remains, announce Makao. Another player may catch an omission before your next turn and make you draw the configured penalty. You can announce or catch Makao during someone else's turn, including a bot's delay. Playing your last card wins immediately; this game does not run a points-elimination tournament.")),
         rule_section(:clock, GameRoomRules.translate("When time runs out"),
@@ -110,6 +110,8 @@ module GameRoomGames
           visible_if: custom_rules),
         OptionDefinition.new(key: "draw_responses", label: _("A drawn playable card may be played immediately"), kind: :boolean, default: true,
           visible_if: custom_rules),
+        OptionDefinition.new(key: "allow_playable_draw", label: _("Allow drawing with a playable card"), kind: :boolean, default: true,
+          visible_if: custom_rules),
         OptionDefinition.new(key: "makao_penalty", label: _("Cards drawn for missing Makao"), kind: :integer, default: 1)
       ]
     end
@@ -130,6 +132,7 @@ module GameRoomGames
           "stack_fours" => true, "ace_changes_suit" => true, "jack_requests_rank" => false,
           "queen_universal" => false, "attacking_kings" => true, "draw_responses" => true)
       end
+      result["allow_playable_draw"] = true unless result["profile"].to_s == "custom"
       result
     end
 
@@ -256,7 +259,7 @@ module GameRoomGames
         end
         if state[:skip_penalty].to_i > 0
           actions << { "kind" => "command", "action" => "accept_skip" }
-        elsif state[:draw_penalty] > 0 || (!state[:drawn_this_turn] && actions.empty?)
+        elsif state[:draw_penalty] > 0 || (!state[:drawn_this_turn] && (state[:options]["allow_playable_draw"] || actions.empty?))
           actions << { "kind" => "command", "action" => "draw" }
         elsif state[:drawn_this_turn]
           actions << { "kind" => "command", "action" => "pass" }
@@ -631,7 +634,7 @@ module GameRoomGames
       return false if state[:skip_penalty].to_i > 0 || (!timeout && state[:drawn_this_turn])
       player = player_key(state, actor)
       penalty = state[:draw_penalty] > 0
-      return false if !timeout && !penalty && hand_for(state, actor).any? { |card| playable_first?(state, card) }
+      return false if !timeout && !penalty && !state[:options]["allow_playable_draw"] && hand_for(state, actor).any? { |card| playable_first?(state, card) }
       count = state[:draw_penalty] > 0 ? state[:draw_penalty] : 1
       drawn = draw_cards(state, count)
       state[:hands][player].concat(drawn)

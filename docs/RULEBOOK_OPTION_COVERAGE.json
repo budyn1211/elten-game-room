@@ -1,4 +1,5 @@
 {
+  "axel_pong": { "arcade": "arcade", "difficulty": "difficulty", "target": "rally" },
   "battleship": { "fleet": "fleet", "touching": "fleet" },
   "mancala": { "variant": "board", "stones": "board", "skill": "computer", "capture": "kalah" },
   "biblios": {
@@ -44,6 +45,7 @@
     "blockades": "options"
   },
   "makao": {
+    "allow_playable_draw": "matching",
     "profile": "profiles",
     "jokers": "special",
     "hand_size": "profiles",

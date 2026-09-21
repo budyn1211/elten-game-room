@@ -3,6 +3,7 @@ module GameSurfaces
   module ActionEmitter; end
   remove_const(:PacketCardSpec)
 end
+require_relative "../lib/game_surfaces/card_sorting"
 require_relative "../lib/game_surfaces/packet_cards"
 
 PLAYERS = %w[Alice Bob Carol].freeze

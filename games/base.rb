@@ -277,7 +277,7 @@ module GameRoomGames
       book = GameRoomRules::Book.new(
         game_id: id,
         title: name,
-        sections: rule_sections + (supports_bots? ? [rule_section(:bot_pacing, GameRoomRules.translate("Time to follow a bot's move"),
+        sections: rule_sections + (supports_bot_move_delay? ? [rule_section(:bot_pacing, GameRoomRules.translate("Time to follow a bot's move"),
           GameRoomRules.translate("Bot move delay lets the table pause briefly before a computer acts, so people can follow the play. Choose 0 to 5 seconds. Zero removes the deliberate pause; it does not disable the bot or change its playing strength. UNO and Makao start at one second, other games at zero."),
           GameRoomRules.translate("The delay belongs to the table and is preserved when a supported game is saved. It does not prevent permitted human actions while waiting. Near a turn deadline the wait is shortened so it cannot keep the bot from acting in time."))] : [])
       )
@@ -296,6 +296,11 @@ module GameRoomGames
 
     def supports_bots?
       false
+    end
+
+    # Real-time games pace their continuous opponents inside the simulation.
+    def supports_bot_move_delay?
+      supports_bots?
     end
 
     def option_definitions
@@ -319,7 +324,7 @@ module GameRoomGames
     def effective_option_definitions(selected = {})
       definitions = content_option_definitions(selected) + option_definitions.to_a
       definitions << thinking_time_option if thinking_time_range && definitions.none? { |item| item.key == "thinking_time" }
-      if supports_bots?
+      if supports_bot_move_delay?
         definitions << OptionDefinition.new(key: "bot_delay", label: _("Bot move delay in seconds (0 to 5); zero disables the pause"), kind: :integer, default: default_bot_move_delay,
           summary_label: _("Bot move delay"), summary_unit: :seconds, omit_zero: true)
       end
@@ -415,7 +420,7 @@ module GameRoomGames
     def default_bot_move_delay; 0; end
 
     def bot_delay_options_error(options)
-      return nil unless supports_bots?
+      return nil unless supports_bot_move_delay?
       values = normalize_options(options)
       return _("Bot move delay must be from 0 to 5 seconds.") unless values["bot_delay"].between?(0, 5)
       limits = %w[thinking_time answer_time round_time auction_decision_time].filter_map do |key|

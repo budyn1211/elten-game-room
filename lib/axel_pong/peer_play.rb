@@ -1,0 +1,254 @@
+require_relative 'peer_engine'
+require_relative 'hurry'
+
+module GameRoomPong
+  # Human matches exchange reliable returns/misses, with replaceable paddle
+  # positions separately. Full owner snapshots are only for observers. Players
+  # never have their own paddle or ball overwritten by a delayed snapshot.
+  module PeerPlay
+    include Hurry
+    def frame
+      return if @closed || !@replay || @replay.finished?
+      tick
+      now = @clock.call
+      if @channel.epoch && @epoch != @channel.epoch
+        @epoch, @epoch_since = @channel.epoch, now
+        @peers.clear
+        @sequence = @event_sequence = 0
+        @deferred_events = []
+        reset_rally
+      end
+      receive_peer_packets(now)
+      receive_peer_events
+      established = if host?
+        @required.all? { |u| (p = @peers[u.downcase]) && p.body['r'] == @replay.state[:rally] }
+      else
+        @host_ready == true && @snapshot != nil
+      end
+      times = host? ? @required.map { |u| @peers[u.downcase]&.ack_updated_at } :
+        [@peers[@owner.downcase]&.received_at]
+      expired = times.any? do |received|
+        received ? now - received > Client::STREAM_TIMEOUT :
+          @epoch_since && now - @epoch_since > Client::HANDSHAKE_TIMEOUT
+      end
+      if expired && now - @last_reconnect > 10
+        @last_reconnect = now
+        @channel.reconnect
+      end
+      healthy = @channel.connected? && established && !expired
+      was_playable = !@paused && @snapshot && @snapshot['goal'] == nil
+      raw = surface_input
+      prepare_first_serve(now, healthy)
+      announce_ready(now) if healthy
+      set_paused(!healthy || now < @ready_at, waiting: healthy && now < @ready_at)
+      @engine.automatic_for(@side, Preferences.read(@program)['auto_return']) if @side != nil
+      raw = sample_pointer_input(raw, healthy)
+      input = playable_input(raw, active: was_playable && !@paused && @engine.goal == nil, moving: healthy)
+      input['move'] = raw.fetch('move', 0) if healthy
+      if host? || @side != nil
+        inputs = [{}, {}]
+        inputs[@side] = input if @side != nil
+        each_physics_frame(now) do |frame_at|
+          inputs[@side] = pointer_input(input, frame_at) if @side != nil
+          if !@paused && !@engine.goal && frame_at >= @ready_at
+            @engine.step(inputs, now_ms: (frame_at * 1000).to_i)
+            if (event = @engine.take_transition)
+              emit_peer_event(event)
+              emit_peer_effects(event) if host? && event['action'] == 'hit'
+            end
+            emit_peer_walls if host?
+          elsif healthy
+            @engine.position(inputs, now_ms: (frame_at * 1000).to_i)
+          end
+        end
+      end
+      @mouse.finish_frame
+      hurry_tick(healthy)
+      @snapshot = @engine.snapshot if host? || (@side != nil && @snapshot)
+      send_peer_state(now)
+      commit_peer_goal(now) if host?
+      present
+    end
+
+    private
+
+    def reset_rally
+      options = @replay.state[:options]
+      seed = Digest::SHA256.hexdigest("#{@match}:#{@epoch}:#{@replay.state[:rally]}")[0, 12].to_i(16)
+      owner_side = @players.index { |p| p.to_s.casecmp?(@owner) }
+      # Table/channel authority may be an observer. The original physics
+      # still has exactly one server player and one guest player.
+      physics_server = owner_side || 0
+      previous = @snapshot
+      @engine = PeerEngine.new(side: @side, authority: host?, level: options['difficulty'],
+        arcade: options['arcade'], automatic: local_automatic, rally: @replay.state[:rally],
+        first_server: first_server, guest: 1 - physics_server,
+        paddles: previous && previous['p'], shields: previous && previous['shields'], rng: Random.new(seed))
+      @snapshot = host? ? @engine.snapshot : nil
+      reset_rally_feedback
+      @host_ready = false
+      @last_wall = 0
+      @event_sequence ||= 0
+      @hurry_until = @point_reason = nil
+    end
+
+    def receive_peer_packets(now)
+      @channel.take_packets.each do |user, packet|
+        body = packet['d']
+        next unless body['r'] == @replay.state[:rally] && body['local'] == 1
+        next unless host? ? valid_peer_position?(body) : valid_state?(body) && valid_peer_turn?(body)
+        peer = (@peers[user] ||= GameRoomRealtime::PeerState.new)
+        next unless peer.receive(packet, now: now, last_sent: @sequence)
+        if host?
+          side = @players.index { |p| p.to_s.casecmp?(user) }
+          @engine.remote_paddle(side, body['x'], edges: body['edges']) if side != nil && side != @side
+        else
+          @host_ready = body['ready'] == true
+          if @side == nil
+            @snapshot = body['state']
+            @observer_turn = body['turn']
+          else
+            side = 1 - @side
+            @engine.remote_paddle(side, body['state']['p'][side], edges: body['state']['edges']&.[](side))
+            @snapshot ||= @engine.snapshot
+          end
+        end
+      end
+    end
+
+    def valid_peer_turn?(body)
+      body['turn'].is_a?(Integer) && body['turn'].between?(0, 2**31 - 1) && [nil, 0, 1].include?(body['goal'])
+    end
+
+    def valid_peer_position?(body)
+      valid_peer_turn?(body) && finite?(body['x'], 1, 29) &&
+        (!body.key?('edges') || valid_input_count?(body['edges']))
+    end
+
+    def receive_peer_events
+      queued = (@deferred_events || []) + @channel.take_events
+      @deferred_events = []
+      queued.each do |sender, packet|
+        data = packet['d']
+        next unless valid_peer_event?(data) && peer_event_sender?(sender, data)
+        if data['r'] == @replay.state[:rally] + 1
+          # The durable score may arrive after the next reliable serve. Keep
+          # it, but authenticate the actor before allowing it into this buffer.
+          # Never silently truncate current actions behind deferred ones.
+          if @deferred_events.length >= GameRoomRealtime::EventChannel::LIMIT
+            @deferred_events.clear
+            @channel.reconnect
+            break
+          end
+          @deferred_events << [sender, packet]
+          next
+        end
+        next unless data['r'] == @replay.state[:rally]
+        side = data['side']
+        # Relayed echo: already performed locally, so neither repeat the sound
+        # nor put the actor's outgoing ball back on their baseline.
+        next if !host? && side == @side && %w[serve hit shield_hit goal].include?(data['action'])
+        applied = case data['action']
+        when 'hurry_request'
+          accept_hurry(data) if host?
+          next
+        when 'hurry' then !host? && announce_hurry(data)
+        when 'timeout'
+          if !host? && side == @engine.server && @engine.serve_timeout(confirmed: true)
+            @point_reason = 'timeout'
+            true
+          end
+        when 'serve', 'hit', 'shield_hit' then @engine.apply_return(data)
+        when 'goal' then @engine.apply_miss(data)
+        when 'effects' then !host? && @engine.apply_effects(data)
+        when 'wall'
+          if !host? && data['turn'] == @engine.turn
+            @engine.wall_sound(data['x'], data['y'])
+            true
+          end
+        end
+        next unless applied && host?
+        emit_peer_event(data)
+        emit_peer_effects(data) if data['action'] == 'hit'
+      end
+    end
+
+    def peer_event_sender?(sender, data)
+      return @owner.casecmp?(sender) unless host?
+      %w[serve hit shield_hit goal hurry_request].include?(data['action']) &&
+        @players[data['side']].to_s.casecmp?(sender) && data['side'] != @side
+    end
+
+    def valid_peer_event?(data)
+      return false unless data.is_a?(Hash) && data['turn'].is_a?(Integer) && data['turn'].between?(0, 2**31 - 1)
+      return false unless data['r'].is_a?(Integer) && data['r'] >= 0
+      action = data['action']
+      if %w[hurry_request hurry timeout].include?(action)
+        return [0, 1].include?(data['side']) && data['turn'] == (action == 'timeout' ? 1 : 0)
+      end
+      return false if data['turn'].zero?
+      if action == 'wall'
+        return data['side'] == nil && finite?(data['x'], 0, 30) && finite?(data['y'], -1000, 1020)
+      end
+      return false unless [0, 1].include?(data['side'])
+      if action == 'effects'
+        return [true, false].include?(data['renew']) && [true, false].include?(data['invisible'])
+      end
+      return false unless %w[serve hit shield_hit goal].include?(action)
+      b = data['ball']
+      return false unless valid_ball?(b)
+      direction = action == 'goal' ? 0 : (data['side'].zero? ? 1 : -1)
+      b['dy'] == direction && (action == 'goal' || b['speed'] > 0)
+    end
+
+    def emit_peer_event(data)
+      @event_sequence += 1
+      packet = GameRoomRealtime::Protocol.encode(match: @match, epoch: @epoch, sequence: @event_sequence,
+        kind: 'event', body: data.merge('r' => @replay.state[:rally]))
+      @channel.reconnect unless @channel.send_event(packet)
+    end
+
+    def emit_peer_effects(data)
+      effects = @engine.host_effects(data['side'])
+      emit_peer_event(effects) if effects
+    end
+
+    def emit_peer_walls
+      @engine.events.each do |number, kind, _side, x, y|
+        next unless number > @last_wall && kind == 'wall'
+        emit_peer_event('action' => 'wall', 'side' => nil, 'turn' => @engine.turn, 'x' => x, 'y' => y)
+      end
+      @last_wall = @engine.events.last&.first || @last_wall
+    end
+
+    def send_peer_state(now)
+      return unless @epoch && now >= @next_send
+      @next_send = now + Client::SEND_INTERVAL
+      @sequence += 1
+      body = {'r' => @replay.state[:rally], 'local' => 1,
+        'turn' => @side == nil && !host? ? @observer_turn.to_i : @engine.turn,
+        'goal' => @snapshot && @snapshot['goal']}
+      if host?
+        ready = @required.all? { |u| (p = @peers[u.downcase]) && p.body['r'] == @replay.state[:rally] }
+        body.merge!('paused' => @paused, 'ready' => ready, 'state' => @snapshot)
+      else
+        body['x'] = @side == nil ? 15.0 : @engine.paddles[@side]
+        body['edges'] = @side == nil ? 0 : @engine.edge_attempts[@side]
+      end
+      ack = !host? && @peers[@owner.downcase] ? @peers[@owner.downcase].sequence : 0
+      @channel.send(GameRoomRealtime::Protocol.encode(match: @match, epoch: @epoch, sequence: @sequence,
+        kind: host? ? 'state' : 'input', body: body, ack: ack))
+    end
+
+    def commit_peer_goal(now)
+      return unless @engine.goal != nil && @engine.turn > 0 && !@paused
+      return unless @required.all? do |user|
+        peer = @peers[user.downcase]
+        peer && peer.fresh?(now, timeout: Client::STREAM_TIMEOUT) && peer.body['r'] == @replay.state[:rally] &&
+          peer.body['turn'] == @engine.turn && peer.body['goal'] == @engine.goal
+      end
+      @pending_point = "#{@replay.state[:rally]}:#{@engine.goal}"
+      @pending_point += ':timeout' if @point_reason == 'timeout'
+    end
+  end
+end

@@ -25,7 +25,7 @@ module GameRoomGames
         rule_section(:variants, GameRoomRules.translate("Variants and table options"),
           GameRoomRules.translate("Daily Krowa: a common 3-to-9-letter word selected for the Warsaw date using server time. Random word: 3 to 13 letters or a random length. Race: the same lengths and a choice between time and attempt scoring. Word Tower: random lengths from 3 to 8 without a length setting."),
           GameRoomRules.translate("The table form shows only settings relevant to the chosen variant. Number of letters is available in Random word and Race; Scoring criterion appears only in Race. Daily Krowa and Word Tower select their own lengths and hide both settings."),
-          GameRoomRules.translate("The Race host can draw a different word. The previous word is revealed and every player's attempts and time are reset. This is not a win or a completed round."),
+          GameRoomRules.translate("In Random word, the Draw another word button lets you replace the current word without creating another table. You can use it before the first attempt or later, after submitted attempts have been checked. The previous solution is revealed and the attempts reset; this is not a win and gives no gallery or leaderboard result. Only the player can use it, not observers. The Race host has a similar button that resets every player's attempts and time. Neither Daily Krowa nor Word Tower allows rerolling."),
           GameRoomRules.translate("Music and Krowa's additional effects are off by default. Ctrl+D opens their switches and separate volume lists, together with your dictionary. These sounds also respect Game Room's shared game-sound switch and volume. Race and Word Tower have separate background tracks; Daily Krowa and Random word share a track.")),
         rule_section(:gallery, GameRoomRules.translate("Your gallery, dictionary and rankings"),
           GameRoomRules.translate("The gallery remembers words you solved in solo play and your best attempt count for each. You can open it before, during or after a game. Its context menu sorts by newest, attempts or length; selecting a word opens its leaderboard. After finishing a game you can choose to publish a result. Publication is optional, and unavailable rankings do not prevent Random word, Race or Word Tower from being played."),
@@ -75,8 +75,9 @@ module GameRoomGames
         if (tower?(state) && owner?(state, player)) || (!tower?(state) && !state[:results].key?(player))
           commands << GameSurfaces::Command.new(id: "surrender", label: tower?(state) ? _("Surrender Word Tower") : _("Surrender"))
         end
-        if state[:options]["variant"] == "race" && owner?(state, player)
-          commands << GameSurfaces::Command.new(id: "reroll", label: _("Draw another word - reset the race"))
+        if %w[random race].include?(state[:options]["variant"]) && owner?(state, player)
+          label = state[:options]["variant"] == "race" ? _("Draw another word - reset the race") : _("Draw another word")
+          commands << GameSurfaces::Command.new(id: "reroll", label: label, payload: {"round" => state[:round]})
         end
       end
       commands.concat(krowa_status_commands) unless replay.finished?

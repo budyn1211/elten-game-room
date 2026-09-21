@@ -18,6 +18,7 @@ module GameRoomParticipantMenu
       Entry.new(action: :play_next_game, label: _("Play in the next game"), menu_key: "O", help_key: "Ctrl+Shift+O"),
       Entry.new(action: :rules, label: _("Game rules"), menu_key: :ctrl_f1, help_key: "Ctrl+F1"),
       Entry.new(action: :table_options, label: _("Read the table variant and settings"), menu_key: "r", help_key: "Ctrl+R"),
+      Entry.new(action: :pong_settings, label: GameRoomContent.utf8(_("Pong settings")), menu_key: "p", help_key: "Ctrl+P"),
       Entry.new(action: :edit_options, label: _("Change settings for the next game"), menu_key: "x", help_key: "Ctrl+X"),
       Entry.new(action: :abort_game, label: _("End the current game without closing the table"), menu_key: "q", help_key: "Ctrl+Q"),
       Entry.new(action: :save_game, label: _("Save the game and close the table"), menu_key: "s", help_key: "Ctrl+S"),
@@ -48,10 +49,11 @@ module GameRoomParticipantMenu
     active ? [:abort_game] : [:edit_options]
   end
 
-  def bind(layout, available:, read_options: nil, game: nil, options: nil, &dispatch)
+  def bind(layout, available:, read_options: nil, game: nil, options: nil, pong_settings: nil, &dispatch)
     supplied = available
     available = -> do
       actions = supplied.call + (read_options == nil ? [] : [:table_options])
+      actions << :pong_settings if pong_settings && game&.id == 'axel_pong'
       actions -= [:invite_online, :invite_contacts] if game && !game.table_invitations_allowed?(options.to_h)
       actions -= [:observe_next_game, :play_next_game] if game && !game.role_selection_allowed?(options.to_h)
       actions
@@ -70,6 +72,8 @@ module GameRoomParticipantMenu
 
           if entry.action == :table_options
             read_options.call
+          elsif entry.action == :pong_settings
+            pong_settings.call
           else
             dispatch.call(entry.action, nil)
           end

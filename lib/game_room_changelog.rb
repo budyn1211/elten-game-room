@@ -161,6 +161,22 @@ module GameRoomChangelog
         "Krowa has shorter setting names and updated keyboard help. F1 and the shortcuts in game rules use shorter descriptions without Press and to.",
         "Farkle no longer asks players to finish the table circuit when the last player has already reached the target and the game ends immediately."
       ].freeze
+    ).freeze,
+    Entry.new(
+      version: "2.0.2",
+      build: 231,
+      changes: [
+        "Axel Pong is not an original project by papierek. The game was originally called Dragon-Pong, was later improved by Axel and balteam, and has now been ported to ELTEN with their permission.",
+        "Added Axel Pong, an audio ping-pong game for two people or a player and a bot, with Classic and Arcade Classic modes and six difficulty levels. Play with the keyboard or mouse. Ctrl+P at the table opens personal settings for automatic return and sound volumes, also available in Settings > Axel Pong.",
+        "On the Game Room widget, Ctrl+N opens the game list for creating a new table.",
+        "Assign ten table presets to Ctrl+1 through Ctrl+0 in Game Room > Settings > Widget. Tab to the Table shortcuts list at the end of that section. Select a shortcut with the arrows, press Enter, choose a game and confirm its options and table privacy. The assignment is saved immediately; Cancel in Settings does not undo it. The shortcuts work only on the widget and create a table without starting the match. Assignments are saved locally.",
+        "In Ludo, 1 reads your pawns and 2, 3 and 4 read the other players' pawns. D says who rolled last and the number. Shift+V lists pawns in board-position order instead of grouping them by player.",
+        "In Yahtzee, D reads only the dice values. Clarified the rules and the bonus for Ones through Sixes; Misery now has a Polish name.",
+        "Makao allows drawing even with a playable card in all three ready-made profiles; custom rules can disable it. After drawing a playable card, Space lets you pass without drawing again. If the drawn card cannot be played, the turn ends automatically.",
+        "Mexican Train no longer repeats the same required-double announcement after every turn. T still lets you check it.",
+        "Added a Draw another word button to Krowa's Random word variant. It reveals the previous word and resets attempts without recording a win.",
+        "Games added since version 2.0 are now selected for lobby messages, and future games will be selected automatically. Later manual deselections are remembered. This does not enable main-screen notifications."
+      ].freeze
     ).freeze
   ].freeze
 

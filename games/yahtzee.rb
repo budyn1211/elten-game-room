@@ -46,19 +46,19 @@ module GameRoomGames
       # Generated from docs/rulebooks/yahtzee.json; see tools/compile-rulebooks.rb.
       [
         rule_section(:rolls, GameRoomRules.translate("A sheet to fill, not a score to chase forever"),
-          GameRoomRules.translate("Two to eight players take turns rolling five dice and filling their own score sheets. Each row on the sheet is a category, such as Fours or Full house. You must use exactly one unused row on each turn. Once written, even a zero stays there for the rest of that sheet."),
+          GameRoomRules.translate("Two to eight players take turns rolling five dice. On each turn, choose one unused scoring category, such as Fours or Full house, and record your result in it. Each category can be used only once per score sheet."),
           GameRoomRules.translate("Your first roll uses all five dice. You may then reroll any of them, at most twice more. Dice you do not select are kept. After each roll the values are sorted from lowest to highest and all dice begin as kept, so select the ones you want to change. You may stop after the first or second roll; using three rolls is a choice, not a requirement."),
           GameRoomRules.translate("When you stop rolling, choose a category from the scoring list. The list tells you how many points the current dice would give there. A category whose requirement you did not meet is usually worth zero, but you may still sacrifice it to save a more useful row for later.")),
         rule_section(:scores, GameRoomRules.translate("Reading the scoring rows"),
-          GameRoomRules.translate("Ones, Twos, Threes, Fours, Fives and Sixes count only dice with that value. For example, 2, 2, 4, 4, 6 gives 4 in Twos, 8 in Fours or 6 in Sixes. These six rows form the upper section."),
+          GameRoomRules.translate("Ones, Twos, Threes, Fours, Fives and Sixes count only dice with that value. For example, 2, 2, 4, 4, 6 gives 4 in Twos, 8 in Fours or 6 in Sixes. Their combined score can earn the bonus described below."),
           GameRoomRules.translate("Three of a kind needs at least three equal dice; Four of a kind needs at least four. Both count all five dice, including the ones outside the matching group. Chance also counts all five, but has no requirement at all."),
           GameRoomRules.translate("Full house needs three equal dice and two of another value. It gives the larger of 25 and the sum of all dice. Thus 6, 6, 6, 4, 4 gives 26, while a lower full house still gives 25. Five equal dice are Yahtzee and give 50 in that row; they are not an ordinary full house."),
           GameRoomRules.translate("Small straight needs four consecutive different values and gives 30; the fifth die may be anything. Large straight needs all five consecutive values and gives 40. Repeated numbers cannot fill a gap: 1, 2, 2, 4, 5 is not a straight."),
           GameRoomRules.translate("Pair, two pairs and misery adds three rows and is enabled by default. Pair needs two equal dice and counts the sum of all five. Two pairs also counts all five but needs pairs of two different values. A full house qualifies; four equal dice alone do not. Misery gives 36 minus the sum of all dice, so a low roll is useful there.")),
         rule_section(:bonuses, GameRoomRules.translate("Three independent bonus settings"),
-          GameRoomRules.translate("The upper-section bonus adds 35 points if the six upper rows total at least 63. It is enabled by default. You do not need three of each value separately: a strong result in Sixes can compensate for a weak result in Ones. Switching the bonus off leaves the rows themselves unchanged."),
+          GameRoomRules.translate("The 35-point bonus for Ones through Sixes is enabled by default. You earn it when the results in these six categories add up to at least 63 points. You do not need three of each value separately: a strong result in Sixes can compensate for a weak result in Ones. Switching the bonus off leaves the categories themselves unchanged."),
           GameRoomRules.translate("The bonus for additional Yahtzees is enabled by default. First you must have written 50 in the Yahtzee row. Each later five-of-a-kind that you score in another row then adds 100 bonus points. A zero in Yahtzee does not unlock this bonus."),
-          GameRoomRules.translate("The Joker rule is a separate checkbox, also enabled by default. It applies to another five-of-a-kind after your Yahtzee row already contains 50. If the upper row for that number is empty, you must use it. If it is filled, choose an unused lower row: Full house and either straight are then allowed without their normal pattern. If every lower row is filled too, you can use a remaining upper row. Each category keeps its normal points."),
+          GameRoomRules.translate("The Joker rule is a separate checkbox, also enabled by default. It applies to another five-of-a-kind after you have already scored 50 in Yahtzee. First, use the category for the rolled value if it is still available, such as Threes for five threes. If it is already used, choose an unused category outside Ones through Sixes: Full house and either straight are then allowed without their normal pattern. Only when all those other categories are used may you choose another available category from Ones through Sixes. Each category keeps its normal points."),
           GameRoomRules.translate("For example, with 50 in Yahtzee you roll five threes. An unused Threes row takes 15. If Threes is already filled, the Joker may let you put 40 in Large straight instead. The additional 100 is awarded only if its separate bonus setting is on. There is no joker button or physical joker die to use.")),
         rule_section(:sheets, GameRoomRules.translate("Finishing a sheet and a match"),
           GameRoomRules.translate("A sheet takes 13 turns per player, or 16 with the extra rows. Number of matches chooses how many complete sheets everyone plays, from 1 to 10, normally 1. A new sheet starts empty. Scores from all sheets are added, and the highest final total wins; equal highest totals mean a tied result.")),
@@ -91,7 +91,7 @@ module GameRoomGames
       [
         OptionDefinition.new(key: "matches", label: _("Number of matches"), kind: :integer, default: 1),
         OptionDefinition.new(key: "extra_categories", label: _("Pair, two pairs and misery"), kind: :boolean, default: true),
-        OptionDefinition.new(key: "upper_bonus", label: _("35-point upper-section bonus"), kind: :boolean, default: true),
+        OptionDefinition.new(key: "upper_bonus", label: _("35-point bonus for Ones through Sixes"), kind: :boolean, default: true),
         OptionDefinition.new(key: "yahtzee_bonus", label: _("Bonus for additional Yahtzees"), kind: :boolean, default: true),
         OptionDefinition.new(key: "joker_rule", label: _("Yahtzee Joker rule"), kind: :boolean, default: true)
       ]
@@ -275,8 +275,8 @@ module GameRoomGames
         "#{CATEGORY_LABELS.fetch(category)}: #{value}"
       end
       upper = %w[ones twos threes fours fives sixes].sum { |c| sheet[c].to_i }
-      labels << (_("Upper section: %{points} of 63.") % { points: upper })
-      labels << (_("Upper-section bonus: %{points}.") % { points: upper >= 63 ? 35 : 0 }) if state[:options]["upper_bonus"]
+      labels << (_("Ones through Sixes: %{points} of 63.") % { points: upper })
+      labels << (_("Bonus for Ones through Sixes: %{points}.") % { points: upper >= 63 ? 35 : 0 }) if state[:options]["upper_bonus"]
       labels << (_("Additional Yahtzee bonuses: %{points}.") % { points: state[:yahtzee_bonuses][player].to_i }) if state[:options]["yahtzee_bonus"]
       labels << (_("This sheet: %{points}.") % { points: sheet_total(state,player) })
       labels << (_("Total across matches: %{points}.") % { points: total_score(state,player) })
@@ -382,7 +382,7 @@ module GameRoomGames
       end
       upper_after = %w[ones twos threes fours fives sixes].sum { |key| state[:sheets][player][key].to_i }
       if state[:options]["upper_bonus"] && upper_before < 63 && upper_after >= 63
-        history << HistoryEntry.new(key: "upper_bonus:#{id}", text: _("%{player} receives the upper-section bonus: 35 points.") % { player: participant_name(player) }, event_id: id, actor: player, kind: :game)
+        history << HistoryEntry.new(key: "upper_bonus:#{id}", text: _("%{player} receives 35 bonus points for Ones through Sixes.") % { player: participant_name(player) }, event_id: id, actor: player, kind: :game)
       end
       state[:dice] = Array.new(5)
       state[:turn_rolls] = 0
@@ -507,7 +507,7 @@ module GameRoomGames
 
     def dice_text(state)
       return _("The dice have not been rolled.") if state[:dice].any?(&:nil?)
-      _("Dice: %{dice}.") % { dice: state[:dice].join(", ") }
+      state[:dice].join(", ") + "."
     end
 
     def scores_text(state, sorted: false)
