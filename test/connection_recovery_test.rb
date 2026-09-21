@@ -23,6 +23,22 @@ end
 $recovery_now = 1000
 Time.singleton_class.prepend(RecoveryClock)
 
+# Advance the monotonic session-clock estimate along with virtual wall time.
+# Production uses monotonic elapsed time; mocking only Time.now leaves the
+# replay clock stuck at 1000 when a question closes at virtual time 1035.
+module RecoveryHarnessClock
+  def initialize(**options)
+    super
+    transports.each_value do |transport|
+      store = transport.instance_variable_get(:@live_store)
+      raise 'missing native live store in recovery fixture' unless store.is_a?(GameRoomLiveSessionStore)
+      store.instance_variable_set(:@record_clock, GameRoomSessionClock.new(
+        sample: -> { nil }, wall: -> { $recovery_now.to_f }, elapsed: -> { $recovery_now.to_f }))
+    end
+  end
+end
+NativeRoomHarness.prepend(RecoveryHarnessClock)
+
 def controller_for(h, user, clock)
   sync = GameRoomSync::Controller.new(transport: h.transports[user],
     table_id: h.table["__id"], session_id: h.session["__id"], clock: -> { clock[0] })
@@ -358,7 +374,7 @@ check.call("human writes share uncertainty recovery and report a replay rejectio
   clock = [0.0]
   sync = controller_for(h, "Alice", clock)
   screen = screen_for(h, "Alice", sync)
-  game = Object.new
+  game = GameRoomGames::Base.new
   plans = 0
   game.define_singleton_method(:action_for) do |*_args, **_options|
     plans += 1

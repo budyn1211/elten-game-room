@@ -126,14 +126,14 @@ assert(next_roll_surface.state["selected_ids"].empty?,
 next_roll_surface.fields.first.trigger(:select)
 assert(next_roll_surface.fields.first.options == ["Chance: 15"],
   "Enter did not open Yahtzee scoring categories when no die was selected")
-layout.history.game_shortcut_keys = ["s", "space"]
-layout.history.next_character = "s"
-assert(layout.history.send(:getkeychar) == "", "a shared shortcut leaked into list quick search")
-layout.history.next_character = "a"
-assert(layout.history.send(:getkeychar) == "a", "a normal list quick-search character was suppressed")
-layout.history.game_shortcut_signatures = [["1", []], ["1", [:shift]]]
-layout.history.next_character = "!"
-assert(layout.history.send(:getkeychar) == "", "a shifted digit shortcut leaked into list quick search")
+layout.users.game_shortcut_keys = ["s", "space"]
+layout.users.next_character = "s"
+assert(layout.users.send(:getkeychar) == "", "a shared shortcut leaked into list quick search")
+layout.users.next_character = "a"
+assert(layout.users.send(:getkeychar) == "a", "a normal list quick-search character was suppressed")
+layout.users.game_shortcut_signatures = [["1", []], ["1", [:shift]]]
+layout.users.next_character = "!"
+assert(layout.users.send(:getkeychar) == "", "a shifted digit shortcut leaked into list quick search")
 
 sortable_cards = [
   GameSurfaces::Card.new(id: "b2", label: "blue 2", value: "b2", sort_keys: {
@@ -180,8 +180,8 @@ assert(browsing_history_snapshot.history_index == 0, "browsing old history was f
 assert(!browsing_history_snapshot.history_follows_tail, "old history unexpectedly followed the tail while it was focused")
 layout.form.index = layout.form.fields.index(layout.chat)
 returning_history_snapshot = layout.snapshot
-assert(returning_history_snapshot.history_index == 1, "leaving history did not prepare its newest item for the next visit")
-assert(returning_history_snapshot.history_follows_tail, "history did not resume following new entries after losing focus")
+assert(returning_history_snapshot.history_index == 0, "leaving history lost the reading position")
+assert(!returning_history_snapshot.history_follows_tail, "history selection unexpectedly resumed tail-following")
 layout.chat.text = "draft message"
 layout.chat.index = 8
 layout.chat.check = 3

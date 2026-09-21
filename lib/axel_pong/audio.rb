@@ -23,8 +23,11 @@ module GameRoomPong
     ANNOUNCER_LEVEL = 0.5
     WALL_PITCH = [1.3, 1.15, 1.0, 0.85, 0.7].freeze
 
-    def initialize(program, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, rng: Random.new)
+    def initialize(program, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, rng: Random.new,
+      speaker: nil, speech_active: nil)
       @program, @clock, @rng = program, clock, rng
+      @speaker = speaker || ->(text) { speak(text, stop: false, break_sequence: false) }
+      @speech_active = speech_active || -> { respond_to?(:speech_actived, true) && speech_actived }
       @sounds, @frequencies = {}, {}
       @announcing, @levels, @pans, @score_queue = {}, {}, {}, []
       @echo, @crowd = 'off', false
@@ -62,29 +65,29 @@ module GameRoomPong
       crowd_event(winner == viewer ? 'cheer' : 'epicfail') if winner != nil
     end
 
-    # Original 500 ms voice spacing; a delayed durable write must not replay
-    # the goal or add another three-second pause in front of the score.
-    def point(scores, viewer:, winner: nil, finished: false, goal_at: nil)
+    attr_reader :presents_point
+
+    # The spacing is a minimum, not a deadline for interrupting the previous
+    # recording. A delayed durable write still reuses the goal's elapsed pause.
+    def point(scores, viewer:, winner: nil, finished: false, goal_at: nil,
+      score_text: nil, result_text: nil, observer: false)
       goal(viewer: viewer, winner: winner) unless goal_at
+      @presents_point = false
       return unless gain('pong_goal') > 0
+      @presents_point = true
       ordered = viewer == 1 ? scores.reverse : scores
       at = [@clock.call, (goal_at || @clock.call) + 3.0].max
-      # The original only records numbers 0..21. Regular speech still reads
-      # scores beyond this range; never play a partial, misleading score.
-      if ordered.all? { |n| n.is_a?(Integer) && n.between?(0, 21) }
-        ['pong_scores', *ordered.map { |n| "pong_number#{n}" }].each_with_index do |name, i|
-          @score_queue << [at + i * 0.5, name]
-        end
-      end
+      names = ['pong_scores', *ordered.map { |n| "pong_number#{n}" }]
+      recorded = ordered.all? { |n| n.is_a?(Integer) && n.between?(0, 21) } && names.all? { |n| @sounds[n] }
+      score = recorded ? names : [{ speech: score_text || ordered.join(' : ') }]
+      score.each_with_index { |item, i| @score_queue << [at + i * 0.5, item] }
       if finished
         final_at = at + 2.7
-        @score_queue << [final_at, winner == viewer ? 'pong_youwin' : 'pong_theywin']
+        voice = winner == viewer ? 'pong_youwin' : 'pong_theywin'
+        result = observer || !@sounds[voice] ? { speech: result_text } : voice
+        @score_queue << [final_at, result] if !result.is_a?(Hash) || !result[:speech].to_s.empty?
         @crowd_result = [final_at, winner == viewer ? 'won' : 'lost'] if winner != nil
-        if ordered.all? { |n| n.is_a?(Integer) && n.between?(0, 21) }
-          ['pong_scores', *ordered.map { |n| "pong_number#{n}" }].each_with_index do |name, i|
-            @score_queue << [final_at + 0.3 + i * 0.5, name]
-          end
-        end
+        score.each_with_index { |item, i| @score_queue << [final_at + 0.3 + i * 0.5, item] }
       end
     end
 
@@ -111,9 +114,18 @@ module GameRoomPong
         apply_mix(name, @pans[name], level) if @sounds[name]&.playing?
       end
       # A delayed UI tick must not start/cut three voices in the same frame.
-      if @score_queue.first && now >= @score_queue.first[0]
-        scheduled, name = @score_queue.shift
-        play_voice(name)
+      voice_busy = @voice && @announcing.key?(@voice)
+      speech_busy = @speech_pending && now < @speech_deadline && @speech_active.call
+      @speech_pending = false unless speech_busy
+      if !voice_busy && !speech_busy && @score_queue.first && now >= @score_queue.first[0]
+        scheduled, item = @score_queue.shift
+        if item.is_a?(Hash) && personal_gain('pong_scores') > 0
+          @speaker.call(item[:speech])
+          @speech_pending = true
+          @speech_deadline = now + 30.0
+        elsif !item.is_a?(Hash)
+          play_voice(item)
+        end
         lag = now - scheduled
         @score_queue.each { |entry| entry[0] += lag } if lag > 0.05
       end
@@ -231,6 +243,7 @@ module GameRoomPong
       @announcing.clear
       @score_queue.clear
       @voice = @crowd_result = nil
+      @speech_pending = false
     end
 
     def play_voice(name)

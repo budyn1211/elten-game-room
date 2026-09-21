@@ -84,7 +84,7 @@ module GameSurfaces
 
     def handle_command(command, _payload = {})
       case command
-      when 'echo', 'crowd', 'hurry'
+      when 'echo', 'crowd', 'hurry', 'perspective_first', 'perspective_second'
         @on_pong_command&.call(command)
       when 'scores'
         order = [0, 1].sort_by { |i| [-@spec.scores[i].to_i, i] }

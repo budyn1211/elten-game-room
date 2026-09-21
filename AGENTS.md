@@ -1,5 +1,104 @@
 # Instrukcje dla agentów pracujących nad ELTEN Game Room
 
+## Ponowna paczka 232 zatwierdzona — 21 września 2026
+
+Najnowsze polecenie: przebudować i podpisać poprawki historii jako
+2.0.2.1, ZACHOWUJĄC build 232 oraz dotychczasowe sześć punktów changelogu
+PL/EN, bez dopisywania zmian. Jedynie nagłówek bieżącego wpisu dostaje
+poprawny numer wersji. Nie tworzyć buildu 233. Poprzednią podpisaną 232
+41e12923… zachować jako before-history-focus-signed.eltsetup.
+Nowe raporty: ../diagnostics/history-focus-release-232/{SOURCE,PACKAGE}.json.
+Ten wpis odnotowuje zgodę, nie zakończenie pakowania. Tylko celowane
+kontrole i wczytanie binarne. Bez pełnego runnera, instalacji, publikacji,
+GitHuba, serwera/profili i restartów. Wcześniejsze „jeszcze bez paczki”
+odnoszą się do poprzedniego etapu.
+
+## Historia po 232; następna wersja 2.0.2.1 — 21 września 2026
+
+Usunięto pusty wiersz między wpisami historii. Tab czyta tylko bieżący
+wpis z nagłówkiem, bez ruszania kursora/zaznaczenia. Wyłącznie podklasa
+historii ogranicza odczyt z focus; ręczne Read all, Braille, ciche
+odświeżanie oraz zwykłe pola/F1 pozostają natywne. Przy dalszych zmianach
+sprawdzać faktyczny EditBox#focus, nie tylko pozycję kursora w atrapie:
+host wywołuje read_text(0), a jego callbacki mogą przestawić pozycję.
+Opis i regresje: docs/HISTORY_FOCUS_FIX_AFTER_232.md.
+
+Użytkownik poprawił numer przyszłej paczki na 2.0.2.1. Tę wersję zastosować
+przy następnym pakowaniu (manifesty/runtime/changelog). Nie zmieniano
+podpisanej 232 ani jej historycznego changelogu; nowej paczki nie budowano.
+Weryfikacja wyłącznie celowana, bez pełnego runnera, instalacji, publikacji,
+GitHuba, zmian serwera/profili lub restartów. Raporty:
+../diagnostics/history-focus-232/{BEFORE,SOURCE}.json.
+
+## Pong, historia i F1 — wdrożone; wydanie 232 zatwierdzone, 21 września 2026
+
+Użytkownik zatwierdził wdrożenie całego docs/PONG_AND_HISTORY_PLAN_231.md
+i podpisanie nowej wersji 2.0.1.1. Źródła mają build 232, API nadal 3.0.3.
+Wdrożono listę Classic/Arcade, nazwę Brzmienie band, kolejkę pełnych nagrań
+i odczyt wyniku ponad 21, perspektywy obserwatora 1/2 oraz wspólną historię
+i F1 jako tekst tylko do odczytu. Skróty historii: Ctrl+przecinek/kropka,
+Ctrl+Shift+przecinek/kropka i Ctrl+Home/End. Zwykłe strzałki obsługuje
+natywne pole tekstowe; czat zachowuje edycję. Indeksy znaków i wpisów
+historii są oddzielne. Szczegóły: docs/PONG_AND_HISTORY_IMPLEMENTATION_232.md.
+Do wydania wchodzi również wcześniejsza poprawka rewanżu.
+
+Konfiguracja testu connection_recovery_test została uaktualniona zgodnie
+z diagnozą: spójny zegar symulacji i właściwa atrapa gry, bez zmiany
+asercji ani produkcyjnego quizu. NIE opisywać napraw testów w changelogu.
+Changelog PL/EN zawiera sześć punktów dla graczy. Weryfikacja wydania:
+../diagnostics/pong-history-release-232/{SOURCE,PACKAGE}.json.
+Ten wpis nie potwierdza jeszcze zbudowania paczki. Tylko celowane testy
+i kontrola binarna, bez pełnego runnera, instalacji, publikacji, GitHuba,
+restartów ELTEN-a, zmian serwera/profili i żywego meczu. Podpisaną 231
+a23ae0a5… zachować bez zmian. Poniższe wpisy opisują wcześniejsze etapy.
+
+## Nowa lista Ponga, historii i F1 — tylko plan, 21 września 2026
+
+Użytkownik zbiera poprawki przed osobnym poleceniem wdrożenia. Pełny plan:
+docs/PONG_AND_HISTORY_PLAN_231.md. Obejmuje listę Classic/Arcade zamiast
+checkboxa, nazwę Shift+E „Brzmienie band”, nieucinane liczby i zwycięstwo,
+odczyt wyniku ponad 21, wybór perspektywy obserwatora oraz historię i F1
+jako pola tekstowe tylko do odczytu. Perspektywa zgodnie z doprecyzowaniem:
+1 — pierwszy gracz, 2 — drugi, tylko dla obserwatora w polu gry Ponga;
+bez listy w Ctrl+P, z krótkim potwierdzeniem nazwy. Nadal wyłącznie plan.
+Skróty historii ustalone zamiast propozycji z Altem: Ctrl+przecinek/kropka
+przechodzi po wpisach kategorii, Ctrl+Shift+przecinek/kropka zmienia kategorię
+(przecinek wstecz, kropka naprzód), Ctrl+Home/End wybiera pierwszy/ostatni
+wpis wybranej kategorii. Nadal bez implementacji,
+testów, zmiany wersji/changelogu, paczki, serwera lub GitHuba. Wcześniejsza
+poprawka rewanżu w źródłach pozostaje; nie wdrażano jeszcze korekty testu quizu.
+
+## Diagnoza starego testu odzyskiwania quizu — 21 września 2026
+
+Niezaliczony connection_recovery_test wynika z nieaktualnej konfiguracji:
+test skokowo przesuwa Time.now i ActionContext, ale nie elapsed używany przez
+GameRoomSessionClock. Ponadto jego końcowa atrapa Object.new nie implementuje
+moderator_action? z Base. W osobnym wariancie diagnostycznym spójny zegar
+i atrapa dziedzicząca Base dają 13/13 przypadków bez zmiany asercji/produkcji.
+question_server_clock_test oraz quiz_party_test przechodzą bez zmian.
+Szczegóły: ../diagnostics/pong-rematch-231/QUIZ_TEST_DIAGNOSIS.{md,json}.
+Nie poprawiono jeszcze testu w repo, tylko ustalono przyczynę na polecenie
+użytkownika. Nie traktować tej asercji jako potwierdzonego błędu gry ani
+nie zmieniać produkcyjnego zegara lub terminów, żeby ją maskować.
+
+## Pong: naprawiony rewanż w źródłach — 21 września 2026
+
+Po diagnozie na żywo odtworzono lokalnie błąd meczu 7→21 w tym samym pokoju
+przed zmianą produkcyjnego kodu. Wspólny GameScreen zamyka teraz poprzedniego
+klienta i wykonuje build/bind/start przy potwierdzonej nowej sesji. Nie robi
+tego przy zwykłym odświeżeniu, bramce, powtórzonym ID lub nieudanym odczycie.
+Nie zmieniono protokołu Communications ani LiveSessions. Gry bez klienta
+nie dostają dodatkowych zasobów/żądań. Dalsze gry zręcznościowe mają używać
+tego cyklu życia; close musi odłączyć timery, callbacki i zasoby starej sesji.
+Opis i granice: docs/PONG_REMATCH_FIX_231.md. Nowe regresje:
+test/axel_pong_rematch_test.rb oraz test/game_client_lifecycle_test.rb.
+14/15 celowanych skryptów i 6 kontroli składni; pozostały test odzyskiwania
+Quiz Party zawodzi identycznie na kodzie sprzed poprawki. Nie zamaskowano go.
+Raporty poza repo: ../diagnostics/pong-rematch-231/{BEFORE_FIX,SOURCE,BASELINE}.json.
+Bez nowej paczki, podpisu, instalacji, GitHuba, serwera lub żywej partii.
+Wersja/changelog bez zmian. Podpisana 231 a23ae0a5… nadal nie ma tej naprawy.
+Poprzednie polecenia pakowania/pusha zostały wykonane przed tym zadaniem.
+
 ## Pong: ponowna paczka 231 zatwierdzona — 21 września 2026
 
 Najnowsze polecenie: przebudować i podpisać tę samą 2.0.2/build 231,
@@ -1296,7 +1395,9 @@ osobnego zgłoszenia i przeglądu.
 
 Własne okna aplikacji używają `GameRoomUI::Form` lub
 `GameSurfaces::RefreshAwareForm` z referencją `program:`. Wspólny szkielet
-zapewnia lokalne F1 jako listę oraz F2/F3 i Shift+F2/F3 do głośności.
+zapewnia lokalne F1 jako tekst tylko do odczytu oraz F2/F3 i Shift+F2/F3
+do głośności. Historia używa GameRoomHistory::View, a nawigacja
+GameRoomHistory.bind; index/check to pozycje znaków, entry_index to wpis.
 Nie dubluj tych klawiszy w klasach gier, nie zmieniaj źródeł ani zapisanych
 QuickActions ELTEN-a. Dynamiczną pomoc gry i pokoju aktualizuj przez te same
 definicje co rzeczywiste skróty (`GameRoomContextHelp`), nie dopisuj na stałe

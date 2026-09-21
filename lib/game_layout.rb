@@ -153,7 +153,8 @@ module GameRoomLayout
       @surface_identity = previous_surface_identity
       @history_items = []
       @user_items = []
-      @history = GameSurfaces::RefreshAwareListBox.new([], header: "", quiet: true)
+      require_relative 'game_history_view'
+      @history = GameRoomHistory::View.new
       @users = GameSurfaces::RefreshAwareListBox.new([], header: "", quiet: true)
       @chat = chat_control || GameSurfaces::RefreshAwareEditBox.new(
         _("Chat"), text: chat_text.to_s, quiet: true, max_length: 400
@@ -208,12 +209,10 @@ module GameRoomLayout
     end
 
     def update_history(items, header: @history.header)
-      follows_tail = focus_location.to_a[0] != :history || @history.index.to_i >= @history_items.length - 1
-      old_index = @history.index.to_i
+      follows_tail = @history.following_tail?
       @history_items = items.to_a.map(&:to_s)
-      @history.options = @history_items if @history.options != @history_items
-      @history.index = follows_tail ? [@history_items.length - 1, 0].max : bounded_index(old_index, @history_items)
-      @history.header = header
+      @history.replace_entries(@history_items, follow_tail: follows_tail)
+      @history.header = GameRoomContent.utf8(header)
     end
 
     def update(view_spec:, history_items:, user_items:, users_header:,
@@ -269,7 +268,7 @@ module GameRoomLayout
       update_users(user_items, header: users_header)
       update_history(history_items, header: text_or_default(view_spec.history_header, _("Game history")))
       @history.empty_label = text_or_default(view_spec.history_empty_label, _("No moves yet")) if @history.respond_to?(:empty_label=)
-      @history.index = bounded_index(history_index, @history_items) if history_index != nil
+      @history.entry_index = bounded_index(history_index, @history_items) if history_index != nil
       @users.index = bounded_index(users_index, @user_items) if users_index != nil
       @phase = phase
       waiting_text = phase == :finished ? _("Waiting for a new game to start") : _("Waiting for the game to start")
@@ -356,10 +355,10 @@ module GameRoomLayout
 
     def snapshot
       location = focus_location
-      follows_tail = location.to_a[0] != :history || @history.index.to_i >= @history_items.length - 1
+      follows_tail = @history.following_tail?
       Snapshot.new(
         surface_state: @surface&.state || {},
-        history_index: follows_tail ? [@history_items.length - 1, 0].max : @history.index.to_i,
+        history_index: follows_tail ? [@history_items.length - 1, 0].max : @history.entry_index,
         users_index: @users.index.to_i, form_index: @form.index.to_i,
         focus_location: location, surface_identity: @surface_identity,
         history_follows_tail: follows_tail, chat_text: @chat.text,

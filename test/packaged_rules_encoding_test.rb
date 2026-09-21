@@ -250,8 +250,9 @@ parent_field = ListBox.new(["karta"], header: "Ręka", index: 0)
 parent = GameRoomUI::Form.new([parent_field], quiet: true)
 parent.show_game_room_help
 raise "Binary F1 is not a translated list" unless help_dialog.fields.first.header == "Skróty klawiszowe"
-raise "Binary F1 volume tips are untranslated" unless help_dialog.fields.first.options.any? { |tip| tip.start_with?("F2 zmniejsza") }
-help_dialog.fields.first.options.each do |tip|
+raise "Binary F1 is not read-only text" unless help_dialog.fields.first.is_a?(EditBox) && (help_dialog.fields.first.flags & EditBox::Flags::ReadOnly) != 0
+raise "Binary F1 volume tips are untranslated" unless help_dialog.fields.first.text.split("\n").any? { |tip| tip.start_with?("F2 zmniejsza") }
+help_dialog.fields.first.text.split("\n").each do |tip|
   raise "Binary help encoding" unless tip.encoding == Encoding::UTF_8 && tip.valid_encoding?
 end
 Form.class_eval do

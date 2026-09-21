@@ -66,7 +66,11 @@ module GameRoomPong
       side = after.players.index { |player| player.to_s.casecmp?(viewer.to_s) }
       winner = [0, 1].find { |i| after.state[:scores][i] > before.state[:scores][i] }
       preview = @goal_preview if @goal_preview && @goal_preview[:rally] == before.state[:rally] && @goal_preview[:winner] == winner
-      @audio.point(after.state[:scores], viewer: side || 0, winner: winner, finished: after.finished?, goal_at: preview && preview[:at])
+      perspective = side || observer_side(after.players)
+      order = perspective == 1 ? [1, 0] : [0, 1]
+      score_text = order.map { |i| "#{@game.participant_name(after.players[i])}: #{after.state[:scores][i]}" }.join('; ') + '.'
+      @audio.point(after.state[:scores], viewer: perspective, winner: winner, finished: after.finished?,
+        goal_at: preview && preview[:at], score_text: score_text, result_text: @game.result_text(after), observer: side == nil)
       if preview
         score_at = [@clock.call, preview[:at] + 3.0].max
         @ready_at, @serve_announce_at = score_at + 2.7, score_at + 2.0
@@ -76,6 +80,12 @@ module GameRoomPong
       end
       @goal_preview = nil
     end
+    def presents_game_event?(event)
+      event['action'] == 'pong_point' && @audio.respond_to?(:presents_point) && @audio.presents_point
+    end
+    def presents_game_result?(replay)
+      replay.state[:rally] == @announced_rally && @audio.respond_to?(:presents_point) && @audio.presents_point
+    end
     def after_events(replay, viewer, context:); before_wait(replay, viewer); end
 
     def before_wait(replay, viewer)
@@ -83,6 +93,7 @@ module GameRoomPong
       @replay = replay
       @players = replay.players
       @side = @players.index { |p| p.to_s.casecmp?(viewer.to_s) }
+      observer_side(@players) if @side == nil
       @required = @players.reject { |p| GameRoomParticipants.bot?(p) || p.to_s.casecmp?(@viewer) }
       @channel.required_members = host? ? @required : [@owner] if @channel.respond_to?(:required_members=)
       if @players.none? { |p| GameRoomParticipants.bot?(p) } && !is_a?(PeerPlay)
@@ -272,6 +283,16 @@ module GameRoomPong
 
     private
 
+    def observer_side(players = @players)
+      side = players.to_a.index { |player| player.to_s.casecmp?(@observed_player.to_s) }
+      @observed_player = players.to_a.first unless side
+      side || 0
+    end
+
+    def audio_side
+      @side || observer_side
+    end
+
     def handshake_deadline
       [@epoch_since, @connection_started_at].compact.max + HANDSHAKE_TIMEOUT
     end
@@ -283,15 +304,21 @@ module GameRoomPong
     def preview_goal(winner)
       return if @goal_preview && @goal_preview[:rally] == @replay.state[:rally]
       @goal_preview = { rally: @replay.state[:rally], winner: winner, at: @clock.call }
-      @audio.goal(viewer: @side || 0, winner: winner)
+      @audio.goal(viewer: audio_side, winner: winner)
     end
 
     def local_command(command)
       case command
       when 'echo'
         mode = @audio.cycle_echo
-        speak({'off' => _('Echolocation off.'), 'noise' => _('Echolocation: noise.'),
-          'tone' => _('Echolocation: tones.')}[mode])
+        speak({'off' => _('Side-wall cues: off.'), 'noise' => _('Side-wall cues: noise.'),
+          'tone' => _('Side-wall cues: tones.')}[mode])
+      when 'perspective_first', 'perspective_second'
+        return true unless @side == nil && @surface && @form && !@replay.finished?
+        return true unless @surface.fields.include?(@form.fields[@form.index.to_i])
+        @observed_player = @players[command == 'perspective_first' ? 0 : 1]
+        present
+        speak(_('Perspective: %{player}.') % { player: @game.participant_name(@observed_player) })
       when 'crowd'
         if @audio.toggle_crowd
           speak(@audio.crowd ? _('Crowd on.') : _('Crowd off.'))
@@ -594,7 +621,7 @@ module GameRoomPong
         _('Match in progress.')
       end
       @surface&.present(@snapshot, status)
-      @audio.update(@snapshot, viewer: @side || 0, paused: @paused)
+      @audio.update(@snapshot, viewer: audio_side, paused: @paused)
     end
   end
 end

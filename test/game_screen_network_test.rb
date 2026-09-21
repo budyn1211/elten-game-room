@@ -105,15 +105,16 @@ history_form.define_singleton_method(:history_navigation_signatures=) { |value| 
 history_form.define_singleton_method(:on) { |event, &handler| history_handlers[event] = handler }
 history_actions = []
 screen.send(:bind_history_navigation, history_form) { |operation, value| history_actions << [operation, value] }
-history_handlers.fetch(:key_left).call([false, true, false])
-history_handlers.fetch(:key_right).call([true, false, false])
-history_handlers.fetch(:key_left).call([true, true, false])
+history_handlers.fetch(:key_comma).call([false, true, false])
+history_handlers.fetch(:key_period).call([true, true, false])
+history_handlers.fetch(:key_home).call([false, true, false])
 assert(
   history_actions == [[:move, -1], [:category, 1], [:jump, :first]],
-  "shared history navigation mapped arrow modifiers incorrectly"
+  "shared history navigation mapped punctuation/Home modifiers incorrectly"
 )
-assert(history_signatures.length == 6, "the form did not receive all shared history-navigation combinations")
-assert(history_form.game_room_general_help_tips.length == 3, "history help is not registered on the actual form")
+assert(history_signatures.include?(['end', [:control]]) && history_signatures.include?(['>', [:control, :shift]]), "missing history key/shifted alias")
+assert(history_handlers.keys.none? { |key| [:key_left, :key_right].include?(key) }, "history still intercepts text arrows")
+assert(history_form.game_room_general_help_tips.length == 6, "history help needs one shortcut per line")
 
 surface_calls = []
 surface = Object.new
@@ -189,8 +190,8 @@ screen.instance_variable_set(:@layout, history_layout)
 history_control = history_layout.history
 screen.instance_variable_set(:@history_follows_tail, true)
 screen.send(:refresh_history_control, history_control, history_replay)
-assert(history_control.options.last == "final silent transition:algebraic", "the visible history was not updated after a local presentation change")
-assert(history_control.index == history_control.options.length - 1, "refreshing local history lost its tail position")
+assert(history_control.items.last == "final silent transition:algebraic", "the visible history was not updated after a local presentation change")
+assert(history_control.entry_index == history_control.items.length - 1, "refreshing local history lost its tail position")
 
 module EltenAPI
   module Tasks

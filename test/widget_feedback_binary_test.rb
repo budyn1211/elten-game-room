@@ -126,7 +126,11 @@ begin
         end
       end
     end
-    credit = GameRoomChangelog::ENTRIES.last.changes.first
+    # The introduction/attribution belongs to build 231, not every later
+    # maintenance release. Keep checking the original entry and the rules.
+    introduction = GameRoomChangelog::ENTRIES.find { |entry| entry.build == 231 }
+    assert(introduction != nil, "Pong introduction changelog missing")
+    credit = introduction.changes.first
     assert(credit.include?("Dragon-Pong") && credit.include?("Axel and balteam"), "Pong attribution is not first")
     assert(GameRoomGames::AxelPong.new.rule_book.documents.first.text.include?(GameRoomRules.translate(credit)), "Pong rules and changelog attribution differ")
     # Krowa's command carries a round identity through the normal surface.

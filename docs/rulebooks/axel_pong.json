@@ -75,8 +75,8 @@
       },
       "paragraphs": [
         {
-          "en": "With Arcade off, play follows the normal rules above. With Arcade on, every paddle return has two independent chances of 7 percent: a shield for the player who returned the ball and an invisible ball. Both may happen on the same hit. A serve alone does not trigger these effects.",
-          "pl": "Przy wyłączonej opcji Arcade obowiązują zwykłe zasady opisane powyżej. Po jej włączeniu każde odbicie paletką ma dwie niezależne szanse po 7 procent: na tarczę dla odbijającego i na niewidzialną piłkę. Oba efekty mogą wystąpić przy jednym odbiciu. Sam serwis ich nie losuje."
+          "en": "Choose Classic or Arcade in the Game mode list when creating the table. Classic is the default and follows the normal rules above. In Arcade, every paddle return has two independent chances of 7 percent: a shield for the player who returned the ball and an invisible ball. Both may happen on the same hit. A serve alone does not trigger these effects.",
+          "pl": "Podczas tworzenia stołu wybierz Classic albo Arcade z listy Tryb gry. Domyślny Classic korzysta ze zwykłych zasad opisanych powyżej. W Arcade każde odbicie paletką ma dwie niezależne szanse po 7 procent: na tarczę dla odbijającego i na niewidzialną piłkę. Oba efekty mogą wystąpić przy jednym odbiciu. Sam serwis ich nie losuje."
         },
         {
           "en": "A shield protects the whole goal for ten seconds of play. It returns a missed ball straight ahead without being used up. Winning another shield renews its time to ten seconds. An invisible ball is silent until a paddle returns it or a goal is scored. A shield bounce does not reveal it. Activation and shield expiry have distinct sounds; E reports the current effects. The remaining shield time is preserved between points and does not run down while waiting for a serve.",
@@ -118,8 +118,8 @@
       },
       "paragraphs": [
         {
-          "en": "Shift+E switches echolocation between off, noise and tones. These are additional local sounds that help you judge your paddle's distance from the left and right edges. The nearer an edge is, the louder its cue. This setting does not move your paddle or change what your opponent hears. Game Room's sound-volume and mute controls still apply.",
-          "pl": "Shift+E przełącza echolokację: wyłączona, szum, tony. To dodatkowe dźwięki słyszane tylko u Ciebie, które pomagają ocenić odległość paletki od lewej i prawej krawędzi. Im bliższa krawędź, tym głośniejszy jej sygnał. Echolokacja nie porusza paletką i nie zmienia dźwięków przeciwnika. Nadal obowiązują ustawienia głośności i wyciszenia dźwięków Game Roomu."
+          "en": "Shift+E changes side-wall cues between off, noise and tones. These are additional local sounds that help you judge your paddle's distance from the left and right edges. The nearer an edge is, the louder its cue. This setting does not move your paddle or change what your opponent hears. Game Room's sound-volume and mute controls still apply.",
+          "pl": "Shift+E zmienia brzmienie band: wyłączone, szum albo tony. To dodatkowe dźwięki słyszane tylko u Ciebie, które pomagają ocenić odległość paletki od lewej i prawej krawędzi. Im bliższa krawędź, tym głośniejszy jej sygnał. Ustawienie nie porusza paletką i nie zmienia dźwięków przeciwnika. Nadal obowiązują ustawienia głośności i wyciszenia dźwięków Game Roomu."
         }
       ]
     },
@@ -147,6 +147,13 @@
           "en": "The table and score use Game Room's normal session; movement uses Communications. During a human match, each player calculates their own flight and return locally. Lost or delayed paddle-position updates alone do not stop the ball. Serves, returns and misses travel separately in order. An actual connection failure pauses the rally; a replacement connection restarts the unfinished point with the confirmed score unchanged. Observers may listen but cannot control a paddle. Unfinished matches cannot currently be saved.",
           "pl": "Stół i wynik korzystają ze zwykłej sesji Game Roomu, a ruch — z Communications. W meczu dwóch osób każdy klient sam oblicza lot piłki i własne odbicie. Zgubiona albo opóźniona aktualizacja pozycji paletki nie zatrzymuje od razu gry. Serwisy, odbicia i utrata punktu są przesyłane osobno, w odpowiedniej kolejności. Rzeczywista awaria połączenia wstrzymuje wymianę; po ponownym zestawieniu kanału niedokończony punkt zaczyna się od nowa, bez zmiany potwierdzonego wyniku. Obserwatorzy mogą słuchać, lecz nie sterują paletkami. Na razie nie można zapisać niedokończonego meczu."
         }
+      ]
+    },
+    {
+      "id": "watching",
+      "title": {"en": "Watching a match", "pl": "Obserwowanie meczu"},
+      "paragraphs": [
+        {"en": "As an observer, press 1 in the Pong playfield to listen from the first player's end, or 2 to listen from the second player's end. The game confirms the player's name. This changes only your listening perspective and score order; it does not let you move either paddle. The choice stays in place between points. The keys do not select a perspective while you are typing in chat or reading history.", "pl": "Jako obserwator naciśnij 1 w polu gry Ponga, aby słuchać od strony pierwszego gracza, albo 2, aby słuchać od strony drugiego. Gra potwierdzi jego nazwę. Zmienia się tylko Twój odsłuch i kolejność odczytu wyniku; nie możesz sterować żadną z paletek. Wybór pozostaje między punktami. Cyfry nie zmieniają perspektywy podczas pisania na czacie ani czytania historii."}
       ]
     },
     {
@@ -193,8 +200,16 @@
           "pl": "E: odczytaj działające tarcze i niewidzialność piłki."
         },
         {
-          "en": "Shift+E: switch echolocation: off, noise, tones.",
-          "pl": "Shift+E: przełącz echolokację: wyłączona, szum, tony."
+          "en": "Shift+E: change side-wall cues.",
+          "pl": "Shift+E: zmień brzmienie band."
+        },
+        {
+          "en": "1: as an observer, listen from the first player's perspective.",
+          "pl": "1: jako obserwator słuchaj z perspektywy pierwszego gracza."
+        },
+        {
+          "en": "2: as an observer, listen from the second player's perspective.",
+          "pl": "2: jako obserwator słuchaj z perspektywy drugiego gracza."
         },
         {
           "en": "Ctrl+W: hurry the opponent before a serve.",

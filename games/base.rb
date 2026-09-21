@@ -218,6 +218,8 @@ module GameRoomGames
   class Base
     # Optional room services. Games without local services retain the existing
     # lifecycle and never create a service object or perform an extra request.
+    # One local client per confirmed game session, including a rematch in the
+    # same room. GameScreen closes the previous client before building this one.
     def build_client(_program, **_services); nil; end
     def build_start_guard(_program, user:, **_services); nil; end
     def supports_leaderboards?; false; end

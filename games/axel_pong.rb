@@ -18,7 +18,8 @@ module GameRoomGames
 
     def option_definitions
       [
-        OptionDefinition.new(key: 'arcade', label: _('Arcade: shields and invisible ball'), kind: :boolean, default: false),
+        OptionDefinition.new(key: 'arcade', label: _('Game mode'), kind: :choice, default: false,
+          choices: [OptionChoice.new(value: false, label: _('Classic')), OptionChoice.new(value: true, label: _('Arcade'))]),
         OptionDefinition.new(key: 'difficulty', label: _('Difficulty and ball speed'), kind: :choice, default: 2,
           choices: [_('Easy'), _('Normal'), _('Hard'), _('Insane'), _('Impossible'), _('Nightmare')].each_with_index.map { |label, i| OptionChoice.new(value: i + 1, label: label) }),
         OptionDefinition.new(key: 'target', label: _('Points to win'), kind: :choice, default: 11,
@@ -104,8 +105,12 @@ module GameRoomGames
         surface_shortcut(key: 't', label: _('read the server and connection status'), command: 'server'),
         surface_shortcut(key: 'c', label: _('read your paddle position'), command: 'position'),
         surface_shortcut(key: 'e', label: _('read active shields and invisible ball'), command: 'effects'),
-        surface_shortcut(key: 'e', modifiers: [:shift], label: _('switch echolocation: off, noise, tones'), command: 'echo')
+        surface_shortcut(key: 'e', modifiers: [:shift], label: _('change side-wall cues'), command: 'echo')
       ]
+      if !replay.finished? && player_index(replay.players, viewer) == nil
+        shortcuts << surface_shortcut(key: '1', label: _('listen from the first player\'s perspective'), command: 'perspective_first')
+        shortcuts << surface_shortcut(key: '2', label: _('listen from the second player\'s perspective'), command: 'perspective_second')
+      end
       if !replay.finished? && replay.players.any? { |p| same_user?(p, viewer) } &&
           replay.players.none? { |p| GameRoomParticipants.bot?(p) }
         shortcuts << surface_shortcut(key: 'w', modifiers: [:control], label: _('hurry the opponent before a serve'), command: 'hurry')
@@ -133,18 +138,20 @@ module GameRoomGames
           GameRoomRules.translate("On Windows, mouse control is always available in the Pong playfield; you do not need to enable it. Move the mouse mainly left or right to move your paddle in steps; a large sweep does not jump across the court. Click the left mouse button to serve or return the ball. Holding it can also return a reachable ball just before it passes your goal, but it does not automatically serve after the pause between points. Up, Space and the arrow keys still work. As in the original audio mode, a click hits before the mouse movement from the same frame is applied."),
           GameRoomRules.translate("Mouse movement works only while the Pong playfield and the ELTEN window are active. The pointer is kept near the centre of that window so the screen edge does not stop you. Chat, settings, help, another application or a lost connection suspends mouse control. Returning to play discards movement made elsewhere. This option adds no graphics and changes no Windows mouse settings. There is no mouse on/off switch.")),
         rule_section(:arcade, GameRoomRules.translate("Classic and Arcade"),
-          GameRoomRules.translate("With Arcade off, play follows the normal rules above. With Arcade on, every paddle return has two independent chances of 7 percent: a shield for the player who returned the ball and an invisible ball. Both may happen on the same hit. A serve alone does not trigger these effects."),
+          GameRoomRules.translate("Choose Classic or Arcade in the Game mode list when creating the table. Classic is the default and follows the normal rules above. In Arcade, every paddle return has two independent chances of 7 percent: a shield for the player who returned the ball and an invisible ball. Both may happen on the same hit. A serve alone does not trigger these effects."),
           GameRoomRules.translate("A shield protects the whole goal for ten seconds of play. It returns a missed ball straight ahead without being used up. Winning another shield renews its time to ten seconds. An invisible ball is silent until a paddle returns it or a goal is scored. A shield bounce does not reveal it. Activation and shield expiry have distinct sounds; E reports the current effects. The remaining shield time is preserved between points and does not run down while waiting for a serve.")),
         rule_section(:difficulty, GameRoomRules.translate("Speed and opponents"),
           GameRoomRules.translate("Difficulty and ball speed has six levels: Easy, Normal, Hard, Insane, Impossible and Nightmare. Higher settings start with a faster ball. Against a bot, they also change reaction time, movement, aim and the chance of an error. The bot tracks the visible ball with limited precision and does not track an invisible ball. It may still return an invisible ball if its paddle happens to be in the right place.")),
         rule_section(:personal, GameRoomRules.translate("Your Pong settings"),
           GameRoomRules.translate("Ctrl+P and the Pong settings item in the table menu open the same local panel as the Axel Pong category in Game Room settings. Besides automatic return, you can adjust your paddle movement, the opponent's movement and the recorded announcer separately. Each volume ranges from 0 to 200 percent; 100 percent keeps the original balance, and 0 mutes that group. Game Room's overall volume still applies. Save keeps these values for your future matches on this computer; Cancel leaves them unchanged. They are not table rules and do not change the opponent's settings. The match continues while this panel is open, but its controls do not move your paddle.")),
         rule_section(:echo, GameRoomRules.translate("Finding the sides by sound"),
-          GameRoomRules.translate("Shift+E switches echolocation between off, noise and tones. These are additional local sounds that help you judge your paddle's distance from the left and right edges. The nearer an edge is, the louder its cue. This setting does not move your paddle or change what your opponent hears. Game Room's sound-volume and mute controls still apply.")),
+          GameRoomRules.translate("Shift+E changes side-wall cues between off, noise and tones. These are additional local sounds that help you judge your paddle's distance from the left and right edges. The nearer an edge is, the louder its cue. This setting does not move your paddle or change what your opponent hears. Game Room's sound-volume and mute controls still apply.")),
         rule_section(:hurry, GameRoomRules.translate("An opponent who does not serve"),
           GameRoomRules.translate("When playing another person, Ctrl+W warns the opponent to serve within ten seconds. It is available only after the normal break, while it is their serve and the ball has not been served yet. A valid serve cancels the warning; otherwise you receive a point. Repeated presses do not extend the deadline, and a new warning cannot be sent for fifteen seconds. Observers cannot issue warnings. A broken connection does not count as a late serve.")),
         rule_section(:connection, GameRoomRules.translate("When the connection is interrupted"),
           GameRoomRules.translate("The table and score use Game Room's normal session; movement uses Communications. During a human match, each player calculates their own flight and return locally. Lost or delayed paddle-position updates alone do not stop the ball. Serves, returns and misses travel separately in order. An actual connection failure pauses the rally; a replacement connection restarts the unfinished point with the confirmed score unchanged. Observers may listen but cannot control a paddle. Unfinished matches cannot currently be saved.")),
+        rule_section(:watching, GameRoomRules.translate("Watching a match"),
+          GameRoomRules.translate("As an observer, press 1 in the Pong playfield to listen from the first player's end, or 2 to listen from the second player's end. The game confirms the player's name. This changes only your listening perspective and score order; it does not let you move either paddle. The choice stays in place between points. The keys do not select a perspective while you are typing in chat or reading history.")),
         rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
           GameRoomRules.translate("Left arrow: move the paddle left."),
           GameRoomRules.translate("Right arrow: move the paddle right."),
@@ -155,7 +162,9 @@ module GameRoomGames
           GameRoomRules.translate("T: read the server and connection status."),
           GameRoomRules.translate("C: read your paddle position."),
           GameRoomRules.translate("E: read active shields and invisible ball."),
-          GameRoomRules.translate("Shift+E: switch echolocation: off, noise, tones."),
+          GameRoomRules.translate("Shift+E: change side-wall cues."),
+          GameRoomRules.translate("1: as an observer, listen from the first player's perspective."),
+          GameRoomRules.translate("2: as an observer, listen from the second player's perspective."),
           GameRoomRules.translate("Ctrl+W: hurry the opponent before a serve."))
       ]
     end
