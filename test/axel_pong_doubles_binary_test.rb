@@ -16,6 +16,10 @@ begin
   [:pl, :en, :fallback].each do |language|
     $rules_english = language == :en
     $rules_dictionary = language == :fallback ? BinaryRuleDictionary.new({}) : dictionary
+    definitions = rules.option_definitions
+    match_type = definitions.find { |definition| definition.key == 'team_size' }
+    assert(match_type.label == (language == :pl ? 'Rodzaj meczu' : 'Match type'), "#{language}: untranslated match type")
+    assert(match_type.choices.map(&:label) == (language == :pl ? %w[Singiel Debel] : %w[Single Doubles]), "#{language}: untranslated match choices")
     replay = rules.replay(session, events.take(3), repository)
     views = rules.game_shortcuts(replay, 'Watcher').select { |shortcut| shortcut.key.match?(/\A[1-4]\z/) }
     assert(views.map(&:key) == %w[1 2 3 4], "#{language}: missing individual spectator shortcuts")
@@ -35,7 +39,10 @@ begin
     assert(text.encoding == Encoding::UTF_8 && text.valid_encoding?, "#{language}: binary doubles score encoding")
     assert(names.all? { |name| text.include?(name) }, "#{language}: the team score omitted a participant")
     assert(text.index(names[1]) < text.index(names[3]) && text.index(names[3]) < text.index(names[0]), "#{language}: team scores ignored chosen assignments")
-    %w[server position effects].each { |command| surface.handle_command(command) }
+    assert(text.include?(language == :pl ? 'Drużyna ' : 'Team '), "#{language}: untranslated team scores")
+    surface.handle_command('server')
+    assert($spoken_messages.last.include?(language == :pl ? 'będzie serwować do' : 'will serve against'), "#{language}: untranslated server/receiver announcement")
+    %w[position effects].each { |command| surface.handle_command(command) }
     assert($spoken_messages.all? { |message| message.encoding == Encoding::UTF_8 && message.valid_encoding? }, "#{language}: binary doubles readout encoding")
     assert(replay.history.all? { |entry| entry.text.valid_encoding? }, "#{language}: binary doubles history encoding")
     before = rules.replay(session, events.take(10), repository)

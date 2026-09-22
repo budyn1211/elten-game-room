@@ -231,4 +231,28 @@ polish_231, english_231 = document_231.split("## English", 2)
 assert(polish_231.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } == release_231.values, "2.0.2 Polish document differs")
 assert(english_231.lines.grep(/^- /).map { |line| line.delete_prefix("- ").strip } == entry_231.changes, "2.0.2 English document differs")
 
-puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, old notes preserved and bilingual 2.0.2/build 231 notes"
+entry_233 = entries.find { |entry| entry.build == 233 }
+release_233 = JSON.parse(File.read(File.expand_path('../locale/changelog-build-233-pl.json', __dir__), encoding: 'UTF-8'))
+assert(entry_233.version == '2.0.2.2' && entry_233.changes == release_233.keys, 'build 233 notes and translations differ')
+assert(entry_233.changes.length == 10 && entry_233.changes.uniq.length == 10, 'build 233 must preserve four notes and append the new game and five improvements')
+assert(entry_233.changes[4].include?('Cat, head, tail by TD Programs'), 'new game author is missing')
+assert(entry_233.changes.any? { |line| line.include?('Ctrl+F4') && line.include?('ELTEN server') }, 'server ping scope is missing')
+assert(entry_233.changes.any? { |line| line.include?('30 table presets') && line.include?('Settings > Widget') && line.include?('saved immediately') }, 'macro setup instructions are missing')
+release_233.each { |source, translation| assert(catalog[source] == translation, "uncompiled build 233 translation: #{source}") }
+assert(GameRoomChangelog.pending_entries(232, 233).map(&:build) == [233], 'build 233 repeats already-read notes')
+assert(GameRoomChangelog.pending_entries(nil, 233).map(&:build) == [233], 'first build 233 launch repeats older notes')
+assert(GameRoomChangelog.pending_entries(233, 233).empty?, 'build 233 changelog reopens after being read')
+assert(GameRoomChangelog.list_items([entry_233]).first == 'Version 2.0.2.2, build 233', 'build 233 heading differs')
+
+entry_234 = entries.find { |entry| entry.build == 234 }
+release_234 = JSON.parse(File.read(File.expand_path('../locale/changelog-build-234-pl.json', __dir__), encoding: 'UTF-8'))
+assert(entry_234.version == '2.0.2.3' && entry_234.changes == release_234.keys, 'build 234 notes and translations differ')
+assert(entry_234.changes.length == 3 && entry_234.changes.uniq.length == 3, 'build 234 has missing or duplicate notes')
+release_234.each { |source, translation| assert(catalog[source] == translation, "uncompiled build 234 translation: #{source}") }
+assert(GameRoomChangelog.pending_entries(233, 234).map(&:build) == [234], 'build 234 repeats already-read notes')
+assert(GameRoomChangelog.pending_entries(nil, 234).map(&:build) == [234], 'first build 234 launch repeats older notes')
+assert(GameRoomChangelog.pending_entries(234, 234).empty?, 'build 234 changelog reopens after being read')
+assert(GameRoomChangelog.list_items([entry_234]).first == 'Version 2.0.2.3, build 234', 'build 234 heading differs')
+assert(entry_234.changes.last.include?('HTTP') && entry_234.changes.last.include?('Communications'), 'ping transport is ambiguous')
+
+puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, old notes preserved and bilingual build 234 notes"

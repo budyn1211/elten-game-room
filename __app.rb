@@ -3,8 +3,8 @@
   "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
-  "version": "2.0.2.1",
-  "build_id": "232",
+  "version": "2.0.2.3",
+  "build_id": "234",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -20,8 +20,9 @@
   },
   "required_assets": {
     "sounds": [
-      "connect", "disconnect", "chatmsg", "notice", "buzzer2", "ding", "shuffle", "draw", "draw2",
-      "farkle", "hit1", "hit_ship1", "hit_ship2", "rocket_launch1", "rocket_launch2", "rocket_launch3", "rocket_miss",
+      "connect", "disconnect", "chatmsg", "notice", "buzzer", "buzzer2", "ding", "shuffle", "draw", "draw2",
+      "farkle", "cht-roll-dice", "cht-bank", "cht-lost-points", "cht-cat-minus-8", "cht-cat-plus-8",
+      "hit1", "hit_ship1", "hit_ship2", "rocket_launch1", "rocket_launch2", "rocket_launch3", "rocket_miss",
       "interception", "lose1", "lose3", "play", "play2", "replay",
       "reverse", "reverse3", "roll", "skip", "win1", "win2",
       "farkle_bank", "ninety3366", "1000_mariage", "win_party", "lose_party",
@@ -29,6 +30,7 @@
       "krowa-race", "krowa-word-tower", "krowa-single", "krowa-opponent-guessed",
       "krowa-duplicate", "krowa-unknown", "krowa-length", "krowa-success",
       "pong_ball", "pong_hit", "pong_wall", "pong_move", "pong_op_move", "pong_edge", "pong_goal",
+      "pong_move_double",
       "pong_shield_on", "pong_shield_off", "pong_shield_hit", "pong_invisible",
       "pong_goal1", "pong_goal2", "pong_goal3", "pong_goal4", "pong_goal5",
       "pong_goal6", "pong_goal7", "pong_goal8", "pong_score1", "pong_score2",
@@ -125,6 +127,7 @@ require_relative "games/reversi"
 require_relative "games/ludo"
 require_relative "games/spades"
 require_relative "games/farkle"
+require_relative "games/cat_head_tail"
 require_relative "games/ninety_nine"
 require_relative "games/tysiac"
 require_relative "games/categories"
@@ -150,8 +153,8 @@ require_relative "games/registry"
 class EltenGameRoom < Program
   extend GameRoomTableWatchRuntime
   extend GameRoomContactFiltersRuntime
-  GAME_ROOM_VERSION = "2.0.2.1".freeze
-  GAME_ROOM_BUILD_ID = 232
+  GAME_ROOM_VERSION = "2.0.2.3".freeze
+  GAME_ROOM_BUILD_ID = 234
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
 
@@ -207,6 +210,7 @@ class EltenGameRoom < Program
     GameRoomGames::Ludo,
     GameRoomGames::Spades,
     GameRoomGames::Farkle,
+    GameRoomGames::CatHeadTail,
     GameRoomGames::NinetyNine,
     GameRoomGames::Tysiac,
     GameRoomGames::Categories,
@@ -2048,6 +2052,7 @@ class EltenGameRoom < Program
     initialize_services
     return @widget_control if @widget_control
     @widget_control = GameRoomWidget::TableList.new(
+      program: self,
       loader: -> { load_widget_table_snapshots },
       opener: ->(snapshot) { open_widget_table(snapshot) },
       creator: ->(slot) { create_table_from_widget(slot) },
@@ -2158,7 +2163,7 @@ class EltenGameRoom < Program
       show_create_table
       return
     end
-    return unless slot.is_a?(Integer) && slot.between?(0, 9)
+    return unless slot.is_a?(Integer) && slot.between?(0, GameRoomTablePresets::COUNT - 1)
 
     entry = GameRoomTablePresets.slots(game_room_settings(reload: true)["table_presets"])[slot]
     unless entry
@@ -2194,6 +2199,7 @@ class EltenGameRoom < Program
   end
 
   def save_table_preset(slot, entry)
+    raise ArgumentError, 'Unknown table shortcut' unless slot.is_a?(Integer) && slot.between?(0, GameRoomTablePresets::COUNT - 1)
     # One local write only on explicit editing, never while navigating the widget.
     update_json("settings.json", default: DEFAULT_SETTINGS.dup) do |state|
       slots = GameRoomTablePresets.slots(state["table_presets"])
@@ -2430,8 +2436,8 @@ class EltenGameRoom < Program
   def room_user_rows(state)
     options = state.session == nil ? {} : state.game&.options_from_json(state.session["options"])
     RoomPresentation.game_users(
-      room: state.room, game: state.game, replay: state.replay,
-      players: state.players, owner: @lobby.owner_of(state.room.table), options: options
+      room: state.room, game: state.game, replay: state.waiting? ? nil : state.replay,
+      players: state.waiting? ? [] : state.players, owner: @lobby.owner_of(state.room.table), options: options
     )
   end
 
@@ -2547,18 +2553,7 @@ class EltenGameRoom < Program
     player_index = 0
     loop do
       player_index = [[player_index, 0].max, assignment.players.length - 1].min
-      labels = assignment.players.each_with_index.map do |participant, index|
-        _("%{player}, team %{team}") % {
-          player: GameRoomParticipants.display_name(participant),
-          team: assignment.seats[index] + 1
-        }
-      end
-      players = ListBox.new(
-        labels,
-        header: _("Players and teams"),
-        index: player_index,
-        quiet: true
-      )
+      players = GameRoomScreens::TeamList.new(assignment, index: player_index)
       change_button = Button.new(_("Change team"))
       automatic_button = Button.new(_("Assign automatically"))
       start_button = Button.new(_("Start game"))
@@ -2603,7 +2598,7 @@ class EltenGameRoom < Program
       when :automatic
         assignment.reset
       when :start
-        return game.with_team_assignment(options, players: participants, seats: assignment.seats)
+        return game.with_team_assignment(options, players: participants, seats: assignment.seats_for(participants))
       when :cancel
         return nil
       end

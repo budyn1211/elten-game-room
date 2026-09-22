@@ -2,7 +2,7 @@ require_relative "game_room_settings_widget_test"
 
 presets = GameRoomTablePresets
 registry = EltenGameRoom::GAME_REGISTRY
-assert(presets.slots(nil) == Array.new(10), "empty presets")
+assert(presets.slots(nil) == Array.new(30), "empty presets")
 registry.ids.each do |id|
   game = registry.build(id)
   entry = presets.build(game, {game_options: game.default_options, private_table: false})
@@ -65,11 +65,18 @@ first = false
 100.times { widget.update }
 assert(events.length == count + 1, "held shortcut created more than one table")
 first = true
-[[], [:shift], [:control, :shift], [:control, :option]].each do |held|
+[[], [:control, :shift], [:control, :option], [:shift, :option]].each do |held|
   modifiers = held
   widget.update
 end
 assert(events.length == count + 1, "extra modifiers or bare digits invoked shortcut")
+
+presets::BINDINGS.each_with_index do |(key, modifier), slot|
+  pressed, modifiers = key, [modifier]
+  widget.update
+  assert(events.last == slot, "native modifier mapping failed for #{presets.shortcut(slot)}")
+end
+assert(presets.slots(Array.new(10) { entry }).last(20) == Array.new(20), 'new slots are not empty on migration')
 
 # Use the app's ordinary table-creation entry point, never a second network
 # implementation. Empty slots must not connect, create or open dialogs.
@@ -128,7 +135,7 @@ begin
     form.fields.first.index = 3; form.fields.first.trigger(:move)
     list = form.fields.find { |field| field.is_a?(GameRoomScreens::TablePresetList) }
     assert(list && !form.hidden_controls.include?(list), "missing inline Widget list")
-    assert(list.options.length == 10 && list.options.first.include?("Press Enter to edit.") &&
+    assert(list.options.length == 30 && list.options.first.include?("Press Enter to edit.") &&
       list.options.last.include?("Press Enter to assign."), "slot hints are wrong")
     list.define_singleton_method(:alert) { |text| alerts << text }
     form.index = form.fields.index(list)
@@ -160,4 +167,4 @@ begin
 ensure
   Form.send(:define_method, :wait, old_wait)
 end
-puts "Widget presets: ten slots, validation, privacy, native scope, immediate local save/clear and independent cancellation OK"
+puts "Widget presets: thirty slots, validation, privacy, native scope, immediate local save/clear and independent cancellation OK"

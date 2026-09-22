@@ -37,7 +37,7 @@ require_relative 'support/pong_client'
 [%w[Alice Bob Carol Dave], %w[Bob Carol Dave Erin]].each do |players|
   h = PongHarness.new(players: players, options: {'team_size' => 2, 'team_seats' => [0, 0, 1, 1]})
   begin
-    assert(h.network.values.all? { |channel| channel.event_protocol == 'pong-doubles-1' },
+    assert(h.network.values.all? { |channel| channel.event_protocol == 'pong-doubles-peer-2' },
       'four-client match did not select its separate protocol dialect')
     host = h.clients['Alice']
     h.advance(400, names: h.clients.keys - [players.last])
@@ -146,7 +146,7 @@ begin
     native = GameRoomRealtime::EventChannel.new(program: ChannelProgram.new(name), match: client.instance_variable_get(:@match),
       owner: 'Alice', viewer: name, clock: -> { h.now }, members: -> { names },
       work_factory: worker_factory, event_work_factory: worker_factory)
-    native.enable_events('pong-doubles-1')
+    native.enable_events('pong-doubles-peer-2', routing: :peers)
     native.instance_variable_set(:@endpoint, ChannelEndpoint.new(name))
     native.__send__(:attach, sessions.fetch(name))
     client.instance_variable_set(:@channel, native)

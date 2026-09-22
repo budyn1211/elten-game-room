@@ -8,6 +8,7 @@ module GameRoomTeams
 
     def initialize(players:, team_size:, seats: nil)
       @players = GameRoomParticipants.unique(players)
+      @initial_players = @players.dup.freeze
       @team_size = team_size.to_i
       if @team_size <= 0 || @players.length % @team_size != 0
         raise ArgumentError, "players cannot be divided into teams of the requested size"
@@ -20,6 +21,7 @@ module GameRoomTeams
     end
 
     def reset
+      @players = @initial_players.dup
       @seats = automatic_seats
       self
     end
@@ -32,6 +34,21 @@ module GameRoomTeams
 
       @seats[player] = team
       self
+    end
+
+    # Team slots stay in place; only the people occupying them move. Persist
+    # the resulting assignment in the original roster order, not UI order.
+    def move(index, direction)
+      raise ArgumentError, 'unknown player seat' unless index.is_a?(Integer) && index.between?(0, @players.length - 1)
+      raise ArgumentError, 'invalid team movement' unless [-1, 1].include?(direction)
+      target = index + direction
+      return index unless target.between?(0, @players.length - 1)
+      @players[index], @players[target] = @players[target], @players[index]
+      target
+    end
+
+    def seats_for(players)
+      players.map { |player| team_index_for(player) }
     end
 
     def valid?

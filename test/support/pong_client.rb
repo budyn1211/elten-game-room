@@ -23,7 +23,8 @@ class PongTestAudio
   def goal(viewer:, winner:); end
   def start_match; end
   def close; end
-  def update(s, viewer:, paused:); @updates << [s, viewer, paused]; end
+  def play_local_movement(*_args, **_options); end
+  def update(s, viewer:, paused:, local_movement: false); @updates << [s, viewer, paused]; end
 end
 class PongTestChannel
   attr_accessor :epoch, :connected, :drop, :hold_events
@@ -35,7 +36,7 @@ class PongTestChannel
     @epoch, @connected, @resets = 'generation1', true, 0
     network[@viewer] = self
   end
-  def enable_events(mode = 'pong-local-1'); @events = mode; end
+  def enable_events(mode = 'pong-local-1', routing: :owner); @events, @routing = mode, routing; end
   def event_protocol; @events; end
   def tick; end
   def take_events; result, @event_inbox = @event_inbox, []; result; end
@@ -68,11 +69,11 @@ class PongTestChannel
     packet = JSON.parse(data)
     @network.each do |name, channel|
       next if name == @viewer || channel.epoch != packet['e']
-      next if @viewer != @owner && name != @owner
+      next if @routing != :peers && @viewer != @owner && name != @owner
       channel.event_inbox << [@viewer, packet]
     end
   end
-  def reconnect; @resets += 1; end
+  def reconnect(reason: nil); @resets += 1; end
   def close; @connected = false; end
 end
 class PongTestSurface

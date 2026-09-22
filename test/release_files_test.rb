@@ -17,6 +17,10 @@ end
 
 repo = File.expand_path("..", __dir__)
 selected = GameRoomReleaseFiles.files(repo)
+app_source = File.read(File.join(repo, '__app.rb'), encoding: 'UTF-8')
+embedded_manifest = JSON.parse(app_source.split('=begin Elten3AppInfo', 2).last.split('=end', 2).first)
+assert(embedded_manifest == JSON.parse(File.read(File.join(repo, 'manifest.json'), encoding: 'UTF-8')),
+  'Embedded and standalone manifests differ, including the order of required assets')
 assert(selected.grep(/\.rb\z/).length >= 187, "Runtime sources omitted")
 %w[single race word-tower].each do |variant|
   path = "Audio/krowa-#{variant}.opus"

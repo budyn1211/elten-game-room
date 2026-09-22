@@ -44,7 +44,7 @@ end
     begin
       audio.load
       audio.prepare_players(4) if audio.respond_to?(:prepare_players)
-      %w[pong_move pong_op_move pong_edge pong_op_edge pong_hit pong_op_hit].each do |asset|
+      %w[pong_move pong_op_move pong_move_double pong_edge pong_op_edge pong_hit pong_op_hit].each do |asset|
         assert(program.instances[asset].length == 4, "#{asset} needs a separate voice for each participant")
       end
       created = program.managed.length
@@ -57,12 +57,13 @@ end
       audio.update(state, viewer: viewer, paused: false)
       steps = teams.each_index.map do |seat|
         friendly = teams[seat] == teams[viewer]
-        voice = program.instances[friendly ? 'pong_move' : 'pong_op_move'][seat]
+        asset = teams.take(seat).include?(teams[seat]) ? (friendly ? 'pong_move' : 'pong_op_move') : 'pong_move_double'
+        voice = program.instances[asset][seat]
         assert(voice.playing? && voice.plays == 1, "participant #{seat} was overwritten")
-        near(voice.volume, friendly ? 0.5 : 0.2, 'movement baseline changed')
-        identity_pitch = teams.take(seat).include?(teams[seat]) ? 1.0 : 2.0**(-3.0 / 12)
-        near(voice.frequency, 48000 * (1.3 - (state['p'][seat].to_i - 15).abs * 0.6 / 14) * identity_pitch,
-          'wrong participant pitch or missing stable three-semitone identity')
+        sample_gain = asset == 'pong_move_double' ? 0.7079457843841379 : 1.0
+        near(voice.volume, (friendly ? 0.5 : 0.2) * sample_gain, 'movement baseline or sample trim changed')
+        near(voice.frequency, 48000 * (1.3 - (state['p'][seat].to_i - 15).abs * 0.6 / 14),
+          'footsteps should use positional pitch without the contact identity shift')
         voice.position = 0.25
         voice
       end
@@ -80,7 +81,8 @@ end
       audio.update(state, viewer: viewer, paused: false)
       audio.tick
       steps.each_with_index do |voice, seat|
-        near(voice.volume, teams[seat] == teams[viewer] ? 0.2 : 0.3, 'voice lost its volume group')
+        sample_gain = teams.take(seat).include?(teams[seat]) ? 1.0 : 0.7079457843841379
+        near(voice.volume, (teams[seat] == teams[viewer] ? 0.2 : 0.3) * sample_gain, 'voice lost its volume group or sample trim')
         delta = state['p'][seat] - state['p'][viewer]
         assert(delta.zero? ? voice.pan.zero? : voice.pan * delta > 0, 'ringing voice followed another participant')
         assert(voice.plays == (seat == source ? 2 : 1), 'position/gain update replayed a step')
@@ -99,7 +101,7 @@ end
         impacts = teams.each_index.map do |seat|
           voice = program.instances[seat == viewer ? 'pong_hit' : 'pong_op_hit'][seat]
           assert(voice.playing? && voice.plays == batch + 1, 'another player interrupted a serve/hit')
-          expected_pitch = teams.take(seat).include?(teams[seat]) ? 1.0 : 2.0**(-3.0 / 12)
+          expected_pitch = teams.take(seat).include?(teams[seat]) ? 1.0 : 2.0**(-4.0 / 12)
           near(voice.frequency, 48000 * expected_pitch, 'impact identity changed with the listener or action')
           voice
         end
@@ -128,4 +130,4 @@ begin
 ensure
   audio.close
 end
-puts 'PASS independent Pong movement/edge/hit voices: four simultaneous sources, stable three-semitone identity for every listener, no rewinds, stable resources, volume/mute/reset/close; Single uses its original handles'
+puts 'PASS independent Pong movement/edge/hit voices: four simultaneous sources, distinct footsteps and four-semitone contacts, no rewinds, stable resources, volume/mute/reset/close; Single uses its original handles'

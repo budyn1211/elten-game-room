@@ -45,7 +45,7 @@ def inline_presets(form)
   assert(list && !form.hidden_controls.include?(list), "missing inline preset list in Widget")
   visible = form.fields.reject { |field| form.hidden_controls.include?(field) }
   assert(visible[-3].equal?(list), "presets are not the final Widget field before Save/Cancel")
-  assert(list.options.length == 10, "wrong slot count")
+  assert(list.options.length == 30, "wrong slot count")
   form.index = form.fields.index(list)
   list
 end
@@ -59,7 +59,7 @@ Form.driver = lambda do |form|
   if forms.length == 1
     list = inline_presets(form)
     assert(list.options.first == "Ctrl+1: Not assigned. Press Enter to assign.", "empty slot has no assignment hint")
-    assert(list.options.last.start_with?("Ctrl+0:"), "zero slot order")
+    assert(list.options[9].start_with?("Ctrl+0:") && list.options.last.start_with?("Shift+0:"), "zero slot order")
     form.fields[2].checked = false
     list.index = 9
     form.accept_button.trigger(:press)
@@ -67,7 +67,7 @@ Form.driver = lambda do |form|
     saved = app.stored.fetch("table_presets")[9]
     assert(saved["game"] == "makao" && saved["private_table"], "saved wrong game/privacy")
     assert(list.index == 9 && form.fields[form.index].equal?(list), "editing lost selected slot/focus")
-    assert(list.options.last == "Ctrl+0: Makao. Press Enter to edit.", "assigned hint not updated")
+    assert(list.options[9] == "Ctrl+0: Makao. Press Enter to edit.", "assigned hint not updated")
     form.cancel_button.trigger(:press)
   else
     assert(forms.length == 2 && form.fields.first.is_a?(Static), "extra name or preset-list dialog opened")

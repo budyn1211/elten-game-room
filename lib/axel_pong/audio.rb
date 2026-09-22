@@ -9,10 +9,10 @@ module GameRoomPong
     ANNOUNCEMENTS = (GOALS + GOAL_VOICES + ['pong_scores'] +
       (0..21).map { |n| "pong_number#{n}" } + %w[pong_goal pong_gamestart pong_youwin pong_theywin]).freeze
     SHIELD_HITS = (1..10).flat_map { |n| ["pong_own_shield_hit#{n}", "pong_op_shield_hit#{n}"] }.freeze
-    MOVEMENT_ASSETS = %w[pong_move pong_op_move pong_edge pong_op_edge].freeze
+    MOVEMENT_ASSETS = %w[pong_move pong_op_move pong_move_double pong_edge pong_op_edge].freeze
     PARTICIPANT_ASSETS = (MOVEMENT_ASSETS + %w[pong_hit pong_op_hit]).freeze
-    DOUBLES_FIRST_PLAYER_PITCH = 2.0**(-3.0 / 12)
-    ASSETS = (%w[pong_ball pong_hit pong_op_hit pong_wall pong_move pong_op_move pong_edge pong_op_edge
+    DOUBLES_FIRST_PLAYER_PITCH = 2.0**(-4.0 / 12)
+    ASSETS = (%w[pong_ball pong_hit pong_op_hit pong_wall pong_move pong_op_move pong_move_double pong_edge pong_op_edge
       pong_shield_on pong_shield_off pong_shield_hit pong_op_shield_on pong_op_shield_off pong_invisible] +
       SHIELD_HITS + ANNOUNCEMENTS + ECHO_ASSETS + CROWD_ASSETS).freeze
     # Original default: own steps start at 50%; opponent steps settle at 20%
@@ -20,6 +20,8 @@ module GameRoomPong
     # these proportions instead of increasing both old 25% cues by 10%.
     OWN_MOVEMENT_LEVEL = 0.5
     OPPONENT_MOVEMENT_LEVEL = 0.2
+    # Balance only the new recording, independently of side and user sliders.
+    DOUBLES_MOVEMENT_GAIN = 10.0**(-3.0 / 20.0)
     # Original default opponent steps = 100%; depth gain .2 times 4.55.
     # Independent of the personal score-announcer regulator.
     OPPONENT_SHIELD_HIT_LEVEL = 0.91
@@ -64,6 +66,7 @@ module GameRoomPong
     def reset
       @last_effect = 0
       @movement_cue_sources = {}
+      @movement_volume_groups = {}
       crowd_reset
       suspend
     end
@@ -153,7 +156,16 @@ module GameRoomPong
       end
     end
 
-    def update(snapshot, viewer:, paused:)
+    def play_local_movement(snapshot, viewer:, kind:, position:)
+      positions = snapshot['p'].dup
+      positions[viewer] = position
+      state = snapshot.merge('p' => positions)
+      # Local feedback has no server event number. It cannot consume the
+      # sequence used for remote steps, strikes, walls and goals.
+      play_effect(kind, viewer, position, court_side(state, viewer) * 20, state, viewer)
+    end
+
+    def update(snapshot, viewer:, paused:, local_movement: false)
       return suspend unless snapshot
       paddle, ball = snapshot['p'][viewer], snapshot['b']
       pan, volume = spatial(paddle, ball['x'], ball['y'], court_side(snapshot, viewer))
@@ -170,6 +182,7 @@ module GameRoomPong
       snapshot['fx'].each do |number, kind, side, x, y|
         next if number <= @last_effect
         @last_effect = number
+        next if local_movement && side == viewer && %w[step edge].include?(kind)
         next if paused && !%w[step edge].include?(kind)
         play_effect(kind, side, x, y, snapshot, viewer)
         crowd_event('chant') if kind == 'serve'
@@ -211,12 +224,15 @@ module GameRoomPong
       @movement_players == 4 && seat != 0 ? "#{asset}:#{seat}" : asset
     end
 
-    # First member of each team keeps the lower voice for every listener.
+    # First member of each team keeps the lower contact voice for every listener.
     # Do not derive identity from the observer, the current hitter or service.
     def participant_pitch(snapshot, seat)
+      first_team_player?(snapshot, seat) ? DOUBLES_FIRST_PLAYER_PITCH : 1.0
+    end
+
+    def first_team_player?(snapshot, seat)
       teams = snapshot['teams']
-      return 1.0 unless teams && teams.length == 4 && seat != nil
-      teams.index(teams[seat]) == seat ? DOUBLES_FIRST_PLAYER_PITCH : 1.0
+      teams && teams.length == 4 && seat != nil && teams.index(teams[seat]) == seat
     end
 
     def court_side(snapshot, participant)
@@ -239,7 +255,9 @@ module GameRoomPong
     # recover volume + pan from those channel gains without global changes.
     # Keep raw pan/level separately so a later volume change is reversible.
     def apply_mix(name, pan, level)
-      volume = [level * personal_gain(name) * gain(name), 0.0].max
+      asset = @voice_assets.fetch(name, name)
+      sample_gain = asset == 'pong_move_double' ? DOUBLES_MOVEMENT_GAIN : 1.0
+      volume = [level * sample_gain * personal_gain(name) * gain(name), 0.0].max
       left = [volume * (pan > 0 ? (1 - pan)**1.4 : 1), 1.0].min
       right = [volume * (pan < 0 ? (1 + pan)**1.4 : 1), 1.0].min
       volume = [left, right].max
@@ -261,10 +279,14 @@ module GameRoomPong
         x = snapshot['p'][side]
         pan, volume = spatial(paddle, x, court_side(snapshot, side) * 20, viewer_side)
         name = kind == 'step' ? (own ? 'pong_move' : 'pong_op_move') : (own ? 'pong_edge' : 'pong_op_edge')
+        name = 'pong_move_double' if kind == 'step' && first_team_player?(snapshot, side)
         name = participant_sound_key(name, side)
         @movement_cue_sources[name] = side if kind == 'step' || !own
         volume = own ? OWN_MOVEMENT_LEVEL : OPPONENT_MOVEMENT_LEVEL if kind == 'step'
-        pitch = (1.3 - (x.to_i - 15).abs.clamp(0, 14) * (0.6 / 14)) * participant_pitch(snapshot, side) if kind == 'step'
+        if kind == 'step'
+          @movement_volume_groups[name] = own ? 'own_volume' : 'opponent_volume'
+          pitch = 1.3 - (x.to_i - 15).abs.clamp(0, 14) * (0.6 / 14)
+        end
       when 'hit', 'serve'
         @sounds['pong_ball'].position = 0 if @sounds['pong_ball']
         name = participant_sound_key(own ? 'pong_hit' : 'pong_op_hit', side)
@@ -351,8 +373,11 @@ module GameRoomPong
     end
 
     def personal_gain(name)
+      movement_group = @movement_volume_groups[name]
       name = @voice_assets.fetch(name, name)
-      key = if ANNOUNCEMENTS.include?(name)
+      key = if movement_group
+        movement_group
+      elsif ANNOUNCEMENTS.include?(name)
         'announcer_volume'
       elsif name == 'pong_move'
         'own_volume'

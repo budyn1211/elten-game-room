@@ -121,7 +121,7 @@ driver = lambda do |current|
     assert(list.is_a?(EditBox) && (list.flags & EditBox::Flags::ReadOnly) != 0 && (list.flags & EditBox::Flags::MultiLine) != 0, "help is not read-only multiline text")
     lines = list.text.split("\n")
     assert(lines.first(4) == ["Game action", "Duplicate", "Room action", "Native field tip"], "help order/deduplication")
-    assert(lines[-5] == "History action" && lines.uniq == lines, "general order/duplicates")
+    assert(lines[-6] == "History action" && lines.uniq == lines, "general order/duplicates")
     assert(list.key_processed(:key_enter) == false, "Enter cannot close help")
     EltenAPI::QuickActions.hotkey_actions(1).each(&:call)
     EltenAPI::QuickActions.hotkey_actions(1).each(&:call)
@@ -182,6 +182,7 @@ chat.index, chat.check = 3, 7
 chat.define_singleton_method(:get_tips) { ["Chat editing"] }
 chat_form = GameRoomUI::Form.new([chat], program: app)
 chat_form.game_room_general_help_tips = ["History action"]
+chat_form.game_room_text_help_tips = ["Chat history punctuation"]
 driver = lambda do |current|
   $activecontrols = [current, current.fields.first]
   if current.equal?(chat_form)
@@ -189,6 +190,7 @@ driver = lambda do |current|
   else
     assert(current.fields.first.text.split("\n").first == "Chat editing", "chat help missing")
     assert(!current.fields.first.text.include?("History action"), "history advertised inside editable chat")
+    assert(current.fields.first.text.include?("Chat history punctuation"), "punctuation shortcuts missing from chat help")
     current.cancel_button.trigger(:press)
   end
 end

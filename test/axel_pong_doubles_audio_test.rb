@@ -24,10 +24,11 @@ end
 
 class DoublesAudioProgram
   attr_reader :sounds, :played
-  attr_accessor :pong_preferences
+  attr_accessor :pong_preferences, :sound_gain
 
   def initialize
     @sounds, @played = {}, []
+    @sound_gain = 1.0
     @voices = Hash.new { |h, key| h[key] = [] }
     @pong_preferences = GameRoomPong::Preferences::DEFAULTS.dup
   end
@@ -40,6 +41,7 @@ class DoublesAudioProgram
   end
 
   def voice(name, source); @voices.fetch(name).fetch(source); end
+  def game_room_sound_volume(_asset); @sound_gain; end
 end
 
 def assert(value, message)
@@ -56,7 +58,16 @@ def rendered_pan(delta)
 end
 
 def identity_pitch(teams, source)
-  teams.take(source).include?(teams[source]) ? 1.0 : 2.0**(-3.0 / 12)
+  teams.take(source).include?(teams[source]) ? 1.0 : 2.0**(-4.0 / 12)
+end
+
+def step_asset(teams, source, viewer)
+  return 'pong_move_double' unless teams.take(source).include?(teams[source])
+  teams[source] == teams[viewer] ? 'pong_move' : 'pong_op_move'
+end
+
+def movement_sample_gain(asset)
+  asset == 'pong_move_double' ? 0.7079457843841379 : 1.0
 end
 
 def snapshot(teams)
@@ -180,16 +191,17 @@ check.call('doubles footsteps use team samples and gains with each participant p
               before = program.played.length
               audio.update(state, viewer: viewer, paused: paused)
               friendly = teams[source] == teams[viewer]
-              name = friendly ? 'pong_move' : 'pong_op_move'
+              name = step_asset(teams, source, viewer)
               sound = program.voice(name, source)
-              steps = program.played[before..].select { |asset| %w[pong_move pong_op_move].include?(asset) }
+              steps = program.played[before..].select { |asset| %w[pong_move pong_op_move pong_move_double].include?(asset) }
               context = "teams #{teams.inspect}, viewer #{viewer}, source #{source}"
               assert(steps == [name], "#{context}: wrong footstep sample #{steps.inspect}, expected #{name}")
               volume = friendly ? 0.5 * own_gain / 100.0 : 0.2 * opponent_gain / 100.0
+              volume *= movement_sample_gain(name)
               near(sound.volume, volume, "#{context}: wrong footstep volume group or baseline")
               pan = volume.zero? ? 0 : rendered_pan(state['p'][source] - state['p'][viewer])
               near(sound.pan, pan, "#{context}: footstep did not use the actual participant position")
-              pitch = (1.3 - (state['p'][source].to_i - 15).abs * (0.6 / 14)) * identity_pitch(teams, source)
+              pitch = 1.3 - (state['p'][source].to_i - 15).abs * (0.6 / 14)
               near(sound.frequency, 44100 * pitch, "#{context}: footstep did not use the actual participant pitch")
             end
           end
@@ -206,7 +218,8 @@ check.call('doubles ringing movement cues follow their own participant independe
         state = snapshot(teams)
         teammate = teams.each_index.find { |seat| seat != viewer && teams[seat] == teams[viewer] }
         opponents = teams.each_index.select { |seat| teams[seat] != teams[viewer] }
-        sources = {'pong_move' => teammate, 'pong_op_move' => opponents[0], 'pong_op_edge' => opponents[0]}
+        sources = [[step_asset(teams, teammate, viewer), teammate],
+          [step_asset(teams, opponents[0], viewer), opponents[0]], ['pong_op_edge', opponents[0]]]
         state['fx'] = [[1, 'step', teammate, 15, 10], [2, 'step', opponents[0], 15, 10],
           [3, 'edge', opponents[0], 15, 10]]
         audio.update(state, viewer: viewer, paused: false)
@@ -216,12 +229,13 @@ check.call('doubles ringing movement cues follow their own participant independe
         end
         state['fx'] = [[4, 'step', opponents[1], 15, 10], [5, 'step', viewer, 15, 10]]
         audio.update(state, viewer: viewer, paused: false)
-        sources['pong_op_move'] = opponents[1]
-        sources['pong_move'] = viewer
-        near(program.voice('pong_move', viewer).volume, 0.5, 'local movement level was lost')
-        near(program.voice('pong_move', viewer).pan, 0, 'local movement was not centred')
-        near(program.voice('pong_move', viewer).frequency, 44100 * (1.3 - (state['p'][viewer].to_i - 15).abs * (0.6 / 14)) * identity_pitch(teams, viewer), 'local movement used a teammate paddle')
-        plays = sources.to_h { |name, source| [name, program.voice(name, source).plays] }
+        sources << [step_asset(teams, opponents[1], viewer), opponents[1]]
+        sources << [step_asset(teams, viewer, viewer), viewer]
+        local_voice = program.voice(step_asset(teams, viewer, viewer), viewer)
+        near(local_voice.volume, 0.5 * movement_sample_gain(step_asset(teams, viewer, viewer)), 'local movement level was lost')
+        near(local_voice.pan, 0, 'local movement was not centred')
+        near(local_voice.frequency, 44100 * (1.3 - (state['p'][viewer].to_i - 15).abs * (0.6 / 14)), 'local movement used a teammate paddle')
+        plays = sources.to_h { |name, source| [[name, source], program.voice(name, source).plays] }
         state['p'] = [24.0, 18.0, 7.0, 2.0]
         state['fx'] = []
         audio.update(state, viewer: viewer, paused: false)
@@ -229,10 +243,11 @@ check.call('doubles ringing movement cues follow their own participant independe
         sources.each do |name, source|
           sound = program.voice(name, source)
           near(sound.pan, rendered_pan(state['p'][source] - state['p'][viewer]), "#{name}: ringing cue followed the wrong source for viewer #{viewer}")
-          near(sound.volume, name == 'pong_move' ? 0.5 : 0.2, "#{name}: ringing cue changed level")
-          assert(sound.plays == plays[name], "#{name}: position update replayed movement")
+          volume = (teams[source] == teams[viewer] ? 0.5 : 0.2) * movement_sample_gain(name)
+          near(sound.volume, volume, "#{name}: ringing cue changed level")
+          assert(sound.plays == plays[[name, source]], "#{name}: position update replayed movement")
         end
-        assert(program.voice('pong_move', viewer).plays == 1 && program.voice('pong_move', teammate).plays == 1,
+        assert(program.voice(step_asset(teams, viewer, viewer), viewer).plays == 1 && program.voice(step_asset(teams, teammate, viewer), teammate).plays == 1,
           'teammate and local movement did not retain independent voices of the own sample')
         previous_edge_plays = program.voice('pong_op_edge', teammate).plays
         state['fx'] = [[6, 'edge', teammate, 15, 10]]
@@ -258,7 +273,7 @@ check.call('doubles friendly footsteps track partner and self switches without r
         teammate = teams.each_index.find { |seat| seat != viewer && teams[seat] == teams[viewer] }
         source_plays = Hash.new(0)
         [viewer, teammate, viewer, teammate].each_with_index do |source, number|
-          sound = program.voice('pong_move', source)
+          sound = program.voice(step_asset(teams, source, viewer), source)
           source_plays[source] += 1
           program.pong_preferences.merge!('own_volume' => 100, 'opponent_volume' => 150)
           state['fx'] = [[number + 1, 'step', source, 15, 10]]
@@ -266,7 +281,7 @@ check.call('doubles friendly footsteps track partner and self switches without r
           context = "teams #{teams.inspect}, viewer #{viewer}, source #{source}"
           assert(sound.plays == source_plays[source], "#{context}: friendly footstep did not use its independent own sample")
           near(sound.pan, rendered_pan(state['p'][source] - state['p'][viewer]), "#{context}: fresh footstep retained the previous source")
-          pitch = (1.3 - (state['p'][source].to_i - 15).abs * (0.6 / 14)) * identity_pitch(teams, source)
+          pitch = 1.3 - (state['p'][source].to_i - 15).abs * (0.6 / 14)
           near(sound.frequency, 44100 * pitch, "#{context}: fresh footstep retained the previous pitch")
           sound.position = 0.375
           state['p'].reverse!
@@ -275,13 +290,13 @@ check.call('doubles friendly footsteps track partner and self switches without r
           audio.update(state, viewer: viewer, paused: false)
           audio.tick
           near(sound.pan, rendered_pan(state['p'][source] - state['p'][viewer]), "#{context}: ringing friendly footstep followed the wrong participant")
-          near(sound.volume, 0.2, "#{context}: ringing friendly footstep ignored the own volume control")
+          near(sound.volume, 0.2 * movement_sample_gain(step_asset(teams, source, viewer)), "#{context}: ringing friendly footstep ignored the own volume control")
           near(sound.frequency, 44100 * pitch, "#{context}: position-only update changed the footstep pitch")
           near(sound.position, 0.375, "#{context}: position-only update rewound the footstep")
           assert(sound.plays == source_plays[source], "#{context}: position-only update replayed the footstep")
           program.pong_preferences['own_volume'] = 160
           audio.tick
-          near(sound.volume, 0.8, "#{context}: ringing friendly footstep lost its own baseline")
+          near(sound.volume, 0.8 * movement_sample_gain(step_asset(teams, source, viewer)), "#{context}: ringing friendly footstep lost its own baseline")
           near(sound.pan, rendered_pan(state['p'][source] - state['p'][viewer]), "#{context}: gain update restored a stale position")
           assert(sound.plays == source_plays[source], "#{context}: gain update replayed the footstep")
         end
@@ -289,12 +304,12 @@ check.call('doubles friendly footsteps track partner and self switches without r
         state['p'].reverse!
         audio.update(state, viewer: viewer, paused: true)
         [viewer, teammate].each do |source|
-          voice = program.voice('pong_move', source)
+          voice = program.voice(step_asset(teams, source, viewer), source)
           assert(!voice.playing? && voice.plays == 2, 'reset resumed a stale friendly footstep')
         end
         state['fx'] = [[1, 'step', viewer, 15, 10]]
         audio.update(state, viewer: viewer, paused: true)
-        sound = program.voice('pong_move', viewer)
+        sound = program.voice(step_asset(teams, viewer, viewer), viewer)
         near(sound.pan, 0, 'first footstep after reset retained the teammate position')
         assert(sound.plays == 3, 'reset did not accept the new footstep sequence')
       end
@@ -381,6 +396,35 @@ check.call('doubles point and goal APIs still accept teams for score order and w
             break if program.played.length >= expected.length
           end
           assert(program.played == expected, "viewer #{viewer}: wrong team score/result #{program.played.inspect}")
+        end
+      end
+    end
+  end
+end
+
+check.call('only move-double has a stable extra -3 dB for every listener and local/remote feedback') do
+  [0, 0, 1, 1].permutation.to_a.uniq.each do |teams|
+    teams.each_index do |viewer|
+      [false, true].each do |local_feedback|
+        with_audio do |audio, program|
+          state = snapshot(teams)
+          state['p'] = [15.0] * 4
+          state['fx'] = teams.each_index.map { |source| [source + 1, 'step', source, 15, teams[source] * 20] }
+          audio.play_local_movement(state, viewer: viewer, kind: 'step', position: 15) if local_feedback
+          audio.update(state, viewer: viewer, paused: false, local_movement: local_feedback)
+          [1.0, 0.6, 1.0].each do |gain|
+            program.sound_gain = gain
+            3.times { audio.tick }
+            teams.each_index do |source|
+              asset = step_asset(teams, source, viewer)
+              voice = program.voice(asset, source)
+              baseline = (teams[source] == teams[viewer] ? 0.5 : 0.2) * gain
+              expected_db = asset == 'pong_move_double' ? -3.0 : 0.0
+              near(20 * Math.log10(voice.volume / baseline), expected_db, "#{asset}: incorrect or cumulative attenuation")
+              near(voice.frequency, 44100 * 1.3, "#{asset}: volume trim changed pitch")
+              assert(voice.plays == 1, "#{asset}: volume trim replayed a step")
+            end
+          end
         end
       end
     end

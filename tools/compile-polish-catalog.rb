@@ -2,6 +2,8 @@ require "json"
 
 root = File.expand_path("..", __dir__)
 catalog_path = File.join(root, "locale", "PL.mo")
+contexts_path = File.join(root, "locale", "catalog-contexts.json")
+contexts = JSON.parse(File.read(contexts_path, encoding: "UTF-8"))
 
 def read_catalog(path)
   data = File.binread(path)
@@ -62,12 +64,16 @@ end
 
 catalog = read_catalog(catalog_path)
 files.each do |path|
+  context = contexts[File.basename(path)]
   JSON.parse(File.read(path, encoding: "UTF-8")).each do |source, translation|
     source_placeholders = source.split("\0", 2).first.scan(/%\{[^}]+\}/).sort
     translation.split("\0", -1).each do |variant|
       raise "placeholder mismatch in #{File.basename(path)}: #{source}" if variant.scan(/%\{[^}]+\}/).sort != source_placeholders
     end
-    catalog[source] = translation
+    # Keep a contributed game's wording without replacing another game's
+    # translation of the same English phrase. Source JSON remains verbatim.
+    key = context ? "#{context}\u0004#{source}" : source
+    catalog[key] = translation
   end
 end
 

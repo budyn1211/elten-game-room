@@ -1,10 +1,12 @@
 require_relative "game_room_preferences"
 require_relative "context_help"
+require_relative "game_room_ping"
 
 # The host handles function keys before Form events. Intercept dispatch, not
 # saved QuickActions or host sources. Only a currently waiting Game Room form
 # in the host's active-controls list can replace a native action. The bridge
-# holds no application/runtime reference and is installed just once.
+# holds no application/runtime reference. Upgrade the legacy fixed-key bridge
+# once; subsequent application reloads reuse dynamic control dispatch.
 module GameRoomUI
   HostForm = Form
   # Read-only text retains the native reading/selection/copy commands, but
@@ -24,11 +26,33 @@ module GameRoomUI
     "F2: lower the selected Game Room sound volume.",
     "F3: raise the selected Game Room sound volume.",
     "Shift+F2: select the previous sound group.",
-    "Shift+F3: select the next sound group."
+    "Shift+F3: select the next sound group.",
+    "Ctrl+F4: read HTTP and available Communications ping."
   ].freeze
   HotkeyAction = Struct.new(:callback) do
     def call
       callback.call
+    end
+  end
+
+  module PingControl
+    attr_accessor :game_room_program
+
+    def request_game_room_ping
+      EltenAPI::KeyboardState.clear_current_frame if defined?(EltenAPI::KeyboardState)
+      return unless game_room_program
+      service = GameRoomPing.for(game_room_program)
+      service.request(game_room_program)
+    end
+
+    def update_game_room_ping
+      current = $activecontrols.to_a.reverse.find do |control|
+        control.respond_to?(:game_room_hotkeys_active?) && control.game_room_hotkeys_active?
+      end
+      return unless current.equal?(self) && game_room_program
+      service = game_room_program.instance_variable_get(:@game_room_ping)
+      message = service&.poll(game_room_program)
+      speak(message) if message
     end
   end
 
@@ -38,14 +62,16 @@ module GameRoomUI
     return unless defined?(EltenAPI::QuickActions)
 
     target = EltenAPI::QuickActions.singleton_class
-    return if target.instance_variable_get(:@game_room_dispatch_bridge)
+    return if target.instance_variable_get(:@game_room_dispatch_bridge_version).to_i >= 2
 
     bridge = Module.new do
       define_method(:hotkey_actions) do |key|
         form = $activecontrols.to_a.reverse.find do |control|
           control.respond_to?(:game_room_hotkeys_active?) && control.game_room_hotkeys_active?
         end
-        if form != nil && [1, 2, 3, -2, -3].include?(key)
+        # The host singleton survives app updates. Do not freeze the set of
+        # supported keys here: the current control owns that decision.
+        if form != nil && form.respond_to?(:game_room_hotkey_action)
           action = form.game_room_hotkey_action(key)
           return [action] if action != nil
         end
@@ -54,11 +80,13 @@ module GameRoomUI
     end
     target.prepend(bridge)
     target.instance_variable_set(:@game_room_dispatch_bridge, true)
+    target.instance_variable_set(:@game_room_dispatch_bridge_version, 2)
   end
 
   class Form < HostForm
+    include PingControl
     attr_accessor :game_room_program, :game_room_volume_reader, :game_room_volume_writer
-    attr_accessor :game_room_general_help_tips
+    attr_accessor :game_room_general_help_tips, :game_room_text_help_tips
 
     def initialize(fields, program: nil, **options)
       @game_room_program = program
@@ -73,13 +101,22 @@ module GameRoomUI
       @game_room_waiting = false
     end
 
+    def update
+      super
+      update_game_room_ping
+    end
+
     def game_room_hotkeys_active?
       @game_room_waiting == true
     end
 
     def game_room_hotkey_action(key)
       return HotkeyAction.new(-> { show_game_room_help }) if key == 1
-      return nil unless @game_room_program&.respond_to?(:adjust_game_room_volume, true)
+      if key == 16 && @game_room_program
+        return HotkeyAction.new(-> { request_game_room_ping })
+      end
+      return nil unless [2, 3, -2, -3].include?(key) &&
+        @game_room_program&.respond_to?(:adjust_game_room_volume, true)
 
       HotkeyAction.new(lambda do
         clear_game_room_key
@@ -98,7 +135,7 @@ module GameRoomUI
       tips = GameRoomContextHelp.field_tips(field)
       form_tips = respond_to?(:get_tips) ? get_tips.to_a : []
       history_tips = if field.is_a?(EditBox) && (field.flags.to_i & EditBox::Flags::ReadOnly) == 0
-        []
+        game_room_text_help_tips.to_a
       else
         game_room_general_help_tips.to_a
       end

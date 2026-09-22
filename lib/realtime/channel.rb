@@ -1,12 +1,14 @@
 require 'digest'
 require_relative 'operation'
 require_relative 'protocol'
+require_relative 'metrics'
 
 module GameRoomRealtime
   # The only owner of Game Room's Communications endpoint. Sessions remain
   # private even for a public table. No per-frame network wait, retry loop,
   # background UI calls, application notifications, or original Pong service.
   class Channel
+    RECEIVE_BATCH = 128
     attr_reader :epoch, :last_error
 
     def initialize(program:, match:, owner:, viewer:, clock:, members:, work: nil, work_factory: nil)
@@ -20,17 +22,39 @@ module GameRoomRealtime
       @invite_after, @invite_attempts = {}, {}
       @incoming = {} # One newest packet per authenticated member, bounded by roster.
       @pending_invitation = nil
+      @accepting_invitation = @accepted_invitation_key = nil
       @resource_lock = Mutex.new
+      @metrics = Metrics.new(clock: clock)
     end
 
     def host?; @owner.casecmp?(@viewer); end
     def connected?; @session != nil && @session.state == :open && @endpoint && !@endpoint.closed?; end
 
+    # Native latency is the latest client-to-relay UDP RTT, in seconds.
+    # fast_path? checks its freshness. This only reads memory: never open an
+    # endpoint, send probes or dispatch callbacks just to answer a shortcut.
+    # nil means no active connection; nil relay_udp_ms means no valid UDP RTT
+    # (e.g. TCP fallback), not zero latency or a measured TCP/peer round trip.
+    def ping_sample
+      endpoint, session = @endpoint, @session
+      return if @closed || @reconnect_requested || !endpoint || !session ||
+        session.state != :open || endpoint.closed?
+      latency = endpoint.latency if endpoint.respond_to?(:latency) &&
+        endpoint.respond_to?(:fast_path?) && endpoint.fast_path?
+      milliseconds = (latency * 1000).round if latency.is_a?(Numeric) && latency.finite? && latency >= 0
+      { relay_udp_ms: milliseconds }
+    end
+
     def tick
       return if @closed
       now = @clock.call
+      @metrics.tick(endpoint: @endpoint, role: host? ? 'host' : 'guest', generation: @generation)
       if (result = @work.take)
         value, error, kind = result
+        if kind == :accept
+          @accepted_invitation_key = invitation_key(@accepting_invitation) if value.is_a?(Array) && value.first == :session
+          @accepting_invitation = nil
+        end
         if error
           @last_error = error.class.to_s
           trace("#{kind}_failed", error: @last_error)
@@ -63,6 +87,7 @@ module GameRoomRealtime
         reset_connection(now, delay: 0.0)
       end
       drain_invitations if @endpoint && !host? && !@endpoint.closed?
+      drain_received_messages
       return if @work.busy?
       if @endpoint == nil || @endpoint.closed?
         return if now < @next_retry
@@ -101,9 +126,14 @@ module GameRoomRealtime
         end
       elsif !host? && @pending_invitation
         invitation, @pending_invitation = @pending_invitation, nil
+        return unless invitation.status == :pending
         previous = @session
         generation = @generation
-        @work.start(:accept) do
+        @accepting_invitation = invitation
+        started = @work.start(:accept) do
+          # A queued worker may start after recovery/close or after native
+          # cancellation. Do not begin an obsolete accept RPC.
+          next nil if @closed || generation != @generation || invitation.status != :pending
           session = invitation.accept
           if @closed || generation != @generation
             session.leave
@@ -112,6 +142,7 @@ module GameRoomRealtime
             [:session, session, previous && !previous.equal?(session) ? previous : nil]
           end
         end
+        @accepting_invitation = nil unless started
       elsif host? && connected?
         present = @session.participants.map { |p| p.user.downcase }
         missing = allowed_members.find do |name|
@@ -154,7 +185,8 @@ module GameRoomRealtime
       packets
     end
 
-    def reconnect
+    def reconnect(reason: nil)
+      @reconnect_reason ||= reason || @last_error || 'requested'
       @reconnect_requested = true
     end
 
@@ -168,6 +200,7 @@ module GameRoomRealtime
       end
       @incoming.clear
       @pending_invitation = nil
+      @accepting_invitation = @accepted_invitation_key = nil
       @departing = nil
       # Closing a dedicated endpoint releases its sessions and callbacks. An
       # already-running finite setup operation checks @closed before returning.
@@ -184,6 +217,7 @@ module GameRoomRealtime
       @session = @endpoint = @epoch = nil
       @incoming.clear
       @pending_invitation = nil
+      @accepting_invitation = @accepted_invitation_key = nil
       @departing = nil
       @last_packet_at = nil
       @invited_at.clear
@@ -192,7 +226,8 @@ module GameRoomRealtime
       @next_retry = now + delay
       dispose_endpoint(endpoint)
       @work.cancel
-      trace('reconnect')
+      trace('reconnect', error: @reconnect_reason || @last_error || 'endpoint_closed')
+      @reconnect_reason = nil
     end
 
     def trace(stage, error: nil)
@@ -235,10 +270,53 @@ module GameRoomRealtime
 
     def consider_invitation(invitation)
       return if host? || @pending_invitation
+      key = invitation_key(invitation)
+      return if key == @accepted_invitation_key || (@accepting_invitation && key == invitation_key(@accepting_invitation))
       return if connected? && @last_packet_at && @clock.call - @last_packet_at < 2
       return unless invitation.sender.user.to_s.casecmp?(@owner)
       return unless invitation.session_metadata == metadata && invitation.status == :pending
       @pending_invitation = invitation
+    end
+
+    def invitation_key(invitation)
+      return unless invitation
+      id = invitation.id.to_s if invitation.respond_to?(:id)
+      id && !id.empty? ? [:id, id] : [:object, invitation.object_id]
+    end
+
+    # Session.receive(timeout: 0) drains only already received local messages.
+    # In ELTEN it neither waits nor pumps the UI or performs an RPC. A message
+    # arriving after the native callback pass need not wait another UI cycle.
+    # Keep callbacks as well: both paths share authentication and sequence
+    # guards, so whichever arrives second cannot apply the same packet twice.
+    def drain_received_messages
+      session = @session
+      return unless connected? && session.respond_to?(:receive)
+      RECEIVE_BATCH.times do
+        break if @closed || @reconnect_requested || !session.equal?(@session)
+        item = session.receive(timeout: 0)
+        break unless item
+        kind, message = item
+        receive_message(session, kind, message)
+      end
+    rescue StandardError => error
+      return if @closed || !session.equal?(@session)
+      @last_error = error.class.to_s
+      reconnect(reason: 'ReceiveFailed')
+    end
+
+    def receive_message(session, kind, message)
+      return if @closed || @reconnect_requested || !@session.equal?(session) || kind != :unreliable
+      sender = message.sender.user.to_s
+      return unless authorized?(sender) && (host? || sender.casecmp?(@owner))
+      packet = Protocol.decode(message.data, match: @match, epoch: @epoch)
+      return unless packet && packet['k'] == (host? ? 'input' : 'state')
+      key = sender.downcase
+      return if packet['n'] <= @received_sequences.fetch(key, -1)
+      @received_sequences[key] = packet['n']
+      @incoming[key] = packet
+      @last_packet_at = @clock.call
+      @last_error = nil
     end
 
     def attach(session)
@@ -252,19 +330,9 @@ module GameRoomRealtime
       @last_packet_at = nil
       @received_sequences = {}
       session.on_unreliable do |message|
-        next if @closed || !@session.equal?(session)
-        sender = message.sender.user.to_s
-        next unless authorized?(sender) && (host? || sender.casecmp?(@owner))
-        packet = Protocol.decode(message.data, match: @match, epoch: @epoch)
-        next unless packet && packet['k'] == (host? ? 'input' : 'state')
-        key = sender.downcase
-        next if packet['n'] <= @received_sequences.fetch(key, -1)
-        @received_sequences[key] = packet['n']
-        @incoming[key] = packet
-        @last_packet_at = @clock.call
-        @last_error = nil
+        receive_message(session, :unreliable, message)
       end
-      session.on_owner_changed { |_owner| reconnect unless @closed || !@session.equal?(session) }
+      session.on_owner_changed { |_owner| reconnect(reason: 'OwnerChanged') unless @closed || !@session.equal?(session) }
       trace('session_ready')
     end
   end

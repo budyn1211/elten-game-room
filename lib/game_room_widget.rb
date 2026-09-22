@@ -2,14 +2,17 @@ require_relative "game_room_background"
 require_relative "network_errors"
 require_relative "context_help"
 require_relative "table_presets"
+require_relative "game_room_ui"
 
 module GameRoomWidget
   Loading = Struct.new(:label)
 
   class TableList < ListBox
+    include GameRoomUI::PingControl
     attr_reader :snapshots
 
-    def initialize(loader:, opener:, labeler:, id_for:, active: -> { true }, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, worker: nil, foreground: nil, manual_refresh: -> {}, creator: nil)
+    def initialize(loader:, opener:, labeler:, id_for:, active: -> { true }, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, worker: nil, foreground: nil, manual_refresh: -> {}, creator: nil, program: nil)
+      @game_room_program = program
       @loader = loader
       @opener = opener
       @labeler = labeler
@@ -41,6 +44,7 @@ module GameRoomWidget
     end
 
     def focus(*arguments)
+      GameRoomUI.install_hotkeys if @game_room_program
       return if @entry_refresh || @creating
       # ListBox focuses its selected row while handling arrows. Only a host
       # entry from outside update is a real tab entry, not list navigation.
@@ -57,11 +61,13 @@ module GameRoomWidget
     def update
       return if @entry_refresh || @creating
       if active?
+        update_game_room_ping
         # Native first-press detection excludes repeats and checks the exact
         # modifiers. Consume here before ListBox's character search.
         if @creator
-          key = creation_actions.find { |item| main_shortcut_pressed?(item[0], first: true) }
+          key = creation_actions.find { |item| GameRoomTablePresets.pressed?(self, item[0], item[3]) }
           if key
+            GameRoomTablePresets.consume_key(self)
             create_table(key[1])
             return
           end
@@ -98,11 +104,19 @@ module GameRoomWidget
       @worker.close
     end
 
+    def game_room_hotkeys_active?
+      @game_room_program != nil && active?
+    end
+
+    def game_room_hotkey_action(key)
+      GameRoomUI::HotkeyAction.new(-> { request_game_room_ping }) if key == 16 && game_room_hotkeys_active?
+    end
+
     private
 
     def creation_actions
-      @creation_actions ||= [["n", nil, _("Create a new table")]] + GameRoomTablePresets::KEYS.each_with_index.map do |key, index|
-        [key, index, GameRoomContent.utf8(_("Create a table from preset %{number}")) % {number: key}]
+      @creation_actions ||= [["n", nil, _("Create a new table"), :control]] + GameRoomTablePresets::BINDINGS.each_with_index.map do |(key, modifier), index|
+        [key, index, GameRoomContent.utf8(_("Create a table from preset %{number}")) % {number: GameRoomTablePresets.shortcut(index)}, modifier]
       end
     end
 
@@ -115,7 +129,8 @@ module GameRoomWidget
           menu.option(GameRoomContent.utf8(label)) { create_table(slot) }
         end
       end
-      tips = creation_actions.map { |key, _slot, label| GameRoomContextHelp.shortcut_tip("Ctrl+#{key.upcase}", label) }
+      tips = creation_actions.map { |_key, slot, label| GameRoomContextHelp.shortcut_tip(slot == nil ? 'Ctrl+N' : GameRoomTablePresets.shortcut(slot), label) }
+      tips << GameRoomContent.utf8(_("Ctrl+F4: read HTTP and available Communications ping.")) if @game_room_program
       GameRoomContextHelp.replace([self], tips)
     end
 

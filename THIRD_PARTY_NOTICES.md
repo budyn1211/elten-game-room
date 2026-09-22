@@ -46,6 +46,20 @@ Plik `hit1.opus`, używany przy skompletowaniu grupy w Monopoly, oraz plik
 zestawu Quentin Playroom. Dla tych plików również nie ma w repozytorium
 osobnego potwierdzenia licencji.
 
+### Cat, head, tail
+
+Gra i jej pierwotna implementacja zostały dostarczone przez **TD Programs**
+(konto `td-programs`) w [PR #12](https://github.com/papierek1997/elten-game-room/pull/12),
+commit `7930486d9051e557b36d392af558139921fda606`. Autor wskazuje inspirację
+grą Pig z RS Games. Integracja zachowuje punktowanie autora; dopracowano
+opis zasad PL/EN, decyzję bota przy zabezpieczonym remisie oraz interfejs D.
+
+Pięć dostarczonych nagrań `Audio/cht-*.opus` zachowano bez zmiany bajtów
+i bez ponownej konwersji. Zgłoszenie nie zawiera informacji o pierwotnym
+źródle ani osobnych warunkach licencyjnych nagrań. Przed publiczną
+dystrybucją należy uzyskać te informacje od autora; nie przypisuje się
+im automatycznie licencji kodu ani nie zakłada naruszenia praw.
+
 ### Dźwięki kostek Domino i Mexican Train
 
 Trzy nagrania autora **poenia**, dostarczone przez użytkownika wraz z
@@ -66,6 +80,16 @@ autorstwa **empraetorius**, na licencji
 Użytkownik dostarczył plik Freesound `preview-hq-ogg` wraz z informacją
 licencyjną, pobrany 18 września 2026 r. Pierwotnie zmieniono wyłącznie nazwę;
 21 września przekodowano nagranie do Opusa według powyższych parametrów.
+
+### Dodatkowe kroki debla i brzęczyk UNO
+
+`Audio/pong_move_double.opus` pochodzi z dostarczonego przez użytkownika
+pliku `pong-move-double.ogg` z jego katalogu Freesound.
+`Audio/buzzer.opus` pochodzi z dostarczonego zestawu Quentin Playroom.
+21 września 2026 r. przekodowano je do Opusa 144 kb/s VBR, 48 kHz,
+z ramkami 20 ms, zachowując mono, metadane i poziomy, bez przycinania.
+Oryginały pozostają poza dystrybucją. Nie potwierdzono odrębnych licencji
+tych nagrań; nie przypisuje się im na tej podstawie licencji całego projektu.
 
 ### Nowe dźwięki Statków
 

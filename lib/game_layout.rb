@@ -58,7 +58,7 @@ module GameRoomLayout
       normalized = key.to_s.sub(/\Akey_/, "").downcase
       modifiers = active_shortcut_modifiers
       if @history_navigation_signatures.to_a.include?([normalized, modifiers])
-        return true if editable_text_field?
+        return true if editable_text_field? && !%w[comma period , . < >].include?(normalized)
 
         return false
       end
@@ -183,6 +183,7 @@ module GameRoomLayout
       @form.game_shortcut_signatures = []
       @form.history_navigation_signatures = []
       @form.game_room_general_help_tips = []
+      @form.game_room_text_help_tips = []
     end
 
     def bind_status_commands(&callback)

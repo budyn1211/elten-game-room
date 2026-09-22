@@ -6,6 +6,48 @@ require_relative "table_presets"
 module GameRoomScreens
   MenuResult = Struct.new(:action, :index, keyword_init: true)
 
+  class TeamList < ListBox
+    def initialize(assignment, index: 0)
+      @assignment = assignment
+      super(rows, header: GameRoomContent.utf8(_("Players and teams")), index: index, quiet: true)
+      GameRoomContextHelp.replace([self], [
+        GameRoomContextHelp.shortcut_tip('Shift+Up', _("Move the selected person up")),
+        GameRoomContextHelp.shortcut_tip('Shift+Down', _("Move the selected person down")),
+        GameRoomContextHelp.shortcut_tip('Enter', _("Change team"))
+      ])
+    end
+
+    def update
+      if respond_to?(:keyboard_binding_pressed?, true)
+        direction = if keyboard_binding_pressed?([:key_up, :shift])
+          -1
+        elsif keyboard_binding_pressed?([:key_down, :shift])
+          1
+        end
+        if direction
+          GameRoomTablePresets.consume_key(self)
+          target = @assignment.move(index.to_i, direction)
+          self.options = rows
+          self.index = target
+          focus
+          return
+        end
+      end
+      super
+    end
+
+    private
+
+    def rows
+      @assignment.players.each_with_index.map do |person, position|
+        GameRoomContent.utf8(_("%{player}, team %{team}")) % {
+          player: GameRoomContent.utf8(GameRoomParticipants.display_name(person)),
+          team: @assignment.seats[position] + 1
+        }
+      end
+    end
+  end
+
   class Changelog
     def initialize(items, program: nil)
       @program = program
@@ -189,7 +231,8 @@ module GameRoomScreens
         [widget_enabled, widget_games, widget_unavailable, widget_contacts, presets].compact,
         pong_fields.fields
       ]
-      form = GameRoomUI::Form.new([sections] + groups.flatten + [save_button, cancel_button], program: @program, quiet: true)
+      form = PresetSettingsForm.new([sections] + groups.flatten + [save_button, cancel_button], program: @program, quiet: true)
+      form.preset_target = -> { sections.index.to_i == 3 ? presets : nil }
       # Function-key edits in Settings affect the same staged values as the
       # lists. Cancel discards both; Save persists them together, without I/O
       # on every arrow movement.
@@ -269,6 +312,22 @@ module GameRoomScreens
     end
   end
 
+  class PresetSettingsForm < GameRoomUI::Form
+    attr_accessor :preset_target
+
+    def update
+      target = preset_target&.call
+      slot = GameRoomTablePresets.pressed_slot(self) if target
+      if slot != nil
+        GameRoomTablePresets.consume_key(self)
+        target.index = slot
+        self.index = fields.index(target)
+        target.focus
+      end
+      super
+    end
+  end
+
   class TablePresetList < ListBox
     def initialize(values, editor:, writer:)
       @slots = GameRoomTablePresets.slots(values)
@@ -281,7 +340,11 @@ module GameRoomScreens
           menu.option(GameRoomContent.utf8(_("Clear assignment"))) { clear_assignment }
         end
       end
-      GameRoomContextHelp.replace([self], [GameRoomContextHelp.shortcut_tip("Enter", _("Assign or edit"))])
+      tips = [GameRoomContextHelp.shortcut_tip("Enter", _("Assign or edit"))]
+      tips.concat(GameRoomTablePresets::BINDINGS.each_index.map do |slot|
+        GameRoomContextHelp.shortcut_tip(GameRoomTablePresets.shortcut(slot), _("Select this table shortcut for editing"))
+      end)
+      GameRoomContextHelp.replace([self], tips)
     end
 
     def edit

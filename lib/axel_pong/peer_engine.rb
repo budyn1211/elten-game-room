@@ -72,12 +72,12 @@ module GameRoomPong
     end
 
     def serve_timeout(confirmed: false)
-      # A local serve can cross the owner's authoritative deadline in transit.
+      # A direct serve can cross the owner's authoritative deadline in transit.
       # The owner's confirmed timeout wins that race, but cannot override an
       # already exchanged return or be applied twice.
-      late_local_serve = confirmed && @turn == 1 && @side == @server &&
+      late_serve = confirmed && @turn == 1 &&
         @ball['dy'] == (@rotation.team(@server).zero? ? 1 : -1)
-      return false unless !@goal && ((@turn.zero? && @ball['dy'].zero?) || late_local_serve)
+      return false unless !@goal && ((@turn.zero? && @ball['dy'].zero?) || late_serve)
       @turn = 0
       @transition = nil
       Engine.instance_method(:miss).bind(self).call(@server)

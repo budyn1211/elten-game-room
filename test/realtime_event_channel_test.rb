@@ -8,6 +8,7 @@ class ChannelSession
   def send_reliable(data, to:)
     raise 'send failed' if @reliable_error
     (@reliable_sent ||= []) << [data, to.map(&:user)]
+    Struct.new(:results).new(to.to_h { |target| [target, :delivered] })
   end
   def deliver_event(user, data)
     @event_receiver.call(ChannelMessage.new(ChannelParticipant.new(99, user), data))
@@ -34,7 +35,7 @@ assert(channel.take_events.empty?, 'unauthorized event delivered')
 [1, 2, 2, 1, 3].each { |n| session.deliver_event('Bob', packet.call(n)) }
 assert(channel.take_events.map { |_, p| p['n'] } == [1, 2, 3], 'reliable lane lost ordering/dedup')
 data = packet.call(4)
-assert(channel.send_event(data) && !events.operation && session.reliable_sent == nil, 'send performed in UI caller')
+assert(channel.send_event(data) && events.operation && session.reliable_sent == nil, 'send must start background work immediately, not perform RPC in UI caller')
 channel.tick
 assert(events.operation && session.reliable_sent == nil, 'send did not enter finite worker')
 events.finish; channel.tick

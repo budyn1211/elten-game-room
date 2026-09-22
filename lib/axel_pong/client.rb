@@ -2,9 +2,11 @@ require_relative 'engine'
 require_relative 'bot'
 require_relative 'audio'
 require_relative 'mouse'
+require_relative 'paddle_feedback'
 require_relative '../realtime/event_channel'
 require_relative '../realtime/timer'
 require_relative '../realtime/task_ui'
+require_relative '../game_room_ping'
 require_relative 'peer_play'
 
 module GameRoomPong
@@ -23,6 +25,7 @@ module GameRoomPong
       @channel_factory = channel_factory || ->(**args) { GameRoomRealtime::EventChannel.new(**args) }
       @audio = audio || Audio.new(program, clock: clock)
       @mouse = mouse || MouseControl.new
+      @paddle_feedback = PaddleFeedback.new
       @peers = {}
       @sequence = 0
       @next_send = 0.0
@@ -46,6 +49,8 @@ module GameRoomPong
       end
       # Register the endpoint while loading the recordings. Session metadata
       # is selected by before_wait before any subsequent setup tick.
+      @ping_service = GameRoomPing.for(@program)
+      @ping_service.communications_channel = @channel
       @channel.tick
       @audio.load
       true
@@ -80,7 +85,7 @@ module GameRoomPong
         score_at = [@clock.call, preview[:at] + 3.0].max
         @ready_at, @serve_announce_at = score_at + SINGLE_SERVE_DELAY, score_at + 2.0
         if defined?(Log) && Log.respond_to?(:debug)
-          Log.debug("Game Room Pong point_confirmed rally=#{before.state[:rally]} elapsed_ms=#{((@clock.call - preview[:at]) * 1000).round}")
+          Log.debug("Game Room Pong point_confirmed rally=#{before.state[:rally]} durable_confirmation_ms=#{((@clock.call - preview[:at]) * 1000).round}")
         end
       end
       @goal_preview = nil
@@ -104,11 +109,14 @@ module GameRoomPong
       @rotation = Rotation.new(teams: @teams, rally: replay.state[:rally], first_server: first_server)
       observer_side(@players) if @side == nil
       @required = @players.reject { |p| GameRoomParticipants.bot?(p) || p.to_s.casecmp?(@viewer) }
-      @channel.required_members = host? ? @required : [@owner] if @channel.respond_to?(:required_members=)
-      @channel.enable_events('pong-doubles-1') if @rotation.doubles?
-      if @players.none? { |p| GameRoomParticipants.bot?(p) } && !is_a?(PeerPlay)
-        @channel.enable_events unless @rotation.doubles?
-        extend PeerPlay
+      human_match = @players.none? { |p| GameRoomParticipants.bot?(p) }
+      if human_match
+        @channel.required_members = (@required + [@owner]).uniq if @channel.respond_to?(:required_members=)
+        @channel.enable_events(@rotation.doubles? ? 'pong-doubles-peer-2' : 'pong-peer-2', routing: :peers)
+        extend PeerPlay unless is_a?(PeerPlay)
+      else
+        @channel.required_members = host? ? @required : [@owner] if @channel.respond_to?(:required_members=)
+        @channel.enable_events('pong-doubles-1') if @rotation.doubles?
       end
       reset_rally if changed
       if replay.finished?
@@ -123,7 +131,7 @@ module GameRoomPong
       return unless surface.respond_to?(:present) && @replay && !@replay.finished?
       @form, @surface = form, surface
       @surface.on_pong_command = method(:local_command) if @surface.respond_to?(:on_pong_command=)
-      @surface.on_input_reset = -> { @mouse.suspend } if @surface.respond_to?(:on_input_reset=)
+      @surface.on_input_reset = -> { @mouse.suspend; @paddle_feedback.suspend } if @surface.respond_to?(:on_input_reset=)
       @timer = GameRoomRealtime::Timer.new(clock: @clock) { frame }
       @form.add_timer(@timer)
       present
@@ -132,6 +140,7 @@ module GameRoomPong
     def detach_view
       @timer&.stop
       @mouse.suspend
+      @paddle_feedback.suspend
       @surface.on_pong_command = nil if @surface.respond_to?(:on_pong_command=)
       @surface.on_input_reset = nil if @surface.respond_to?(:on_input_reset=)
       @form.delete_timer(@timer) if @form && @timer
@@ -262,9 +271,17 @@ module GameRoomPong
         local['move'] = raw_input.fetch('move', 0) if healthy
         # A human may face a bot run by an observing table owner. In this
         # case predict only local paddle input, never a second ball/score.
-        if @mouse.active?
-          each_physics_frame(now) { |at| local = pointer_input(local, at) }
-          local = local.merge('paddle' => @mouse.position) if @mouse.position
+        if @side != nil
+          @paddle_feedback.suspend(local) unless @paddle_input_active
+          each_physics_frame(now) do |at|
+            local = pointer_input(local, at) if @mouse.active?
+            if @paddle_input_active
+              @paddle_feedback.step(local, position: @snapshot['p'][@side]) do |kind, position|
+                @audio.play_local_movement(@snapshot, viewer: @side, kind: kind, position: position)
+              end
+            end
+          end
+          local = local.merge('paddle' => @mouse.position) if @mouse.active? && @mouse.position
         end
         send_input(now, local, peer)
       end
@@ -275,6 +292,9 @@ module GameRoomPong
     def close
       return if @closed
       @closed = true
+      if @ping_service && @ping_service.communications_channel.equal?(@channel)
+        @ping_service.communications_channel = nil
+      end
       detach_view
       @channel&.close
       @audio.close
@@ -285,10 +305,12 @@ module GameRoomPong
       opened_here = true
       @settings_open = true
       @mouse.suspend
+      @paddle_feedback.suspend
       @program.send(:show_pong_settings, tick: -> { frame }, clock: @clock)
     ensure
       if opened_here
         @mouse.suspend
+        @paddle_feedback.suspend
         @settings_open = false
       end
     end
@@ -351,10 +373,12 @@ module GameRoomPong
       # motion during that gap as a new game movement on resuming the form.
       if @mouse_sample_at && (now < @mouse_sample_at || now - @mouse_sample_at > Engine::STEP * MAX_PHYSICS_STEPS + 0.000001)
         @mouse.suspend
+        @paddle_feedback.suspend(raw)
       end
       @mouse_sample_at = now
       active = healthy && !@settings_open && !@network_wait && @side != nil && @surface && @form &&
         @surface.respond_to?(:input_active?) && @surface.input_active?(@form)
+      @paddle_input_active = active
       @mouse.sample(active: active)
       # Keep independent counters: a recreated keyboard field may restart at
       # zero, while mouse clicks must neither vanish nor become extra presses.
@@ -458,6 +482,7 @@ module GameRoomPong
     def reset_rally_feedback
       @serve_speech = @serve_speech_token = nil
       @mouse.reset_rally
+      @paddle_feedback.reset
       @pending_point = @goal_sequence = nil
       @abandoned_goal = false
       @press_base = @total_press.to_i
@@ -693,8 +718,22 @@ module GameRoomPong
       else
         _('Match in progress.')
       end
-      @surface&.present(@snapshot, status)
-      @audio.update(@snapshot, viewer: audio_side, paused: @paused)
+      # The remote engine remains authoritative. Only this viewer's paddle
+      # and movement sounds are presented locally; do not echo its delayed
+      # step/edge events back from the owner, even after returning to chat.
+      if @owner != nil && @side != nil && !host? && !is_a?(PeerPlay)
+        state = @snapshot
+        if state && @paddle_feedback.position != nil
+          positions = state['p'].dup
+          positions[@side] = @paddle_feedback.position
+          state = state.merge('p' => positions)
+        end
+        @surface&.present(state, status)
+        @audio.update(state, viewer: @side, paused: @paused, local_movement: true)
+      else
+        @surface&.present(@snapshot, status)
+        @audio.update(@snapshot, viewer: audio_side, paused: @paused)
+      end
     end
   end
 end

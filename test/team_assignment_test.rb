@@ -43,3 +43,12 @@ restored = game.team_assignment(JSON.parse(JSON.generate(stored)), players: four
 assert(restored.members_for(0) == ["Alice", "Bob"], "saved teams were not restored from session JSON")
 
 puts "Team assignment framework tests passed"
+
+moved = GameRoomTeams::Assignment.new(players: four, team_size: 2)
+assert(moved.move(0, -1) == 0 && moved.players == four, 'team move wraps at top')
+assert(moved.move(1, 1) == 2 && moved.players == %w[Alice Carol Bob Dave], 'move did not follow person')
+assert(moved.seats == [0, 1, 0, 1] && moved.valid?, 'moving changed the seat layout or team sizes')
+assert(moved.seats_for(four) == [0, 0, 1, 1], 'moved seats not mapped back to original game order')
+assert(moved.move(3, 1) == 3, 'team move wraps at bottom')
+moved.reset
+assert(moved.players == four && moved.seats == [0, 1, 0, 1], 'automatic assignment does not reset order')

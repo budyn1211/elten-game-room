@@ -48,9 +48,21 @@ def assert(value, message); raise message unless value; end
   assert(spoken.last == texts[0], 'shifted punctuation/category alias failed')
   form.index = 2
   chat.index, chat.check = 2, 5
-  original = [chat.text, chat.index, chat.check, spoken.length]
-  %w[comma period home end].each { |key| form.trigger("key_#{key}".to_sym, [false, true, false]) }
-  assert(form.key_processed(:key_comma) && [chat.text, chat.index, chat.check, spoken.length] == original, 'history keys captured chat editing')
+  original = [chat.text, chat.index, chat.check, form.index]
+  before = spoken.length
+  %w[comma period].each do |key|
+    assert(!form.key_processed("key_#{key}".to_sym), 'history punctuation blocked in chat')
+    form.trigger("key_#{key}".to_sym, [false, true, false])
+    form.trigger("key_#{key}".to_sym, [true, true, false])
+  end
+  assert(spoken.length == before + 4, 'history shortcuts missing while writing')
+  assert([chat.text, chat.index, chat.check, form.index] == original, 'history changed chat draft/selection/focus')
+  before = spoken.length
+  %w[home end].each do |key|
+    assert(form.key_processed("key_#{key}".to_sym), 'native text navigation intercepted')
+    form.trigger("key_#{key}".to_sym, [false, true, false])
+  end
+  assert(spoken.length == before, 'Home/End stopped belonging to the editor')
   assert(form.game_room_general_help_tips.length == 6 && form.game_room_general_help_tips.uniq.length == 6, 'one shortcut per help line')
   assert(form.game_room_general_help_tips.all? { |tip| language != 'pl' || !tip.include?('read the') }, 'history help untranslated')
 end

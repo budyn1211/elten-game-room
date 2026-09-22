@@ -182,12 +182,38 @@ module GameRoomChangelog
       version: "2.0.2.1",
       build: 232,
       changes: [
+        "Added Axel Pong Doubles by budyn1211: two teams of two players, with alternating returns and shared scores. Spectators can use 1–4 to choose a player's perspective. Partners have distinguishable step and return sounds.",
         "Pong reconnects for a new match at the same table, including after changing the score target. Improved connection recovery and reduced goal-announcement delays.",
         "Pong's first table setting is now a Classic/Arcade mode list. Shift+E changes side-wall cues: off, noise or tones.",
         "Pong lets number and victory recordings finish before the next announcement. Scores beyond 21 are read in full using ELTEN speech.",
         "Pong observers can press 1 or 2 in the playfield to listen from the first or second player's perspective. This does not give control of a paddle.",
         "History and F1 help are now read-only text fields, with normal text navigation, selection and copying. Each help shortcut has its own line. Enter or Escape closes help.",
         "Use Ctrl+Comma and Ctrl+Period for the previous and next entry in the selected history category; Ctrl+Shift+Comma and Ctrl+Shift+Period change the category. Ctrl+Home and Ctrl+End read its first and last entry. These shortcuts leave normal editing intact in chat. New history entries preserve your reading position and selection."
+      ].freeze
+    ).freeze,
+    Entry.new(
+      version: "2.0.2.2",
+      build: 233,
+      changes: [
+        "In Pong matches with bots, your own paddle steps respond locally instead of waiting for a network round trip, improving their smoothness for guests.",
+        "In Doubles, the first player on each team uses a distinct footstep recording without an extra pitch shift. Their serves and returns are four semitones lower. Missing Polish Doubles messages have also been translated.",
+        "Improved Polish UNO card names and removed commas between colour and value. Playing a buzzer card now has its own sound; announcing UNO keeps its existing sound.",
+        "Rummy is now called Remik in the Polish interface and rules.",
+        "Added Cat, head, tail by TD Programs: a dice game for 2–8 players. Roll an eight-sided die and decide when to bank your points. Includes bots and Polish and English rules.",
+        "Ctrl+F4 reads the response time of the ELTEN server. It works on Game Room screens and its widget, without interrupting play.",
+        "A removed bot no longer remains in the waiting table's team list after a previous match was stopped.",
+        "Ctrl+Comma and Ctrl+Period, including their Shift variants, now navigate history while you type in chat, without changing your message or moving the cursor.",
+        "The widget now supports 30 table presets: Ctrl+1–0, Alt+1–0 and Shift+1–0. Set them in Game Room > Settings > Widget, in the Table shortcuts list. Press a shortcut there to select its entry, then Enter to assign or edit it. Changes are saved immediately, independently of Cancel in Settings.",
+        "When assigning teams, Shift+Up and Shift+Down swap the selected person or bot with their neighbour. The cursor follows that person, and movement stops at the ends of the list."
+      ].freeze
+    ).freeze,
+    Entry.new(
+      version: "2.0.2.3",
+      build: 234,
+      changes: [
+        "Improved Axel Pong connection setup and recovery, including starting another match at the same table. Repeated connection invitations no longer interfere with an already accepted connection.",
+        "Reduced delays in sending and handling serves, returns and goal notifications in online Pong. Improved synchronisation between four players in Doubles, without changing the rules or ball physics.",
+        "Fixed Ctrl+F4 after updating Game Room without restarting ELTEN. It now labels HTTP and, during an active connection, Communications UDP relay ping separately. The relay ping is not the full delay between players."
       ].freeze
     ).freeze
   ].freeze

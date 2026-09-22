@@ -23,6 +23,7 @@ module GameRoomPong
       end
       receive_peer_packets(now)
       receive_peer_events
+      check_peer_agreement(now) if host?
       established = if host?
         @required.all? { |u| (p = @peers[u.downcase]) && p.body['r'] == @replay.state[:rally] }
       else
@@ -38,9 +39,9 @@ module GameRoomPong
       if expired && now - @last_reconnect > 10
         @last_reconnect = now
         @connection_started_at = now
-        @channel.reconnect
+        @channel.reconnect(reason: 'PeerStatusTimeout')
       end
-      healthy = @channel.connected? && established && !expired
+      healthy = @channel.connected? && transport_members_ready? && established && !expired
       was_playable = !@paused && @snapshot && @snapshot['goal'] == nil
       raw = surface_input
       prepare_first_serve(now, healthy)
@@ -95,6 +96,7 @@ module GameRoomPong
       @host_ready = false
       @host_serve_wait = false
       @last_wall = 0
+      @peer_disagreements = {}
       @event_sequence ||= 0
       @hurry_until = @point_reason = nil
     end
@@ -155,16 +157,24 @@ module GameRoomPong
     def receive_peer_events
       queued = (@deferred_events || []) + @channel.take_events
       @deferred_events = []
+      # Relay delivery is ordered per sender, not across four different
+      # senders. Authenticate first, then apply the shared action order. An
+      # early return/effect must wait for its serve/preceding return, not vanish.
+      queued = queued.select { |sender, packet| valid_peer_event?(packet['d']) && peer_event_sender?(sender, packet['d']) }
+      queued.sort_by! do |_sender, packet|
+        data = packet['d']
+        [data['r'], data['turn'], %w[serve hit shield_hit goal timeout].include?(data['action']) ? 0 : 1]
+      end
       queued.each do |sender, packet|
         data = packet['d']
-        next unless valid_peer_event?(data) && peer_event_sender?(sender, data)
-        if data['r'] == @replay.state[:rally] + 1
+        future_action = data['r'] == @replay.state[:rally] && peer_event_waiting?(data)
+        if data['r'] == @replay.state[:rally] + 1 || future_action
           # The durable score may arrive after the next reliable serve. Keep
           # it, but authenticate the actor before allowing it into this buffer.
           # Never silently truncate current actions behind deferred ones.
           if @deferred_events.length >= GameRoomRealtime::EventChannel::LIMIT
             @deferred_events.clear
-            @channel.reconnect
+            @channel.reconnect(reason: 'PeerActionBufferFull')
             break
           end
           @deferred_events << [sender, packet]
@@ -172,8 +182,8 @@ module GameRoomPong
         end
         next unless data['r'] == @replay.state[:rally]
         side = data['side']
-        # Relayed echo: already performed locally, so neither repeat the sound
-        # nor put the actor's outgoing ball back on their baseline.
+        # Never repeat a locally performed action (also guards duplicate native
+        # delivery). Direct peer events no longer need the owner's echo.
         next if !host? && side == @side && %w[serve hit shield_hit goal].include?(data['action'])
         applied = case data['action']
         when 'point'
@@ -199,16 +209,29 @@ module GameRoomPong
             true
           end
         end
-        next unless applied && host?
-        emit_peer_event(data)
-        emit_peer_effects(data) if data['action'] == 'hit'
+        emit_peer_effects(data) if applied && host? && data['action'] == 'hit'
       end
     end
 
     def peer_event_sender?(sender, data)
-      return @owner.casecmp?(sender) unless host?
-      %w[serve hit shield_hit goal hurry_request].include?(data['action']) &&
+      if %w[serve hit shield_hit goal hurry_request].include?(data['action'])
         @players[data['side']].to_s.casecmp?(sender) && data['side'] != @side
+      else
+        !host? && @owner.casecmp?(sender)
+      end
+    end
+
+    def peer_event_waiting?(data)
+      case data['action']
+      when 'serve', 'hit', 'shield_hit', 'goal'
+        data['turn'] > @engine.turn + 1
+      when 'effects', 'wall'
+        data['turn'] > @engine.turn
+      when 'point'
+        data['turn'] > (@side == nil && !host? ? @observer_turn.to_i : @engine.turn)
+      else
+        false
+      end
     end
 
     def valid_peer_event?(data)
@@ -242,7 +265,7 @@ module GameRoomPong
       @event_sequence += 1
       packet = GameRoomRealtime::Protocol.encode(match: @match, epoch: @epoch, sequence: @event_sequence,
         kind: 'event', body: data.merge('r' => @replay.state[:rally]))
-      @channel.reconnect unless @channel.send_event(packet)
+      @channel.reconnect(reason: 'PeerActionNotQueued') unless @channel.send_event(packet)
     end
 
     def emit_peer_effects(data)
@@ -259,14 +282,21 @@ module GameRoomPong
     end
 
     def send_peer_state(now)
-      return unless @epoch && now >= @next_send
+      return unless @epoch
+      goal = @snapshot && @snapshot['goal']
+      goal_state = [@epoch, @replay.state[:rally], @engine.turn, goal] if goal != nil
+      # A newly known result should not wait for the periodic paddle update.
+      # This is still only status: commit_peer_goal requires every player's
+      # matching result. Ordinary resends remain, including after UDP loss.
+      return unless now >= @next_send || (goal_state && goal_state != @sent_goal_state)
+      @sent_goal_state = goal_state
       @next_send = now + Client::SEND_INTERVAL
       @sequence += 1
       body = {'r' => @replay.state[:rally], 'local' => 1,
         'turn' => @side == nil && !host? ? @observer_turn.to_i : @engine.turn,
         'goal' => @snapshot && @snapshot['goal']}
       if host?
-        ready = @required.all? { |u| (p = @peers[u.downcase]) && p.body['r'] == @replay.state[:rally] }
+        ready = transport_members_ready? && @required.all? { |u| (p = @peers[u.downcase]) && p.body['r'] == @replay.state[:rally] }
         body.merge!('paused' => @paused, 'ready' => ready, 'state' => @snapshot)
         body['serve_wait'] = @serve_speech != nil || peer_service_waiting? if @rotation.doubles?
         body['ready_in'] = [[@ready_at - now, 0.0].max, 10.0].min if @ready_at.finite?
@@ -295,6 +325,39 @@ module GameRoomPong
       # through action_for/repository and waits for authoritative replay.
       preview_goal(@engine.goal)
       emit_peer_event('action' => 'point', 'side' => @engine.goal, 'turn' => @engine.turn)
+    end
+
+    def transport_members_ready?
+      !@channel.respond_to?(:required_members_present?) || @channel.required_members_present?
+    end
+
+    def check_peer_agreement(now)
+      return if awaiting_point?
+      @peer_disagreements ||= {}
+      @required.each do |user|
+        peer = @peers[user.downcase]
+        body = peer&.body
+        if !body || !peer.fresh?(now, timeout: Client::STREAM_TIMEOUT) || body['r'] != @replay.state[:rally] ||
+            (body['turn'] == @engine.turn && body['goal'] == @engine.goal)
+          @peer_disagreements.delete(user)
+          next
+        end
+        previous = @peer_disagreements[user]
+        state = [body['turn'], body['goal']]
+        if !previous || previous[0] != state
+          @peer_disagreements[user] = [state, now]
+        elsif now - previous[1] > Client::STREAM_TIMEOUT && now - @last_reconnect > 10
+          # Fresh positions cannot repair a missing reliable game action. Only
+          # the owner replaces the epoch, so every player restarts the same
+          # unconfirmed rally; already agreed/durable points are preserved.
+          if defined?(Log) && Log.respond_to?(:debug)
+            Log.debug("Game Room Pong action_disagreement rally=#{@replay.state[:rally]} local_turn=#{@engine.turn} peer_turn=#{body['turn']} local_goal=#{@engine.goal.inspect} peer_goal=#{body['goal'].inspect}")
+          end
+          @last_reconnect = @connection_started_at = now
+          @channel.reconnect(reason: 'PeerActionDisagreement')
+          break
+        end
+      end
     end
   end
 end

@@ -5,11 +5,14 @@ require_relative "game_content"
 # checked against the current game's options before it can create a table.
 module GameRoomTablePresets
   KEYS = %w[1 2 3 4 5 6 7 8 9 0].freeze
+  MODIFIERS = %i[control option shift].freeze
+  BINDINGS = MODIFIERS.flat_map { |modifier| KEYS.map { |key| [key, modifier].freeze } }.freeze
+  COUNT = BINDINGS.length
   module_function
 
   def slots(values)
     source = values.is_a?(Array) ? values : []
-    Array.new(KEYS.length) do |index|
+    Array.new(COUNT) do |index|
       value = source[index]
       value.is_a?(Hash) ? JSON.parse(JSON.generate(value)) : nil
     end
@@ -35,6 +38,27 @@ module GameRoomTablePresets
     title = entry && GameRoomContent.utf8(entry["name"]).strip
     title = GameRoomContent.utf8(entry["game"]) if entry && title.empty?
     title = GameRoomContent.utf8(_("Not assigned")) unless entry
-    "Ctrl+#{KEYS.fetch(index)}: #{title}"
+    "#{shortcut(index)}: #{title}"
+  end
+
+  def shortcut(index)
+    key, modifier = BINDINGS.fetch(index)
+    "#{ {control: 'Ctrl', option: 'Alt', shift: 'Shift'}.fetch(modifier) }+#{key}"
+  end
+
+  def pressed?(control, key, modifier)
+    return control.send(:main_shortcut_pressed?, key, first: true) if modifier == :control
+    return false unless control.respond_to?(:keyboard_binding_pressed?, true)
+    code, = control.send(:keyboard_code, key)
+    control.send(:keyboard_binding_pressed?, [code, modifier], first: true)
+  end
+
+  def pressed_slot(control)
+    BINDINGS.index { |key, modifier| pressed?(control, key, modifier) }
+  end
+
+  def consume_key(control)
+    control.send(:getkeychar) if control.respond_to?(:getkeychar, true)
+    EltenAPI::KeyboardState.clear_current_frame if defined?(EltenAPI::KeyboardState)
   end
 end

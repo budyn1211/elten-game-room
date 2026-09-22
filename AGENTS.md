@@ -1,5 +1,400 @@
 # Instrukcje dla agentów pracujących nad ELTEN Game Room
 
+## Ctrl+F4 i podpisana 2.0.2.3/build 234 — 22 września 2026
+
+Na polecenie użytkownika poprawiono Ctrl+F4 i dodano rozdzielony odczyt
+HTTP oraz dostępnego Communications UDP RTT do serwera pośredniczącego.
+Odtworzono pozostawanie starego mostu QuickActions po aktualizacji bez
+restartu: jego utrwalona lista klawiszy nie zawierała Ctrl+F4. Jednorazowa
+migracja do dynamicznej obsługi kontrolki rozwiązuje tę regresję. Nie
+potwierdzano stanu zgłoszonego żywego klienta; to odtworzona przyczyna,
+nie dowód na wyjaśnienie wszystkich możliwych przypadków.
+
+HTTP pozostaje jednym żądaniem w tle. Communications czyta ostatni natywny
+pomiar UDP przez wspólny Channel, wyłącznie przy aktywnej sesji i świeżym
+fast_path. Brak pomiaru UDP, np. przy TCP fallback, to niedostępny wynik,
+nie zero ani pomiar TCP. Nie jest to pełne opóźnienie między graczami.
+Bez nowych sond, zmian fizyki, tolerancji obrony, audio lub źródeł ELTEN-a.
+Opis: docs/PING_HOTKEY_234.md.
+
+Paczka obejmuje także wcześniejsze poprawki relay, immediate dispatch,
+odbioru, zaproszeń i statusu bramki, sprawdzone uprzednio na czterech
+żywych kopiach. Nie przeprowadzano nowej żywej partii podczas wydania.
+12/12 celowanych skryptów źródeł, 12 kontroli składni, idempotencja
+tłumaczeń i diff check poprawne. Podpis papierek oraz komplet zawartości
+porównany ze źródłami; binarny test realnego słownika PL/EN/fallback
+z gotowej paczki przeszedł. 335 plików wykonawczych/licencji, 324 rekordy
+(193 Ruby, 130 audio, 1 MO), 11 plików luzem i 13 wpisów instalatora.
+
+Paczka: ../artifacts/game-room/testing/ELTEN-Game-Room-build-234-signed.eltsetup
+23 200 746 B; SHA-256:
+b2c67df46f8975fa5efca212cba7bc405dff67e0e62b18ff5bce6423c0afc2e7
+Wersja 2.0.2.3/build 234/API 3.0.3; trzy nowe punkty changelogu PL/EN.
+Raporty: ../diagnostics/release-234/{SOURCE,PACKAGE}.json. Poprzednie paczki 233 zachowane.
+Bez pełnego runnera, instalacji, restartów, GitHuba, publikacji, zmian
+serwera lub profili. Wszyscy gracze powinni używać zgodnej nowej paczki.
+
+
+## Cztery żywe kopie: debel sprawdzony — 22 września 2026
+
+Na polecenie użytkownika odnowiono połączenia MCP i zainstalowano obecną
+podpisaną 2.0.2.2/build 233 immediate-dispatch w test-3 (papiertestowy1)
+oraz test-4 (papiertestowy2). Main papierek i test papiertestowy już miały
+tę bazę. Auto-return wyłączono trwale w pierwszych dwóch, w nowych było
+wyłączone; inne preferencje zachowano. Bez restartów.
+
+Te same trzy najnowsze pliki kandydata (Channel, EventChannel, PeerPlay)
+wczytano tymczasowo we wszystkich czterech procesach. 18/18 celowanych
+skryptów przeszło. Jeden prywatny stół 1208945905, trzy próby: Classic 7,
+ten sam pokój po zmianie na 21 i inny układ drużyn, następnie Arcade.
+40 punktów, wyniki 7:5 / 12:6 / 5:5 zgodne u wszystkich. 42 serwy,
+185 odbić, 6 odbić tarczą; wszystkie osiem par serwisowych sprawdzone.
+410 niezawodnych wiadomości -> 1230 natywnych dostaw, żadnej zgubionej.
+Siedem starych wiadomości celowo zatrzymanej kolejki prawidłowo odrzucono
+przy nowej generacji; w tym trzy odbicia. Pozostałe przyjęte po jednym razie.
+
+Czwarty klient wszedł celowo po 26 s; retry i start samoczynne. Jedno
+odbicie opóźnione w workerze o 300 ms przyjęły trzy kopie po 326–373 ms.
+Kontrolowana 6-sekundowa blokada lokalnego odbioru dała automatyczne
+odzyskanie i zgodny wynik, bez Entera/wychodzenia z okna. 15/16 zaproszeń
+rozpatrzono dwukrotnie; wszystkie przyjęto po jednym razie, bez błędu.
+Normalna pełna droga akcji: mediana 47 ms, p95 71 ms, max 84 ms;
+natywny odbiór mediana 13 ms. LiveSessions PO preview 281–736 ms,
+nie ping. Cztery kopie JEDNEGO komputera, nie cztery niezależne łącza.
+Nie odtworzono historycznego rzadkiego błędu ani nie wyjaśniono 485 ms.
+
+Stół zamknięty, wszystkie kopie Scene_Main, zasoby 0 i cache sesji puste;
+klienci/kanały zamknięte, fabryka/rozszerzenie/kandydat usunięte.
+Wyłączenie auto-return pozostaje. Zainstalowana paczka nadal NIE zawiera
+trzech nowszych poprawek testowanych tylko w pamięci. Bez zmian kodu
+produkcji, fizyki, audio, wersji/changelogu, schematów, nowego buildu,
+podpisu i GitHuba. Raport: ../diagnostics/pong-live-four-clients-233/README.md.
+W raporcie także ograniczenia i poprawione błędy pomocników testowych.
+
+## Communications: poprawki odbioru i zaproszeń wdrożone — 22 września 2026
+
+Na „to poprawiaj i testuj dalej” poprawiono powtórne przyjęcie zaproszenia
+(callback/kolejka podczas accept), dodano bounded native receive(timeout: 0)
+we wspólnym Channel i wspólną walidację/deduplikację EventChannel. Odczyt
+dotyczy już odebranych wiadomości w pamięci, bez RPC/wait/pompowania UI.
+PeerPlay wysyła nowy status bramki bez czekania do 40 ms na okresowy pakiet;
+zgoda wszystkich graczy i trwały zapis LiveSessions pozostają. Tylko trzy
+pliki produkcyjne: channel.rb, event_channel.rb, peer_play.rb. Bez zmian
+fizyki, zasad, tolerancji obrony, audio lub globalnej pętli ELTEN-a.
+Opis: docs/PONG_RECEIVE_INVITATION_233.md.
+
+30/30 celowanych skryptów, 8 kontroli składni i diff check poprawne;
+rzeczywisty native Session/EventQueue: 18 000 wiadomości bez wzrostu
+kolejki. 32 symulowane wymiany, także czterech klientów/debel. Zachowano
+czerwone reprodukcje oraz wcześniejsze błędne założenie testu o zachowaniu
+prefiksu kolejki po reconnect — istniejący kod poprawnie czyści CAŁĄ kolejkę.
+
+Dwie żywe kopie z odrębnymi tymczasowymi klasami kandydata: 11 punktów,
+13 serwów i 87 odbić, wszystkie 100 przyjął drugi silnik, wszystkie wyniki
+zgodne. Ten sam prywatny stół, zmiana 7 -> 21 i ponowny start bez błędu.
+To samo zaproszenie faktycznie dostarczone dwa razy, przyjęte tylko raz.
+Mediana pełnej drogi akcji 51–53 ms; 120/124 odebrano przed callbackiem.
+Nie sterowano/rejestrowano fokusu; NIE kontrolowane A/B lub czterech ludzi.
+Jedno kontrolowane opóźnienie 300 ms: przyjęcie po 366 ms bez odzyskiwania.
+Dwa reconnect gościa nastąpiły dopiero PO kontrolowanym wyjściu hosta.
+LiveSessions potwierdzenie PO preview nadal 281–963 ms; nie jest pingiem.
+Wcześniejsza przerwa 485 ms i rzadki błąd czterech ludzi nadal niewyjaśnione.
+
+Raporty: ../diagnostics/pong-receive-invitation-233/{README.md,SOURCE.json,RESULT.json}.
+Stół 754140108 zamknięty, obie kopie Scene_Main, zasoby 0; tymczasowe
+klasy/fabryka/rozszerzenie usunięte. Bez instalacji, restartów, profili,
+schematów, GitHuba, buildu i podpisu. Wersja 2.0.2.2/build 233/API 3.0.3
+i changelog bez zmian. Dotychczasowa paczka NIE zawiera tych poprawek.
+
+
+## Communications: automatyczna żywa próba i sprzątanie — 22 września 2026
+
+Na „gotowe”, po zgodzie na sterowanie obiema kopiami, wykonano trzy próby
+na jednym prywatnym stole papierek/papiertestowy: Single Classic, 26 punktów,
+29 serwów i 188 odbić. Wszystkie 217 wysłanych serwów/odbić przyjął drugi
+silnik; wszystkie wyniki zgodne. Wejście przez normalny Client/GameScreen,
+bez przypisywania piłki lub wyników. Jedna akcja opóźniona w tle o 300 ms
+została przyjęta po 394 ms, bez odzyskiwania. To NIE czterech ludzi/debel.
+Raport: ../diagnostics/pong-live-automated-233/{README.md,RESULT.json}.
+
+Potwierdzono ponowne przyjęcie TEGO SAMEGO zaproszenia Communications:
+pierwsze poprawne, drugie status accepted -> SessionClosed. Przyczyną jest
+podwójne dostarczenie callback/kolejka podczas operacji accept. Wyjaśnia
+wpis po session_ready, nie dowodzi przyczyny wcześniejszego utykania.
+Natywny odbiór trzeciej próby 7–30 ms; callback -> gra mediana 12,6 ms
+na pierwszym planie i 53 ms w tle. Cała akcja odpowiednio mediana 34/100 ms.
+Pętla ELTEN-a usypia po callbackach 10/50 ms. Osobno goal_preview oraz
+trwały wynik LiveSessions: 113–511 ms host, 261–633 ms gość PO preview;
+nie jest to ping ani odsłuch początku bramki. Pojedyncza przerwa klatki
+668 ms nie ma izolowanej przyczyny (MCP działa na UI); stare 485 ms nadal
+nieuznane za naprawione. Ponowienia meczu 2 przed wejściem gościa i po
+kontrolowanym wyjściu hosta są artefaktami organizacji próby, nie usterką.
+
+Stół testowy zamknięty; obie kopie Scene_Main, kanały zamknięte, zasoby 0,
+sondy, rozszerzenie i nadpisanie fabryki usunięte. Bez zmian produkcyjnego
+kodu, fizyki, audio, profili, instalacji/restartów, schematów, buildu,
+changelogu i GitHuba. Wersja 2.0.2.2/build 233/API 3.0.3 bez zmian.
+Nie wdrażać propozycji napraw tylko na podstawie tej zgody na diagnostykę.
+
+## Communications: wyniki ponownej żywej próby — 22 września 2026
+
+Odczyt obu kopii po instalacji przez użytkownika: pięć punktów 0–4,
+generation 0 bez odnotowanego odzyskiwania. Raport poza repo:
+../diagnostics/pong-live-immediate-dispatch-233/RESULT.json.
+Kolejka 0–1 ms w 26/27 aktywnych okien pomiaru, raz 6 ms; wcześniej
+5–33 ms. Relay UDP RTT 6–17 ms, raz 47 ms. Lokalna obsługa odbioru
+12–59 ms. Brak powtórki 485 ms NIE potwierdza naprawy tego zacięcia.
+Trwały zapis punktu host 100–304 ms, gość 341–548 ms; NIE ping ani
+pomiar opóźnienia bramki w audio. Zostały osobne wpisy PeerUnavailable
+z udanym ponowieniem po sekundzie oraz SessionClosed po session_ready.
+Bez korelacji z fokusem; dwie kopie jednego komputera, nie pełny debel.
+Tylko odczyt MCP i zapis raportu; bez testów, kodu, instalacji, buildu,
+restartów, zmian serwera/profili lub GitHuba. Nie zmieniać fizyki na
+podstawie tych pomiarów; kolejny etap wymaga rozdzielenia lokalnej
+obsługi zdarzeń, uzgodnienia punktu i potwierdzania trwałego zapisu.
+
+## Communications: podpisana diagnostyczna 233, bez nowych kontroli — 22 września 2026
+
+Na wyraźne polecenie zbudowano i podpisano aktualne źródła bez kolejnych
+testów i kontroli. Builder zakończył się powodzeniem; nie wykonywano
+niezależnej weryfikacji podpisu, sumy kontrolnej ani testów binarnych.
+Paczka: ../artifacts/game-room/testing/
+ELTEN-Game-Room-build-233-pong-immediate-dispatch-signed.eltsetup.
+Wersja 2.0.2.2/build 233/API 3.0.3 i changelog pozostają. Zawiera poprawkę
+docs/PONG_IMMEDIATE_DISPATCH_233.md; fizyka, audio i LiveSessions bez zmian.
+Poprzednia pong-diagnostics 4754e6a1… zachowana. Raport wydania:
+../diagnostics/pong-immediate-dispatch-233/BUILD.json. Wcześniejsze testy
+źródeł 23/23 nie były ponawiane. Użytkownik sam instaluje w obu kopiach
+i gra dla kolejnych pomiarów. Bez instalacji, restartów, meczu, GitHuba,
+publikacji i zmian serwera/profili; nie ogłaszać naprawy przerwy 485 ms.
+
+## Communications: wysyłka bez następnej klatki — 22 września 2026
+
+Po próbie obu kopii użytkownik polecił poprawić wyłącznie Communications
+w Game Roomie. Opis docs/PONG_IMMEDIATE_DISPATCH_233.md. EventChannel
+rozpoczyna wolne zadanie już w send_event, ale RPC nadal idzie w tle.
+Rozliczaj poprzedni wynik przed kolejnym zadaniem: nie gub Delivery ani
+FIFO. Nie rozpoczynaj zaplanowanego starego RPC po zamknięciu, zmianie
+sesji/generacji lub rozpoczęciu odzyskiwania; trwających zapisów nie zabijaj.
+Nie omijaj obowiązkowych odbiorców ani nie zwiększaj liczby pracowników.
+
+23/23 celowanych skryptów i pięć składni poprawne. Pierwszy wynik 22/23
+dotyczył momentu kontrolowanej utraty członka już po nowej szybkiej wysyłce;
+poprawiono granicę scenariusza, zachowując asercje pełnej dostawy/rejoin.
+Raport ../diagnostics/pong-immediate-dispatch-233/SOURCE.json. Symulacja
+śledzonej akcji 56→48 ms, kolejka 8→0; nie wynik żywej sieci. Przerwa
+odbiorcy 485 ms z próby ../diagnostics/pong-live-two-clients-233/ pozostaje
+osobna i nie jest uznana za naprawioną. W tym kroku bez zmian odbioru,
+ELTEN-a, fizyki, audio, zasad lub LiveSessions; bez pełnego runnera,
+nowej paczki, instalacji, restartów, GitHuba, kont/serwera/profili.
+2.0.2.2/build 233/API 3.0.3 i changelog zachowane. Podpisana diagnostyczna
+233 o hashu 4754e6a1… NIE zawiera tej najnowszej poprawki.
+
+## Pong: diagnostyczna 233 podpisana, przed żywym testem — 22 września 2026
+
+Gotowy instalator: ../artifacts/game-room/testing/ELTEN-Game-Room-build-233-pong-diagnostics-signed.eltsetup.
+Wersja 2.0.2.2/build 233/API 3.0.3; 23 198 374 B, SHA-256
+4754e6a1987b28f1879d99b977ef8bef546b69b46e7a679a7e857012728705dd.
+Zmiany relay i pomiary są już w tej paczce; wcześniejsza 5e37899b…
+zachowana pod starą nazwą oraz jako before-relay-diagnostics. Nie mieszać
+klientów starego dialektu z nowym. Użytkownik sam wczytuje do obu kopii.
+8/8 celowanych skryptów, 6 składni, preflight 335 plików i diff check
+przeszły PRZED podpisaniem. Builder podpisujący zakończył się poprawnie;
+po podpisaniu wyłącznie rozmiar/hash, bez niezależnej kontroli binarnej
+lub sygnatury. Raporty ../diagnostics/pong-relay-release-233/{SOURCE,BUILD}.json.
+Changelog, nagrania i fizyka niezmienione. Bez instalacji, restartów,
+publikacji, GitHuba, żywego meczu, pełnego runnera i zmian serwera/profili.
+Pomiar idle 12,69 ms nie dowodzi opóźnienia dostawy w meczu ani naprawy debla.
+
+## Pong: paczka diagnostyczna zatwierdzona — 22 września 2026
+
+Użytkownik polecił dać paczkę; sam wczyta ją do dwóch uruchomionych kopii.
+Podpisać istniejące poprawki docs/PONG_RELAY_DELIVERY_233.md jako 2.0.2.2,
+build 233/API 3.0.3. Nazwa pliku ma odróżniać wariant pong-diagnostics,
+a poprzednia podpisana 5e37899b… pozostaje zachowana. Bez zmiany wersji,
+changelogu, fizyki i nagrań; celowane kontrole przed podpisem, bez pełnego
+runnera i powtarzania kontroli po podpisie. Bez instalacji, restartów,
+żywego meczu, zmian kont/serwera, GitHuba lub publikacji. To zgoda,
+nie potwierdzenie ukończenia. Obie kopie wymagają zgodnego nowego dialektu.
+Idle relay RTT zmierzony oddzielnie: średnio 12,69 ms; nie uznawać tego
+za pomiar dostawy do przeciwnika ani test poprawności czteroosobowego debla.
+
+## Pong: dostarczanie akcji relay, bez paczki — 22 września 2026
+
+Lokalnie wdrożono docs/PONG_RELAY_DELIVERY_233.md: bezpośrednie rozsyłanie
+akcji ludzkiego Ponga przez relay, stała lista wymaganych kont niezależna
+od chwilowych członków sesji, pełne sprawdzanie Delivery, kolejność między
+nadawcami i ograniczone odzyskiwanie utrwalonej rozbieżności. Tryb kanału
+jest opt-in; boty zachowują model gospodarza. Nowe dialekty pong-peer-2
+i pong-doubles-peer-2 zapobiegają mieszaniu ze starym sposobem rozsyłania.
+W przyszłych grach peer-routing wymaga autoryzacji faktycznego nadawcy
+w regułach; obecność w kanale nie uprawnia do sterowania cudzym miejscem.
+Nie wyliczać wymaganych odbiorców z przypadkowo niepełnej listy online.
+
+38/38 celowanych skryptów, 17 kontroli składni i diff check poprawne;
+raport ../diagnostics/pong-relay-delivery-233/SOURCE.json. Pierwsze 37/38
+wynikało ze starego źródła hosta w teście zapowiedzi: powtórzono go z
+ELTEN_HOST_SOURCE=../work/elten-3.0.1-app-dev bez zmiany testu i asercji.
+W symulacji inni goście odbierają akcję po 48 zamiast 104 ms. Nie jest to
+pomiar rzeczywistej sieci. Nie było żywej partii ani odsłuchu; MCP wygasłe.
+Diagnostyka co 10 s osobno podaje cached relay UDP RTT, kolejkę, RPC i czas
+obsługi. Ctrl+F4 mierzy HTTP, a durable_confirmation_ms zatwierdzenie przez
+LiveSessions; NIE utożsamiać tych wartości z pingiem relay lub utratą UDP.
+
+Brak nowej paczki, podpisu, pełnego runnera, instalacji, GitHuba, zmian
+serwera/profili/restartów. Nagrania, fizyka, wersja i changelog bez zmian.
+Podpisana 233 5e37899b… nadal opisuje poprzedni stan i nie zawiera tego kodu.
+Kolejny żywy test wymaga nowych zgodnych klientów; nadal nie potwierdzono
+wszystkich przyczyn zgłoszonego braku obrony. Zachowano wcześniejsze edycje.
+
+## Oryginalne teksty Cat i paczka 233 gotowe — 21 września 2026
+
+Zakończono poniższy zakres. Pięć celowanych skryptów źródeł, cztery kontrole
+składni, idempotencja kompilatorów i diff check przeszły. Oryginalne zasady
+PL/EN i dziesięć tłumaczeń autora potwierdzone, także w realnym Dictionary;
+Farkle zachowuje wcześniejsze komunikaty. Poprawki bota, D i UI pozostają.
+Builder podpisał ponownie 2.0.2.2/build 233/API 3.0.3, changelog bez zmian.
+Paczka ma 23 196 030 B, SHA-256 5e37899b548c5d108dd1cd78be83485986ff74f493feecef0782b3e46ebb9ca8.
+Raporty ../diagnostics/cat-author-texts-release-233/{SOURCE,BUILD}.json.
+NIE wykonywano kontroli gotowej paczki po podpisie, zgodnie z poleceniem
+użytkownika; nie twierdzić, że nowy instalator przeszedł testy binarne lub
+niezależną weryfikację podpisu. Poprzednia 26a76290… zachowana. Bez pełnego
+runnera, instalacji, GitHuba, publikacji, serwera/profili i zmian nagrań.
+
+## Teksty Cat, head, tail — przywrócić autora i podpisać 233, 21 września 2026
+
+Najnowsze polecenie zastępuje zgodę na redakcję tekstów PR #12: zachować
+WSZYSTKIE teksty autora i jego tłumaczenia, w tym cały dokument zasad
+PL/EN i krótkie komunikaty. Nie poprawiać przy okazji literówek, Head/Tail
+ani „bankuje”. Poprawki bota, D, integracji i pięć zmian po 233 pozostają.
+Oryginały 7930486 są w work/pr12-review-7930486 poza repo. Katalog autora
+jest zachowany, a locale/catalog-contexts.json kompiluje go z kontekstem
+cat_head_tail, żeby Roll/Bank nie nadpisywały innych gier. Nowe D i limit
+mają osobny katalog dodatków. Zasady i dokument pokrycia wskazują oryginalne
+sekcje. Wersja 2.0.2.2/build 233/API 3.0.3, changelog PL/EN BEZ ZMIAN.
+Przebudować i podpisać, bez testów po podpisie zgodnie z poleceniem.
+Poprzednia paczka 26a76290… powstała przed zatrzymaniem pracy przez użytkownika;
+zachować ją jako before-author-texts-signed. Bez instalacji, publikacji,
+GitHuba, serwera/profili i ponownego kodowania nagrań.
+
+## Ponowna paczka 233 — zgoda i zakres, 21 września 2026
+
+Użytkownik polecił zbudować i podpisać paczkę z nową grą Cat, head, tail
+oraz pięcioma poprawkami z POST_233_IMPLEMENTATION.md. Najnowsza korekta:
+ZACHOWAĆ wersję 2.0.2.2, build 233/API 3.0.3. Nie tworzyć buildu 234.
+Changelog PL/EN zachowuje dotychczasowe cztery punkty, dopisuje sześć nowych
+w tym samym wpisie. Poprzednią podpisaną 233 c5e885f7… zachować osobno.
+Użytkownik wyraźnie polecił NIE powtarzać celowanych kontroli po podpisaniu;
+wykorzystać wcześniejsze wyniki wdrożeń. Przed pakowaniem skontrolować
+jedynie nową redakcję changelogu i skompilować tłumaczenia. Bez pełnego
+runnera, instalacji, GitHuba, publikacji lub zmian kont/serwera/profili.
+Nie przypisywać pięciu nagraniom PR-a niepotwierdzonej licencji; kwestia
+pozostaje do potwierdzenia przed publiczną dystrybucją. Nie kodować ponownie.
+Ten wpis odnotowuje zakres przygotowania, nie wynik podpisania.
+
+## Cat, head, tail — wdrożone lokalnie, 21 września 2026
+
+Zakończono integrację zawartości PR #12 td-programs (7930486), bez zmian
+punktowania. Opis: docs/PR12_CAT_HEAD_TAIL_IMPLEMENTATION.md. Zasady PL/EN,
+polski limit, zabezpieczony remis ostatniego bota oraz wspólne D gotowe.
+D podaje gracza i wynik, przy ósemce także +8/-8; jest tylko odczytem.
+Nie mylić bezpiecznego remisu z remisem wymagającym zapisu punktów tury.
+13 celowanych skryptów, 11 kontroli składni, idempotencja kompilatorów
+i diff check poprawne. Sprawdzono lokalny Dictionary, binarne źródła,
+UI/pomoc, zapis/odtworzenie i lokalny import drugiego klienta. Pięć nagrań
+z PR-a zdekodowano bez odsłuchu; nie zmieniano ich bajtów. Pochodzenie
+i licencje nadal wymagają informacji autora przed publicznym wydaniem.
+Bez pełnego runnera, żywego API/partii, paczki, podpisu, changelogu, GitHuba,
+instalacji i zmian kont/serwera. Raport ../diagnostics/pr12-implementation/SOURCE.json.
+Poprzednie wpisy tylko-przegląd/zgoda opisują zakończone etapy.
+
+## Cat, head, tail — zgoda na wdrożenie, 21 września 2026
+
+Najnowsze polecenie zatwierdza PR #12 td-programs (7930486) z poprawkami
+z docs/PR12_CAT_HEAD_TAIL_REVIEW.md: zasady PL/EN, końcówka bota,
+tłumaczenie limitu i odczyt ostatniego rzutu pod D. Zachować punktowanie,
+autorstwo oraz wcześniejsze lokalne poprawki. Informacje o nagraniach
+uzupełnić bez przypisywania niepotwierdzonej licencji; nie kodować Opusa
+ponownie. Tylko źródła i testy celowane; bez pełnego runnera, nowego buildu,
+podpisu, changelogu, GitHuba, instalacji i zmian żywego serwera/profili.
+To zgoda na wdrożenie, nie potwierdzenie ukończenia. Poniższy zakaz
+wdrażania bez nowej zgody został zastąpiony tym poleceniem.
+
+## PR #12 Cat, head, tail — wyłącznie przegląd, 21 września 2026
+
+Po wdrożeniu pięciu poprawek sprawdzono 7930486 z PR #12 td-programs.
+Raport docs/PR12_CAT_HEAD_TAIL_REVIEW.md. Potwierdzone: mylące/niepełne
+zasady, oddawanie przez bota szansy zwycięstwa przy zabezpieczonym remisie
+ostatniego gracza i brak polskiego podsumowania limitu punktów. D oraz
+pochodzenie nowych dźwięków do uzgodnienia. Siedem celowanych skryptów,
+dodatkowe próby słownika i zapisu/odtworzenia nowej gry, bez pełnego runnera.
+PR niepołączony, kod autora nietknięty; nie wdrażać uwag bez nowej zgody.
+Brak nowej paczki, GitHuba, instalacji, żywego API, kont/serwera i odsłuchu.
+
+## Pięć poprawek po 233 — ukończone źródła, 21 września 2026
+
+Opis aktualnego wdrożenia: docs/POST_233_IMPLEMENTATION.md. Wspólny ping
+Ctrl+F4 jest pomiarem HTTP do ELTEN-a na żądanie w tle, nie pingiem do gracza.
+Oczekująca lista osób nie może korzystać ze składu przerwanej partii.
+Wyjątek dla historii podczas pisania dotyczy tylko Ctrl+przecinek/kropka
+i odpowiedników z Shiftem; nie odbierać natywnych skrótów edycji.
+Makra: 30 miejsc Ctrl/Alt/Shift+1–0; ustawienia wybierają wpis, nie tworzą
+stołu. Zachować dawne dziesięć przypisań i niezależność od Anuluj rodzica.
+Shift+góra/dół w przydziale drużyn zamienia sąsiadów bez zawijania, kursor
+podąża za osobą. Miejsca drużyn pozostają, kolejność tur nie zmienia się.
+17 celowanych skryptów i 18 kontroli składni poprawne, PL/EN/fallback,
+kontrolki hosta i lokalny broker, bez żywego API/partii lub nowego pakowania.
+Wersja/changelog bez zmian; podpisana 233 nie zawiera tego wdrożenia.
+Bez pełnego runnera, instalacji, publikacji, GitHuba lub zmian serwera.
+Następny zakres to przegląd najnowszego PR-a z grą, bez jego łączenia.
+
+## Move-double: zgoda na ponowną 233 — 21 września 2026
+
+Użytkownik polecił przebudować i podpisać paczkę z dodatkowym -3 dB.
+Zachować 2.0.2.2/build 233/API 3.0.3 i changelog dokładnie bez zmian.
+Poprzednia ea4c4a35… jest zachowana jako before-move-double-gain-signed.
+Wyniki nowego wydania: ../diagnostics/pong-move-double-gain-release-233/.
+Tylko celowane kontrole oraz gotowa paczka; bez pełnego runnera, instalacji,
+publikacji, GitHuba, zmian kont/serwera i restartów. To zgoda, nie wynik.
+
+## Move-double: niewydane ściszenie o 3 dB — 21 września 2026
+
+Użytkownik zatwierdził dodatkowe -3 dB wyłącznie dla `pong_move_double`.
+Miks audio stosuje 10^(-3/20) dla nagrania i wszystkich jego głosów,
+nie zmieniając bazowych 50%/20%, suwaków, panoramy ani wysokości.
+Nie ściszać innych kroków/odbić i nie przekodowywać nagrania. Pięć
+celowanych skryptów przeszło, w tym lokalny feedback i osobne głosy debla.
+Bez nowej paczki, wersji lub changelogu; podpisana 233 nie ma tej zmiany.
+
+## Bieżące poprawki i zgoda na 2.0.2.2/build 233 — 21 września 2026
+
+Zgoda na wydanie po celowanych testach; API pozostaje 3.0.3. Opis:
+docs/PONG_FEEDBACK_AND_NAMES_233.md. Nie zmieniać zasad i fizyki debla.
+Pierwsza osoba w każdej drużynie ma osobne nagranie `pong_move_double`,
+bez dodatkowego obniżania kroków; krzywa wysokości zależna od pozycji zostaje.
+Serwisy i odbicia tej osoby są teraz o CZTERY półtony niższe. Zastępuje to
+wcześniejsze ustalenie o krokach i odbiciach -3. Dźwięk `buzzer` jest tylko
+dla karty brzęczyka UNO, powiedzenie UNO/Makao pozostaje na `buzzer2`.
+Nazwy UNO i polski Remik zmieniają prezentację, nie ID kart/gier/zapisów.
+Bez pełnego runnera, instalacji, GitHuba, publikacji lub zmian żywych kont.
+
+## Debel PR #11 i ponowna paczka 232 — zatwierdzone, 21 września 2026
+
+Włączono lokalnie PR #11 budyn1211 (a526401) z uzgodnionymi poprawkami;
+zachowano jego commity i bieżące Opus/runtime-only packaging. Obserwator
+wybiera indywidualną perspektywę cyframi 1–4. W deblu pierwsza osoba
+w każdej drużynie ma kroki i odbicia o 3 półtony niższe, niezależnie od
+słuchacza; druga standardowe. Osobne głosy paletek przygotowuje się przy
+uruchamianiu, nie podczas klatki. Przerwa po zapowiedzi pary serwisowej
+wynosi 2,7 s jak w Single. Zasady rotacji i rozgrywki PR zachowane.
+Opis: docs/PONG_DOUBLES_IMPLEMENTATION_232.md. Użytkownik polecił następnie
+przebudować i podpisać 2.0.2.1/build 232, API 3.0.3. W bieżącym changelogu
+PL/EN dodano jeden punkt o deblu, bez nowego numeru buildu. Ten wpis nie
+potwierdza ukończenia pakowania. Poprzednią 45299ff5… zachować jako
+before-doubles-signed.eltsetup; wyniki ../diagnostics/pong-doubles-release-232/.
+Tylko celowane testy i kontrola gotowej paczki; bez pełnego runnera,
+instalacji, publikacji, GitHuba, zmian serwera/profili i restartów ELTEN-a.
+
 ## Wszystkie nagrania: Opus 144 VBR i ponowna paczka 232 — 21 września 2026
 
 Najnowsze polecenie obejmuje wszystkie 123 nagrania, nie tylko muzykę Krowy
@@ -1551,6 +1946,37 @@ tipsów zależnych od fazy. Szczegóły: `docs/VOLUME_AND_HELP_224.md`.
   ani synchronizacji przez Signals.
 - Unikaj okresowego odpytywania i pełnej odbudowy formularza. Aktualizacja nie
   może przesuwać fokusu ani powodować zbędnych komunikatów czy dźwięków.
+
+## Gry czasu rzeczywistego — opóźnienia i Communications
+
+- Korzystaj ze wspólnego `Channel`/`EventChannel`. Przed implementacją
+  rozpisz całą drogę akcji: wejście, kolejka, relay, odbiór, zastosowanie
+  i prezentacja. Ustal, kto ma prawo rozstrzygać każde zdarzenie.
+- Koordynowanie meczu przez gospodarza, także będącego obserwatorem, nie
+  oznacza przekazywania przez niego każdej wiadomości. Dla akcji rozstrzyganych przez uprawnionego
+  nadawcę wybieraj rozsyłanie przez relay bez dodatkowego skoku przez hosta.
+  Model wymagający zatwierdzenia przez hosta musi mieć uzasadnienie i pomiar;
+  nie przełączaj automatycznie wszystkich gier na `routing: :peers`.
+- Nie czekaj na sieć ani dysk w klatce UI. Gotową akcję wysyłaj w tle od
+  razu, bez czekania na okresowy pakiet lub następną klatkę. Zastępowalne
+  pozycje mogą zachowywać tylko najnowszą wartość; ważnych akcji nie gub.
+- Zachowuj uwierzytelnienie nadawcy, ID meczu/generacji, kolejność,
+  deduplikację, ograniczone kolejki i pełne potwierdzenia wymaganych osób.
+  Odbiorca chwilowo nieobecny nie znika z wymagań dostawy. Kolejna partia
+  dostaje nowego klienta; stare zadania i powtórne zaproszenia nie mogą
+  naruszać nowego połączenia. Odzyskiwanie ma działać bez Entera gracza.
+- LiveSessions przechowuje trwały stan stołu i wyniki; nie uzależniaj
+  każdego ruchu ani bezpiecznej lokalnej prezentacji od trwałego zapisu.
+  Nie przyspieszaj kosztem uprawnień do punktów lub zgodności rozstrzygnięć.
+- Mierz osobno HTTP, relay RTT, kolejki/UI, zastosowanie akcji i trwały
+  zapis; nie odejmuj surowych zegarów różnych komputerów. Sprawdzaj ludzi
+  i boty, różne miejsca, gospodarza-obserwatora, rewanż,
+  utratę/duplikację/kolejność, tło i reconnect.
+  Cztery kopie jednego komputera nie zastępują różnych łączy. Nie maskuj
+  transportu zmianą fizyki ani nie uznawaj niewyjaśnionych zacięć za naprawione.
+
+Uzasadnienie i pomiary: `docs/PONG_RELAY_DELIVERY_233.md`,
+`docs/PONG_IMMEDIATE_DISPATCH_233.md`, `docs/PONG_RECEIVE_INVITATION_233.md`.
 
 ## Weryfikacja
 
