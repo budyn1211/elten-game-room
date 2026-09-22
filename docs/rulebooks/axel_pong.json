@@ -45,8 +45,8 @@
           "pl": "Automatyczne odbijanie to Twoje osobiste ustawienie, domyślnie wyłączone. Po jego włączeniu paletka sama odbije piłkę w swoim zasięgu blisko Twojej krawędzi. Nadal samodzielnie ustawiasz paletkę i serwujesz. Zmienisz tę opcję pod Ctrl+P, w ustawieniach Ponga. Przeciwnik wybiera ją niezależnie."
         },
         {
-          "en": "The first serve of a human match becomes available after both sides are ready and a three-second countdown. You hear the variant, difficulty and target, then who serves. A bot match starts without this countdown. This does not change the break after subsequent points.",
-          "pl": "W meczu z człowiekiem pierwszy serwis staje się dostępny po gotowości obu stron i trzech sekundach odliczania. Usłyszysz wariant, trudność i limit punktów, a następnie, kto serwuje. Mecz z botem zaczyna się bez tego odliczania. Pauza po kolejnych punktach pozostaje taka, jak opisano wyżej."
+          "en": "The first serve becomes available once the players are connected and ready, without an extra countdown. In a human-only match, you hear the variant, difficulty and target, then who serves. The break after subsequent points remains as described above.",
+          "pl": "Pierwszy serwis staje się dostępny, gdy gracze są połączeni i gotowi, bez dodatkowego odliczania. W meczu bez botów usłyszysz wariant, trudność i limit punktów, a następnie, kto serwuje. Pauza po kolejnych punktach pozostaje taka, jak opisano wyżej."
         }
       ]
     },

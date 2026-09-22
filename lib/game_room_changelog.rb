@@ -215,6 +215,22 @@ module GameRoomChangelog
         "Reduced delays in sending and handling serves, returns and goal notifications in online Pong. Improved synchronisation between four players in Doubles, without changing the rules or ball physics.",
         "Fixed Ctrl+F4 after updating Game Room without restarting ELTEN. It now labels HTTP and, during an active connection, Communications UDP relay ping separately. The relay ping is not the full delay between players."
       ].freeze
+    ).freeze,
+    Entry.new(
+      version: "2.0.2.4",
+      build: 235,
+      changes: [
+        "In Axel Pong Doubles, announcing the server and receiver no longer holds the match until speech finishes. This removes a cause of long pauses after a server change. The normal 2.7-second pause applies, as in Singles."
+      ].freeze
+    ).freeze,
+    Entry.new(
+      version: "2.0.2.5",
+      build: 236,
+      changes: [
+        "Improved communication in Axel Pong matches with bots, in both Singles and Doubles. Adding a bot no longer routes human serves and returns through the table owner's computer.",
+        "In Pong matches with bots, the goal sound no longer waits for the score to be saved on the server. All participants in these matches need this update.",
+        "Removed the extra three-second delay at the start of human Pong matches. Waiting for players to connect, announcements and breaks after goals remain unchanged."
+      ].freeze
     ).freeze
   ].freeze
 

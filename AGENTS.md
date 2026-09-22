@@ -1,5 +1,166 @@
 # Instrukcje dla agentów pracujących nad ELTEN Game Room
 
+## Pong: audyt po podpisaniu 236 — 22 września 2026
+
+Na osobne polecenie przejrzano Communications/Ponga i lokalną obsługę
+zapisu przez LiveSessions. Dwa NOWE odtworzone problemy, bez wdrażania:
+(1) przy jednostronnej ciszy w deblu podczas 10 s cooldownu reconnectu
+gospodarz jest paused, ale rozsyła ready=true; pozostali aktywni gracze
+nie wstrzymują się; po powrocie brakującego gracza zgodnie wznawiają;
+(2) obserwator dołączający w środku wymiany ma snapshot turn=2 i silnik
+turn=0, więc odkłada kolejne odbicia bez szansy na brakujących poprzedników.
+Po dalszych 128 odbiciach sonda wykazała PeerActionBufferFull/reconnect
+obserwatora, bez żądań reconnectu graczy. Snapshoty nadal docierają.
+
+Ponownie odtworzono WCZEŚNIEJ ZNANE pominięcie krótkiego naciśnięcia tuż
+przy bramce (puszczone -> gol, przytrzymane -> odbicie). To Engine,
+nie dowód błędu relay ani nowa regresja 236; ewentualna zmiana wymaga
+osobnej decyzji ze względu na wierność oryginałowi. OwnerChanged,
+historyczne PeerStatusTimeout i dźwięki band nadal osobnymi tropami.
+
+10/10 celowanych skryptów poprawnych, osobna sonda trzech znalezisk.
+Wyłącznie OFFLINE, bez nowego pomiaru Internetu i audytu zdalnego serwera.
+Kontrole zapisu, duplikatów/nieuprawnionych wyników oraz rewanżu poprawne.
+Nie naprawiano tych znalezisk, nie zmieniono produkcji/paczki po podpisie,
+nie instalowano, nie ruszano klientów/profili/serwera/GitHuba.
+Raport i wyniki: diagnostics/pong-communications-audit-236/{README.md,RESULT.json}
+oraz probe.rb (ścieżki od katalogu nadrzędnego repo).
+Aktualna podpisana 236 pozostaje bd291662… z usuniętą tylko początkową pauzą.
+
+## Pong: usunięte tylko początkowe 3 s, ponownie podpisana 236 — 22 września 2026
+
+Na polecenie usunięto dodatkowe 3 s po gotowości graczy przed pierwszym
+serwem meczu bez botów. Nadal wymagane połączenie/gotowość, zachowane
+zapowiedzi i odstęp 120 ms, nagrania i wszystkie terminy po bramce,
+w tym 2,7 s przed serwem. Jedyna zmiana logiki: prepare_first_serve
+w client.rb. Bez zmian fizyki, transportu lub autoryzacji. Dodano trzeci
+punkt changelogu PL/EN do tego samego 2.0.2.5/build 236; poprawiono jeden
+akapit zasad opisujący dawne odliczanie.
+
+12/12 celowanych skryptów, sześć kontroli składni i diff check poprawne.
+Nowa regresja najpierw odrzuciła stary licznik; dwa stare testy wymagały
+usuwanego odliczania i dostały nowe oczekiwania. To próby OFFLINE;
+bez żywej partii/odsłuchu i pełnego runnera. Podpis papierek, komplet
+335 plików, zgodność ze źródłami/manifestami oraz binarne wczytanie
+PL/EN/fallback i nowe terminy pierwszego serwu sprawdzone.
+
+Paczka artifacts/game-room/testing/ELTEN-Game-Room-build-236-signed.eltsetup:
+23 199 808 B; SHA-256:
+bd291662f4bde72adb3e3c421488b55e0e60985afa9b791b1dd2a8ed366cf9a2
+Poprzednią 678fd5f4… zachowano jako build-236-before-startup-delay-removal.
+Raporty: diagnostics/release-236-startup/{SOURCE,PACKAGE}.json
+(ścieżki od katalogu nadrzędnego repo). Bez instalacji, restartów, GitHuba
+i zmian serwera/profili. Po ukończeniu użytkownik zlecił osobny audyt
+Communications/Ponga; nie jest to zgoda na nowe poprawki w tej paczce.
+
+## Pong: podpisana 2.0.2.5/build 236 — 22 września 2026
+
+Na „zbuduj”, następnie zmianę numeru i wersji, przygotowano podpisaną
+2.0.2.5/build 236/API 3.0.3. Zawiera ujednolicenie ludzi/botów opisane
+poniżej oraz wcześniejszą poprawkę pauzy z 235. Nowy changelog PL/EN
+ma dwa krótkie punkty: wspólna komunikacja w meczach z botami oraz
+dźwięk bramki bez oczekiwania na trwały zapis wyniku. Wszyscy uczestnicy
+meczów z botami powinni mieć zgodną aktualizację.
+
+Osobna wstępna poprawka goal_confirmed dla botów jest USUNIĘTA.
+Pozostał wspólny mechanizm point/preview, taki jak między ludźmi:
+dźwięk dopiero po uzgodnieniu punktu, niezależnie od zakończenia zapisu
+LiveSessions; wynik zatwierdza trwały replay. To nie dodatkowa pauza.
+
+Paczka: ../artifacts/game-room/testing/ELTEN-Game-Room-build-236-signed.eltsetup
+23 199 674 B; SHA-256:
+678fd5f41f45e88ca97bb38e7692c1d7b0abb8c3dcc10d3a3be6fd5fb73621d3
+Podpis papierek i komplet 335 plików wykonawczych/licencji potwierdzone:
+324 rekordy (193 Ruby, 130 audio, 1 MO), 11 plików luzem, 13 wpisów
+instalatora, zgodność bajtów ze źródłami. Manifesty i runtime zgodne.
+Binarne wczytanie gotowej paczki: PL/EN/fallback, debel i wspólna
+obsługa człowiek–bot z gospodarzem-obserwatorem, aktualny changelog,
+formularze/kodowanie. Celowany test changelogu, 4 kontrole składni,
+idempotencja kompilacji katalogu i diff check poprawne; wcześniejszych
+39 testów wdrożenia nie powtarzano. Nie było pełnego runnera ani nowej
+żywej partii/odsłuchu. Poprzednia podpisana paczka 235 zachowana.
+
+Raporty: ../diagnostics/release-236/{SOURCE,PACKAGE}.json.
+Bez instalacji, restartów, zmian serwera/profili, GitHuba lub publikacji.
+OwnerChanged/PeerStatusTimeout nadal osobnymi niewyjaśnionymi tropami.
+Poniższe „tylko źródła/bez paczki” opisuje etap sprzed tego wydania.
+
+
+## Pong: ujednolicone akcje ludzi i botów, tylko źródła — 22 września 2026
+
+Na „Wprowadź to ujednolicenie zatem” wszystkie mecze Ponga korzystają
+z PeerPlay/PeerEngine. Człowiek rozstrzyga swoje serwy, odbicia i chybienia;
+gospodarz prowadzi wyłącznie własne miejsce oraz boty. Obecność bota nie
+przełącza już ludzi na symulację u gospodarza. Ważne akcje rozsyła ich
+uprawniony autor bezpośrednio przez relay Communications; bot działa pod
+tożsamością gospodarza, bez osobnego konta. Zachowane sprawdzanie miejsca,
+kolejności, nadawcy, meczu i generacji. Pozycje nadal mają odrębny kanał
+stanu; nie twierdzić, że każdy pakiet omija gospodarza.
+
+Gospodarz nadal uzgadnia punkt z ludźmi i zapisuje go przez LiveSessions.
+Wspólny podgląd dźwięku bramki nie czeka na trwały zapis; wynik punktowy
+nie jest zatwierdzany wcześniej. Usunięto starą osobną ścieżkę centralnych
+ruchów i wstępny osobny goal_confirmed. Lokalny właściciel kontra boty
+nie czeka na Communications, a pierwsze połączenie nie resetuje lotu.
+Nowe protokoły mixed-peer-1 rozdzielają tę zmianę od starych klientów
+z botami: przed żywą próbą wszyscy muszą mieć zgodne nowe źródła/paczkę.
+
+Produkcja w tej zmianie: client.rb, peer_play.rb, peer_engine.rb. Bez zmian
+Engine/Bot, fizyki, tolerancji obrony, nagrań/głośności, źródeł ELTEN-a,
+Channel/EventChannel lub LiveSessions. Zachowano pauzę 2,7 s bez bariery
+syntezy z 235. Test parytetu wykrył i pozwolił poprawić kolejność efektów
+Arcade względem śledzenia piłki przez bota. Dźwięki kroków zdalnego bota
+pochodzą z jego rzeczywistych zdarzeń, nie z drobnych bezgłośnych zmian
+pozycji. Przy kolejnych grach nie centralizować akcji ludzi tylko dlatego,
+że obecny jest bot; walidować uprawnienia delegowanej postaci i jej turę.
+
+39/39 celowanych skryptów, 15 kontroli składni i diff check poprawne.
+Offline: sześć obsad po 16 wymian z wszystkimi parami serwisowymi, dziewięć
+konfiguracji relay po osiem wymian, opóźnienia/utrata pozycji, właściciel
+grający/obserwator, ponowny mecz/reconnect, zgoda na bramkę i opóźniony
+trwały zapis. Dokładny parytet lokalnych botów Classic/Arcade na sześciu
+poziomach; osobno człowiek dostał odbicie przed sztucznie opóźnionym
+gospodarzem. Nie są to żywe pomiary Internetu ani próba odsłuchowa.
+OwnerChanged/PeerStatusTimeout pozostają osobnymi niewyjaśnionymi tropami.
+Bez pełnego runnera, nowych żywych klientów, instalacji, restartów, kont,
+serwera/profili lub GitHuba. Wersja/changelog i podpisana 235 bez zmian;
+paczka 235 NIE zawiera obecnego ujednolicenia. Dokumentacja:
+docs/PONG_UNIFIED_PEERS.md; raport poza repo:
+../diagnostics/pong-unified-peers/RESULT.json.
+
+
+## Pong: usunięte czekanie na syntezę; podpisana 235 — 22 września 2026
+
+Na „to popraw to i podpisz nową paczkę” usunięto z debla barierę końcowego
+znacznika syntezy. Zapowiedź serwującego/odbierającego jest zwykłym tekstem,
+nie przedłuża terminu: po wyniku obowiązuje 2,7 s jak w singlu. Pierwsze
+przygotowanie połączenia, dźwięki bramki/wyniku i synchronizacja stanu
+pozostają. Drugi serw tej samej pary bez powtórki zapowiedzi. Zmienione
+produkcyjne zachowanie tylko client.rb i peer_play.rb; bez zmian fizyki,
+tolerancji obrony, transportu Communications, LiveSessions lub NVDA.
+
+Test z brakującym potwierdzeniem najpierw odtworzył blokadę starego kodu,
+potem przeszedł bez podawania indeksu. 13/13 celowanych skryptów źródeł,
+7 składni, idempotencja katalogu i diff check poprawne. Próby OFFLINE:
+czterech klientów, właściciel-obserwator, boty, oba serwy, wcześniejszy
+preview, spóźniony gracz, reconnect i niezapamiętywanie naciśnięć z pauzy.
+Bez nowej żywej partii lub odsłuchu. OwnerChanged/PeerStatusTimeout
+pozostają osobnymi niewyjaśnionymi zdarzeniami, nie obiecywać ich naprawy.
+
+Podpisana 2.0.2.4/build 235/API 3.0.3, changelog PL/EN jeden nowy wpis
+o deblu. Plik artifacts/game-room/testing/ELTEN-Game-Room-build-235-signed.eltsetup
+(w repo ścieżka od katalogu nadrzędnego). 23 200 540 B; SHA-256:
+7d008093b7e51ad084c54793e35fcca922696733e109aa4c373d0a4dcdf53878
+Potwierdzono podpis papierek, komplet 335 plików wykonawczych/licencji,
+324 rekordy (193 Ruby, 130 audio, 1 MO), 11 luzem, 13 wpisów instalatora.
+Binarne testy gotowej paczki: debel PL/EN/fallback i formularze/kodowanie.
+Raporty diagnostics/release-235/{SOURCE,PACKAGE}.json poza repo; dokumentacja
+repo docs/PONG_SERVE_PAUSE_235.md. Poprzednia paczka 234 zachowana.
+Wszyscy gracze powinni zaktualizować: stary klient może nadal wstrzymywać
+mecz oczekiwaniem na syntezę. Bez instalacji, restartów, GitHuba, publikacji,
+zmian serwera lub profili. Repo zawiera niezatwierdzone zmiany tej poprawki.
+
+
 ## Ctrl+F4 i podpisana 2.0.2.3/build 234 — 22 września 2026
 
 Na polecenie użytkownika poprawiono Ctrl+F4 i dodano rozdzielony odczyt
@@ -1949,6 +2110,12 @@ tipsów zależnych od fazy. Szczegóły: `docs/VOLUME_AND_HELP_224.md`.
 
 ## Gry czasu rzeczywistego — opóźnienia i Communications
 
+- Zapowiedź głosowa nie jest potwierdzeniem gotowości sieciowej. W Pongu
+  nie uzależniaj serwu od końcowego znacznika syntezy u któregokolwiek gracza
+  ani nie dodawaj po nim kolejnej pauzy: obowiązuje zwykły termin jak w singlu.
+  Test z atrapą, która sama podaje końcowy indeks, nie sprawdza niezawodności
+  rzeczywistego syntezatora. Uwzględniaj także całkowity brak tego indeksu,
+  przerwanie mowy i różne wyjścia syntezy. Patrz `docs/PONG_SERVE_PAUSE_235.md`.
 - Korzystaj ze wspólnego `Channel`/`EventChannel`. Przed implementacją
   rozpisz całą drogę akcji: wejście, kolejka, relay, odbiór, zastosowanie
   i prezentacja. Ustal, kto ma prawo rozstrzygać każde zdarzenie.

@@ -108,7 +108,8 @@ expected = [16, 112, 160, 208, 256, 304, 352, 400, 448, 496]
           assert(at == expected, "#{players}/#{name}, jitter=#{jitter}, rally=#{during_rally}: own steps #{at.inspect}, expected #{expected.inspect}")
         end
         if players.any? { |name| GameRoomParticipants.bot?(name) }
-          assert(h.clients['Bob'].engine == nil, 'feedback created another authoritative engine')
+          assert(h.clients['Bob'].engine.is_a?(GameRoomPong::PeerEngine) &&
+            h.clients['Bob'].instance_variable_get(:@bots).empty?, 'guest did not own only its human paddle')
         end
       end
     end
@@ -141,13 +142,14 @@ puts 'PASS local step cadence: four humans, mixed doubles, observing owner with 
     surface.instance_variable_set(:@input_active, true)
     advance.call(4)
     assert(audio.effects.count { |_, kind, side, _| side == 1 && %w[step edge].include?(kind) } == count, 'focus restoration made a step')
-    # Presenting a different local position must not modify received state.
+    # Local input changes the local engine immediately, not a delayed owner
+    # snapshot. Jitter cannot override it or create an extra movement sound.
     if mouse
       backends['Bob'].delta = [-5, 0, false]
       advance.call(1)
       backends['Bob'].delta = [0, 0, false]
-      assert(surface.current['p'][1] != client.snapshot['p'][1], 'local preview waited for owner')
-      assert(!surface.current.equal?(client.snapshot), 'presentation mutated authoritative snapshot')
+      assert(surface.current['p'][1] != h.clients['Alice'].snapshot['p'][1], 'local paddle waited for owner')
+      assert(surface.current['p'][1] == client.engine.paddles[1], 'presentation differs from local authoritative paddle')
     end
     client.detach_view
     assert(client.instance_variable_get(:@paddle_feedback).position == nil, 'detach retained local position')
@@ -157,7 +159,8 @@ puts 'PASS local step cadence: four humans, mixed doubles, observing owner with 
     h.accept_point('0:0')
     advance.call(500)
     assert(audio.effects.drop(before).none? { |_, kind, side, _| side == 1 && %w[step edge].include?(kind) }, 'round reset replayed own steps')
-    assert(client.engine == nil, 'feedback replaced owner authority')
+    assert(client.engine.is_a?(GameRoomPong::PeerEngine) && client.instance_variable_get(:@bots).empty?,
+      'reset lost local human ownership or installed remote bot controllers')
   end
 end
 puts 'PASS fallback keyboard, focus, no mutable snapshot sharing, detach/attach and point reset'

@@ -48,7 +48,7 @@ class PongRelayFixture
   end
 
   def initialize(players: %w[Alice Bob Carol Dave], teams: [0, 0, 1, 1], one_way: 0.04, rpc_delay: 0.12, options: {})
-    @h = PongHarness.new(players: players, viewers: (['Alice'] + players).uniq,
+    @h = PongHarness.new(players: players, viewers: (['Alice'] + players.reject { |name| GameRoomParticipants.bot?(name) }).uniq,
       options: {'team_size' => players.length == 4 ? 2 : 1, 'team_seats' => teams}.merge(options))
     @one_way, @rpc_delay = one_way, rpc_delay
     @pending, @transmissions, @workers, @reliable_due = [], [], [], {}

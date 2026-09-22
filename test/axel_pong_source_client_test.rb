@@ -5,15 +5,13 @@ require_relative 'support/pong_client'
 [%w[Alice Bob], %w[Bob Carol]].each do |players|
   h = PongHarness.new(players: players)
   begin
-    # One participant is late. Elapsed time since opening the form is not
-    # allowed to consume the first-serve countdown.
+    # One participant is late. Removing the artificial countdown must not
+    # remove the actual readiness check.
     h.advance(120, names: ['Alice'])
+    assert(h.clients['Alice'].paused, 'absent participant no longer blocks startup')
     $spoken_messages.clear
-    h.advance(160)
-    assert(h.clients.values.all?(&:paused), 'first countdown started before peers were ready')
-    assert($spoken_messages.empty?, 'announced start before the three-second countdown')
-    h.advance(50)
-    assert(h.clients.values.none?(&:paused), 'first countdown failed to end')
+    h.advance(20)
+    assert(h.clients.values.none?(&:paused), 'ready participants still wait for the initial three-second countdown')
     speakers = h.clients.size
     difficulty = h.rules.option_definitions.find { |option| option.key == 'difficulty' }.choices[1].label
     settings = GameRoomContent.utf8(_('%{variant}. %{difficulty}. %{points} points to win.')) % {
@@ -39,7 +37,7 @@ end
 # A stalled callback cannot collapse settings and serve into the same frame.
 h = PongHarness.new
 begin
-  h.advance(150)
+  h.advance(1) # Exchange the initial status before delaying its application.
   h.now += 0.8
   $spoken_messages.clear
   h.clients.each_value(&:frame)
@@ -74,7 +72,7 @@ end
   end
 end
 
-# Bot startup has no human-network countdown; carry actual client feedback,
+# Bot startup still has no countdown; carry actual client feedback,
 # not only Engine constructor fixtures, through an accepted point.
 h = PongHarness.new(players: ['Alice', 'bot:7:1'])
 begin
@@ -91,4 +89,4 @@ begin
 ensure
   h.close
 end
-puts 'PASS source client: first start/countdown, slow UI gap, later serves, independent preferences in four roles, bot step carry/reset'
+puts 'PASS source client: immediate ready start, late peer, slow UI announcement gap, unchanged later serves, preferences and bot step carry/reset'

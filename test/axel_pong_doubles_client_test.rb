@@ -17,7 +17,7 @@ speech_client.instance_variable_set(:@ready_at, 7.2)
 $spoken_messages.clear
 speech_client.send(:announce_ready, clock)
 assert($spoken_messages == ['Dave will serve against Bob.'], 'doubles service did not name both participants')
-assert(speech_client.instance_variable_get(:@ready_at) == 10.7, 'late service speech did not retain its 2.7-second delay')
+assert(speech_client.instance_variable_get(:@ready_at) == 7.2, 'late service speech extended the ordinary deadline')
 speech_client.instance_variable_set(:@server_announced, false)
 speech_client.send(:announce_ready, clock)
 assert($spoken_messages.length == 1, 're-render repeated the same service block')
@@ -26,79 +26,15 @@ speech_client.instance_variable_set(:@server_announced, false)
 speech_client.send(:announce_ready, clock)
 assert($spoken_messages.length == 1, 'second serve repeated the service pairing')
 
-unless defined?(EltenAPI::SpeechCommands::CustomCommand)
-  module EltenAPI
-    module SpeechCommands
-      class CustomCommand
-        def initialize(&block); @block = block; end
-        def execute; @block.call; end
-      end
-    end
+# Advertise indexed speech, but fail if Pong queries or relies on its state.
+def stalled_indexed_speech(client)
+  client.define_singleton_method(:speech_indexes_supported?) { raise 'Pairing queried speech capabilities' }
+  client.define_singleton_method(:current_speechsequence) { raise 'Pairing waited for speech completion' }
+  client.define_singleton_method(:speak) do |text|
+    assert(text.is_a?(String), 'Pairing must be an ordinary non-blocking announcement')
+    $spoken_messages << text
   end
 end
-unless defined?(EltenAPI::SpeechSequence)
-  module EltenAPI
-    class SpeechSequence
-      attr_reader :commands
-      def initialize(*commands); @commands = commands; end
-      def to_s; @commands.grep(String).join; end
-      def texts; [to_s, '']; end
-      def indexes; [1, 2]; end
-      def execute(index); @commands.last.execute if index >= 2; end
-    end
-  end
-end
-
-def indexed_speech(client)
-  client.define_singleton_method(:speech_indexes_supported?) { true }
-  client.define_singleton_method(:current_speechsequence) { @test_sequence }
-  client.define_singleton_method(:speak) { |value| @test_sequence = value.is_a?(EltenAPI::SpeechSequence) ? value : nil }
-end
-
-speech_client.instance_variable_set(:@replay, Struct.new(:state).new({rally: 4}))
-speech_client.instance_variable_set(:@server_announced, false)
-indexed_speech(speech_client)
-speech_client.send(:announce_ready, clock)
-sequence = speech_client.current_speechsequence
-assert(sequence.is_a?(EltenAPI::SpeechSequence), 'doubles speech ignored host completion indexes')
-clock = 20.0
-assert(speech_client.send(:serve_announcement_waiting?), 'long speech unlocked service before completion')
-assert(sequence.texts == [sequence.to_s, ''], 'completion command was not indexed after the service text')
-sequence.execute(sequence.indexes.first)
-assert(speech_client.send(:serve_announcement_waiting?), 'first speech index prematurely unlocked service')
-sequence.execute(sequence.indexes.last)
-assert(!speech_client.send(:serve_announcement_waiting?) && speech_client.instance_variable_get(:@ready_at) == 22.7,
-  'service did not wait 2.7 seconds from actual completion')
-clock = 21.0
-sequence.commands.last.execute
-assert(speech_client.instance_variable_get(:@ready_at) == 22.7, 'repeated speech callback extended service delay')
-speech_client.instance_variable_set(:@replay, Struct.new(:state).new({rally: 6}))
-speech_client.instance_variable_set(:@server_announced, false)
-speech_client.send(:announce_ready, clock)
-cancelled = speech_client.current_speechsequence
-speech_client.speak('Another message')
-assert(!speech_client.send(:serve_announcement_waiting?) && speech_client.instance_variable_get(:@ready_at) == 23.7,
-  'interrupted speech left service waiting indefinitely')
-clock = 24.0
-cancelled.commands.last.execute
-assert(speech_client.instance_variable_get(:@ready_at) == 23.7, 'cancelled completion affected a newer announcement')
-speech_client.instance_variable_set(:@replay, Struct.new(:state).new({rally: 8}))
-speech_client.instance_variable_set(:@server_announced, false)
-speech_client.send(:announce_ready, clock)
-stale = speech_client.current_speechsequence
-speech_client.instance_variable_set(:@replay, Struct.new(:state).new({rally: 9}))
-speech_client.send(:reset_rally_feedback)
-deadline = speech_client.instance_variable_get(:@ready_at)
-clock = 40.0
-stale.commands.last.execute
-assert(speech_client.instance_variable_get(:@ready_at) == deadline, 'old-rally speech callback delayed a newer rally')
-speech_client.instance_variable_set(:@replay, Struct.new(:state).new({rally: 10}))
-speech_client.instance_variable_set(:@server_announced, false)
-speech_client.send(:announce_ready, clock)
-stale = speech_client.current_speechsequence
-speech_client.instance_variable_set(:@closed, true)
-stale.commands.last.execute
-assert(speech_client.instance_variable_get(:@ready_at) == deadline, 'speech callback changed a closed client')
 
 h = PongHarness.new(players: players, viewers: players, options: {'team_size' => 2, 'team_seats' => [0, 0, 1, 1]})
 begin
@@ -129,16 +65,13 @@ begin
   assert($spoken_messages.grep(/will serve against/).length == messages, 'post-goal pairing was announced too early')
   h.now += 2.5
   h.clients.each_value(&:frame)
-  assert(h.clients.values.all?(&:paused), 'delayed pairing speech collapsed the 2.7-second pause')
   assert($spoken_messages.grep(/will serve against/).length == messages + h.clients.length,
     'changed service block was not announced once on every client')
-  h.advance(168)
-  assert(h.clients.values.all?(&:paused), 'delayed pairing speech unlocked service too early')
-  # Readiness crosses guest -> owner -> guest on the existing 25 Hz channel.
+  # Even a delayed frame/announcement must not start another countdown.
+  # Readiness still crosses guest -> owner -> guest on the existing channel.
   h.advance(10)
-  assert(h.clients.values.none?(&:paused), "delayed pairing speech never unlocked service at #{h.now}: " +
-    h.clients.map { |name, client| [name, client.paused, client.instance_variable_get(:@ready_at),
-      client.instance_variable_get(:@host_ready_at), client.instance_variable_get(:@host_serve_wait)] }.inspect)
+  assert(h.clients.values.none?(&:paused), 'late pairing added another service pause')
+
 ensure
   h.close
 end
@@ -147,27 +80,22 @@ begin
   host = h.clients['Alice']
   server_name = h.players[host.engine.server]
   server = h.clients[server_name]
-  indexed_speech(host)
-  indexed_speech(server)
-  h.advance(400)
-  assert(h.clients.values.all?(&:paused), 'ongoing authority speech did not hold all clients')
-  assert(host.current_speechsequence && server.current_speechsequence, 'indexed pairing was not announced')
+  stalled_indexed_speech(host)
+  stalled_indexed_speech(server)
+  h.advance(2)
+  assert(h.clients.values.all?(&:paused), 'initial announcement gap disappeared')
   h.press(server_name, move: 1)
   h.advance(8)
   assert(server.engine.turn.zero? && server.engine.paddles[host.engine.server] > 15,
-    'speech pause blocked movement or allowed an early serve')
+    'ordinary pause blocked movement or allowed an early serve')
   h.surfaces[server_name].controls['move'] = 0
-  host.current_speechsequence.commands.last.execute
-  h.advance(140)
-  assert(server.paused && server.engine.turn.zero?, 'server bypassed its own unfinished announcement')
-  server.current_speechsequence.commands.last.execute
-  h.advance(168)
-  assert(server.paused, 'server unlocked before 2.7 seconds after speech completion')
-  h.advance(10)
-  assert(!server.paused && server.engine.turn.zero?, 'speech completion failed to unlock without replaying a paused press')
+  h.advance(30)
+  assert(h.clients.values.none?(&:paused) && server.engine.turn.zero?,
+    'doubles retained the initial three-second delay or replayed a paused press')
   h.press(server_name)
   h.advance(8)
-  assert(h.players.all? { |name| h.clients[name].engine.turn == 1 }, 'four-client serve failed after speech completion')
+  assert(h.players.all? { |name| h.clients[name].engine.turn == 1 }, 'four-client serve failed without speech callbacks')
+
 ensure
   h.close
 end
@@ -229,22 +157,15 @@ begin
     end
     client.instance_variable_set(:@match, match)
   end
-  indexed_speech(host)
-  indexed_speech(h.clients['Bob'])
-  h.advance(180)
-  assert(host.engine.paddles.length == 4 && host.engine.turn.zero?, 'bot served before indexed announcement completion')
-  host.current_speechsequence.commands.last.execute
-  h.advance(168)
-  assert(host.engine.turn.zero?, 'bot served before the 2.7-second completion delay')
-  h.advance(120)
-  assert(host.engine.turn.zero?, 'bot served while the sole human was still hearing the pairing')
-  h.clients['Bob'].current_speechsequence.commands.last.execute
-  h.advance(168)
-  assert(host.engine.turn.zero?, 'bot ignored the sole human 2.7-second completion delay')
-  h.advance(120)
+  stalled_indexed_speech(host)
+  stalled_indexed_speech(h.clients['Bob'])
+  h.advance(400)
   assert(host.engine.turn > 0 && h.clients.values.all? { |client| client.snapshot['p'].length == 4 },
-    'four-participant owner simulation or guest snapshots failed with bots')
-  assert(h.clients['Bob'].engine == nil && !host.is_a?(GameRoomPong::PeerPlay), 'bot match acquired competing peer simulations')
+    'bot server or four-paddle snapshots still depend on speech completion')
+  assert(h.clients['Bob'].engine.is_a?(GameRoomPong::PeerEngine) && host.is_a?(GameRoomPong::PeerPlay),
+    'bot match did not preserve the human local engine')
+  assert(h.clients['Bob'].instance_variable_get(:@bots).empty? && host.instance_variable_get(:@bots).length == 3,
+    'bots must be controlled only by the owner')
 ensure
   h.close
 end
@@ -287,8 +208,9 @@ end
         turn = engine.turn
         seat = engine.rotation.hitter(turn)
         human_turn = seat.zero?
+        actor_engine = human_turn ? h.clients[human].engine : engine
         distance = human_turn ? 3.0 : -0.01
-        engine.ball.merge!('x' => engine.paddles[seat],
+        actor_engine.ball.merge!('x' => actor_engine.paddles[seat],
           'y' => engine.rotation.team(seat).zero? ? distance : GameRoomPong::Engine::DEPTH - distance)
         h.press(human) if human_turn
         40.times do
@@ -300,7 +222,8 @@ end
         returns << seat unless human_turn
       end
       loser = engine.rotation.hitter(engine.turn)
-      engine.ball.merge!('x' => engine.paddles[loser] < 15 ? 29.0 : 1.0,
+      losing_engine = loser.zero? ? h.clients[human].engine : engine
+      losing_engine.ball.merge!('x' => losing_engine.paddles[loser] < 15 ? 29.0 : 1.0,
         'y' => engine.rotation.team(loser).zero? ? -0.01 : 20.01)
       40.times do
         break if host.context_data['pong_point']
@@ -327,4 +250,4 @@ end
     h.close
   end
 end
-puts 'PASS Pong doubles clients: indexed service, four paddles, team audio, hurry and eight durable points for both one-human/three-bot owner roles'
+puts 'PASS Pong doubles clients: non-blocking service announcements, four paddles, team audio, hurry and eight durable points for both one-human/three-bot owner roles'

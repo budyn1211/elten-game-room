@@ -255,4 +255,35 @@ assert(GameRoomChangelog.pending_entries(234, 234).empty?, 'build 234 changelog 
 assert(GameRoomChangelog.list_items([entry_234]).first == 'Version 2.0.2.3, build 234', 'build 234 heading differs')
 assert(entry_234.changes.last.include?('HTTP') && entry_234.changes.last.include?('Communications'), 'ping transport is ambiguous')
 
-puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, old notes preserved and bilingual build 234 notes"
+entry_235 = entries.find { |entry| entry.build == 235 }
+release_235 = JSON.parse(File.read(File.expand_path('../locale/changelog-build-235-pl.json', __dir__), encoding: 'UTF-8'))
+assert(entry_235.version == '2.0.2.4' && entry_235.changes == release_235.keys, 'build 235 notes and translations differ')
+assert(entry_235.changes.length == 1 && entry_235.changes.first.include?('Doubles'), 'build 235 should describe only the doubles correction')
+release_235.each { |source, translation| assert(catalog[source] == translation, "uncompiled build 235 translation: #{source}") }
+assert(GameRoomChangelog.pending_entries(234, 235).map(&:build) == [235], 'build 235 repeats already-read notes')
+assert(GameRoomChangelog.pending_entries(nil, 235).map(&:build) == [235], 'first build 235 launch repeats older notes')
+assert(GameRoomChangelog.pending_entries(235, 235).empty?, 'build 235 changelog reopens after being read')
+assert(GameRoomChangelog.list_items([entry_235]).first == 'Version 2.0.2.4, build 235', 'build 235 heading differs')
+document_235 = File.read(File.expand_path('../docs/CHANGELOG_2_0_2_4.md', __dir__), encoding: 'UTF-8')
+polish_235, english_235 = document_235.split('## English', 2)
+assert(polish_235.lines.grep(/^- /).map { |line| line.delete_prefix('- ').strip } == release_235.values, 'build 235 Polish document differs')
+assert(english_235.lines.grep(/^- /).map { |line| line.delete_prefix('- ').strip } == entry_235.changes, 'build 235 English document differs')
+
+entry_236 = entries.find { |entry| entry.build == 236 }
+release_236 = JSON.parse(File.read(File.expand_path('../locale/changelog-build-236-pl.json', __dir__), encoding: 'UTF-8'))
+assert(entry_236.version == '2.0.2.5' && entry_236.changes == release_236.keys, 'build 236 notes and translations differ')
+assert(entry_236.changes.length == 3 && entry_236.changes.uniq.length == 3, 'build 236 has missing or duplicate notes')
+release_236.each { |source, translation| assert(catalog[source] == translation, "uncompiled build 236 translation: #{source}") }
+assert(GameRoomChangelog.pending_entries(235, 236).map(&:build) == [236], 'build 236 repeats already-read notes')
+assert(GameRoomChangelog.pending_entries(nil, 236).map(&:build) == [236], 'first build 236 launch repeats older notes')
+assert(GameRoomChangelog.pending_entries(236, 236).empty?, 'build 236 changelog reopens after being read')
+assert(GameRoomChangelog.list_items([entry_236]).first == 'Version 2.0.2.5, build 236', 'build 236 heading differs')
+assert(entry_236.changes[1].include?('All participants'), 'mixed-match update requirement missing')
+assert(entry_236.changes.last.include?('three-second delay at the start'), 'initial countdown change missing')
+document_236 = File.read(File.expand_path('../docs/CHANGELOG_2_0_2_5.md', __dir__), encoding: 'UTF-8')
+assert(document_236.start_with?('# Game Room 2.0.2.5 — build 236'), 'build 236 document heading differs')
+polish_236, english_236 = document_236.split('## English', 2)
+assert(polish_236.lines.grep(/^- /).map { |line| line.delete_prefix('- ').strip } == release_236.values, 'build 236 Polish document differs')
+assert(english_236.lines.grep(/^- /).map { |line| line.delete_prefix('- ').strip } == entry_236.changes, 'build 236 English document differs')
+
+puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, old notes preserved and bilingual build 236 notes"

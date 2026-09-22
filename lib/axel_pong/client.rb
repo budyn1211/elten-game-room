@@ -11,12 +11,12 @@ require_relative 'peer_play'
 
 module GameRoomPong
   class Client
+    include PeerPlay
     SEND_INTERVAL = 0.04
     MAX_PHYSICS_STEPS = 4
     HANDSHAKE_TIMEOUT = 10.0
     STREAM_TIMEOUT = 4.0
     SINGLE_SERVE_DELAY = 2.7
-    DOUBLES_SERVE_DELAY = SINGLE_SERVE_DELAY
     attr_reader :engine, :snapshot, :paused
     def _(source); GameRoomContent.utf8(super(source)); end
 
@@ -109,15 +109,13 @@ module GameRoomPong
       @rotation = Rotation.new(teams: @teams, rally: replay.state[:rally], first_server: first_server)
       observer_side(@players) if @side == nil
       @required = @players.reject { |p| GameRoomParticipants.bot?(p) || p.to_s.casecmp?(@viewer) }
-      human_match = @players.none? { |p| GameRoomParticipants.bot?(p) }
-      if human_match
-        @channel.required_members = (@required + [@owner]).uniq if @channel.respond_to?(:required_members=)
-        @channel.enable_events(@rotation.doubles? ? 'pong-doubles-peer-2' : 'pong-peer-2', routing: :peers)
-        extend PeerPlay unless is_a?(PeerPlay)
-      else
-        @channel.required_members = host? ? @required : [@owner] if @channel.respond_to?(:required_members=)
-        @channel.enable_events('pong-doubles-1') if @rotation.doubles?
-      end
+      @channel.required_members = (@required + [@owner]).uniq if @channel.respond_to?(:required_members=)
+      # The engine path is shared. A distinct mixed-match dialect rejects old
+      # clients which would still send remote key presses instead of actions.
+      mixed = @players.any? { |p| GameRoomParticipants.bot?(p) }
+      dialect = @rotation.doubles? ? 'pong-doubles-' : 'pong-'
+      dialect += mixed ? 'mixed-peer-1' : 'peer-2'
+      @channel.enable_events(dialect, routing: :peers)
       reset_rally if changed
       if replay.finished?
         @mouse.suspend
@@ -171,122 +169,6 @@ module GameRoomPong
           end
         end
       })
-    end
-
-    def frame
-      return if @closed || !@replay || @replay.finished?
-      tick
-      now = @clock.call
-      if @channel.epoch && @epoch != @channel.epoch
-        first_local_connection = @epoch == nil && host? && @required.empty?
-        @epoch = @channel.epoch
-        @epoch_since = now
-        @peers.clear
-        @sequence = 0
-        if first_local_connection
-          @engine_epoch = @epoch
-        else
-          reset_rally unless @rotation.doubles? && awaiting_point?
-        end
-      end
-      receive_packets(now)
-      # A live TCP socket is not proof that game callbacks still arrive.
-      # A fresh session needs enough time for the native invitation retry (5s).
-      # Treating that handshake as a stopped established stream (4s) would tear
-      # down a healthy replacement before the other endpoint can accept it.
-      deadlines = if host?
-        @required.map do |user|
-          received = @peers[user.downcase]&.ack_updated_at
-          received ? received + STREAM_TIMEOUT : handshake_deadline
-        end
-      else
-        received = @peers[@owner.downcase]&.received_at
-        [received ? received + STREAM_TIMEOUT : handshake_deadline]
-      end
-      if deadlines.compact.any? { |deadline| now > deadline } && now - @last_reconnect > 10
-        @last_reconnect = now
-        @connection_started_at = now
-        @channel.reconnect
-      end
-      delta = @last_frame ? now - @last_frame : 0
-      @last_frame = now
-      was_playable = !@paused && @snapshot && @snapshot['goal'] == nil
-      raw_input = surface_input
-      if host?
-        healthy = @required.all? do |user|
-          peer = @peers[user.downcase]
-          peer && peer.fresh?(now) && peer.ack_fresh?(now) && peer.body['r'] == @replay.state[:rally]
-        end
-        healthy &&= @channel.connected? unless @required.empty?
-        healthy = false if delta < 0
-        if !healthy
-          @ready_at = @rotation.doubles? ? [@ready_at, now + 1.0].max : now + 1.0
-          # Do not ratify a goal first seen only after an actual stream outage.
-          # Replace the channel/epoch so both clients restart this rally, and
-          # old delayed snapshots cannot reintroduce that unconfirmed goal.
-          if @engine.goal && !@pending_point && !@abandoned_goal
-            @abandoned_goal = true
-            @channel.reconnect
-          end
-        end
-        prepare_first_serve(now, healthy)
-        announce_ready(now) if healthy
-        waiting = serve_announcement_waiting? || now < @ready_at || peer_service_waiting?
-        set_paused(!healthy || @abandoned_goal == true || waiting, waiting: healthy && waiting)
-        raw_input = sample_pointer_input(raw_input, healthy)
-        local = playable_input(raw_input, active: was_playable && !@paused && @engine.goal == nil, moving: healthy)
-        local['move'] = raw_input.fetch('move', 0) if healthy
-        inputs = @players.each_with_index.map do |user, side|
-          side == @side ? local : (@peers[user.downcase]&.body || {})
-        end
-        @players.each_index do |side|
-          enabled = side == @side ? Preferences.read(@program)['auto_return'] : inputs[side]['auto_return']
-          @engine.automatic_for(side, enabled)
-        end
-        each_physics_frame(now) do |frame_at|
-          inputs[@side] = pointer_input(local, frame_at) if @side != nil
-          if !@paused && !@engine.goal && frame_at >= @ready_at
-            @bots.each { |bot| bot.step(@engine) }
-            @engine.step(inputs, now_ms: (frame_at * 1000).to_i)
-          elsif healthy
-            @engine.position(inputs, now_ms: (frame_at * 1000).to_i)
-          end
-        end
-        @snapshot = @engine.snapshot
-        send_state(now)
-        commit_goal(now)
-      else
-        peer = @peers[@owner.downcase]
-        # The durable point may arrive before the next live snapshot. A fresh
-        # peer from the previous rally is not proof that this rally is ready.
-        healthy = @channel.connected? && peer && peer.fresh?(now) && @snapshot &&
-          peer.body['r'] == @replay.state[:rally]
-        waiting = healthy && peer.body['waiting'] == true
-        prepare_first_serve(now, healthy)
-        announce_ready(now) if healthy && (!@paused || waiting)
-        local_wait = @rotation.doubles? && (serve_announcement_waiting? || now < @ready_at || now < @host_ready_at)
-        set_paused(!healthy || peer.body['paused'] != false || local_wait, waiting: waiting || healthy && local_wait)
-        raw_input = sample_pointer_input(raw_input, healthy)
-        local = playable_input(raw_input, active: was_playable && !@paused && @snapshot['goal'] == nil, moving: healthy)
-        local['move'] = raw_input.fetch('move', 0) if healthy
-        # A human may face a bot run by an observing table owner. In this
-        # case predict only local paddle input, never a second ball/score.
-        if @side != nil
-          @paddle_feedback.suspend(local) unless @paddle_input_active
-          each_physics_frame(now) do |at|
-            local = pointer_input(local, at) if @mouse.active?
-            if @paddle_input_active
-              @paddle_feedback.step(local, position: @snapshot['p'][@side]) do |kind, position|
-                @audio.play_local_movement(@snapshot, viewer: @side, kind: kind, position: position)
-              end
-            end
-          end
-          local = local.merge('paddle' => @mouse.position) if @mouse.active? && @mouse.position
-        end
-        send_input(now, local, peer)
-      end
-      @mouse.finish_frame
-      present
     end
 
     def close
@@ -464,27 +346,10 @@ module GameRoomPong
       input
     end
 
-    def reset_rally
-      options = @replay.state[:options]
-      bots = @players.each_index.select { |i| GameRoomParticipants.bot?(@players[i]) }
-      seed = Digest::SHA256.hexdigest("#{@match}:#{@epoch}:#{@replay.state[:rally]}")[0, 12].to_i(16)
-      previous = @snapshot
-      feedback = @engine&.movement_feedback if @engine && @engine_rally == @replay.state[:rally] - 1 && @engine_epoch == @epoch
-      @engine = Engine.new(level: options['difficulty'], arcade: options['arcade'], automatic: local_automatic,
-        rally: @replay.state[:rally], bots: bots, rng: Random.new(seed), first_server: first_server, teams: @teams,
-        paddles: previous && previous['p'], shields: previous && previous['shields'], movement_feedback: feedback) if host?
-      @engine_rally, @engine_epoch = @replay.state[:rally], @epoch
-      @bots = bots.map { |side| Bot.new(side, level: options['difficulty'], rng: Random.new(seed + side + 1)) }
-      @snapshot = host? ? @engine.snapshot : nil
-      reset_rally_feedback
-    end
-
     def reset_rally_feedback
-      @serve_speech = @serve_speech_token = nil
       @mouse.reset_rally
       @paddle_feedback.reset
-      @pending_point = @goal_sequence = nil
-      @abandoned_goal = false
+      @pending_point = nil
       @press_base = @total_press.to_i
       @direction_base = (@direction_totals || {}).dup
       @audio.reset
@@ -503,23 +368,6 @@ module GameRoomPong
       end
       @server_announced = false
       @paused = true
-    end
-
-    def receive_packets(now)
-      @channel.take_packets.each do |user, packet|
-        body = packet['d']
-        next unless body['r'] == @replay.state[:rally]
-        valid = host? ? valid_input?(body) : valid_state?(body)
-        next unless valid
-        peer = (@peers[user] ||= GameRoomRealtime::PeerState.new)
-        next unless peer.receive(packet, now: now, last_sent: @sequence)
-        unless host?
-          @snapshot = body['state']
-          if @rotation.doubles? && @snapshot['b']['dy'].zero? && body['ready_in']
-            @host_ready_at = [@host_ready_at, now + body['ready_in']].max
-          end
-        end
-      end
     end
 
     def valid_input?(body)
@@ -576,47 +424,6 @@ module GameRoomPong
 
     def valid_input_count?(n); n.is_a?(Integer) && n.between?(0, 2**31 - 1); end
 
-    def send_state(now)
-      return if now < @next_send
-      @next_send = now + SEND_INTERVAL
-      @sequence += 1
-      body = { 'r' => @replay.state[:rally], 'paused' => @paused,
-        'waiting' => @waiting_for_serve == true, 'state' => @snapshot }
-      if @rotation.doubles?
-        body['ready_in'] = [[@ready_at - now, 0.0].max, 10.0].min if @ready_at.finite?
-      end
-      packet = GameRoomRealtime::Protocol.encode(match: @match, epoch: @epoch, sequence: @sequence, kind: 'state', body: body)
-      sent = @channel.send(packet)
-      @goal_sequence ||= @sequence if @engine.goal != nil && (sent || @required.empty?)
-    end
-
-    def send_input(now, input, peer)
-      return unless @epoch && now >= @next_send
-      @next_send = now + SEND_INTERVAL
-      @sequence += 1
-      # Spectators acknowledge for diagnostics, but can never move a paddle.
-      body = { 'r' => @replay.state[:rally], 'move' => input['move'], 'hit' => input['hit'], 'press' => input['press'] }
-      body['auto_return'] = Preferences.read(@program)['auto_return'] == true
-      body['serve_wait'] = serve_announcement_waiting? || now < @ready_at if @rotation.doubles?
-      body['paddle'] = input['paddle'] if input.key?('paddle')
-      %w[aim left_press right_press pointer_before pointer_seq pointer_edges pointer_start pointer_keys].each do |key|
-        body[key] = input[key] if input.key?(key)
-      end
-      @channel.send(GameRoomRealtime::Protocol.encode(match: @match, epoch: @epoch,
-        sequence: @sequence, kind: 'input', body: body, ack: peer ? peer.sequence : 0))
-    end
-
-    def commit_goal(now)
-      return unless @engine.goal != nil && @goal_sequence && !@abandoned_goal
-      return unless @required.all? do |user|
-        peer = @peers[user.downcase]
-        peer && peer.fresh?(now) && peer.ack >= @goal_sequence
-      end
-      @pending_point = "#{@replay.state[:rally]}:#{@engine.goal}"
-      # The existing automatic-action scheduler writes it through LiveSessions,
-      # including its uncertain-write recovery. Never resume a form inside a tick.
-    end
-
     def set_paused(value, waiting: false)
       @waiting_for_serve = waiting
       value = true unless @snapshot
@@ -647,7 +454,10 @@ module GameRoomPong
         rally = @replay.state[:rally]
         return if rally.odd? || @serve_announced_block == rally / 2
         @serve_announced_block = rally / 2
-        announce_service_pair(_('%{server} will serve against %{receiver}.') % {
+        # Presentation only, just like Single. A synthesizer may never return
+        # its final speech index; it must not gate the match or extend the
+        # ordinary score + SINGLE_SERVE_DELAY deadline for any participant.
+        speak(_('%{server} will serve against %{receiver}.') % {
           server: GameRoomContent.utf8(GameRoomParticipants.display_name(@players[@rotation.server])),
           receiver: GameRoomContent.utf8(GameRoomParticipants.display_name(@players[@rotation.receiver])) })
       else
@@ -656,36 +466,9 @@ module GameRoomPong
       @audio.start_match
     end
 
-    def announce_service_pair(text)
-      if defined?(EltenAPI::SpeechSequence) && defined?(EltenAPI::SpeechCommands::CustomCommand) &&
-          respond_to?(:speech_indexes_supported?, true) && speech_indexes_supported? &&
-          respond_to?(:current_speechsequence, true)
-        token = @serve_speech_token = Object.new
-        completion = EltenAPI::SpeechCommands::CustomCommand.new { complete_service_speech(token) }
-        @serve_speech = EltenAPI::SpeechSequence.new(text, completion)
-        speak(@serve_speech)
-      else
-        speak(text)
-        @ready_at = [@ready_at, @clock.call + DOUBLES_SERVE_DELAY].max
-      end
-    end
-
-    def complete_service_speech(token)
-      return if @closed || !token.equal?(@serve_speech_token)
-      @serve_speech = @serve_speech_token = nil
-      @ready_at = [@ready_at, @clock.call + DOUBLES_SERVE_DELAY].max
-    end
-
     def peer_service_waiting?
       @rotation.doubles? && @engine.turn.zero? &&
         @required.any? { |user| @peers[user.downcase]&.body&.[]('serve_wait') == true }
-    end
-
-    def serve_announcement_waiting?
-      if @serve_speech && !current_speechsequence.equal?(@serve_speech)
-        complete_service_speech(@serve_speech_token)
-      end
-      @serve_speech != nil
     end
 
     def prepare_first_serve(now, healthy)
@@ -697,8 +480,7 @@ module GameRoomPong
       end
       return if @initial_ready_since
       @initial_ready_since = now
-      delay = @players.any? { |p| GameRoomParticipants.bot?(p) } ? 0.0 : 3.0
-      @ready_at = @serve_announce_at = now + delay
+      @ready_at = @serve_announce_at = now
     end
 
     def local_automatic
@@ -718,22 +500,8 @@ module GameRoomPong
       else
         _('Match in progress.')
       end
-      # The remote engine remains authoritative. Only this viewer's paddle
-      # and movement sounds are presented locally; do not echo its delayed
-      # step/edge events back from the owner, even after returning to chat.
-      if @owner != nil && @side != nil && !host? && !is_a?(PeerPlay)
-        state = @snapshot
-        if state && @paddle_feedback.position != nil
-          positions = state['p'].dup
-          positions[@side] = @paddle_feedback.position
-          state = state.merge('p' => positions)
-        end
-        @surface&.present(state, status)
-        @audio.update(state, viewer: @side, paused: @paused, local_movement: true)
-      else
-        @surface&.present(@snapshot, status)
-        @audio.update(@snapshot, viewer: audio_side, paused: @paused)
-      end
+      @surface&.present(@snapshot, status)
+      @audio.update(@snapshot, viewer: audio_side, paused: @paused)
     end
   end
 end

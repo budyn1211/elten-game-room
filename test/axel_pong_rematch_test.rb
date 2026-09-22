@@ -194,8 +194,8 @@ begin
   puts 'PASS rematch: real 7 -> 21 replay, host/guest/observer, fresh channels, serve and point announcements'
 
   # A failed read must retain the pending target and all current resources.
-  # The next game keeps target=21 but changes human/bot roles. PeerPlay extends
-  # an instance and cannot safely be reused for a bot game.
+  # The next game keeps target=21 but changes human/bot roles. It still needs
+  # a new client/channel/roster, despite using the same peer engine path.
   before_retry = h.clients
   h.new_session(302, target: 21, players: ['Bob', 'bot:20:1'])
   h.repository.available = false
@@ -208,7 +208,9 @@ begin
   h.repository.available = true
   h.screens.each_key { |name| h.switch(name); h.attach(name) }
   h.advance(500)
-  assert(h.clients.values.none? { |client| client.is_a?(GameRoomPong::PeerPlay) }, 'human PeerPlay leaked into a bot rematch')
+  assert(h.clients.values.all? { |client| client.is_a?(GameRoomPong::PeerPlay) }, 'bot rematch reverted to owner-side input')
+  assert(h.clients['Alice'].instance_variable_get(:@bots).length == 1 && h.clients['Bob'].instance_variable_get(:@bots).empty?,
+    'rematch assigned the bot to the wrong controller')
   assert(h.clients.values.none?(&:paused), 'bot rematch with observing host never became ready')
   assert(h.clients.values.all? { |client| client.instance_variable_get(:@players) == ['Bob', 'bot:20:1'] }, 'old roster survived')
   21.times { h.point(0) }

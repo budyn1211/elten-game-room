@@ -1,9 +1,9 @@
 require_relative 'engine'
 
 module GameRoomPong
-  # Active original network model: each human owns their paddle, returns and
-  # misses. BE starts a new incoming flight at the far baseline, not a predicted
-  # current Y. Original P/BD/BX keep the same X axis on both machines.
+  # Each human owns their paddle/returns/misses; only the owner controls bots.
+  # A remote return starts incoming flight at the far baseline. Locally owned
+  # human/bot exchanges keep the original uninterrupted full-precision flight.
   class PeerEngine < Engine
     def initialize(side:, authority:, **args)
       super(**args)
@@ -11,17 +11,25 @@ module GameRoomPong
     end
 
     def strike(side, **args)
-      return false unless side == @side
+      return false unless controls_side?(side)
       serving = @ball['dy'].zero?
       return false unless super
       transition(serving ? 'serve' : 'hit', side)
       true
     end
 
-    # AH is processed by the channel owner, not by both RNGs independently.
-    def roll_effects(_side); end
+    # The owner alone rolls Arcade effects. Locally controlled bot matches
+    # retain their original within-frame order (before the next bot tracks).
+    # Keep the result for broadcast; do not consume the RNG a second time.
+    def roll_effects(side)
+      @pending_effects = host_effects(side) if @authority && !@bots.empty?
+    end
 
     def host_effects(side)
+      if @pending_effects && @pending_effects['side'] == side && @pending_effects['turn'] == @turn
+        data, @pending_effects = @pending_effects, nil
+        return data
+      end
       return unless @authority && @arcade && !@goal
       renewal = @rng.rand < 0.07
       invisible = @rng.rand < 0.07
@@ -57,6 +65,11 @@ module GameRoomPong
       @ball['dy'] = @rotation.team(side).zero? ? 1 : -1
       @previous_inbound = Array.new(@paddles.length)
       @invisible = false unless data['action'] == 'shield_hit'
+      if data['action'] == 'serve'
+        @controllers.each do |other, bot|
+          bot.served(self, opening: other != side && !@bots.include?(side))
+        end
+      end
       cue(data['action'], side)
       true
     end
@@ -69,6 +82,19 @@ module GameRoomPong
 
     def wall_sound(x, y)
       append_cue('wall', nil, x, y)
+    end
+
+    def remote_paddle(side, x, edges: nil)
+      return super unless @bots.include?(side)
+      # A bot makes fractional, sometimes deliberately silent moves. Its
+      # position packet is not itself a footstep; the owner supplies the cue.
+      move_to(side, x, silent: true)
+      @edge_attempts[side] = edges if edges
+    end
+
+    def remote_bot_sound(kind, side)
+      return unless @bots.include?(side) && !controls_side?(side) && %w[step edge].include?(kind)
+      append_cue(kind, side, @ball['x'], @ball['y'])
     end
 
     def serve_timeout(confirmed: false)
@@ -91,7 +117,9 @@ module GameRoomPong
 
     private
 
-    def controls_side?(side); side == @side; end
+    def controls_side?(side)
+      side == @side || (@authority && @bots.include?(side))
+    end
 
     def miss(side)
       super

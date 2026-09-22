@@ -2,9 +2,9 @@ require_relative 'peer_engine'
 require_relative 'hurry'
 
 module GameRoomPong
-  # Human matches exchange reliable returns/misses, with replaceable paddle
-  # positions separately. Full owner snapshots are only for observers. Players
-  # never have their own paddle or ball overwritten by a delayed snapshot.
+  # All matches exchange reliable owned actions: humans control themselves,
+  # the owner controls bots. Replaceable positions remain separate. A delayed
+  # owner snapshot never overwrites a human's own paddle or ball.
   module PeerPlay
     include Hurry
     def frame
@@ -12,6 +12,7 @@ module GameRoomPong
       tick
       now = @clock.call
       if @channel.epoch && @epoch != @channel.epoch
+        first_local_connection = @epoch == nil && local_match?
         @epoch, @epoch_since = @channel.epoch, now
         @peers.clear
         @connection_peers = {}
@@ -19,7 +20,11 @@ module GameRoomPong
         @deferred_events = []
         # A point already agreed by both players is waiting for durable
         # confirmation, not an unfinished rally to replay after reconnection.
-        reset_rally unless awaiting_point?
+        if first_local_connection
+          @engine_epoch = @epoch
+        else
+          reset_rally unless awaiting_point?
+        end
       end
       receive_peer_packets(now)
       receive_peer_events
@@ -41,12 +46,12 @@ module GameRoomPong
         @connection_started_at = now
         @channel.reconnect(reason: 'PeerStatusTimeout')
       end
-      healthy = @channel.connected? && transport_members_ready? && established && !expired
+      healthy = local_match? || (@channel.connected? && transport_members_ready? && established && !expired)
       was_playable = !@paused && @snapshot && @snapshot['goal'] == nil
       raw = surface_input
       prepare_first_serve(now, healthy)
       announce_ready(now) if healthy
-      waiting = serve_announcement_waiting? || now < @ready_at || (host? && peer_service_waiting?) ||
+      waiting = now < @ready_at || (host? && peer_service_waiting?) ||
         (!host? && @engine.turn.zero? && (@host_serve_wait == true || now < @host_ready_at))
       set_paused(!healthy || waiting, waiting: healthy && waiting)
       @engine.automatic_for(@side, Preferences.read(@program)['auto_return']) if @side != nil
@@ -83,19 +88,29 @@ module GameRoomPong
     def reset_rally
       options = @replay.state[:options]
       seed = Digest::SHA256.hexdigest("#{@match}:#{@epoch}:#{@replay.state[:rally]}")[0, 12].to_i(16)
+      bots = @players.each_index.select { |side| GameRoomParticipants.bot?(@players[side]) }
       owner_side = @players.index { |p| p.to_s.casecmp?(@owner) }
       physics_server = owner_side || 0
       guests = @players.each_index.reject { |side| side == physics_server }
       previous = @snapshot
+      feedback = @engine&.movement_feedback if @engine && @engine_rally == @replay.state[:rally] - 1 && @engine_epoch == @epoch
+      # Keep the existing mixed-match physics profile (including human reach),
+      # not the all-human network profile merely because routing is now shared.
+      guest = bots.empty? ? (@rotation.doubles? ? guests : guests.first) : nil
       @engine = PeerEngine.new(side: @side, authority: host?, level: options['difficulty'],
         arcade: options['arcade'], automatic: local_automatic, rally: @replay.state[:rally],
-        first_server: first_server, teams: @teams, guest: @rotation.doubles? ? guests : guests.first,
-        paddles: previous && previous['p'], shields: previous && previous['shields'], rng: Random.new(seed))
+        first_server: first_server, teams: @teams, guest: guest, bots: bots,
+        paddles: previous && previous['p'], shields: previous && previous['shields'],
+        movement_feedback: feedback, rng: Random.new(seed))
+      @engine_rally, @engine_epoch = @replay.state[:rally], @epoch
+      @bots = host? ? bots.map { |side| Bot.new(side, level: options['difficulty'], rng: Random.new(seed + side + 1)) } : []
+      @bots.each { |bot| bot.step(@engine) }
       @snapshot = host? ? @engine.snapshot : nil
       reset_rally_feedback
       @host_ready = false
       @host_serve_wait = false
       @last_wall = 0
+      @last_bot_sound = 0
       @peer_disagreements = {}
       @event_sequence ||= 0
       @hurry_until = @point_reason = nil
@@ -138,6 +153,11 @@ module GameRoomPong
               next if side == @side
               @engine.remote_paddle(side, body['state']['p'][side], edges: body['state']['edges']&.[](side))
             end
+            body['state']['fx'].each do |number, kind, side, *_|
+              next unless number > @last_bot_sound
+              @engine.remote_bot_sound(kind, side)
+            end
+            @last_bot_sound = [@last_bot_sound, body['state']['fx'].last&.first.to_i].max
             @snapshot ||= @engine.snapshot
           end
         end
@@ -215,7 +235,12 @@ module GameRoomPong
 
     def peer_event_sender?(sender, data)
       if %w[serve hit shield_hit goal hurry_request].include?(data['action'])
-        @players[data['side']].to_s.casecmp?(sender) && data['side'] != @side
+        player = @players[data['side']]
+        if GameRoomParticipants.bot?(player)
+          data['action'] != 'hurry_request' && !host? && @owner.casecmp?(sender)
+        else
+          player.to_s.casecmp?(sender) && data['side'] != @side
+        end
       else
         !host? && @owner.casecmp?(sender)
       end
@@ -262,6 +287,9 @@ module GameRoomPong
     end
 
     def emit_peer_event(data)
+      # A local human/bot match does not wait for a network endpoint. Observers
+      # can later catch up from snapshots; no other player depends on this lane.
+      return if local_match? && (!@epoch || !@channel.connected?)
       @event_sequence += 1
       packet = GameRoomRealtime::Protocol.encode(match: @match, epoch: @epoch, sequence: @event_sequence,
         kind: 'event', body: data.merge('r' => @replay.state[:rally]))
@@ -298,10 +326,10 @@ module GameRoomPong
       if host?
         ready = transport_members_ready? && @required.all? { |u| (p = @peers[u.downcase]) && p.body['r'] == @replay.state[:rally] }
         body.merge!('paused' => @paused, 'ready' => ready, 'state' => @snapshot)
-        body['serve_wait'] = @serve_speech != nil || peer_service_waiting? if @rotation.doubles?
+        body['serve_wait'] = peer_service_waiting? if @rotation.doubles?
         body['ready_in'] = [[@ready_at - now, 0.0].max, 10.0].min if @ready_at.finite?
       else
-        body['serve_wait'] = serve_announcement_waiting? || now < @ready_at if @rotation.doubles?
+        body['serve_wait'] = now < @ready_at if @rotation.doubles?
         body['x'] = @side == nil ? 15.0 : @engine.paddles[@side]
         body['edges'] = @side == nil ? 0 : @engine.edge_attempts[@side]
       end
@@ -329,6 +357,10 @@ module GameRoomPong
 
     def transport_members_ready?
       !@channel.respond_to?(:required_members_present?) || @channel.required_members_present?
+    end
+
+    def local_match?
+      host? && @required.empty?
     end
 
     def check_peer_agreement(now)
