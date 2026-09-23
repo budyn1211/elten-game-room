@@ -13,7 +13,8 @@ class GameRoomAudioTutorial
   def wait
     return if @entries.empty?
 
-    list = ListBox.new(@entries.map(&:label), header: GameRoomContent.utf8(_("Audio tutorial")), quiet: true)
+    welcome = GameRoomContent.utf8(_("Welcome to the audio tutorial. Here you will learn the sounds used in this game. Use the arrow keys to browse. Press Space or Enter to play a sound."))
+    list = ListBox.new(@entries.map(&:label), header: welcome, quiet: true)
     list.on(:select) { play(@entries[list.index]) }
     list.on(:key_space) { play(@entries[list.index]) if list.send(:key_first_pressed?, :key_space) }
     list.on(:move) { stop }
@@ -23,8 +24,8 @@ class GameRoomAudioTutorial
       GameRoomContextHelp.shortcut_tip('Escape', _("Return to game rules"))
     ])
     form = GameRoomUI::Form.new([list], program: @program, quiet: false)
+    list.header = GameRoomContent.utf8(_("Audio tutorial"))
     form.on(:key_escape) { form.resume }
-    speak(GameRoomContent.utf8(_("Welcome to the audio tutorial. Here you will learn the sounds used in this game. Use the arrow keys to browse. Press Space or Enter to play a sound.")), stop: false, break_sequence: false)
     form.wait
   ensure
     stop

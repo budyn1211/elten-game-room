@@ -7,8 +7,10 @@ rules library. Games without entries keep their existing menu.
 The tutorial is one native list. Arrow keys browse without autoplay. Enter or
 Space plays the selected recording from the beginning, replacing the previous
 sound. Changing selection or pressing Escape stops playback. Escape returns to
-the same rules-menu item. The welcome is queued speech, not a separate dialog
-or text field. Playback uses ELTEN's asset player and Game Room sound settings.
+the same rules-menu item. The welcome is spoken before the first item as one
+initial focus announcement, without a separate dialog or text field. Later
+navigation and refocusing do not repeat it. Playback uses ELTEN's asset player
+and Game Room sound settings.
 
 ## Adding another game
 

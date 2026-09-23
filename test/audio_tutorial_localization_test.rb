@@ -1,5 +1,12 @@
 require_relative 'taboo_rules_dictionary_test'
 
+Form.prepend(Module.new do
+  def initialize(fields, **options)
+    @tutorial_opening_header = fields.first.header
+    super
+  end
+end)
+
 class Form
   class << self; attr_accessor :audio_locale_driver; end
   def wait; Form.audio_locale_driver.call(self); end
@@ -32,10 +39,11 @@ welcome_pl = 'Witaj w tutorialu. Tu poznasz dźwięki używane w tej grze. Porus
     list = form.fields.first
     title = language == 'pl' ? 'Audiotutorial' : 'Audio tutorial'
     raise 'Wrong tutorial title' unless list.header == title
-    ([list.header] + list.options + [$spoken_messages.last]).each do |text|
+    welcome = form.instance_variable_get(:@tutorial_opening_header)
+    ([list.header] + list.options + [welcome]).each do |text|
       raise 'Binary text reached native UI' unless text.encoding == Encoding::UTF_8 && (text + ' — список').valid_encoding?
     end
-    raise 'Polish welcome is missing' if language == 'pl' && $spoken_messages.last != welcome_pl
+    raise 'Polish welcome is missing' if language == 'pl' && welcome != welcome_pl
     form.trigger(:key_escape)
   end
   GameRoomAudioTutorial.new(entries, program: Object.new).wait

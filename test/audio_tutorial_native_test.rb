@@ -181,9 +181,10 @@ class NativeTutorialDriver
       assert(entry[1] == {volume: 0.4, sample: false, loop: false}, "#{label}: wrong playback options")
     end
     if welcome
-      assert(SpeechOutput.queue == ["Audio tutorial: #{@entries.first.label}", WELCOME], "#{label}: welcome was cut off or replaced by focus")
-      assert(SpeechOutput.calls.count { |call| call.first == WELCOME } == 1, "#{label}: welcome was repeated")
-      assert(SpeechOutput.calls.last == [WELCOME, 0, false], "#{label}: welcome interrupted the speech queue")
+      opening = "#{WELCOME} #{@entries.first.label}"
+      assert(SpeechOutput.queue == [opening], "#{label}: the first item was read before the welcome, or the welcome was cut off")
+      assert(SpeechOutput.calls.count { |call| call.first.include?(WELCOME) } == 1, "#{label}: welcome was repeated")
+      assert(SpeechOutput.calls.last == [opening, 1, true], "#{label}: opening did not replace stale menu speech")
     end
     @previous = nil
     @checks += 1
@@ -221,6 +222,7 @@ assert(SpeechOutput.queue == ['New focus'], 'Native focus speech cannot expose a
 SpeechOutput.reset
 EltenAPI::KeyboardState.reset
 $focus = false
+speak('Rules menu item')
 
 entries = [
   GameRoomAudioTutorial::Entry.new(label: 'First sound', asset: 'audio_ball_up'),
@@ -254,6 +256,9 @@ trace.enable do
   GameRoomAudioTutorial.new(entries, program: program).wait
 end
 driver.finish
+driver.form.fields.first.focus
+assert(SpeechOutput.queue == ['Audio tutorial: Second sound'], 'Refocusing repeated the welcome or kept it as the list header')
+assert(SpeechOutput.calls.count { |call| call.first.include?(WELCOME) } == 1, 'Navigation repeated the welcome')
 assert(edit_boxes.zero?, 'Tutorial created an extra EditBox')
 assert(program.plays.length == 4 && program.plays.all? { |entry| entry[2].close_count == 1 }, 'Escape leaked or double-closed an audio handle')
 assert(driver.repeats.count(0x0D) == 4 && driver.repeats.count(0x20) == 4, 'The test did not exercise held Enter and Space repeats')

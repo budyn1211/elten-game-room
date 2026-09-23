@@ -43,6 +43,13 @@ class TutorialProgram
   def game_room_sound_enabled?(_name); enabled; end
 end
 
+Form.prepend(Module.new do
+  def initialize(fields, **options)
+    @tutorial_opening_header = fields.first.header
+    super
+  end
+end)
+
 class Form
   class << self; attr_accessor :tutorial_driver; end
   def wait; Form.tutorial_driver.call(self); end
@@ -55,7 +62,8 @@ Form.tutorial_driver = lambda do |form|
   list = form.fields.first
   assert(list.options == entries.map(&:label) && list.index == 0, 'Tutorial does not start on the first sound')
   assert(program.plays.empty?, 'Opening the tutorial played a sound automatically')
-  assert($spoken_messages.last == 'Welcome to the audio tutorial. Here you will learn the sounds used in this game. Use the arrow keys to browse. Press Space or Enter to play a sound.', 'Tutorial did not announce its welcome')
+  assert(form.instance_variable_get(:@tutorial_opening_header) == 'Welcome to the audio tutorial. Here you will learn the sounds used in this game. Use the arrow keys to browse. Press Space or Enter to play a sound.', 'Tutorial did not put its welcome before the first item')
+  assert(list.header == 'Audio tutorial', 'The welcome remained in the list header after opening')
   assert(!form.instance_variable_get(:@quiet), 'The first wait will cut off the welcome with another focus announcement')
   list.trigger(:select)
   first = program.plays.last
