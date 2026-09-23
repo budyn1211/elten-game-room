@@ -118,6 +118,17 @@ A spectator instead resumes after validating and restoring a fresh owner
 snapshot, without resetting the players' match. Late spectators restore the
 current snapshot rather than waiting for unavailable historical transitions.
 
+## Native test prerequisites
+
+Native input regressions require an Elten source checkout. Set `ELTEN_HOST_SOURCE`
+to its directory before running `ruby tools/run-tests.rb` or the native Audio Ball
+tests. CI checks out public `dawidpieper/elten3` at
+`389153fa29d750c3aee90d2a789984490cb97825` into `.ci/elten3` and sets this variable.
+The host's keyboard and UI sources are loaded without launching Elten. A missing
+configured host is an error, not a silently skipped native regression. The binary
+wrapper without an installer argument verifies packaged-style source loading and
+does not require the installer-decoding gems.
+
 ## Verification boundaries
 
 The `test/audio_ball_*_test.rb` scripts cover engine, bot, audio, game replay,

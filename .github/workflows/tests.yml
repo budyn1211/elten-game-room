@@ -13,8 +13,17 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
+      - name: Checkout pinned Elten test host
+        uses: actions/checkout@v7
+        with:
+          repository: dawidpieper/elten3
+          ref: 389153fa29d750c3aee90d2a789984490cb97825
+          path: .ci/elten3
+          persist-credentials: false
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "4.0"
       - name: Run tests
+        env:
+          ELTEN_HOST_SOURCE: ${{ github.workspace }}/.ci/elten3
         run: ruby tools/run-tests.rb
