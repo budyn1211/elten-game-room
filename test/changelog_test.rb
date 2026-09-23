@@ -286,4 +286,23 @@ polish_236, english_236 = document_236.split('## English', 2)
 assert(polish_236.lines.grep(/^- /).map { |line| line.delete_prefix('- ').strip } == release_236.values, 'build 236 Polish document differs')
 assert(english_236.lines.grep(/^- /).map { |line| line.delete_prefix('- ').strip } == entry_236.changes, 'build 236 English document differs')
 
-puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, old notes preserved and bilingual build 236 notes"
+entry_237 = entries.find { |entry| entry.build == 237 }
+release_237 = JSON.parse(File.read(File.expand_path('../locale/changelog-build-237-pl.json', __dir__), encoding: 'UTF-8'))
+assert(entry_237.version == '2.0.3' && entry_237.changes == release_237.keys, 'build 237 notes and translations differ')
+assert(entry_237.changes.length == 14 && entry_237.changes.uniq.length == 14, 'build 237 has missing or duplicate notes')
+assert(entry_237.changes.first.include?('budyn1211, known on ELTEN as balteam'), 'Audio Ball author alias missing')
+assert(release_237.values.first.include?('budyn1211, znanego na ELTEN-ie jako balteam'), 'Polish Audio Ball author alias missing')
+assert(entry_237.changes[4].include?('F1') && entry_237.changes[4].include?('Ctrl+F1'), 'background help note missing')
+assert(entry_237.changes[5].include?('serve in Axel Pong after using chat'), 'Pong chat correction missing')
+assert(entry_237.changes[6].include?('installation error') && entry_237.changes[6].include?('Unicode'), 'Unicode installation correction missing')
+assert(entry_237.changes[7].include?('Ctrl+J') && entry_237.changes[7].include?('widget') && entry_237.changes[7].include?('notification'), 'widget invitation shortcut note missing')
+assert(entry_237.changes[8].include?('Settings > Language') && entry_237.changes[9].include?('balteam'), 'language choice or translator credit missing')
+assert(entry_237.changes[10].include?('watching Axel Pong') && entry_237.changes[11].include?('Accept'), 'observer/teams notes missing')
+assert(entry_237.changes[12].include?('observer role') && entry_237.changes[13].include?('reading position'), 'roles/focus notes missing')
+assert(entry_237.changes.drop(1).none? { |line| line.include?('Audio Ball') }, 'unreleased Audio Ball details added to release notes')
+release_237.each { |source, translation| assert(catalog[source] == translation, "uncompiled build 237 translation: #{source}") }
+assert(GameRoomChangelog.pending_entries(236, 237).map(&:build) == [237], 'build 237 repeats already-read notes')
+assert(GameRoomChangelog.pending_entries(237, 237).empty?, 'build 237 changelog reopens after being read')
+assert(GameRoomChangelog.list_items([entry_237]).first == 'Version 2.0.3, build 237', 'build 237 heading differs')
+
+puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, old notes preserved and bilingual build 237 notes"

@@ -14,7 +14,7 @@ wire_notice = Notice2.new(id: 600, app_uuid: uuid, type: GameRoomTableWatch::TYP
 notice = EltenGameRoom.map_notification(wire_notice)
 options = notice.instance_variable_get(:@options)
 assert(options[:title] == "Bob, UNO" && options[:body] == "New table" && options[:action] == :open_new_table, "wire notification lost owner/game/type order or routing")
-assert(!notice.default_suppressed && notice.sound.end_with?("notice.opus"), "first wire notification lost announcement or sound")
+assert(!notice.default_suppressed && notice.sound == "C:/program-assets/table_notice.opus", "first wire notification lost announcement or its separate table sound")
 EltenGameRoom.notification_received(wire_notice, notice)
 assert(!notice.default_suppressed, "first receipt suppressed valid notification")
 again = EltenGameRoom.map_notification(wire_notice)
@@ -26,4 +26,4 @@ expired = EltenGameRoom.map_notification(wire_notice)
 assert(expired.default_suppressed && expired.sound.nil?, "expired notification announced itself")
 assert(expired.instance_variable_get(:@options)[:body] == "This table announcement has expired or is no longer available.", "suppression left an empty host notification row")
 assert(expired.instance_variable_get(:@options)[:action].nil?, "unavailable notice retained a join action")
-puts "Table notice mapping, notice sound, receipt hook and nonempty unavailable fallback: OK"
+puts "Table notice mapping, separate table sound, receipt hook and nonempty unavailable fallback: OK"

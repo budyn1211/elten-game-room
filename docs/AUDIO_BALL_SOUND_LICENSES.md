@@ -1,5 +1,11 @@
 # Audio Ball sound sources and changes
 
+Historical record: the three flight sounds described below were replaced
+on 23 September 2026. Preparation is unchanged. Current flight files,
+processing and attribution status are documented in `AUDIO_BALL_FLIGHT_SOUNDS.md`
+and the shipped `THIRD_PARTY_NOTICES.md`. Do not assign the old recordings'
+licenses to the replacements.
+
 ## Attribution for distribution
 
 The supplied Freesound `preview-hq-ogg` downloads are the source recordings.

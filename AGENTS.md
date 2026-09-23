@@ -1,5 +1,330 @@
 # Instrukcje dla agentów pracujących nad ELTEN Game Room
 
+## Podpisana ponownie 2.0.3/build 237: język i obsługa stołu — 23 września 2026
+
+Zakończono wszystkie ostatnio uzgodnione zmiany i przebudowano tę samą
+2.0.3/build 237/API 3.0.3. Changelog PL/EN: zachowane osiem wcześniejszych
+wpisów i sześć nowych (język interfejsu, PR balteama/PO, obserwator Ponga,
+drużyny, role innych osób, stabilny kursor). Normalny Audio Ball ma 11%;
+bez nowego opisu Audio Balla w changelogu.
+
+Podpis papierek i zgodność 362 plików ze źródłami potwierdzone:
+351 rekordów (208 Ruby, 142 audio, 1 MO), 11 luzem, 13 wpisów instalatora.
+54 celowane kontrole źródeł/katalogu i osiem kontroli gotowej paczki poprawne,
+w tym binarne PL/EN/fallback, natywne kontrolki oraz aktualizacja starej
+podpisanej 237 -> nowa z 20 dalszymi reloadami przestrzeni aplikacji.
+Nie pełny runner, żywa partia, fizyczne klawisze ani odsłuch.
+Żaden wcześniejszy wpis MO nie zginął; wcześniejsze audio bajtowo bez zmian.
+Język zmienia się w Ustawienia → Język, ze skutkiem po restarcie ELTEN-a.
+
+Paczka artifacts/game-room/testing/ELTEN-Game-Room-build-237-signed.eltsetup:
+23 906 028 B; SHA-256:
+1e874356c800fc2bf67e9d0ac51604f382cb52ff48edc71571a9973e9c62e607
+Ścieżki w tym wpisie względem katalogu nadrzędnego repo.
+Poprzednia a002887b… zachowana jako build-237-before-interface-languages-signed.
+Raport diagnostics/pr-14-integration/{README.md,SOURCE.json,PACKAGE.json}.
+Bez instalacji, publikacji, GitHuba, restartów, zmian profili lub serwera.
+Nie stosować ponownie starego stasha e093a6a…; PR #14 włączony zmianami
+plików, HEAD nadal 2006bfce, nie wykonano merge/push historii.
+Dawne wpisy „tylko przejrzany/niewydane” poniżej są historyczne.
+Dotychczasowe niepotwierdzone licencje nagrań wymagają osobnej weryfikacji
+przed publiczną redystrybucją; obecna praca nie zmienia ich stanu.
+
+## PR #14 oraz poprawki wspólnego stołu — 23 września 2026
+
+Użytkownik zatwierdził wdrożenie PR #14 balteama, następnie perspektywę
+obserwatora Ponga, oddzielny wybór drużyn, zachowanie kursora przy zmianie
+fazy i nadawanie ról innym osobom przez gospodarza. Po wcześniejszym stopie
+ponownie polecił przebudować i podpisać tę samą 2.0.3/build 237, dopisując
+changelog. To nie zgoda na instalację, publikację, GitHub lub zmiany serwera.
+
+Dołączono tylko delta c1b7a96, nie ponownie starsze commity Audio Balla.
+61 tłumaczeń brakujących w PR przeniesiono z obecnego MO do PL.po.
+PO jest źródłem; MO, JSON i polskie pola zasad to widoki generowane.
+Język interfejsu ustawia się w Ustawienia → Język, ze skutkiem po restarcie
+ELTEN-a; nie zmienia to języka hosta ani zestawów pytań/słów.
+
+Drużyny zapisują team_players razem z team_seats. Akceptuj NIE rozpoczyna
+gry. Start jest osobną czynnością; zapisany skład przetrwa rewanż i edycję
+innych ustawień. Nowe osoby wymagają ponownego potwierdzenia. Losowanie
+używa Fishera–Yatesa, nie nadpisanego przez hosta Array#shuffle.
+Celowana zmiana room_role ma subject i wymaga właściciela także przy
+walidacji odbioru. W trakcie partii dotyczy tylko następnego składu.
+Boty nie stają się obserwatorami. Brak nowej tabeli/żądania dla komunikatu:
+historia powstaje z potwierdzonego wpisu ustawień lub roli.
+
+Stan widoku obserwatora nie nadaje prawa sterowania. Wspólne pola czatu,
+historii i użytkowników zachowują fokus przez start/koniec/rewanż. Testować
+też natywne kontrolki i binarne źródła: próba nowych komunikatów drużyn
+wykryła UTF-8/BINARY przy nazwach, poprawione przed pakowaniem.
+Zachowane 11% błędu Normalnego Audio Balla i wcześniejsze hotfixy.
+Raport: ../diagnostics/pr-14-integration/. Bez pełnego runnera i żywej partii.
+Szczegóły kontraktu: docs/TEAMS_ROLES_AND_FOCUS.md.
+
+## Audio Ball: Normalny 11%; PR językowy tylko przejrzany — 23 września 2026
+
+Niewydana zmiana: poziom Normalny ma 11% wyboru złej obrony zamiast 14%.
+Pozostałe parametry bez zmian. Testy audio_ball_difficulty i audio_ball_bot
+poprawne; deterministyczna regresja progu najpierw nie przeszła na starym
+kodzie. Paczki nie budować bez nowego polecenia; podpisana 237 pozostaje
+bez zmian, z 14%. Bez instalacji, publikacji lub GitHuba.
+
+PR #14 c1b7a96 (niezależny język interfejsu, PO) tylko przejrzany osobno,
+nie dołączony. 20 celowanych kontroli poprawnych, bez pełnego runnera lub
+żywego UI. Przy ewentualnym wdrożeniu zachować nasze nowsze źródła 237,
+migrować 61 wpisów lokalnego MO brakujących w PR do nowego PO; nie nakładać
+ponownie starszych commitów #13. Nowy język działa po restarcie hosta.
+Raport poza repo: diagnostics/pr-14-review/README.md. Czerwony CI PR
+dotyczy wcześniej znanej asercji Farkle; nie dowodzi regresji lokalizacji.
+
+## Audio Ball: przycięta cisza obrony, podpisana 237 — 23 września 2026
+
+Na polecenie przycięto audio_ball_stopped.opus: 196,458 ms początku i
+39,438 ms końca. Oryginał, stereo, poziom, wysokość i inne audio zachowane.
+Opus 144 VBR/48 kHz/20 ms; bez ciszy wewnętrznej, margines 2 ms/-55 dBFS.
+Kod gry i trudności/boty bez zmian. THIRD_PARTY_NOTICES opisuje przetworzenie;
+test dawnych SHA/autorów trzech lotów przeniesiony na bieżące dane bez
+przypisywania nowym nagraniom niepotwierdzonych licencji poprzedników.
+
+9/9 skryptów, dwa testy gotowej paczki PL/EN/fallback i BASS bez urządzenia
+audio poprawne. BASS zostawia ciche dopełnienie ostatniej ramki (451 próbek),
+wszystkie właściwe próbki zgodne z FFmpeg. Nie pełny runner/odsłuch/żywa gra.
+Raport ../diagnostics/audio-ball-stop-trim-237/{README.md,AUDIO.json,SOURCE.json,PACKAGE.json}.
+Ta sama 2.0.3/build 237/API 3.0.3, changelog bez zmian; podpis papierek,
+360 plików zgodnych ze źródłami. Paczka ../artifacts/game-room/testing/
+ELTEN-Game-Room-build-237-signed.eltsetup, 23 883 274 B; SHA-256:
+a002887b3ca95e7c7d3d6d996dc6df4ef4e5b053f0f2c69a1721109676892071
+Poprzednia 34c43f6f… zachowana. Bez instalacji/publikacji/GitHuba/restartów,
+zmian profili lub serwera. Licencje nowych źródeł audio nadal niepotwierdzone.
+
+## Audio Ball: naprawa aktualizacji bez restartu, podpisana 237 — 23 września 2026
+
+Dokładnie odtworzono Array#held (powierzchnia, linia 24): globalny bridge
+hosta pozostawał z poprzedniej przestrzeni aplikacji i zwracał starą tablicę.
+Znacznik true blokował nową instalację; poprzednie cold-start testy tego nie
+sprawdzały. Zmieniony tylko runtime lib/audio_ball/keyboard.rb: podmiana
+closure w tym samym module, migracja markera, walidacja Frame, bez starych
+naciśnięć, narastania wrapperów ani wywołań poprzedniego obserwatora.
+Szybkie klawisze, suppression i wynik hosta zachowane. Audio, silnik, boty,
+fizyka, transport i źródła ELTEN-a nietknięte w tej poprawce.
+
+Nowy test audio_ball_keyboard_reload_test.rb używa rzeczywistego hostowego
+RuntimeBackend i obsługuje dwie podpisane paczki jako argumenty. 15 celowanych
+skryptów źródeł, sześć kontroli paczki (także obie stare wersje -> nowa + po
+20 reloadów), trzy składni, kompilatory/diff check poprawne. Bez pełnego
+runnera, żywego meczu, instalacji/restartu, profili/serwera lub GitHuba.
+Ta sama 2.0.3/build 237/API 3.0.3, changelog PL/EN osiem wpisów bez zmian.
+
+../artifacts/game-room/testing/ELTEN-Game-Room-build-237-signed.eltsetup
+23 886 502 B; SHA-256:
+34c43f6f899e6818794ad450edd2bac30ab2f54e5c2964e2e7fc8d0f9860f038
+Podpis papierek, 360 plików i ich bajty potwierdzone; raport
+../diagnostics/audio-ball-keyboard-reload-237/{README.md,SOURCE.json,PACKAGE.json}.
+Poprzednia 47967aaf… zachowana; nie instalowano ani nie publikowano.
+
+## Audio Ball: klawisze i nowe piłki; ponownie podpisana 237 — 23 września 2026
+
+Wdrożone dwa odtworzone problemy: gubione szybkie release/repress oraz
+wcześniejszy Windows held blokujący późniejszy prawdziwy pressed. Lokalny
+Keyboard obserwuje uporządkowane zdarzenia ośmiu klawiszy, a pole używa
+jednego spójnego snapshotu. Wynik/semantyka hosta niezmienione; zachowane
+focus, host suppression, modyfikatory, czat/pomoc/ustawienia, limit 32,
+jednorazowy odczyt i nowy wybór dla każdego lotu. Bez zmian Client/Engine,
+fizyki, transportu lub ELTEN-a. Szczegóły: docs/AUDIO_BALL_FAST_INPUT.md.
+Nie jest to dowód konkretnej przyczyny fizycznego zgłoszenia użytkownika.
+
+Domyślne loty high/middle/down z Dokumenty/Freesound: mono, cisza tylko
+na brzegach usunięta, dynamika wyrównana i -19,9 LUFS względem średniego
+poziomu Audiodisca przeliczonego na mono. Opus 144 VBR/48 kHz/20 ms.
+Oryginały i pozostałe nagrania nietknięte; stare trzy piłki zabezpieczone.
+To jawny wyjątek od ogólnej zasady niezmieniania poziomu/kanałów/obcięcia,
+zatwierdzony przez użytkownika tylko dla tych trzech plików. Szczegóły
+docs/AUDIO_BALL_FLIGHT_SOUNDS.md. Potencjalne sidecary/autorzy wymienieni
+w notices, ale dokładne przyporządkowanie nowych nazw wymaga potwierdzenia
+przed publiczną redystrybucją. Siedem wcześniejszych nadal niepotwierdzonych.
+
+Ta sama 2.0.3/build 237/API 3.0.3 podpisana, changelog PL/EN bez zmian.
+../artifacts/game-room/testing/ELTEN-Game-Room-build-237-signed.eltsetup
+23 885 932 B; SHA-256:
+47967aafb03ff1b7f397ffb7eea7713b8c5d972cb64ddd58c22e501972882060
+Podpis papierek, zgodność wszystkich 360 plików/manifestów/runtime i kopii
+końcowej potwierdzone. 17 celowanych skryptów, pięć kontroli gotowej paczki,
+siedem składni, kompilatory idempotentne. Nowe 42 przypadki wejścia oraz
+284 graniczne; prawdziwe kontrolki, symulowane OS/boty/peers; testy binarne
+PL/EN/fallback. BASS bez urządzenia: pełne dekodowanie, mono, pętle/pan/restart.
+Pomocnik audio poprawiony po rozbieżności szacowanego GetLength z rzeczywistą
+liczbą próbek; zgodność obu dekoderów potwierdzona, paczka niezmieniona.
+Nie pełny runner, żywa partia, odsłuch lub pomiar fizycznego klawisza.
+Raport ../diagnostics/audio-ball-input-sounds-237/. Poprzednia 316500a2…
+zachowana jako before-input-sounds-signed. Bez instalacji, publikacji,
+GitHuba, restartów lub zmian serwera/profili.
+
+## Ponownie podpisana 237: Unicode i widget — 23 września 2026
+
+Ta sama 2.0.3/build 237/API 3.0.3 zawiera wszystkie ukończone źródła,
+także pakiety Audio Balla. Na polecenie do changelogu PL/EN dopisano tylko
+naprawę instalacji Unicode i przyjmowanie zaproszeń przez Ctrl+J na widgecie.
+Sześć wcześniejszych wpisów zachowanych, razem osiem; bez nowych opisów
+Audio Balla i bez zmiany wersji/buildu.
+
+../artifacts/game-room/testing/ELTEN-Game-Room-build-237-signed.eltsetup
+23 582 580 B; SHA-256:
+316500a220feb213ae6e20def1ae7f1280cd17365a761f78af5871211d86146d
+Podpis papierek, manifesty/runtime, komplet 360 plików i zgodność bajtów
+ze źródłami potwierdzone: 349 rekordów (206 Ruby, 142 audio, 1 MO),
+11 luzem, 13 wpisów instalatora. Cztery kontrole źródeł oraz cztery
+gotowej binarnej paczki poprawne, w tym PL/EN/fallback i Unicode z trzema
+wariantami hosta, wyłącznie z rekordów paczki. Kompilatory idempotentne,
+diff check poprawny. Nie powtarzano pełnego runnera ani żywej partii/odsłuchu.
+Raport ../diagnostics/release-237-unicode-widget/; poprzednia d6657ce6…
+zachowana jako build-237-before-unicode-widget-signed.eltsetup.
+Bez instalacji, publikacji, GitHuba, restartów, serwera lub profili.
+Licencje siedmiu nowych nagrań nadal niepotwierdzone; patrz THIRD_PARTY_NOTICES.
+Poniższe „źródła/niewydane” są historyczne: bieżąca paczka zawiera te zmiany.
+
+## Audio Ball i Ctrl+J widgetu — źródła po 237, 23 września 2026
+
+Lokalne Ctrl+P: Domyślny / Dźwięki z audiodisca. Sześć dostarczonych
+cue Audiodisca mapuje się na lot góra/środek/dół, przygotowanie,
+skuteczną obronę i efekt bramki. Domyślna obrona używa ball-stopped.
+Wynik/głos i czasy pozostają bez zmian. Siedem nowych stereo Opus
+144 kb/s VBR/48 kHz/20 ms; oryginały i poziomy zachowane. Brak ustalonego
+autorstwa/licencji tych plików: patrz THIRD_PARTY_NOTICES, potwierdzić
+przed publiczną redystrybucją. Oba manifesty uzupełnione.
+
+Audiotutorial używa lokalnego pakietu przez opcjonalny asset_resolver,
+ma piąty cue zatrzymania. Zasady PL/EN podają Ctrl+F1 → Audiotutorial
+i Ctrl+P → Dźwięki z audiodisca dla sympatyków starej gry. Cues tylko
+z autoryzowanych zdarzeń, deduplikowane; dla obserwatora także gdy
+bieżący snapshot wyprzedzi zdarzenie, bez zmiany replaya lub odtwarzania
+historycznych dźwięków przy dołączeniu. Fizykę i transport zachowano.
+
+Widget Ctrl+J/menu/pomoc woła zwykłe switch_to_invited_table i tę samą
+ścieżkę sprawdzania/przyjęcia/posprzątania powiadomień co aplikacja.
+Nie kopiować obsługi przyjęcia. Klawisz tylko na aktywnym widgecie,
+dokładne modyfikatory, bez auto-repeat/reentrancji/odświeżania przy dialogu.
+
+32/32 celowanych skryptów offline, binarne źródła PL/EN/fallback,
+natywne kontrolki, oba manifesty/allowlist, 10 składni i idempotencja
+kompilatorów poprawne. Bez pełnego runnera/odsłuchu/żywej partii.
+Dokument docs/AUDIO_BALL_SOUND_PACKS.md; prywatny raport w nadrzędnym
+diagnostics/audio-ball-sound-packs/. Nie przebudowano ani nie podpisano
+paczki; wersja/changelog i podpisana 237 d6657ce6… bez zmian. Bez instalacji,
+GitHuba, zmian serwera/profili. Dodatki jeszcze nie są w instalatorze.
+
+## Unicode: naprawa instalacji w źródłach — 23 września 2026
+
+Użytkownik zatwierdził naprawę wcześniejszego zgłoszenia NameError
+Encoding::UNICODE_VERSION. Vendor korzysta nadal z własnych niezmienionych
+tabel 17.0.0, lecz nie wymaga wersji Unicode hosta. Dwa `it` w algorytmie
+zastąpiono jawnymi parametrami bloków. Bez globalnego patchowania Encoding,
+wyłączania NFC lub cichego omijania błędów. Poprawiony też opis licencji.
+
+test/unicode_normalization_compatibility_test.rb odtworzył stary błąd;
+poprawka przechodzi na Ruby 3.3.9 i 4.0.6: brak/inne/zgodne UNICODE_VERSION,
+źródła binarne, polskie znaki, cztery formy normalizacji. Wszystkie 20 034
+wiersze oficjalnego NormalizationTest 17 przeszły na obu interpreterach
+(2 404 080 asercji na każdy). Przeszły celowane testy danych, Scrabble,
+Krowy, uruchomienia quizu i binarnego wczytania całej aplikacji.
+Nie uruchamiano pełnego runnera. docs/UNICODE_NORMALIZATION_COMPATIBILITY.md.
+Przy aktualizacjach vendora zachować ten test i zgodność starszego Ruby,
+nie kopiować bez kontroli zależności od wewnętrznych stałych środowiska.
+
+Sprawdzone stare paczki miały te same dwa pliki już przed 2.0.2; nie wiemy,
+co ujawniło problem u zgłaszającego. Dokładnego Ruby tej osoby nie znamy.
+Bez nowej paczki/podpisu/wersji/changelogu, instalacji, zmian ELTEN-a,
+serwera/profili lub GitHuba. Podpisana 237 d6657ce6… nie zawiera tej poprawki.
+
+## Ponownie podpisana 2.0.3/build 237: pomoc i czat — 23 września 2026
+
+Przebudowano i podpisano tę samą 2.0.3/build 237/API 3.0.3, włączając
+ukończony follow-up Audio Balla, wspólną pomoc bez pauzy i poprawkę czatu
+Ponga. Do changelogu PL/EN doszły wyłącznie dwie ostatnie poprawki,
+bez szczegółów nowych zmian Audio Balla. Istniejący opis nowej gry podaje
+„budyn1211, znany na ELTEN-ie jako balteam”. Łącznie sześć wpisów.
+
+../artifacts/game-room/testing/ELTEN-Game-Room-build-237-signed.eltsetup
+23 329 802 B; SHA-256:
+d6657ce6292bf8b9721ce2bb0b26613e200d1e571dc839eae5b6e87f6886c676
+Podpis papierek i komplet 352 plików potwierdzone: 341 rekordów wewnątrz
+(205 Ruby, 135 audio, 1 MO), 11 luzem; 13 wpisów instalatora. Bajty zgodne
+ze źródłami/stagingiem, manifesty/runtime zgodne. Cztery kontrole binarnej
+paczki PL/EN/fallback, testy changelogu/allowlist oraz idempotencja katalogów
+i diff check poprawne. Nie powtarzano wcześniejszych 48 regresji ani
+pełnego runnera; bez żywego meczu/odsłuchu. Raport ../diagnostics/release-237-help-chat/.
+Poprzednia eb60ce7c… zachowana jako build-237-before-help-chat-signed.eltsetup.
+Bez instalacji, restartów, GitHuba, profili lub serwera. Stan nadal lokalny,
+HEAD 2006bfce. Poniższe „Niewydane” opisuje etap sprzed tego pakowania.
+
+## Niewydane: pomoc bez pauzy, Audio Ball i czat Ponga — 23 września 2026
+
+W źródłach dołączono zmiany trzech kolejnych commitów PR #13 do 73e9eac
+(trudność, zasady, wspólny samouczek dźwiękowy i powitanie). HEAD nadal
+2006bfce: to zastosowane zmiany plików, nie zatwierdzony merge historii.
+Zachowano wcześniejsze poprawki 237, protokół audio-ball-peer-2, nagrania
+i klawisze autora. Użytkownik zatwierdził pięć poziomów: 4 / 2,2 / 1,5 /
+0,9 / 0,6 s pierwszego pełnego lotu; Normalny domyślny (3). Każdy +5%
+prędkości po kolejnym uderzeniu, reset po punkcie; pięć stopni reakcji/błędów
+bota. Jedno źródło parametrów: lib/audio_ball/difficulty.rb. Bez nowego
+mechanizmu kompatybilności ze starymi klientami, zgodnie z decyzją użytkownika.
+
+F1 i Ctrl+F1 podczas każdej gry otwierają wspólną nakładkę pomocy, a nie
+blokujący modal. Dalej działa normalna pętla GameScreen, timery, synchronizacja,
+boty, limity i trwały zapis wyniku. Klawisze trafiają tylko do pomocy;
+odświeżenia zachowują jej kursor. Dotyczy też samouczka i przyszłych gier.
+Nie naprawiać tego przez samo pompowanie heartbeatów: normalne action_for /
+repozytorium / replay też muszą działać. Używaj wspólnych open_on/form i
+sprawdzaj game_room_background_help? w nowych powierzchniach realtime.
+Biblioteka zasad i inne okna ELTEN-a bez zmiany. docs/BACKGROUND_HELP.md.
+
+Naprawiono odtworzony samoczynny serw Ponga po czacie: neutralna klatka
+zadania sieciowego nie zeruje licznika klawisza; gameplay wymaga aktywnego
+pola gry. Test przed poprawką zgłaszał wskrzeszony stary serw, po niej sześć
+wariantów przechodzi i świeży krótki klawisz nadal działa. Bez zmian fizyki,
+Communications/LiveSessions lub historycznych osobnych problemów Ponga.
+
+Celowane regresje offline, natywne kontrolki/klawiatura bez uruchamiania
+ELTEN-a, binarne wczytywanie źródeł PL/EN/fallback. Szczegóły poza repo:
+diagnostics/help-audio-ball-followup-237/README.md. Nie pełny runner,
+nie żywy mecz ani odsłuch. Bez nowej paczki, podpisu, instalacji, GitHuba,
+zmian profili/serwera. Podpisana 2.0.3/build 237 pozostaje stara i NIE
+zawiera tych poprawek; nie stosować ponownie historycznego stasha.
+
+## Audio Ball i podpisana 2.0.3/build 237 — 23 września 2026
+
+Na polecenie dołączono lokalnie całą historię PR #13 autorstwa budyn1211,
+head 2006bfce068c94a26cff170f7f6509a47423c6ad (dwa commity), oraz poprawiono
+trzy uzgodnione rzeczy: uzgodniona bramka brzmi przed trwałym zapisem wyniku,
+prywatna głośność lektora Ponga nie wycisza Audio Ball, a T rozróżnia przerwę
+punktową/setową, oczekiwanie na zapis i rzeczywiste oczekiwanie na graczy.
+Zasady, sterowanie i cztery nagrania autora zachowane. Protokół nowej gry:
+audio-ball-peer-2, uwierzytelnione potwierdzenie gospodarza tylko dla zgodnego
+lokalnego punktu; wynik, set i mecz nadal wyłącznie z trwałego replay.
+Wspólny Channel/EventChannel i fizyka Ponga niezmienione.
+
+Paczka zawiera również wcześniejsze zmiany: Pong z własnym limitem 2–999
+lub bez limitu, podmienione zasady Krowy PL/EN i osobny dźwięk table_notice
+dla nowych stołów (zaproszenia nadal notice). Cztery wpisy changelogu PL/EN,
+na początku Audio Ball z autorem i krótkim opisem. Wersja 2.0.3, build 237,
+API 3.0.3. Bez poprawiania wcześniej opisanych osobnych problemów Ponga
+lub źródeł ELTEN-a i bez wdrażania przekazywania właściciela stołu.
+
+46 celowanych skryptów offline oraz sześć kontroli binarnej paczki poprawnych;
+55 plików przeszło kontrolę składni, kompilatory idempotentne, diff check
+poprawny. Pierwsza dodatkowa sonda paczki porównała polski tekst z angielskim
+wzorcem; poprawiono wyłącznie oczekiwanie testu, nie grę ani paczkę.
+Nie uruchamiano pełnego runnera, żywej partii ani odsłuchu. Znany wcześniej
+błąd testu strategii Farkle nie został objęty ani naprawiony tym wydaniem.
+
+Podpis papierek, komplet 350 plików (203 Ruby, 135 Opus, MO i 11 luzem),
+zgodność manifestów/runtime i bajtów źródeł potwierdzone. Paczka:
+../artifacts/game-room/testing/ELTEN-Game-Room-build-237-signed.eltsetup
+23 323 227 B; SHA-256:
+eb60ce7c7c08f8e6caa984f5183ddfe9fd6bdc2b7c39270be0dc00ca0ad83884
+Raporty ../diagnostics/release-237/. Poprzednia 236 zachowana.
+Nie instalowano, nie restartowano klientów, nie zmieniano serwera/profili,
+nie publikowano ani nie wysyłano zmian na GitHub; PR tam nadal niezamknięty.
+
 ## Pong: audyt po podpisaniu 236 — 22 września 2026
 
 Na osobne polecenie przejrzano Communications/Ponga i lokalną obsługę
@@ -2031,6 +2356,13 @@ definicje co rzeczywiste skróty (`GameRoomContextHelp`), nie dopisuj na stałe
 tipsów zależnych od fazy. Szczegóły: `docs/VOLUME_AND_HELP_224.md`.
 
 - Najpierw odtwórz problem i wskaż warstwę, która jest jego właścicielem.
+- Rozszerzenie przypięte do globalnego obiektu hosta przeżywa aktualizację
+  aplikacji bez restartu ELTEN-a. Znacznik „już zainstalowano” nie może
+  pozostawiać closure ze starą przestrzenią aplikacji lub formatem danych.
+  Przy takich zmianach testuj starą paczkę -> nową w jednym procesie,
+  również powtórne przeładowanie, brak narastania wrapperów i odtwarzania
+  starego wejścia. Czysty start i samo binarne wczytanie tego nie sprawdzają.
+  Regresja Audio Balla: `test/audio_ball_keyboard_reload_test.rb`.
 - `Replay#state` jest opcjonalne: Kółko i krzyżyk oraz Czwórki przechowują
   pozycję w polach `board`/`players` i zwracają `state: nil`. Wspólne hooki
   nie mogą wymagać Hasha stanu; opcje partii pochodzą również z ActionContext.

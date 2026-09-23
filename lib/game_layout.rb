@@ -1,6 +1,9 @@
 require_relative "context_help"
 
+require_relative "game_room_localization"
+
 module GameRoomLayout
+  using GameRoomLocalization::Translations
   STANDARD_SECTIONS = [:status, :game, :chat, :history, :users].freeze
 
   class ViewSpec
@@ -209,10 +212,9 @@ module GameRoomLayout
       @users.header = header
     end
 
-    def update_history(items, header: @history.header)
-      follows_tail = @history.following_tail?
+    def update_history(items, header: @history.header, follow_tail: @history.following_tail?)
       @history_items = items.to_a.map(&:to_s)
-      @history.replace_entries(@history_items, follow_tail: follows_tail)
+      @history.replace_entries(@history_items, follow_tail: follow_tail)
       @history.header = GameRoomContent.utf8(header)
     end
 
@@ -221,16 +223,18 @@ module GameRoomLayout
       history_index: nil, users_index: nil, reset_surface: false, new_game: false)
       raise ArgumentError, "a game screen requires a view specification" if !view_spec.is_a?(ViewSpec)
 
-      # Phase transitions focus the first meaningful field: the start/restart
-      # status before and after a game, and the game surface while it is active.
-      # Ordinary updates preserve the user's field, including board inspection.
+      # Chat, history and people belong to the room, not the match. A remote
+      # start/end must not take focus from them or interrupt a text selection.
+      # Only game/status fields move to the new phase's meaningful control.
       phase_transition = @phase == nil || @phase != phase || new_game
-      location = if phase_transition && phase == :active
+      previous_location = focus_location || self.focus_location
+      keep_room_focus = [:chat, :history, :users].include?(previous_location.to_a.first)
+      location = if phase_transition && !keep_room_focus && phase == :active
         [:game, 0]
-      elsif phase_transition
+      elsif phase_transition && !keep_room_focus
         [:status, 0]
       else
-        focus_location || self.focus_location || [:status, 0]
+        previous_location || [:status, 0]
       end
       old_identity = @surface_identity
       old_field = @form.fields[@form.index.to_i]
@@ -267,7 +271,8 @@ module GameRoomLayout
         location = [:game, @surface.fields.index(old_field)]
       end
       update_users(user_items, header: users_header)
-      update_history(history_items, header: text_or_default(view_spec.history_header, _("Game history")))
+      follow_history_tail = !(phase_transition && location.first == :history) && @history.following_tail?
+      update_history(history_items, header: text_or_default(view_spec.history_header, _("Game history")), follow_tail: follow_history_tail)
       @history.empty_label = text_or_default(view_spec.history_empty_label, _("No moves yet")) if @history.respond_to?(:empty_label=)
       @history.entry_index = bounded_index(history_index, @history_items) if history_index != nil
       @users.index = bounded_index(users_index, @user_items) if users_index != nil

@@ -202,7 +202,7 @@ class GameRoomLiveSessionStore
     }
   end
 
-  def set_observer(table_or_id, observing, actor:)
+  def set_observer(table_or_id, observing, actor:, subject: nil)
     table_id = table_identifier(table_or_id)
     raise ArgumentError, "Invalid room" if table_id == nil
     raise ArgumentError, "Only your own table role may be changed" if !same_user?(endpoint.user, actor)
@@ -210,11 +210,17 @@ class GameRoomLiveSessionStore
     ensure_current(table_id, force: true)
     members = connected_users(table_id)
     raise ArgumentError, "The user is not at this table" if !members.any? { |member| same_user?(member, actor) }
+    target = subject || actor
+    raise ArgumentError, "Invalid role subject" unless target.is_a?(String) && target.length.between?(1, 64) && GameRoomParticipants.human?(target)
+    raise ArgumentError, "Only the table master may change another user's role" if subject && !same_user?(actor, owner_for(table_id))
+    raise ArgumentError, "The user is not at this table" unless members.any? { |member| same_user?(member, target) }
+    data = { "role" => observing ? "observer" : "player" }
+    data["subject"] = subject if subject
 
     append_record(
       table_id,
       "room_role",
-      { "role" => observing ? "observer" : "player" },
+      data,
       actor: actor
     )
     observer_users(table_id, members: members)
@@ -316,6 +322,8 @@ class GameRoomLiveSessionStore
         lifecycle_activity(record, "options_changed") if option_changes.include?(record.sequence)
       elsif record.packet["kind"] == "room_activity"
         activity_record(record)
+      elsif record.packet["kind"] == "room_role" && record.packet.dig("data", "subject")
+        lifecycle_activity(record, "role_changed")
       end
     end
   end
@@ -1120,7 +1128,8 @@ class GameRoomLiveSessionStore
           result[user.downcase] = "observer"
         end
       when "room_role"
-        roles[record.packet["actor"].to_s.downcase] = record.packet.dig("data", "role").to_s
+        target = record.packet.dig("data", "subject") || record.packet["actor"]
+        roles[target.to_s.downcase] = record.packet.dig("data", "role").to_s
       end
     end
     current_members = unique_users(members || connected_users(table_id))
@@ -1308,10 +1317,24 @@ class GameRoomLiveSessionStore
 
   def lifecycle_activity(record, kind)
     row = table_for(record.table_id)
-    { "__id" => record.sequence * EVENT_ID_MULTIPLIER, "table_id" => record.table_id,
+    result = { "__id" => record.sequence * EVENT_ID_MULTIPLIER, "table_id" => record.table_id,
       "kind" => kind, "actor" => record.sender, "__insertion_user" => record.sender,
       "table_owner" => row.to_h["owner"], "game" => row.to_h["game"],
       "message" => "", "created_at" => record.created_at, "__stack_sequence" => record.sequence.to_i }
+    data = record.packet["data"]
+    if kind == "options_changed"
+      before = JSON.parse(data["expected_options"])
+      after = JSON.parse(data["game_options"])
+      keys = %w[team_players team_seats]
+      if keys.any? { |key| before[key] != after[key] }
+        result["team_players"] = after["team_players"]
+        result["team_seats"] = after["team_seats"]
+      end
+    elsif kind == "role_changed"
+      result["subject"] = data["subject"]
+      result["role"] = data["role"]
+    end
+    result
   end
 
   def table_id_for_record(record)
@@ -1374,7 +1397,9 @@ class GameRoomLiveSessionStore
         (!data.key?("options_changed") || (data["options_changed"] == true && data.key?("game_options") &&
           json_object_text?(data["expected_options"]) && data["expected_session_id"].is_a?(Integer) && data["expected_session_id"] >= 0)) && room_fields_valid?(data)
     when "room_role"
-      same_user?(sender, actor) && data.keys == ["role"] && %w[player observer].include?(data["role"])
+      same_user?(sender, actor) && (data.keys - %w[role subject]).empty? && %w[player observer].include?(data["role"]) &&
+        (!data.key?("subject") || (same_user?(actor, owner) && nonempty_text?(data["subject"]) &&
+          data["subject"].length <= 64 && GameRoomParticipants.human?(data["subject"])))
     when "room_activity"
       if %w[invited invitation_rejected].include?(data["activity_kind"])
         return false unless nonempty_text?(data["subject"]) && data["subject"].length <= 64 && positive_integer?(data["invitation_id"])

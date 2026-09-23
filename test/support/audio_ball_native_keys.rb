@@ -9,7 +9,7 @@ end
 
 class AudioBallNativeKeys < AudioBallHarness
   attr_reader :field
-  def initialize(native: 'Bob', level: 2)
+  def initialize(native: 'Bob', level: GameRoomAudioBall::Difficulty::DEFAULT)
     @native = native
     @server_name = native == 'Alice' ? 'Bob' : 'Alice'
     super(viewers: %w[Alice Bob], server: native == 'Alice' ? 1 : 0, options: {'difficulty' => level})
@@ -69,11 +69,11 @@ class AudioBallNativeKeys < AudioBallHarness
   def approach(shot, seconds_left)
     advance(12)
     press(@server_name, 'prepare', shot)
-    200.times do
+    ((GameRoomAudioBall::Engine::INITIAL_DURATION.max / 0.016).ceil + 50).times do
       break if @clients[@native].engine.phase == :flying && remaining <= seconds_left
       advance
     end
-    assert(@clients[@native].engine.phase == :flying,
+    assert(@clients[@native].engine.phase == :flying && remaining <= seconds_left,
       "native keyboard setup missed flight: #{@native}, server=#{@server_name}, states=#{@clients.transform_values { |client| [client.paused, client.engine.phase, client.engine.server, client.engine.turn] }}")
   end
 end

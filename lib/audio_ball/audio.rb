@@ -1,12 +1,16 @@
 require_relative "../game_content"
 require_relative "preferences"
+require_relative "sound_pack"
 require_relative "point_audio"
 
+require_relative "../game_room_localization"
+
 module GameRoomAudioBall
+  using GameRoomLocalization::Translations
   class Audio
     SHOTS = {'up' => 'audio_ball_up', 'left' => 'audio_ball_left', 'down' => 'audio_ball_down'}.freeze
     PREPARE = 'audio_ball_prepare'.freeze
-    ASSETS = (SHOTS.values + [PREPARE]).freeze
+    ASSETS = SoundPack::DEFAULT.values.compact.freeze
 
     attr_reader :presents_point
 
@@ -22,29 +26,42 @@ module GameRoomAudioBall
 
     def load
       return if @loaded
-      ASSETS.each do |name|
-        sound = @program.create_sound_from_asset(name, sample: false, loop: name != PREPARE)
+      refresh_preferences
+      @point_audio.load
+      @loaded = true
+    end
+
+    # Called at construction and after Ctrl+P, never to allocate in a flight tick.
+    # Keep existing handles cached; switching back does not open duplicate streams.
+    def refresh_preferences
+      return if @closed
+      pack = SoundPack.selected(@program)
+      return if @pack.equal?(pack)
+      silence
+      @pack = pack
+      @pack.each do |role, name|
+        next if !name || role == 'goal' || @sounds.key?(name)
+        sound = @program.create_sound_from_asset(name, sample: false, loop: SHOTS.key?(role))
         next unless sound
         @program.manage(sound) if @program.respond_to?(:manage)
         @sounds[name] = sound
       end
-      @point_audio.load
-      @loaded = true
+      @point_audio.refresh_preferences
     end
 
     def update(snapshot, viewer:, paused: false)
       return silence if paused || !snapshot || snapshot['phase'] == 'over' || snapshot['goal'] != nil
       if snapshot['phase'] != 'flying'
         stop_flight
-        sound = @sounds[PREPARE]
+        sound = @sounds[@cue_name]
         if sound && sound.playing?
-          sound.pan = listening_pan((@prepare_side == 0 ? 1.0 : -1.0) * (viewer == 1 ? -1 : 1))
-          sound.volume = gain(PREPARE)
+          sound.pan = listening_pan((@cue_side == 0 ? 1.0 : -1.0) * (viewer == 1 ? -1 : 1))
+          sound.volume = gain(@cue_name)
           sound.pause unless sound.volume > 0
         end
         return
       end
-      name = SHOTS[snapshot['shot']]
+      name = @pack[snapshot['shot']]
       sound = @sounds[name]
       return silence unless sound
       flight = [name, snapshot['turn']]
@@ -63,26 +80,27 @@ module GameRoomAudioBall
     end
 
     def prepare(side, viewer:)
-      return if @closed
-      silence
-      sound = @sounds[PREPARE]
-      return unless sound
-      @prepare_side = side
-      sound.pan = listening_pan((side == 0 ? 1.0 : -1.0) * (viewer == 1 ? -1 : 1))
-      sound.volume = gain(PREPARE)
-      return unless sound.volume > 0
-      sound.position = 0
-      sound.play
+      play_cue('prepare', side, viewer)
     end
 
-    def point(scores, sets:, set_finished:, winner:, viewer:, finished:)
+    def stop_ball(side, viewer:)
+      play_cue('stop', side, viewer)
+    end
+
+    def goal(viewer:, winner:)
+      return if @closed
+      silence
+      @point_audio.goal(viewer: viewer, winner: winner)
+    end
+
+    def point(scores, sets:, set_finished:, winner:, viewer:, finished:, goal_at: nil)
       return if @closed
       silence
       @presents_point = false
       return @point_audio.cancel unless @point_audio.presentation_enabled?
       ordered = viewer == 1 ? scores.reverse : scores
       score_text = GameRoomContent.utf8(_("Score: %{own} to %{opponent}.")) % {own: ordered[0], opponent: ordered[1]}
-      @point_audio.point(scores, viewer: viewer, winner: winner, score_text: score_text)
+      @point_audio.point(scores, viewer: viewer, winner: winner, score_text: score_text, goal_at: goal_at)
       @presents_point = @point_audio.presents_point
       parts = []
       if set_finished
@@ -163,16 +181,31 @@ module GameRoomAudioBall
     def silence
       @sounds.each_value { |sound| sound.pause if sound.playing? }
       @flight = nil
+      @cue_name = nil
     end
 
     private
+
+    def play_cue(role, side, viewer)
+      return if @closed
+      silence
+      @cue_name, @cue_side = @pack[role], side
+      sound = @sounds[@cue_name]
+      return unless sound
+      sound.pan = listening_pan((side == 0 ? 1.0 : -1.0) * (viewer == 1 ? -1 : 1))
+      sound.volume = gain(@cue_name)
+      return unless sound.volume > 0
+      sound.position = 0
+      sound.play
+    end
 
     def listening_pan(pan)
       Preferences.read(@program)['listening_side'] == 'left' ? -pan : pan
     end
 
     def stop_flight
-      SHOTS.each_value do |name|
+      SHOTS.each_key do |role|
+        name = @pack[role]
         sound = @sounds[name]
         sound.pause if sound && sound.playing?
       end

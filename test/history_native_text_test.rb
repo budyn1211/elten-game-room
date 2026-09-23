@@ -2,7 +2,8 @@
 # an ELTEN process or accessing the clipboard/device. The app code is loaded
 # unchanged into an isolated namespace with that native control as its base.
 require_relative 'taboo_rules_dictionary_test'
-native_source = ENV.fetch('ELTEN_EDIT_BOX_SOURCE', File.expand_path('../../work/elten-3.0.1-app-dev/src/ui/controls/edit_box.rb', __dir__))
+host = ENV.fetch('ELTEN_HOST_SOURCE', File.expand_path('../../work/elten-3.0.1-app-dev', __dir__))
+native_source = ENV.fetch('ELTEN_EDIT_BOX_SOURCE', File.join(host, 'src/ui/controls/edit_box.rb'))
 module EltenAPI
   module Controls
     FormField = FakeControl unless const_defined?(:FormField, false)
@@ -74,6 +75,7 @@ focus_failures = []
 focus_entries = ["Żaneta: początek\nciąg dalszy", 'Łukasz: środek', 'Zofia: koniec']
 %w[pl en fallback].each do |focus_language|
   $rules_english = focus_language != 'pl'
+  GameRoomTestLocalization.use_language(focus_language)
   view.replace_entries(focus_entries)
   focus_failures << 'History inserts a blank line between entries' unless view.text.delete("\r") == focus_entries.join("\n")
   focus_entries.each_index do |row|
@@ -115,3 +117,37 @@ view.focus
 focus_failures << 'Empty history focus failed' unless $spoken_messages.join.include?(view.header) && [view.index, view.check] == [0, 0]
 raise focus_failures.uniq.join("\n") unless focus_failures.empty?
 puts 'PASS native history focus: current entry only, single separators, stable selection, Braille, silent refresh, explicit Read all and unchanged help'
+
+# Exercise the common phase transition using the actual native text controls,
+# including selection offsets in UTF-8 text (not only the UI stand-ins).
+layout_path = File.join(BinaryRulesLoad::ROOT, 'lib/game_layout.rb')
+# The narrow native-text namespace reuses the already loaded production spec
+# classes for other surface types; its own native text classes stay in place.
+native_surfaces = native_text_scope.const_get(:GameSurfaces)
+GameSurfaces.constants(false).each do |name|
+  native_surfaces.const_set(name, GameSurfaces.const_get(name)) unless native_surfaces.const_defined?(name, false)
+end
+native_text_scope.module_eval(BinaryRulesLoad.read(layout_path), layout_path, 1)
+layout_module = native_text_scope.const_get(:GameRoomLayout)
+[:chat, :history].each do |field_name|
+  layout = layout_module::Screen.new(view_spec: layout_module::ViewSpec.new,
+    history_items: ['Żaneta: początek', 'Łukasz: koniec'], phase: :waiting, own_table: true)
+  raise 'Phase test bypassed native controls' unless layout.chat.is_a?(native) && layout.history.is_a?(native)
+  layout.chat.set_text('Wiadomość żółta, jeszcze piszę', false)
+  layout.chat.restore_selection(index: 4, check: 10)
+  layout.history.entry_index = 1
+  layout.history.index += 2
+  layout.history.check = layout.history.index + 3
+  selected_history = [layout.history.index, layout.history.check]
+  layout.form.index = layout.form.fields.index(layout.public_send(field_name))
+  [:active, :finished, :active].each_with_index do |phase, i|
+    layout.update(view_spec: layout_module::ViewSpec.new, phase: phase, own_table: true,
+      new_game: i == 2, user_items: [], users_header: '', history_items: ['Żaneta: początek', 'Łukasz: koniec', 'Wynik partii'])
+    raise 'Native text focus stolen by a phase change' unless layout.focus_location == [field_name, 0]
+    raise 'Native chat draft/caret/selection changed' unless [layout.chat.text, layout.chat.index, layout.chat.check] == ['Wiadomość żółta, jeszcze piszę', 4, 10]
+    if field_name == :history
+      raise 'Native history caret/selection changed' unless [layout.history.index, layout.history.check] == selected_history
+    end
+  end
+end
+puts 'PASS native text controls through waiting/start/end/rematch: focus, Unicode draft, selection and history anchor'

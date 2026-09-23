@@ -2,7 +2,10 @@ require "digest"
 require_relative "card_game"
 require_relative "../lib/game_bots"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class Uno < CardGame
     COLORS = %w[R Y G B].freeze
     DARK_COLORS = %w[O P T U].freeze

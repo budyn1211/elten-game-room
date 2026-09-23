@@ -37,8 +37,12 @@
           "pl": "Sterujesz wtedy, gdy fokus jest na polu gry Ponga. Przytrzymaj strzałkę w lewo lub w prawo, aby przesuwać paletkę; strzałką w górę albo Spacją serwujesz i odbijasz. Aby zaserwować po skosie, przytrzymaj kierunek podczas serwu. Możesz odbić tylko piłkę nadlatującą do Twojej krawędzi, gdy paletka znajduje się wystarczająco blisko niej. Trafienie środkiem posyła piłkę prosto, a trafienie z boku — ukośnie. Kolejne odbicia przyspieszają piłkę. Jej ruch w bok stopniowo słabnie, a po odbiciu od ściany słabnie jeszcze bardziej."
         },
         {
-          "en": "In Single, the first server is chosen at the start of a human match; against a bot, the human starts. Service changes after every two completed points. Choose a target of 7, 11 or 21, with a lead of at least two points required to win. At 10–10 in an 11-point match, 11–10 is not enough; 12–10 wins. After a point there is a three-second break for the goal recording, followed by the score and a further 2.7-second serve delay. You can reposition your paddle during this pause, but serving requires a new press after it ends.",
-          "pl": "W singlu pierwszy serwujący w meczu dwóch osób jest wybierany na początku; przeciwko botowi zaczyna człowiek. Serwis zmienia się co dwa rozegrane punkty. Przy tworzeniu stołu wybierasz grę do 7, 11 lub 21 punktów, ale zwycięzca musi mieć przynajmniej dwa punkty przewagi. Przy stanie 10:10 w grze do 11 wynik 11:10 nie kończy meczu; 12:10 już wystarczy. Po punkcie są trzy sekundy na dźwięk bramki, a potem odczyt wyniku i dalsze 2,7 sekundy przed serwisem. Możesz w tym czasie ustawiać paletkę, ale żeby zaserwować, naciśnij klawisz ponownie po zakończeniu pauzy."
+          "en": "In Single, the first server is chosen at the start of a human match; against a bot, the human starts. Service changes after every two completed points. After a point there is a three-second break for the goal recording, followed by the score and a further 2.7-second serve delay. You can reposition your paddle during this pause, but serving requires a new press after it ends.",
+          "pl": "W singlu pierwszy serwujący w meczu dwóch osób jest wybierany na początku; przeciwko botowi zaczyna człowiek. Serwis zmienia się co dwa rozegrane punkty. Po punkcie są trzy sekundy na dźwięk bramki, a potem odczyt wyniku i dalsze 2,7 sekundy przed serwisem. Możesz w tym czasie ustawiać paletkę, ale żeby zaserwować, naciśnij klawisz ponownie po zakończeniu pauzy."
+        },
+        {
+          "en": "When creating the table, choose 7, 11 or 21 points to win, or select Custom number. With Custom number selected, Tab takes you to an edit field where you can enter a whole number from 2 to 999. In both Single and Doubles, reaching the target is not enough: you also need a lead of at least two points. At 10–10 in an 11-point match, 11–10 does not end the match; 12–10 does. The last choice, Unlimited, keeps counting points without declaring a winner or ending the match because of the score. Play continues until the table is closed or its owner ends the match with Ctrl+Q.",
+          "pl": "Przy tworzeniu stołu wybierasz grę do 7, 11 lub 21 punktów albo opcję Własna liczba. Po wybraniu własnej liczby naciśnij Tab i wpisz w polu edycji liczbę całkowitą od 2 do 999. Zarówno w singlu, jak i w deblu trzeba osiągnąć wybrany wynik i mieć przynajmniej dwa punkty przewagi. Przy stanie 10:10 w grze do 11 wynik 11:10 nie kończy meczu; 12:10 już wystarczy. Ostatnia opcja, Nieskończony, pozwala nadal zliczać punkty, ale sam wynik nie wyłania zwycięzcy ani nie kończy meczu. Gracie do zamknięcia stołu lub zakończenia partii przez gospodarza skrótem Ctrl+Q."
         },
         {
           "en": "Automatic return is a personal setting, off by default. When enabled, your paddle returns a reachable ball automatically near your end. You still position the paddle and serve yourself. Open Pong settings with Ctrl+P to change it; your opponent chooses independently.",
@@ -163,6 +167,7 @@
       "id": "watching",
       "title": {"en": "Watching a match", "pl": "Obserwowanie meczu"},
       "paragraphs": [
+        {"en": "C reads the name and paddle position of the player you are watching. S, T and E also work for observers: check the score, server and active effects without controlling the game. At the end of the match, you hear victory or defeat for the selected player or their team.", "pl": "C odczytuje nazwę i położenie paletki obserwowanego gracza. Obserwator może też korzystać z S, T i E: sprawdzić wynik, serwującego i aktywne efekty, bez sterowania grą. Na końcu meczu usłyszysz wygraną lub przegraną wybranej osoby albo jej drużyny."},
         {"en": "As an observer, use the number keys in the Pong playfield to choose a player's perspective: 1 selects the first player, 2 the second, and in Doubles 3 the third and 4 the fourth. The numbers follow the player order in the match, not the teams. The game confirms the player's name. This changes only your listening perspective and the order of the spoken score after a point; it does not let you move any paddle. The choice stays in place between points. The keys do not select a perspective while you are typing in chat or reading history.", "pl": "Jako obserwator wybierasz perspektywę cyframi w polu gry Ponga: 1 to pierwszy gracz, 2 drugi, a w deblu 3 trzeci i 4 czwarty. Cyfry odpowiadają kolejności graczy w partii, nie drużynom. Gra potwierdzi nazwę wybranej osoby. Zmienia się tylko Twój odsłuch i kolejność wyniku odczytywanego po zdobyciu punktu; nie możesz sterować żadną z paletek. Wybór pozostaje między punktami. Cyfry nie zmieniają perspektywy podczas pisania na czacie ani czytania historii."}
       ]
     },
@@ -202,8 +207,8 @@
           "pl": "T: odczytaj serwującego i stan połączenia."
         },
         {
-          "en": "C: read your paddle position.",
-          "pl": "C: odczytaj pozycję swojej paletki."
+          "en": "C: read your paddle position, or the observed player's position when watching.",
+          "pl": "C: odczytaj pozycję swojej paletki, a podczas obserwowania — paletki wybranego gracza."
         },
         {
           "en": "E: read active shields and invisible ball.",

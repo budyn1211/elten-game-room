@@ -1,6 +1,7 @@
 # encoding: UTF-8
 require_relative "support/native_room_harness"
 require_relative "../lib/room_presentation"
+require_relative "support/localization"
 
 module Configuration
   def self.language; $bot_test_language; end
@@ -15,11 +16,15 @@ assert(names.name_for("en03") == "Noob's spirit" && names.name_for("en17") == "D
 first = Object.new
 def first.rand(_limit); 0; end
 $bot_test_language = "pl-PL"
+GameRoomTestLocalization.use_language($bot_test_language)
 assert(names.interface_language == "pl", "Polish UI not detected")
 assert(names.pick(occupied: ["JOLA"], random: first) == "pl02", "case-insensitive human collision ignored")
 $bot_test_language = "en_US"
+assert(names.interface_language == "pl", "host language changed the running Game Room translator")
+GameRoomTestLocalization.use_language($bot_test_language)
 assert(names.pick(random: first) == "en01", "English UI not selected")
 $bot_test_language = "de"
+GameRoomTestLocalization.use_language($bot_test_language)
 assert(names.pick(random: first) == "en01", "unsupported UI language has no English fallback")
 names::NAMES.each do |token, name|
   id = participants.bot_id(123456789, 7, name_token: token)
@@ -30,12 +35,14 @@ end
 assert(!participants.bot?("bot:1:1:pl99") && !participants.bot?("bot:1:1:en01:extra"), "unknown/forged name code accepted")
 
 $bot_test_language = "pl"
+GameRoomTestLocalization.use_language($bot_test_language)
 h = NativeRoomHarness.new(users: %w[jola Bob Carol])
 owner = h.users.first
 lobby = LobbyRepository.new(ProgramDouble.new(h.broker.endpoint(owner)), transport: h.transports.fetch(owner), server_tables: {})
 added = []
 %w[pl en pl].each do |language|
   $bot_test_language = language
+  GameRoomTestLocalization.use_language(language)
   count_before = h.core.entries.count { |entry| entry["packet"]["kind"] == "room_state" }
   result = h.as(owner) { lobby.add_bot(h.table, snapshot: lobby.snapshot_for(h.table)) }
   assert(result.updated?, "add bot failed")
@@ -49,6 +56,7 @@ expected_names = added.map { |bot| participants.display_name(bot) }
 assert(expected_names.uniq == expected_names, "names repeated at a table")
 %w[pl en].each do |language|
   $bot_test_language = language
+  GameRoomTestLocalization.use_language(language)
   h.users.each do |user|
     3.times do
       view = h.transports.fetch(user).room_snapshot(h.table, force: true)

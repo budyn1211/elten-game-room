@@ -25,6 +25,7 @@ dictionary = $rules_dictionary
 game = GameRoomGames::AudioBall.new
 [:pl, :en, :fallback].each do |language|
   $rules_english = language == :en
+  GameRoomTestLocalization.use_language(language)
   $rules_dictionary = language == :fallback ? BinaryRuleDictionary.new({}) : dictionary
   now = 0.0
   audio = GameRoomAudioBall::Audio.new(program, clock: -> { now })
@@ -69,25 +70,42 @@ game = GameRoomGames::AudioBall.new
   raise "Invalid #{language} queued speech encoding" unless $spoken_messages.all? { |text| text.encoding == Encoding::UTF_8 && text.valid_encoding? }
   label = game.option_definitions.last.label
   raise "Missing #{language} match-length option" unless label == (language == :pl ? 'Sety do zwycięstwa' : 'Sets to win')
-  expected = language == :pl ? 'Trzy uderzenia, jeden przeciwnik' : 'Three shots, one opponent'
+  labels = game.option_definitions.find { |definition| definition.key == 'difficulty' }.choices.map(&:label)
+  expected = language == :pl ? ['Bardzo łatwy', 'Łatwy', 'Normalny', 'Trudny', 'Bardzo trudny'] : ['Very easy', 'Easy', 'Normal', 'Hard', 'Very hard']
+  raise "Missing #{language} difficulty labels" unless labels == expected
+  expected = language == :pl ? 'Cel gry' : 'The aim of the game'
   raise "Missing #{language} Audio Ball rulebook" unless game.rule_book.documents.first.text.include?(expected)
   book = game.rule_book.documents.map(&:text).join("\n")
-  expected = language == :pl ? 'Po puszczeniu klawisza pozostajesz na wybranym torze.' : 'After releasing the key, you stay in the selected lane.'
-  raise "Missing #{language} persistent-lane rules" unless book.include?(expected)
-  expected = language == :pl ? 'Twoja strona odsłuchu' : 'Your listening side'
+  expected = language == :pl ? 'Każda nowa piłka wymaga nowego naciśnięcia po uderzeniu przeciwnika' : "Every new ball needs a new press after the opponent's hit"
+  raise "Missing #{language} per-flight defence rules" unless book.include?(expected)
+  raise "Unexpected game references in #{language} rules" if book.include?('Axel Pong')
+  authored = JSON.parse(File.read(File.expand_path('../docs/rulebooks/audio_ball.json', __dir__), encoding: 'UTF-8'))
+  authored.fetch('sections').each do |section|
+    pairs = section.fetch('paragraphs')
+    pairs = [section.fetch('title')] + pairs unless section.fetch('id') == 'controls'
+    pairs.each do |pair|
+      raise "Stale #{language} Audio Ball rules" unless book.include?(pair.fetch(language == :pl ? 'pl' : 'en'))
+    end
+  end
+  expected = language == :pl ? 'Strona odsłuchu i pakiety dźwięków' : 'Listening side and sound packs'
   raise "Missing #{language} personal-settings rules" unless book.include?(expected)
   {
     'Audio Ball settings' => 'Ustawienia Audio Ball',
     'Your listening side (only for you)' => 'Twoja strona odsłuchu (tylko dla Ciebie)',
     'Right (default)' => 'Z prawej (domyślnie)',
-    'Left' => 'Z lewej'
+    'Left' => 'Z lewej',
+    'Sound pack (only for you)' => 'Pakiet dźwięków (tylko dla Ciebie)',
+    'Sounds from Audiodisc' => 'Dźwięki z audiodisca',
+    'Default' => 'Domyślny',
+    'Ball stopped after a successful defence' => 'Zatrzymanie piłki po skutecznej obronie'
   }.each do |source, translation|
     expected = language == :pl ? translation : source
-    actual = GameRoomContent.utf8(_(source.b))
+    actual = GameRoomLocalization.translate(source.b)
     raise "Missing #{language} settings translation: #{source}" unless actual == expected
   end
   audio.close
 end
 $rules_dictionary = dictionary
 $rules_english = false
+GameRoomTestLocalization.use_language(:pl)
 puts 'PASS Audio Ball binary speech/rules: Polish, English, missing translation, binary player name and shared Elten speaker'

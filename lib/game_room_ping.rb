@@ -3,7 +3,10 @@ require_relative 'game_content'
 
 # An on-demand HTTP round trip, plus the active channel's cached UDP relay RTT.
 # No periodic requests, disk writes, UI pumps or speech on the worker thread.
+require_relative "game_room_localization"
+
 class GameRoomPing
+  using GameRoomLocalization::Translations
   TIMEOUT = 5.0
   attr_accessor :communications_channel
 

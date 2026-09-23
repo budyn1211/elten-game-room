@@ -2,7 +2,10 @@ require_relative "../lib/game_bots"
 require_relative "../lib/game_tree_search"
 require_relative "../lib/board_presentation"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class FourInARow < Base
     include GameRoomBoardPresentation
     ROWS = 6

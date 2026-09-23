@@ -89,6 +89,17 @@ Sprawdź osobno:
 Dodaj `require_relative` oraz klasę do `GAME_REGISTRY` w `__app.rb`. Rejestr
 wywołuje `rule_book`, dlatego brak zasad zostanie wykryty przy starcie.
 
+## Tłumaczenia interfejsu i zasad
+
+Angielskie komunikaty oznaczaj `_`, `n_`, `p_` lub `np_`, a w głównym module
+pliku włącz `using GameRoomLocalization::Translations`. Zasady mają osobną
+strukturę angielską w `docs/rulebooks`; generuj je przez
+`ruby tools/compile-rulebooks.rb`. Następnie `ruby tools/translations.rb update`
+dopisze wiadomości do katalogów. Tłumacz edytuje wyłącznie `locale/PL.po`
+lub PO innego języka; `compile PL` tworzy MO oraz polskie widoki zgodności.
+Nie dodawaj nowych ręcznie utrzymywanych fragmentów tłumaczeń JSON.
+Szczegóły: `locale/README.md`.
+
 ## 6. Napisz testy
 
 Minimalny zestaw obejmuje:

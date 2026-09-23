@@ -1,4 +1,7 @@
+require_relative "../game_room_localization"
+
 module GameRoomPong
+  using GameRoomLocalization::Translations
   # Only the channel owner measures the ten seconds. Never compare clocks
   # from different machines or let an observer invent a penalty.
   module Hurry

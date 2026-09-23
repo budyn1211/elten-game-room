@@ -6,51 +6,151 @@ module GameRoomAudioBall
     FRAME = :@game_room_audio_ball_presses
     MAX_PRESSES = 32
 
+    # Relevant controls only, attached to one native result; never a key log.
+    class Frame < Array
+      attr_reader :held
+
+      def initialize(presses, held)
+        super(presses)
+        @held = held.freeze
+        freeze
+      end
+    end
+
     module_function
 
     def install
       return unless defined?(EltenAPI::KeyboardState)
       target = EltenAPI::KeyboardState.singleton_class
-      return if target.instance_variable_get(:@game_room_audio_ball_keyboard_bridge)
+      bridge = installed_bridge(target)
+      previous = bridge && bridge.instance_variable_get(:@game_room_audio_ball_keyboard_observer)
+      return if previous.equal?(self)
+
+      # The host singleton outlives the application namespace. Rebind the
+      # same module on upgrade, including the old boolean-marker bridge;
+      # otherwise its closure keeps returning the previous app's metadata.
+      @suppressed = (previous && previous.instance_variable_get(:@suppressed) || {}).dup
+      previous = nil # The replacement closures must not retain the retired namespace.
+      bridge ||= Module.new
 
       observer = self
-      bridge = Module.new do
+      bridge.module_eval do
         define_method(:update) do |*args, **options, &block|
           modifiers = MODIFIERS.each_with_object({}) { |key, held| held[key] = held?(key) }
+          previous = KEYS.keys.each_with_object({}) { |key, held| held[key] = held?(key) }
           result = super(*args, **options, &block)
-          observer.capture(result, options[:events], modifiers)
+          observer.capture(result, options, previous, modifiers)
+          result
+        end
+
+        define_method(:suppress_held_until_release) do |*args, **options, &block|
+          blocked = KEYS.keys.select { |key| held?(key) }
+          result = super(*args, **options, &block)
+          observer.suppress(blocked)
+          result
+        end
+
+        define_method(:reset) do |*args, **options, &block|
+          result = super(*args, **options, &block)
+          observer.reset
           result
         end
       end
-      target.prepend(bridge)
-      target.instance_variable_set(:@game_room_audio_ball_keyboard_bridge, true)
+      target.prepend(bridge) unless target.ancestors.include?(bridge)
+      bridge.instance_variable_set(:@game_room_audio_ball_keyboard_observer, observer)
+      target.instance_variable_set(:@game_room_audio_ball_keyboard_bridge, bridge)
+      # Do not replay input/metadata from before the replacement, nor reset
+      # the host's keyboard state or other applications' controls.
+      suppress(KEYS.keys.select { |code| EltenAPI::KeyboardState.held?(code) })
     end
 
-    def capture(result, events, modifiers)
+    def installed_bridge(target)
+      prepended = target.ancestors.take_while { |ancestor| !ancestor.equal?(target) }
+      stored = target.instance_variable_get(:@game_room_audio_ball_keyboard_bridge)
+      return stored if stored.is_a?(Module) && prepended.include?(stored)
+      return unless stored == true
+
+      # Releases with a boolean marker did not retain the module. Identify
+      # only our own wrapper; leave all other host extensions untouched.
+      prepended.find do |candidate|
+        methods = candidate.instance_methods(false)
+        next false unless methods.include?(:update) &&
+          (methods - [:update, :suppress_held_until_release, :reset]).empty?
+        path = candidate.instance_method(:update).source_location&.first.to_s.tr('\\', '/')
+        path.end_with?('/lib/audio_ball/keyboard.rb')
+      end
+    end
+
+    def capture(result, options, previous, modifiers)
+      events = options[:events]
       return if result.frozen? || !result.respond_to?(:pressed) || !events.is_a?(Array)
+      return if options[:active] == false || !result.equal?(EltenAPI::KeyboardState.current)
       return if defined?(EltenWindow) && EltenWindow.respond_to?(:keyboard_flags_driven?) && EltenWindow.keyboard_flags_driven?
 
-      presses = []
+      presses, released, mentioned = [], {}, []
+      blocked = (@suppressed || {}).dup
+      down = previous.dup
       events.each do |code, state, press_state|
         code = code.to_i
         modifiers[code] = [true, :repeat, :held].include?(state) if MODIFIERS.include?(code)
-        next unless KEYS.key?(code) && state == true && result.pressed[code] == true
-        modified = if press_state != nil
-          MODIFIERS.any? { |key| (press_state.to_s.getbyte(key).to_i & 0x80) != 0 }
-        else
-          modifiers.value?(true)
+        next unless KEYS.key?(code)
+        mentioned << code unless mentioned.include?(code)
+        if state == false
+          down[code] = false
+          released[code] = true
+          blocked.delete(code)
+        elsif state == true
+          fresh = !down[code]
+          down[code] = true
+          next unless fresh && !blocked[code]
+          modified = press_state != nil ? modifiers_in?(press_state) : modifiers.value?(true)
+          presses.shift if presses.length == MAX_PRESSES
+          presses << [code, modified, released.key?(code)].freeze
+        elsif state == :repeat || state == :held
+          down[code] = true
         end
-        presses.shift if presses.length == MAX_PRESSES
-        presses << [code, modified].freeze
       end
-      result.instance_variable_set(FRAME, presses.freeze)
+
+      # Raw/synthetic input has no chronology. Keep the unambiguous fallback,
+      # but do not guess where it belongs among multiple physical presses.
+      missing = KEYS.keys.select { |code| result.pressed[code] && !previous[code] && !blocked[code] } - mentioned
+      unless missing.empty?
+        if presses.empty? && missing.length == 1
+          code = missing.first
+          state = result.press_states[code]
+          modified = state ? MODIFIERS.any? { |key| state[key] } : modifiers.value?(true)
+          presses << [code, modified, false].freeze
+        else
+          presses.clear
+        end
+      end
+      raw = options[:raw_state].to_s
+      @suppressed = blocked.select { |key, _| (raw.getbyte(key).to_i & 0x80) != 0 }
+      result.instance_variable_set(FRAME, Frame.new(presses,
+        KEYS.keys.select { |code| result.held[code] }))
     rescue StandardError
       nil
     end
 
+    def modifiers_in?(state)
+      MODIFIERS.any? { |key| (state.to_s.getbyte(key).to_i & 0x80) != 0 }
+    end
+
+    def suppress(keys)
+      @suppressed ||= {}
+      keys.each { |code| @suppressed[code] = true }
+      result = EltenAPI::KeyboardState.current
+      result.instance_variable_set(FRAME, Frame.new([], KEYS.keys.select { |code| result.held[code] })) unless result.frozen?
+    end
+
+    def reset
+      @suppressed = {}
+    end
+
     def frame
       return unless defined?(EltenAPI::KeyboardState)
-      EltenAPI::KeyboardState.current.instance_variable_get(FRAME)
+      value = EltenAPI::KeyboardState.current.instance_variable_get(FRAME)
+      value if value.is_a?(Frame)
     end
   end
 end

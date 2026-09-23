@@ -5,7 +5,10 @@ require_relative "server_store"
 require_relative "warsaw_date"
 require_relative "word_bank"
 
+require_relative "../../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   # Account-scoped availability for the daily variant. The protected shared
   # table is private to its inserting account, so changing computers cannot
   # make an opened puzzle available again.

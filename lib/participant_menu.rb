@@ -4,7 +4,10 @@ require_relative "context_help"
 
 # One native global menu for the waiting room, active game and final-position
 # view. Only Delete remains local to the selected row in the users list.
+require_relative "game_room_localization"
+
 module GameRoomParticipantMenu
+  using GameRoomLocalization::Translations
   Entry = Struct.new(:action, :label, :menu_key, :help_key, keyword_init: true)
 
   module_function
@@ -20,6 +23,7 @@ module GameRoomParticipantMenu
       Entry.new(action: :table_options, label: _("Read the table variant and settings"), menu_key: "r", help_key: "Ctrl+R"),
       Entry.new(action: :personal_settings, label: GameRoomContent.utf8(game&.id == 'audio_ball' ? _("Audio Ball settings") : _("Pong settings")), menu_key: "p", help_key: "Ctrl+P"),
       Entry.new(action: :edit_options, label: _("Change settings for the next game"), menu_key: "x", help_key: "Ctrl+X"),
+      Entry.new(action: :edit_teams, label: _("Choose teams"), menu_key: ""),
       Entry.new(action: :abort_game, label: _("End the current game without closing the table"), menu_key: "q", help_key: "Ctrl+Q"),
       Entry.new(action: :save_game, label: _("Save the game and close the table"), menu_key: "s", help_key: "Ctrl+S"),
       Entry.new(action: :leave, label: _("Leave"), menu_key: "")
@@ -36,11 +40,13 @@ module GameRoomParticipantMenu
     actions
   end
 
-  def role_actions(room:, viewer:)
+  def role_actions(room:, viewer:, owner: nil)
     return [] if room == nil || GameRoomParticipants.bot?(viewer)
     return [] if !GameRoomParticipants.includes?(room.members, viewer)
 
-    room.observer?(viewer) ? [:play_next_game] : [:observe_next_game]
+    actions = room.observer?(viewer) ? [:play_next_game] : [:observe_next_game]
+    actions << :manage_roles if owner && GameRoomParticipants.same?(viewer, owner)
+    actions
   end
 
   def lifecycle_actions(active:, viewer:, owner:, restoring: false, frozen: false, compatible: true)
@@ -49,14 +55,14 @@ module GameRoomParticipantMenu
     active ? [:abort_game] : [:edit_options]
   end
 
-  def bind(layout, available:, read_options: nil, game: nil, options: nil, settings: nil, pong_settings: nil, &dispatch)
+  def bind(layout, available:, read_options: nil, game: nil, options: nil, settings: nil, pong_settings: nil, room: nil, &dispatch)
     settings ||= pong_settings if game&.id == 'axel_pong'
     supplied = available
     available = -> do
       actions = supplied.call + (read_options == nil ? [] : [:table_options])
       actions << :personal_settings if settings && %w[axel_pong audio_ball].include?(game&.id)
       actions -= [:invite_online, :invite_contacts] if game && !game.table_invitations_allowed?(options.to_h)
-      actions -= [:observe_next_game, :play_next_game] if game && !game.role_selection_allowed?(options.to_h)
+      actions -= [:observe_next_game, :play_next_game, :manage_roles] if game && !game.role_selection_allowed?(options.to_h)
       actions
     end
     layout.form.bind_context do |menu|
@@ -90,13 +96,22 @@ module GameRoomParticipantMenu
     layout.users.bind_context do |menu|
       actions = available.call
       participant = layout.selected_participant
-      next if !actions.include?(:remove_bot) || !GameRoomParticipants.bot?(participant)
-
-      menu.option(_("Remove computer"), nil, :del) do
+      if actions.include?(:remove_bot) && GameRoomParticipants.bot?(participant)
+        menu.option(_("Remove computer"), nil, :del) do
         # Keep the original row for the UI's permission/type check, even if a
         # remote update moves the selection. The repository removes one
         # numbered computer slot using its unchanged count operation.
-        dispatch.call(:remove_bot, participant) if available.call.include?(:remove_bot)
+          dispatch.call(:remove_bot, participant) if available.call.include?(:remove_bot)
+        end
+      end
+      snapshot = room&.call
+      if actions.include?(:manage_roles) && snapshot && GameRoomParticipants.human?(participant) &&
+          GameRoomParticipants.includes?(snapshot.members, participant) && !GameRoomParticipants.same?(participant, Session.name)
+        observing = snapshot.observer?(participant)
+        label = observing ? _("Make a player for the next game") : _("Make an observer for the next game")
+        menu.option(label) do
+          dispatch.call(observing ? :make_player : :make_observer, participant) if available.call.include?(:manage_roles)
+        end
       end
     end
   end

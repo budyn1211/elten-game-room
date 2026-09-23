@@ -1,5 +1,8 @@
 # encoding: UTF-8
+require_relative "../game_room_localization"
+
 module GameSurfaces
+  using GameRoomLocalization::Translations
   Tile = Struct.new(:id, :label, :value, :choices, :choice_header, keyword_init: true)
   TileChoice = Struct.new(:id, :label, :value, keyword_init: true)
   TileZoneSpec = Struct.new(:id, :header, :cards, :empty_label, :hand_order, :hand_epoch, keyword_init: true)

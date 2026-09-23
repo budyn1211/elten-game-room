@@ -730,10 +730,10 @@ class GameRoomTransport
     @live_store.room_snapshot(table_or_id, force: force)
   end
 
-  def set_observer(table_or_id, observing, actor:)
+  def set_observer(table_or_id, observing, actor:, subject: nil)
     raise "The native LiveSessions store is unavailable" if !live_store?
 
-    @live_store.set_observer(table_or_id, observing, actor: actor)
+    @live_store.set_observer(table_or_id, observing, actor: actor, subject: subject)
   end
 
   def join_room(table, user)

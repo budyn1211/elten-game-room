@@ -10,6 +10,7 @@ else
   require_relative "../__app"
 end
 require_relative "support/log"
+require_relative "support/localization"
 
 module Session
   class << self
@@ -28,6 +29,7 @@ class Form
   def wait; Form.help_lifecycle_driver.call(self); end
   def keyboard_idle_frame?; true; end
   def resume; end
+  def focus(*_args); fields[index.to_i]&.focus; end
 end
 
 class HelpLifecycleRepository
@@ -88,7 +90,7 @@ def open_shortcuts_after_wait(screen, replay, focus: :game, via_menu: false, clo
     if via_menu
       menu = FakeMenu.new
       form.context(menu, false)
-      menu.options.find { |option| option[0] == _("Game rules") }[3].call
+      menu.options.find { |option| option[0] == GameRoomLocalization.translate("Game rules") }[3].call
     else
       form.trigger(:key_f1, [false, true, false])
     end
@@ -120,6 +122,15 @@ def open_shortcuts_after_wait(screen, replay, focus: :game, via_menu: false, clo
     stage += 1
   end
   screen.send(:show_game_rules, replay)
+  while (help_form = layout.form.game_room_background_help_form)
+    Form.help_lifecycle_driver.call(help_form)
+    if stage == 2
+      # The nonblocking picker stays alive underneath the document rather
+      # than being reconstructed by another nested modal wait.
+      assert(layout.form.game_room_background_help_form.fields.first.index == 1,
+        'Returning from shortcuts moved the document selection')
+    end
+  end
   assert(shown == expected, "#{screen.instance_variable_get(:@game).id}: shortcut descriptions vanished between Ctrl+F1 and the rules dialog (expected #{expected.length}, got #{shown.inspect})")
   after = Marshal.dump([replay, layout.surface.state, layout.form.index,
     layout.chat.text, layout.chat.index, layout.chat.check, layout.history.index])
@@ -138,6 +149,7 @@ languages = defined?(BinaryRulesLoad) ? %w[en pl fallback] : %w[en]
 cases = 0
 languages.each do |language|
   $rules_english = language != "pl"
+  GameRoomTestLocalization.use_language(language)
   game = GameRoomGames::Scrabble.new
   replay = help_replay(game)
   %w[Alice Bob Observer].each do |viewer|

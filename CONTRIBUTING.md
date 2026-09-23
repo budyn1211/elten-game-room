@@ -40,6 +40,17 @@ Nigdy nie dodawaj do repozytorium:
 Przed dołączeniem logu usuń nazwy użytkowników, tokeny i treści prywatne, jeśli
 nie są niezbędne do odtworzenia problemu.
 
+## Tłumaczenia interfejsu
+
+Jedynym edytowalnym źródłem tłumaczeń danego języka jest jego plik
+`locale/<LANG>.po`, np. `PL.po`. Używamy standardu GetText jak ELTEN.
+Po zmianach angielskich napisów uruchom `ruby tools/translations.rb update`;
+po tłumaczeniu `ruby tools/translations.rb compile PL` i `check PL`.
+Dawne `*-pl.json`, polskie pola zasad i polskie listy zmian są generowane
+z PO i nie mogą nadpisywać pracy tłumacza. Słowniki Scrabble/Krowy, pytania
+quizu i karty Taboo pozostają osobnymi danymi rozgrywki.
+Zależności i dokładny przebieg: `locale/README.md`.
+
 ## Nowe gry
 
 Nowa gra powinna mieć stabilne reguły, deterministyczne odtwarzanie z listy

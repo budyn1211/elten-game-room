@@ -4,9 +4,19 @@
 
 Audio Ball is a new Game Room game, ID `audio_ball`. It supports exactly two
 players: two humans, a human and a bot, or bots controlled by the table owner.
-The owner may spectate. Existing Pong code and shared transport behavior are
-unchanged. No installation, release number change, signature or publication is
-part of this implementation.
+The owner may spectate. Audio Ball's implementation does not change Pong's
+physics or the shared transport. Imported from PR #13 by `budyn1211` for
+Game Room 2.0.3/build 237, retaining the author's rules, controls and assets.
+The release adaptations below add agreed-goal presentation, independent
+announcer gain and accurate pause descriptions; they do not change the rules.
+
+The later PR follow-up through `73e9eac` is integrated,
+including the authored rules and reusable audio tutorial. Its difficulty scale
+was replaced with the user's approved five levels below. These later changes,
+shared nonblocking help and the Pong chat-input fix are in the re-signed build
+237 of 23 September. The local sound packs described in `AUDIO_BALL_SOUND_PACKS.md`
+are a subsequent source-only change, not yet in that installer.
+See also `BACKGROUND_HELP.md` and `AUDIO_TUTORIAL.md`.
 
 ## Controls and rules
 
@@ -17,7 +27,7 @@ part of this implementation.
 - Shift+S: read both players' points and won sets.
 - T: read the server and connection status.
 - Ctrl+W: warn the opponent who is holding the ball.
-- Ctrl+P: choose the local listening side before or during a match.
+- Ctrl+P: choose the local listening side and sound pack before or during a match.
 
 The A/D mapping is deliberately nonstandard: Left/D and preparation Right/A.
 Game keys operate only in the playfield, not chat, help or another application.
@@ -43,8 +53,11 @@ restart the countdown. A repeated warning does not extend it. Expiry awards
 the opponent a point. Only the holder's controller resolves that timeout;
 other computers do not compare wall clocks to invent penalties.
 
-Easy starts at 1.5 seconds per full flight, Normal at 1.2 and Hard at 0.9.
-Later shots increase speed by 10%, 10% or 8% respectively. Flight duration is
+Very easy starts at 4.0 seconds per full flight, Easy at 2.2, Normal (the
+default) at 1.5, Hard at 0.9 and Very hard at 0.6. Every later shot increases
+speed by 5% at every level. Reaction/hold delays and bot error chances decrease
+at each level. `Difficulty::PROFILES` is the shared source of truth for table
+choices, physics and bot parameters. Flight duration is
 divided by the speed multiplier, rather than reduced by that percentage.
 Each new rally resets the speed; there is no arbitrary gameplay speed floor.
 
@@ -53,7 +66,10 @@ changes after every two completed points, including deuce and across sets.
 Every set requires at least 7 points and a two-point lead. The table selects
 one, two or three won sets. Between sets there is a five-second pause, followed
 by the next ordinal set announcement. Ordinary points use the Pong-style
-5.7-second restart pause for recorded score presentation. Speech never acts
+5.7-second restart pause for recorded score presentation, measured from the
+agreed goal preview rather than starting over at the durable write. A write
+longer than the initial three seconds still leaves 2.7 seconds for the score.
+The five-second set break continues to start at the durable result. Speech never acts
 as a network-readiness barrier.
 
 Creation uses the existing privacy control, followed by mode (Classic only),
@@ -67,8 +83,11 @@ flights move left to right, outgoing flights right to left. Ctrl+P opens local
 settings, storing `audio_ball.listening_side` as `right` or `left` in the existing
 settings JSON. Choosing left mirrors both flight and preparation, including
 an already playing sound, without restarting the stream or changing physics,
-player indexes or scores. Each shot has a distinct mono loop; preparation is
-a one-shot cue. Sound position and game volume update without restarting.
+player indexes or scores. Each shot has a distinct loop; the original three
+are mono. Preparation and successful defence have one-shot cues. Sound
+position and game volume update without restarting. The optional Audiodisc
+pack replaces the three loops, preparation, defence and goal effect, retaining
+the supplied stereo channels. Both packs use the same gameplay event path.
 
 The personal dialog continues realtime ticks and networking while it is open.
 Gameplay commands and warnings are blocked during the dialog; queued and held
@@ -78,13 +97,15 @@ Goal effects, goal voices, the score introduction and numbers reuse Axel Pong
 assets and its announcement sequencing. Recorded numbers cover 0 through 21;
 if either score is outside that range or a required recording is missing,
 Elten speech reads the complete own-first score. Observers use table order.
+Pong's personal announcer-volume preference does not affect Audio Ball; the
+shared Game Room game-volume controls still apply to all these recordings.
 Set, warning and server information remains synthesized; queued announcements
 are not cut by rally reset, view detach or the final replay. Ticking continues
 on the finished screen; close cancels and releases resources. No speech
 completion barrier controls gameplay. English and Polish strings are included,
 with `stop: false` and `break_sequence: false` for synthesized messages.
 Accepted-point announcements are deduplicated across frames and reconnections.
-Pong assets retain their existing shipped attribution. The four Audio Ball
+Pong assets retain their existing shipped attribution. The original four Audio Ball
 flight/preparation cues are documented in `AUDIO_BALL_SOUND_LICENSES.md`, with
 attribution in `THIRD_PARTY_NOTICES.md`.
 
@@ -96,7 +117,7 @@ attribution in `THIRD_PARTY_NOTICES.md`.
    the ordinary Engine transitions.
 2. Only accepted prepare, hit, defend or miss transitions enter EventChannel.
 3. The authenticated actor sends directly through the shared Communications
-   relay to the other participants (`audio-ball-peer-1`, peer routing).
+   relay to the other participants (`audio-ball-peer-2`, peer routing).
 4. Receivers check match, generation, rally, side and transition order before
    applying the event and updating audio. Only the recipient of a flight
    decides its timely defense or miss. The table owner controls bot sides,
@@ -106,6 +127,13 @@ attribution in `THIRD_PARTY_NOTICES.md`.
 6. The agreed value enters `context_data`, then the normal GameScreen
    automatic-action path, `action_for`, GameRepository and durable replay.
    The client never writes scores directly.
+7. Once everyone agrees, the owner sends a reliable `point` presentation event.
+   Receivers authenticate the owner and match the current rally, turn and local
+   goal. Its effect plays once without waiting for LiveSessions; scores, set and
+   match results remain durable-only. Repeated confirmations do not replay it.
+
+T distinguishes waiting for a durable point, ordinary point/set breaks, and
+connection/readiness waits. These statuses are not automatic speech.
 
 The durable start and point records are owner-authored and reject duplicates,
 wrong sequence and foreign authors. This is not an independent anti-cheat

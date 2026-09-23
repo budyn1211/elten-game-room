@@ -1,4 +1,7 @@
+require_relative "../game_room_localization"
+
 module GameSurfaces
+  using GameRoomLocalization::Translations
   ScoreChoice = Struct.new(:id, :label, :value, keyword_init: true)
   RollAndScoreSpec = Struct.new(
     :id, :header, :dice, :categories, :can_roll, :force_categories,

@@ -1,6 +1,9 @@
 require_relative "game_participants"
 
+require_relative "game_room_localization"
+
 module RoomPresentation
+  using GameRoomLocalization::Translations
   User = Struct.new(:participant, :label, keyword_init: true) do
     def to_s
       label
@@ -56,7 +59,7 @@ module RoomPresentation
     user_rows(
       room.members, bots: room.bots.to_a, observers: room.observers.to_a, owner: owner,
       players: listed_players, active: active,
-      team_assignment: replay == nil ? nil : game.team_assignment(options, players: players),
+      team_assignment: active ? game.team_assignment(options, players: players) : game&.prepared_team_assignment(options, players: room.game_participants),
       statuses: statuses, scores: replay == nil ? nil : game.participant_scores(replay)
     )
   end

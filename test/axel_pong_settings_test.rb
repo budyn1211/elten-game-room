@@ -47,8 +47,10 @@ Form.send(:define_method, :wait) { driver.call(self) }
 Form.send(:define_method, :resume) { nil }
 dictionary = $rules_dictionary
 old_english = $rules_english
+old_language = GameRoomTestLocalization.language
 begin
   [:pl, :en, :fallback].each do |language|
+    GameRoomTestLocalization.use_language(language)
     $rules_english = language == :en
     $rules_dictionary = language == :fallback ? BinaryRuleDictionary.new({}) : dictionary
     expected_labels = language == :pl ? ['Głośność ruchu Twojej paletki', 'Głośność ruchu paletki przeciwnika', 'Głośność lektora'] :
@@ -74,7 +76,7 @@ begin
     # intermediate settings button. Tab continues into the selected category.
     driver = lambda do |form|
       categories = form.fields.first
-      assert(categories.options.last == 'Axel Pong', 'missing Pong category')
+      assert(categories.options[4] == 'Axel Pong', 'missing Pong category')
       categories.index = 4; categories.trigger(:move)
       visible = form.fields - form.hidden_controls
       pong = visible[1..4]
@@ -157,5 +159,6 @@ ensure
   Form.send(:define_method, :wait, old_wait)
   old_resume ? Form.send(:define_method, :resume, old_resume) : Form.send(:remove_method, :resume)
   $rules_dictionary, $rules_english = dictionary, old_english
+  GameRoomTestLocalization.use_language(old_language)
 end
 puts 'PASS local Pong settings: binary PL/EN/fallback, native checkbox, persistence/cancel/cache, shared category, Ctrl+P scope and live modal timer'

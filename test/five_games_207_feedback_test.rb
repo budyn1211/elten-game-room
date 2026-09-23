@@ -188,7 +188,9 @@ check("Polish regional board labels go through the runtime catalogue") do
     end
     catalog[read.call(originals)] = read.call(translations)
   end
-  Object.send(:define_method, :_) { |text| catalog.fetch(text, text) }
+  require_relative 'support/localization'
+  previous_language = GameRoomTestLocalization.language
+  GameRoomTestLocalization.use_language(:pl)
   begin
     boards = GameRoomContent::MonopolyBoards
     %w[atlantic_city roma indonesia india].each do |id|
@@ -205,7 +207,7 @@ check("Polish regional board labels go through the runtime catalogue") do
     game.send(:apply_roll, state, event("roll", "1,2,1"), "Alice", REPO, history)
     assert(history.any? { |entry| entry.text.include?("Alice może kupić") && entry.text.include?("za 60") && entry.text.include?(catalog.fetch("pink group")) }, "offer is untranslated")
   ensure
-    Object.send(:define_method, :_) { |text| text }
+    GameRoomTestLocalization.use_language(previous_language)
   end
 end
 abort FAILURES.join("\n") unless FAILURES.empty?

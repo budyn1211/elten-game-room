@@ -44,7 +44,7 @@ audio.close
   audio = GameRoomPong::Audio.new(program, clock: -> { now },
     speaker: ->(text) { messages << text; busy = true }, speech_active: -> { busy })
   audio.load
-  audio.point(scores, viewer: 1, winner: 0, finished: true, observer: true,
+  audio.point(scores, viewer: 1, winner: 0, finished: true,
     score_text: "Bob: #{scores[1]}; Alice: #{scores[0]}.", result_text: 'Alice wins.')
   160.times do
     now += 0.1
@@ -55,8 +55,8 @@ audio.close
     busy = false if (now * 10).round % 10 == 0
     audio.tick
   end
-  assert(program.sounds['pong_youwin'].plays.zero? && program.sounds['pong_theywin'].plays.zero?, 'observer heard a personal victory/loss')
-  assert(messages.count('Alice wins.') == 1, 'observer winner missing or duplicated')
+  assert(program.sounds['pong_youwin'].plays.zero? && program.sounds['pong_theywin'].plays == 1, 'observed defeat was missing or repeated')
+  assert(messages.count('Alice wins.').zero?, 'neutral observer result duplicated the perspective recording')
   if scores.max > 21
     assert(messages.count("Bob: #{scores[1]}; Alice: #{scores[0]}.") == 2, 'full high score missing around final result')
     assert(program.sounds['pong_scores'].plays.zero?, 'partially recorded high score')

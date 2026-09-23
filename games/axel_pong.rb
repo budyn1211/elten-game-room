@@ -2,9 +2,14 @@
 require_relative 'base'
 require_relative '../lib/axel_pong/engine'
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class AxelPong < Base
     include PublicHistoryAnnouncements
+
+    CUSTOM_TARGET_RANGE = (2..999).freeze
 
     def id; 'axel_pong'; end
     def name; _('Axel Pong'); end
@@ -26,8 +31,34 @@ module GameRoomGames
         OptionDefinition.new(key: 'difficulty', label: _('Difficulty and ball speed'), kind: :choice, default: 2,
           choices: [_('Easy'), _('Normal'), _('Hard'), _('Insane'), _('Impossible'), _('Nightmare')].each_with_index.map { |label, i| OptionChoice.new(value: i + 1, label: label) }),
         OptionDefinition.new(key: 'target', label: _('Points to win'), kind: :choice, default: 11,
-          choices: [7, 11, 21].map { |n| OptionChoice.new(value: n, label: n.to_s) })
+          choices: [7, 11, 21].map { |n| OptionChoice.new(value: n, label: n.to_s) } + [
+            OptionChoice.new(value: 'custom', label: _('Custom number')),
+            OptionChoice.new(value: 'unlimited', label: _('Unlimited'))]),
+        OptionDefinition.new(key: 'custom_target', label: _('Custom number of points (2-999)'),
+          summary_label: _('Custom number of points'), kind: :integer, default: 11,
+          visible_if: { 'target' => 'custom' })
       ]
+    end
+
+    def normalize_options(values)
+      normalized = super
+      source = values.is_a?(Hash) ? values : {}
+      if source.key?('custom_target') || source.key?(:custom_target)
+        # Keep an empty/invalid edit invalid instead of silently choosing 11.
+        raw = source.fetch('custom_target', source[:custom_target])
+        normalized['custom_target'] = begin
+          Integer(raw.to_s, 10)
+        rescue ArgumentError
+          0
+        end
+      end
+      normalized
+    end
+
+    def points_to_win(options)
+      values = normalize_options(options)
+      return nil if values['target'] == 'unlimited'
+      values['target'] == 'custom' ? values['custom_target'] : values['target']
     end
 
     def team_size(options, player_count:)
@@ -36,6 +67,9 @@ module GameRoomGames
 
     def options_error(options, player_count: nil)
       values = normalize_options(options)
+      if values['target'] == 'custom' && !CUSTOM_TARGET_RANGE.cover?(values['custom_target'])
+        return _('Enter a whole number of points from 2 to 999.')
+      end
       doubles = values['team_size'] == 2
       if player_count && player_count != (doubles ? 4 : 2)
         return doubles ? _('Doubles requires exactly four players.') : _('Single requires exactly two players.')
@@ -110,6 +144,7 @@ module GameRoomGames
         {}
       end
       options = normalize_options(raw_options)
+      target = points_to_win(options)
       valid = valid_roster?(players, raw_options)
       assignment = valid ? team_assignment(options, players: players) : nil
       labels = valid ? score_labels(options, players) : players.map { |player| participant_name(player) }
@@ -134,7 +169,7 @@ module GameRoomGames
         history << HistoryEntry.new(key: "point:#{event_id}", event_id: event_id, actor: assignment ? assignment.team_ids[side] : players[side], kind: :move,
           text: _('%{player} scores. %{first}: %{one}; %{second}: %{two}.') % {
             player: labels[side], first: labels[0], one: scores[0], second: labels[1], two: scores[1] })
-        if scores[side] >= options['target'] && (scores[0] - scores[1]).abs >= 2
+        if target && scores[side] >= target && (scores[0] - scores[1]).abs >= 2
           winner = assignment ? assignment.team_ids[side] : players[side]
           result = result_history(event_id: event_id, winner: winner)
           result.text = _('%{player} won the game.') % { player: labels[side] } if assignment
@@ -181,7 +216,7 @@ module GameRoomGames
       shortcuts = [
         surface_shortcut(key: 's', label: _('read scores'), command: 'scores'),
         surface_shortcut(key: 't', label: _('read the server and connection status'), command: 'server'),
-        surface_shortcut(key: 'c', label: _('read your paddle position'), command: 'position'),
+        surface_shortcut(key: 'c', label: player_index(replay.players, viewer) == nil ? _('read the observed player\'s paddle position') : _('read your paddle position'), command: 'position'),
         surface_shortcut(key: 'e', label: _('read active shields and invisible ball'), command: 'effects'),
         surface_shortcut(key: 'e', modifiers: [:shift], label: _('change side-wall cues'), command: 'echo')
       ]
@@ -213,7 +248,8 @@ module GameRoomGames
           GameRoomRules.translate("Each player hears the court from their own end. A ball to your left sounds on the left; a ball to your right sounds on the right. It grows louder as it approaches you. A side-wall bounce has a higher pitch near your end and a lower pitch near the opponent. Paddle steps also have a pitch cue for position. There is no need to announce every movement: use C when you want to check your paddle's position.")),
         rule_section(:rally, GameRoomRules.translate("Serving and returning"),
           GameRoomRules.translate("Keep focus on the Pong playfield. Hold Left or Right to move, and press Up or Space to serve or hit. To serve diagonally, hold a direction while serving. A return is possible only when the ball is approaching your end and your paddle is close enough to it. A centred hit goes straight; an off-centre hit sends the ball diagonally. Hits speed up the ball, while lateral motion gradually weakens and loses more speed at a wall."),
-          GameRoomRules.translate("In Single, the first server is chosen at the start of a human match; against a bot, the human starts. Service changes after every two completed points. Choose a target of 7, 11 or 21, with a lead of at least two points required to win. At 10\u201310 in an 11-point match, 11\u201310 is not enough; 12\u201310 wins. After a point there is a three-second break for the goal recording, followed by the score and a further 2.7-second serve delay. You can reposition your paddle during this pause, but serving requires a new press after it ends."),
+          GameRoomRules.translate("In Single, the first server is chosen at the start of a human match; against a bot, the human starts. Service changes after every two completed points. After a point there is a three-second break for the goal recording, followed by the score and a further 2.7-second serve delay. You can reposition your paddle during this pause, but serving requires a new press after it ends."),
+          GameRoomRules.translate("When creating the table, choose 7, 11 or 21 points to win, or select Custom number. With Custom number selected, Tab takes you to an edit field where you can enter a whole number from 2 to 999. In both Single and Doubles, reaching the target is not enough: you also need a lead of at least two points. At 10\u201310 in an 11-point match, 11\u201310 does not end the match; 12\u201310 does. The last choice, Unlimited, keeps counting points without declaring a winner or ending the match because of the score. Play continues until the table is closed or its owner ends the match with Ctrl+Q."),
           GameRoomRules.translate("Automatic return is a personal setting, off by default. When enabled, your paddle returns a reachable ball automatically near your end. You still position the paddle and serve yourself. Open Pong settings with Ctrl+P to change it; your opponent chooses independently."),
           GameRoomRules.translate("The first serve becomes available once the players are connected and ready, without an extra countdown. In a human-only match, you hear the variant, difficulty and target, then who serves. The break after subsequent points remains as described above.")),
         rule_section(:doubles, GameRoomRules.translate("Doubles"),
@@ -238,6 +274,7 @@ module GameRoomGames
         rule_section(:connection, GameRoomRules.translate("When the connection is interrupted"),
           GameRoomRules.translate("The table and score use Game Room's normal session; movement uses Communications. During a human match, each player calculates their own flight and return locally. Lost or delayed paddle-position updates alone do not stop the ball. Serves, returns and misses travel separately in order. An actual connection failure pauses the rally; a replacement connection restarts the unfinished point with the confirmed score unchanged. Observers may listen but cannot control a paddle. Unfinished matches cannot currently be saved.")),
         rule_section(:watching, GameRoomRules.translate("Watching a match"),
+          GameRoomRules.translate("C reads the name and paddle position of the player you are watching. S, T and E also work for observers: check the score, server and active effects without controlling the game. At the end of the match, you hear victory or defeat for the selected player or their team."),
           GameRoomRules.translate("As an observer, use the number keys in the Pong playfield to choose a player's perspective: 1 selects the first player, 2 the second, and in Doubles 3 the third and 4 the fourth. The numbers follow the player order in the match, not the teams. The game confirms the player's name. This changes only your listening perspective and the order of the spoken score after a point; it does not let you move any paddle. The choice stays in place between points. The keys do not select a perspective while you are typing in chat or reading history.")),
         rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
           GameRoomRules.translate("Left arrow: move the paddle left."),
@@ -247,7 +284,7 @@ module GameRoomGames
           GameRoomRules.translate("Ctrl+P: open your Pong settings."),
           GameRoomRules.translate("S: read scores."),
           GameRoomRules.translate("T: read the server and connection status."),
-          GameRoomRules.translate("C: read your paddle position."),
+          GameRoomRules.translate("C: read your paddle position, or the observed player's position when watching."),
           GameRoomRules.translate("E: read active shields and invisible ball."),
           GameRoomRules.translate("Shift+E: change side-wall cues."),
           GameRoomRules.translate("1: as an observer, listen from the first player's perspective."),

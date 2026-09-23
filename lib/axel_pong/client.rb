@@ -9,7 +9,10 @@ require_relative '../realtime/task_ui'
 require_relative '../game_room_ping'
 require_relative 'peer_play'
 
+require_relative "../game_room_localization"
+
 module GameRoomPong
+  using GameRoomLocalization::Translations
   class Client
     include PeerPlay
     SEND_INTERVAL = 0.04
@@ -80,7 +83,7 @@ module GameRoomPong
       order = team == 1 ? [1, 0] : [0, 1]
       score_text = order.map { |i| "#{labels[i]}: #{after.state[:scores][i]}" }.join('; ') + '.'
       @audio.point(after.state[:scores], viewer: team, winner: winner, finished: after.finished?,
-        goal_at: preview && preview[:at], score_text: score_text, result_text: @game.result_text(after), observer: side == nil)
+        goal_at: preview && preview[:at], score_text: score_text, result_text: @game.result_text(after))
       if preview
         score_at = [@clock.call, preview[:at] + 3.0].max
         @ready_at, @serve_announce_at = score_at + SINGLE_SERVE_DELAY, score_at + 2.0
@@ -115,6 +118,9 @@ module GameRoomPong
       mixed = @players.any? { |p| GameRoomParticipants.bot?(p) }
       dialect = @rotation.doubles? ? 'pong-doubles-' : 'pong-'
       dialect += mixed ? 'mixed-peer-1' : 'peer-2'
+      # Older clients normalize either new choice to 11 and would disconnect
+      # mid-match. Keep them out of these modes at the existing handshake.
+      dialect += '-targets-2' if %w[custom unlimited].include?(replay.state[:options]['target'])
       @channel.enable_events(dialect, routing: :peers)
       reset_rally if changed
       if replay.finished?
@@ -270,7 +276,10 @@ module GameRoomPong
       else
         raw['hit'] && !@pointer_key_held ? 1 : 0
       end
-      @pointer_key_count, @pointer_key_held = key_count, raw['hit']
+      # A network/chat-only frame supplies neutral input without a keyboard
+      # counter. It must not erase the last observed physical press count.
+      @pointer_key_count = key_count unless key_count.nil?
+      @pointer_key_held = raw['hit']
       clicks = @mouse.clicks - @pointer_click_count.to_i
       @pointer_click_count = @mouse.clicks
       @pointer_press = @pointer_press.to_i + keys + [clicks, 0].max
@@ -313,7 +322,9 @@ module GameRoomPong
     end
 
     def playable_input(raw, active:, moving: active)
-      active = active == true && !@settings_open
+      focused = @surface && @form &&
+        (!@surface.respond_to?(:input_active?) || @surface.input_active?(@form))
+      active = active == true && !@settings_open && !@network_wait && focused
       held = raw['hit'] == true
       increment = if raw.key?('press')
         value = raw['press'] >= @raw_press.to_i ? raw['press'] - @raw_press.to_i : raw['press']
@@ -443,8 +454,10 @@ module GameRoomPong
         @initial_settings_announced = true
         options = @replay.state[:options]
         difficulty = @game.option_definitions.find { |item| item.key == 'difficulty' }.choices[options['difficulty'] - 1].label
-        speak(_('%{variant}. %{difficulty}. %{points} points to win.') % {
-          variant: options['arcade'] ? _('Arcade') : _('Classic'), difficulty: GameRoomContent.utf8(difficulty), points: options['target'] })
+        target = @game.points_to_win(options)
+        announcement = target ? _('%{variant}. %{difficulty}. %{points} points to win.') : _('%{variant}. %{difficulty}. Unlimited match.')
+        speak(announcement % {
+          variant: options['arcade'] ? _('Arcade') : _('Classic'), difficulty: GameRoomContent.utf8(difficulty), points: target })
         @serve_announce_at = now + 0.12
         @ready_at = [@ready_at, @serve_announce_at].max
         return
@@ -500,6 +513,9 @@ module GameRoomPong
       else
         _('Match in progress.')
       end
+      # Listening perspective is read-only. The spec's viewer still controls
+      # whether this surface may supply paddle input.
+      @surface.listening_seat = audio_side if @surface.respond_to?(:listening_seat=)
       @surface&.present(@snapshot, status)
       @audio.update(@snapshot, viewer: audio_side, paused: @paused)
     end

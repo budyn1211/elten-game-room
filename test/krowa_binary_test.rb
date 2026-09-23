@@ -15,6 +15,7 @@ random.define_singleton_method(:roll) { |count:, sides:| Struct.new(:values).new
 windows = 0
 %w[pl en fallback].each do |language|
   $rules_english = language != "pl"
+  GameRoomTestLocalization.use_language(language)
   %w[random race tower].each do |variant|
     players = variant == "random" ? ["Żaneta"] : ["Żaneta", "Michał"]
     options = game.default_options.merge("variant" => variant, "length" => 4)

@@ -6,7 +6,10 @@ require_relative "krowa_support/word_bank"
 require_relative "krowa_support/presentation"
 require_relative "krowa_support/saved_secret"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   # Rules and deterministic replay only. Room membership, invites, observers,
   # reconnects and the ordered event log belong to the shared Game Room stack.
   class Krowa < Base

@@ -7,7 +7,10 @@ require_relative "game_room_ping"
 # in the host's active-controls list can replace a native action. The bridge
 # holds no application/runtime reference. Upgrade the legacy fixed-key bridge
 # once; subsequent application reloads reuse dynamic control dispatch.
+require_relative "game_room_localization"
+
 module GameRoomUI
+  using GameRoomLocalization::Translations
   HostForm = Form
   # Read-only text retains the native reading/selection/copy commands, but
   # Enter belongs to the dialog's Close button rather than a multiline editor.
@@ -87,6 +90,7 @@ module GameRoomUI
     include PingControl
     attr_accessor :game_room_program, :game_room_volume_reader, :game_room_volume_writer
     attr_accessor :game_room_general_help_tips, :game_room_text_help_tips
+    attr_accessor :game_room_background_help_enabled
 
     def initialize(fields, program: nil, **options)
       @game_room_program = program
@@ -102,12 +106,83 @@ module GameRoomUI
     end
 
     def update
-      super
+      if game_room_background_help?
+        # Keep the native game wait alive, but send keyboard input only to the
+        # help form. Maintenance may resume that wait; the help/caret survives
+        # the normal replay and rebind on the next pass through GameScreen.
+        game_room_background_help_form.update
+        @game_room_background_timers.to_a.dup.each do |timer|
+          timer.update if @game_room_background_timers.include?(timer)
+        end
+      else
+        super
+      end
       update_game_room_ping
     end
 
+    def add_timer(timer, *arguments)
+      (@game_room_background_timers ||= []) << timer if timer.is_a?(FormTimer)
+      super
+    end
+
+    def delete_timer(timer)
+      @game_room_background_timers&.delete(timer)
+      super
+    end
+
+    def focus(*arguments)
+      # A replay must not refocus either the game field or the help document.
+      super unless game_room_background_help?
+    end
+
+    def resume
+      if @game_room_help_owner
+        @game_room_help_owner.close_game_room_background_help(self)
+      else
+        super
+      end
+    end
+
+    def game_room_background_help?
+      !@game_room_help_stack.to_a.empty?
+    end
+
+    def game_room_background_help_form
+      @game_room_help_stack.to_a.last&.first
+    end
+
+    def open_game_room_background_help(dialog, on_close: nil, focus: true)
+      owner = @game_room_help_owner || self
+      return owner.open_game_room_background_help(dialog, on_close: on_close, focus: focus) unless owner.equal?(self)
+
+      clear_game_room_key
+      (@game_room_help_stack ||= []) << [dialog, on_close]
+      dialog.instance_variable_set(:@game_room_help_owner, self)
+      dialog.focus if focus
+      dialog
+    end
+
+    def close_game_room_background_help(dialog, restore_focus: true)
+      return unless game_room_background_help_form.equal?(dialog)
+
+      closed, cleanup = @game_room_help_stack.pop
+      closed.instance_variable_set(:@game_room_help_owner, nil)
+      cleanup&.call
+      clear_game_room_key
+      if restore_focus
+        target = game_room_background_help_form || self
+        target.focus
+      end
+    end
+
+    def clear_game_room_background_help
+      while (dialog = game_room_background_help_form)
+        close_game_room_background_help(dialog, restore_focus: false)
+      end
+    end
+
     def game_room_hotkeys_active?
-      @game_room_waiting == true
+      @game_room_waiting == true || @game_room_help_owner != nil
     end
 
     def game_room_hotkey_action(key)
@@ -156,6 +231,12 @@ module GameRoomUI
       dialog.cancel_button = close
       dialog.hide(close)
       close.on(:press) { dialog.resume }
+      owner = @game_room_help_owner || (game_room_background_help_enabled ? self : nil)
+      if owner
+        owner.open_game_room_background_help(dialog, on_close: -> { @game_room_help_open = false })
+        opened_here = false
+        return
+      end
       dialog.wait
       clear_game_room_key
       # A modal help view does not replace controls or modify the parent wait.

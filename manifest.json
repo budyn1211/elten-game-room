@@ -2,8 +2,8 @@
   "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
-  "version": "2.0.2.5",
-  "build_id": "236",
+  "version": "2.0.3",
+  "build_id": "237",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": [
@@ -28,6 +28,7 @@
       "disconnect",
       "chatmsg",
       "notice",
+      "table_notice",
       "buzzer",
       "buzzer2",
       "ding",
@@ -157,7 +158,14 @@
       "audio_ball_up",
       "audio_ball_left",
       "audio_ball_down",
-      "audio_ball_prepare"
+      "audio_ball_prepare",
+      "audio_ball_stopped",
+      "audio_ball_audiodisc_up",
+      "audio_ball_audiodisc_center",
+      "audio_ball_audiodisc_down",
+      "audio_ball_audiodisc_ready",
+      "audio_ball_audiodisc_stop",
+      "audio_ball_audiodisc_goal"
     ]
   }
 }

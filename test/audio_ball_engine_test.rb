@@ -47,7 +47,7 @@ module AudioBallEngineTest
         equal(nil, engine.holder, 'holder remained during flight')
         equal(1 - server, engine.receiver, 'wrong receiver')
         equal('left', engine.shot, 'wrong shot')
-        equal(1.5, engine.duration, 'initial duration')
+        equal(4.0, engine.duration, 'initial duration')
         equal(1, engine.hits, 'hit not counted')
         equal(2, engine.turn, 'turn not advanced')
         equal({'action' => 'prepare', 'side' => server, 'turn' => 1}, engine.take_transition, 'prepare transition')
@@ -90,10 +90,10 @@ module AudioBallEngineTest
       end
     end
     test('all difficulties accelerate each flight without a gameplay floor') do
-      [[1, 1.5, 1.1], [2, 1.2, 1.1], [3, 0.9, 1.08]].each do |level, initial, factor|
+      [[1, 4.0, 1.05], [2, 2.2, 1.05], [3, 1.5, 1.05], [4, 0.9, 1.05], [5, 0.6, 1.05]].each do |level, initial, factor|
         engine = GameRoomAudioBall::Engine.new(level: level)
         expected = initial
-        120.times do |index|
+        200.times do |index|
           holder = engine.holder
           assert(engine.press(holder, 'prepare'), 'long rally preparation failed')
           assert(engine.press(holder, %w[up left down][index % 3]), 'long rally attack failed')
@@ -246,7 +246,7 @@ module AudioBallEngineTest
       equal(nil, engine.take_transition, 'remote events entered outgoing queue')
     end
     test('snapshot round trips every phase and resumes motion and warning without echo') do
-      [1, 2, 3].each do |level|
+      [1, 2, 3, 4, 5].each do |level|
         [0, 1].each do |server|
           engine = GameRoomAudioBall::Engine.new(level: level, server: server)
           states = [engine.snapshot]
@@ -294,10 +294,11 @@ module AudioBallEngineTest
       copy.step(0.3)
       near(engine.position, copy.position, 'restored flight resumed from the beginning')
       snapshot = engine.snapshot
+      position = engine.position
       snapshot['position'] = 25
       snapshot['phase'].replace('over')
       equal(:flying, engine.phase, 'snapshot mutation changed phase')
-      near(10.0, engine.position, 'snapshot mutation changed position')
+      near(position, engine.position, 'snapshot mutation changed position')
     end
     test('restore rejects incomplete or inconsistent snapshots atomically') do
       engine = GameRoomAudioBall::Engine.new
@@ -315,7 +316,7 @@ module AudioBallEngineTest
         'duration' => [nil, '1.5', 0, -1, 1.2, Float::INFINITY, Float::NAN],
         'position' => [nil, '10', -0.1, 25.1, Float::INFINITY, Float::NAN],
         'hits' => [nil, 0, -1, 2, 1.0, '1'], 'server' => [nil, 1, 0.0, 2],
-        'level' => [nil, 0, 2, 4, 1.0, '1']
+        'level' => [nil, 0, 2, 5, 1.0, '1']
       }.each do |key, values|
         values.each { |value| invalid << baseline.merge(key => value) }
       end
@@ -346,7 +347,7 @@ module AudioBallEngineTest
       assert(observer.apply({'action' => 'defend', 'side' => 1, 'turn' => 3, 'shot' => 'up'}), 'observer lost snapshot turn on next action')
     end
     test('local arguments reject invalid types and nonfinite time without changing state') do
-      [nil, 0, 4, '1', 1.0, true].each do |level|
+      [nil, 0, 6, '1', 1.0, true].each do |level|
         begin
           GameRoomAudioBall::Engine.new(level: level)
           assert(false, 'invalid level accepted')
@@ -409,7 +410,7 @@ module AudioBallEngineTest
       equal(nil, engine.goal, 'fractional warning expired early')
       engine.step(0.1)
       equal(1, engine.goal, 'fractional warning missed ten-second deadline')
-      [1, 2, 3].each do |level|
+      [1, 2, 3, 4, 5].each do |level|
         engine = GameRoomAudioBall::Engine.new(level: level)
         engine.press(0, 'prepare')
         engine.press(0, 'up')

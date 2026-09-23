@@ -231,6 +231,26 @@ module GameRoomChangelog
         "In Pong matches with bots, the goal sound no longer waits for the score to be saved on the server. All participants in these matches need this update.",
         "Removed the extra three-second delay at the start of human Pong matches. Waiting for players to connect, announcements and breaks after goals remain unchanged."
       ].freeze
+    ).freeze,
+    Entry.new(
+      version: "2.0.3",
+      build: 237,
+      changes: [
+        "Added Audio Ball by budyn1211, known on ELTEN as balteam: an audio game for two players, against another person or a bot. Recognize three shot sounds, choose the matching defence and prepare your return. Sets are played to seven points with a two-point lead; choose one, two or three sets to win.",
+        "Axel Pong adds Custom score, with a field for 2 to 999 points, and Unlimited, which keeps the match going without a score limit. Both options work in Singles and Doubles, including matches with bots. Finite matches still require a two-point lead.",
+        "Updated Krowa's rules, with descriptions of its modes and controls in Polish and English.",
+        "New-table notifications now use a distinct sound, balanced to the existing notification volume. Invitations keep their previous sound.",
+        "Opening help with F1 or the rules with Ctrl+F1 no longer stops the game. Other players' moves, bots and turn timers continue while you read.",
+        "Fixed an unintended serve in Axel Pong after using chat. Keys used outside the game field no longer trigger a serve.",
+        "Fixed a Game Room installation error caused by Unicode compatibility on some ELTEN runtimes.",
+        "Ctrl+J on the Game Room widget now lets you accept invitations. Joining clears the related notification just as it does inside the app.",
+        "You can now choose Game Room's interface language independently of ELTEN in Settings > Language. Choose your main language and additional languages to use when a translation is missing. Restart ELTEN after saving the change.",
+        "Translation support by balteam (budyn1211): each language now has one editable PO file for interface text, game rules and the changelog, making it easier to add and maintain translations without changing game logic.",
+        "When watching Axel Pong, C reads the selected player's name and paddle position. Victory and defeat are also heard from that player's or team's perspective at the end of the match.",
+        "Team selection is now a separate step: choose the players or use Choose teams randomly, then Accept to return to the table. Start game starts the match. Everyone hears the accepted teams, which are saved for the next game. Use Choose teams in the table menu to change them.",
+        "The table master can change another person's player or observer role from the Users list context menu. During a match, this changes only who will play in the next game.",
+        "Starting, ending or restarting a game no longer moves you away from chat, history or the Users list. Chat drafts, text selection and the reading position are preserved."
+      ].freeze
     ).freeze
   ].freeze
 

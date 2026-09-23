@@ -1,6 +1,9 @@
 require "json"
 
+require_relative "../game_room_localization"
+
 module GameSurfaces
+  using GameRoomLocalization::Translations
   PacketCardSpec = Struct.new(
     :id, :header, :cards, :action_name, :allow_packet, :empty_label, :hand_order, :hand_epoch, :packet_tip, :activation_tip,
     keyword_init: true

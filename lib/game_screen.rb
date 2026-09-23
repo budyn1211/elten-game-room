@@ -14,7 +14,10 @@ require_relative "participant_menu"
 require_relative "network_errors"
 require_relative "game_session_clock"
 
+require_relative "game_room_localization"
+
 class GameScreen
+  using GameRoomLocalization::Translations
   TIMER_INTERVAL = 0.05
 
   def initialize(
@@ -36,6 +39,7 @@ class GameScreen
     layout: nil,
     manage_computer: nil,
     manage_observer: nil,
+    manage_teams: nil,
     save_game: nil,
     edit_options: nil,
     abort_game: nil,
@@ -44,6 +48,7 @@ class GameScreen
     @layout = layout
     @manage_computer = manage_computer
     @manage_observer = manage_observer
+    @manage_teams = manage_teams
     @save_game = save_game
     @edit_options = edit_options
     @abort_game = abort_game
@@ -263,6 +268,11 @@ class GameScreen
         @room_snapshot = nil
         @activity_entries = nil
         @suppress_surface_focus = true
+      when :edit_teams
+        @manage_teams&.call(@table)
+        @room_snapshot = nil
+        @activity_entries = nil
+        @suppress_surface_focus = true
       when :abort_game
         return :game_aborted if @abort_game&.call(@table, @session)
         @suppress_surface_focus = true
@@ -278,6 +288,11 @@ class GameScreen
       when :observe_next_game, :play_next_game
         updated_room = @manage_observer&.call(@table, action)
         @room_snapshot = updated_room if updated_room != nil
+        @suppress_surface_focus = true
+      when :make_observer, :make_player
+        updated_room = @manage_observer&.call(@table, action, @selected_participant)
+        @room_snapshot = updated_room if updated_room
+        @activity_entries = nil
         @suppress_surface_focus = true
       when :restart
         return :restart
@@ -299,6 +314,8 @@ class GameScreen
       end
     end
   ensure
+    @layout&.form&.clear_game_room_background_help
+    @layout.form.game_room_background_help_enabled = false if @layout
     @event_presentation&.close
     @game_client&.close
   end
@@ -361,8 +378,9 @@ class GameScreen
     # Moving to Restart/Waiting after the final event must preserve the result
     # announcements, but the newly focused status should still be spoken after
     # them. speech_wait below queues that focus instead of letting it interrupt.
-    announce_finished_focus = phase_changed && phase == :finished
-    silent_entry = @suppress_surface_focus && !announce_finished_focus
+    room_focus_retained = phase_changed && [:chat, :history, :users].include?(layout.focus_location.to_a.first)
+    announce_finished_focus = phase_changed && phase == :finished && !room_focus_retained
+    silent_entry = room_focus_retained || (@suppress_surface_focus && !announce_finished_focus)
     @suppress_surface_focus = false
     cursor_message = layout.take_cursor_announcement
     if !cursor_message.to_s.empty?
@@ -377,6 +395,7 @@ class GameScreen
     chat = layout.chat
     back_button = layout.back_button
     form = layout.form
+    form.game_room_background_help_enabled = true
 
     remember_position = lambda do
       snapshot = layout.snapshot
@@ -451,12 +470,16 @@ class GameScreen
       compatible = !@table.key?("__discovery_protocol") || @table["__discovery_protocol"].to_i >= GameRoomLiveSessionStore::CURRENT_DISCOVERY_PROTOCOL
       if compatible && same_user?(@table_owner, Session.name) && !@session["__frozen"]
         actions << :edit_options if replay.finished? && @edit_options != nil
+        if replay.finished? && @manage_teams && @room_snapshot && @game.team_assignment(
+            @game.options_from_json(@room_snapshot.table["game_options"]), players: @room_snapshot.game_participants)
+          actions << :edit_teams
+        end
         actions << :abort_game if !replay.finished? && @abort_game != nil
       end
       actions << :invite_online if @invite_online != nil
       actions << :invite_contacts if @invite_contacts != nil
       if @manage_observer != nil
-        actions.concat(GameRoomParticipantMenu.role_actions(room: @room_snapshot, viewer: Session.name))
+        actions.concat(GameRoomParticipantMenu.role_actions(room: @room_snapshot, viewer: Session.name, owner: @table_owner))
       end
       if @manage_computer != nil
         actions.concat(GameRoomParticipantMenu.management_actions(
@@ -464,7 +487,7 @@ class GameScreen
         ))
       end
       actions
-    end, game: @game, options: @game.options_from_json(@session["options"]),
+    end, game: @game, options: @game.options_from_json(@session["options"]), room: -> { @room_snapshot },
       settings: %w[axel_pong audio_ball].include?(@game.id) && @game_client.respond_to?(:show_settings) ? -> { @game_client.show_settings } : nil,
       read_options: -> {
       source = replay.finished? ? @room_snapshot&.table.to_h["game_options"] : @session["options"]
@@ -852,7 +875,7 @@ class GameScreen
       return action
     end
   ensure
-    # Ctrl+F1 opens its modal dialog only after this wait returns. Preserve the
+    # Ctrl+F1 opens its background help only after this wait returns. Preserve the
     # current game-field descriptions before removing handlers and their tips.
     @rules_shortcut_snapshot = if action == :rules && @layout != nil
       GameRoomContextHelp.game_field_tips(@layout.game_help_fields)
@@ -898,8 +921,13 @@ class GameScreen
     source = replay.finished? ? @room_snapshot&.table.to_h["game_options"] : @session["options"]
     options = @game.options_from_json(source)
     tips = @layout && GameRoomContextHelp.game_field_tips(@layout.game_help_fields) if tips == nil
-    GameRoomScreens::GameRules.new(@game.rule_book(options: options),
-      program: @program, game_shortcuts: tips).wait
+    screen = GameRoomScreens::GameRules.new(@game.rule_book(options: options),
+      program: @program, game_shortcuts: tips, audio_tutorial: @game.audio_tutorial_entries)
+    if @layout&.form&.game_room_background_help_enabled
+      screen.open_on(@layout.form)
+    else
+      screen.wait
+    end
   end
 
   def bind_game_shortcuts(form, fields, shortcuts, &handler)
@@ -1334,8 +1362,8 @@ class GameScreen
     @selected_surface_action = nil
     @history_index = 0
     @users_index = 0
-    @form_index = 0
-    @focus_location = [:game, 0]
+    @form_index = @layout ? @layout.form.index.to_i : 0
+    @focus_location = @layout&.focus_location || [:game, 0]
     @surface_identity = nil
     @last_seen_event_id = nil
     @turn_history_entries = {}
@@ -1408,7 +1436,7 @@ class GameScreen
     RoomPresentation.game_users(
       room: @room_snapshot, game: @game, replay: replay,
       players: @repository.players_for(@session), owner: @table_owner,
-      options: @game.options_from_json(@session["options"])
+      options: @game.options_from_json(replay.finished? ? @room_snapshot.table["game_options"] : @session["options"])
     )
   end
 
@@ -1969,6 +1997,7 @@ class GameScreen
   def network_task(title, ui: nil, silent: false, &operation)
     return nil if @synchronizer&.waiting?
 
+    ui = @layout.form if @layout&.form&.game_room_background_help?
     options = { title: title, cancellable: true, show_after: 5.0 }
     options[:ui] = ui if ui != nil
     if @game_client.respond_to?(:network_task_ui)

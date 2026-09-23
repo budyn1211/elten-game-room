@@ -1,8 +1,12 @@
 require_relative "game_participants"
 require_relative "game_history_navigation"
 require_relative "game_room_clock"
+require_relative "game_content"
+
+require_relative "game_room_localization"
 
 class TableActivityRepository
+  using GameRoomLocalization::Translations
   Entry = Struct.new(
     :id,
     :table_id,
@@ -15,11 +19,13 @@ class TableActivityRepository
     :invitation_id,
     :created_at,
     :stack_sequence,
+    :teams,
+    :role,
     keyword_init: true
   )
 
   TABLE_NAME = "table_activity".freeze
-  KINDS = %w[created joined left bot_added bot_removed chat invited invitation_rejected game_aborted options_changed].freeze
+  KINDS = %w[created joined left bot_added bot_removed chat invited invitation_rejected game_aborted options_changed role_changed].freeze
   GLOBAL_KINDS = %w[created joined left bot_added bot_removed].freeze
   BOT_KINDS = %w[bot_added bot_removed].freeze
   TABLE_LIMIT = 2_000
@@ -159,8 +165,8 @@ class TableActivityRepository
   end
 
   def text_for(entry, game_name:, global: false)
-    player = GameRoomParticipants.display_name(entry.actor)
-    owner = GameRoomParticipants.display_name(entry.owner)
+    player = GameRoomContent.utf8(GameRoomParticipants.display_name(entry.actor))
+    owner = GameRoomContent.utf8(GameRoomParticipants.display_name(entry.owner))
     game = game_name.call(entry.game).to_s
     bot = GameRoomParticipants.display_name(entry.subject) if !entry.subject.to_s.empty?
     if global
@@ -201,7 +207,18 @@ class TableActivityRepository
       when "game_aborted"
         _("%{player} ended the game. The table remains open.") % { player: player }
       when "options_changed"
+        if entry.teams && !entry.teams.empty?
+          return entry.teams.each_with_index.map do |members, index|
+            _("Team %{team}: %{players}.") % { team: index + 1, players: members.map { |user| GameRoomContent.utf8(GameRoomParticipants.display_name(user)) }.join(", ") }
+          end.join(" ")
+        end
         _("%{player} changed the settings for the next game.") % { player: player }
+      when "role_changed"
+        if entry.role == "observer"
+          _("%{player} chose %{user} as an observer for the next game.") % { player: player, user: GameRoomContent.utf8(GameRoomParticipants.display_name(entry.subject)) }
+        else
+          _("%{player} chose %{user} as a player for the next game.") % { player: player, user: GameRoomContent.utf8(GameRoomParticipants.display_name(entry.subject)) }
+        end
       end
     end
   end
@@ -296,6 +313,10 @@ class TableActivityRepository
     if %w[invited invitation_rejected].include?(row["kind"].to_s)
       return nil if row["subject"].to_s.empty? || row["subject"].to_s.length > 64 || row["invitation_id"].to_i <= 0
     end
+    if row["kind"] == "role_changed"
+      return nil unless GameRoomParticipants.same?(actor, table_owner(table)) &&
+        %w[player observer].include?(row["role"]) && !subject.strip.empty? && subject.length <= 64 && GameRoomParticipants.human?(subject)
+    end
 
     Entry.new(
       id: row_id(row),
@@ -308,8 +329,20 @@ class TableActivityRepository
       subject: subject,
       invitation_id: row["invitation_id"].to_i,
       created_at: row["created_at"].to_i,
-      stack_sequence: row["__stack_sequence"]
+      stack_sequence: row["__stack_sequence"],
+      teams: row["kind"] == "options_changed" && GameRoomParticipants.same?(actor, table_owner(table)) ? teams_from(row) : nil,
+      role: row["role"]
     )
+  end
+
+  def teams_from(row)
+    players, seats = row["team_players"], row["team_seats"]
+    return nil unless players.is_a?(Array) && seats.is_a?(Array) && players.length.between?(4, 8) && seats.length == players.length
+    return nil unless players.all? { |name| name.is_a?(String) && !name.strip.empty? && name.length <= 64 } &&
+      GameRoomParticipants.unique(players).length == players.length && seats.all? { |seat| seat.is_a?(Integer) && seat.between?(0, 3) }
+    teams = Array.new(seats.max + 1) { [] }
+    players.each_with_index { |player, index| teams[seats[index]] << player }
+    teams if teams.length >= 2 && teams.first.length >= 2 && teams.map(&:length).uniq.length == 1
   end
 
   def normalize_message(value)

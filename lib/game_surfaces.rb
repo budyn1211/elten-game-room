@@ -2,7 +2,10 @@ require_relative "game_surfaces/card_hand_cursor"
 require_relative "game_surfaces/card_sorting"
 require_relative "game_room_ui"
 
+require_relative "game_room_localization"
+
 module GameSurfaces
+  using GameRoomLocalization::Translations
   SHIFTED_DIGIT_CHARACTERS = {
     "1" => "!", "2" => "@", "3" => "#", "4" => "$", "5" => "%",
     "6" => "^", "7" => "&", "8" => "*", "9" => "(", "0" => ")"

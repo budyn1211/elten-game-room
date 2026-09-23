@@ -1,7 +1,10 @@
 # encoding: UTF-8
 require_relative "tile_game"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class Domino < TileGame
     SETS = {
       "d6" => [6, 1, 7, 4], "d9" => [9, 1, 10, 5], "d12" => [12, 1, 10, 8],

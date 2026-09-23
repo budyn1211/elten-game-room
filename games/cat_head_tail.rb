@@ -1,7 +1,10 @@
 require_relative "base"
 require_relative "../lib/cat_head_tail_strategy"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class CatHeadTail < Base
     def id
       "cat_head_tail"

@@ -12,6 +12,7 @@ end
 
 [false, true].each do |english|
   $rules_english = english
+  GameRoomTestLocalization.use_language(english ? :en : :pl)
   [GameRoomGames::Uno, GameRoomGames::Makao, GameRoomGames::NinetyNine,
     GameRoomGames::Rummy, GameRoomGames::Poker].each do |type|
     game, repo, session, state, selection = reshuffle_fixture(type, "Alice")
@@ -37,8 +38,8 @@ end
 
   entry = GameRoomChangelog::ENTRIES.find { |item| item.build == 229 }
   translations = JSON.parse(File.read(File.expand_path("../locale/changelog-build-229-pl.json", __dir__), encoding: "UTF-8"))
-  lines = GameRoomChangelog.list_items([entry], translator: ->(text) { _(text) })
-  assert(lines.drop(1) == (english ? entry.changes : translations.values), "new changelog not translated by host dictionary")
+  lines = GameRoomChangelog.list_items([entry], translator: GameRoomLocalization.method(:translate))
+  assert(lines.drop(1) == (english ? entry.changes : translations.values), "new changelog not translated by Game Room catalog")
   assert(lines.length == entry.changes.length + 1 && lines.all? { |line| line.valid_encoding? && (line.encoding == Encoding::UTF_8 || line.ascii_only?) }, "changelog heading/encoding")
 end
 puts "PASS binary card announcements: native-compatible PL/EN dictionary, reshuffle, score shortcuts, one bilingual changelog heading"

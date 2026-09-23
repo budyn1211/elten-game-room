@@ -1,7 +1,11 @@
 require_relative "game_participants"
 
+require_relative "game_room_localization"
+
 module GameRoomTeams
+  using GameRoomLocalization::Translations
   OPTION_KEY = "team_seats"
+  PLAYERS_KEY = "team_players"
 
   class Assignment
     attr_reader :players, :team_size, :team_count, :seats
@@ -22,6 +26,17 @@ module GameRoomTeams
 
     def reset
       @players = @initial_players.dup
+      @seats = automatic_seats
+      self
+    end
+
+    def randomize(random: Random.new)
+      # Use an explicit Fisher-Yates shuffle: ELTEN overrides Array#shuffle.
+      @players = @initial_players.dup
+      (@players.length - 1).downto(1) do |index|
+        other = random.rand(index + 1)
+        @players[index], @players[other] = @players[other], @players[index]
+      end
       @seats = automatic_seats
       self
     end

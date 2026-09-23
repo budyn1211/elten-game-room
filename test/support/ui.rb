@@ -102,6 +102,25 @@ class ListBox < FakeControl
     indices.each { |index| @selected[index] = true if index.between?(0, @selected.length - 1) }
   end
 
+  def require_multiselection_indices(indices)
+    @required_multiselection_indices = indices.uniq.select { |index| index >= 0 && index < @options.size }
+    select_multiselection_indices(@required_multiselection_indices)
+  end
+
+  def deselect_multiselection_indices(indices)
+    indices = indices.uniq.select do |index|
+      index >= 0 && index < @options.size && @selected[index] == true && !@required_multiselection_indices.to_a.include?(index)
+    end
+    return :unchanged if indices.empty?
+    trigger(:multiselection_beforechanged)
+    indices.each do |index|
+      @selected[index] = false
+      trigger(:multiselection_unselected, index)
+    end
+    trigger(:multiselection_changed)
+    :changed
+  end
+
   def multiselections
     @selected.each_index.select { |index| @selected[index] }
   end

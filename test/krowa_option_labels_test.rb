@@ -5,8 +5,10 @@ def assert(value, message)
 end
 
 game = GameRoomGames::Krowa.new
+authoring = JSON.parse(File.read(File.join(BinaryRulesLoad::ROOT, "docs/rulebooks/krowa.json"), encoding: "UTF-8"))
 %w[pl en fallback].each do |language|
   $rules_english = language != "pl"
+  GameRoomTestLocalization.use_language(language)
   expected = language == "pl" ? ["Liczba liter", "Kryterium wyniku"] : ["Number of letters", "Scoring criterion"]
   labels = game.option_definitions.to_h { |definition| [definition.key, definition.label] }
   assert(labels.values_at("length", "race_scoring") == expected, "Redundant Krowa labels in #{language}: #{labels}")
@@ -16,6 +18,14 @@ game = GameRoomGames::Krowa.new
     assert(actual == keys, "Visibility changed for #{variant}")
   end
   rules = game.rule_book.documents.first.text
-  expected.each { |label| assert(rules.include?(label), "Help omits the current label #{label}") }
+  # The supplied rules explain options in natural prose rather than repeating
+  # their exact UI labels. Check the complete replacement through binary loading.
+  text_language = language == "pl" ? "pl" : "en"
+  authoring.fetch("sections").reject { |section| section.fetch("id") == "controls" }.each do |section|
+    ([section.fetch("title")] + section.fetch("paragraphs")).each do |pair|
+      text = pair.fetch(text_language)
+      assert(rules.include?(text), "Krowa rules omit or mistranslate #{section.fetch('id')} in #{language}: #{text}")
+    end
+  end
 end
-puts "PASS Krowa: concise labels, matching help and variant visibility in PL/EN/fallback"
+puts "PASS Krowa: concise labels, complete supplied rules and variant visibility in PL/EN/fallback"

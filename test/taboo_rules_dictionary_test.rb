@@ -29,6 +29,7 @@ def _(source)
   $rules_dictionary.send(:_, source)
 end
 
+GameRoomTestLocalization.use_language(:pl)
 game = GameRoomGames::Taboo.new
 authoring = JSON.parse(File.read(File.join(BinaryRulesLoad::ROOT, "docs/rulebooks/taboo.json"), encoding: "UTF-8"))
 english_sources = authoring.fetch("sections").flat_map { |section| section.fetch("paragraphs").map { |pair| pair.fetch("en") } }
@@ -43,6 +44,7 @@ original_source = BinaryRulesLoad.read(File.join(BinaryRulesLoad::ROOT, "games/t
 raise "Taboo sources lack declared encoding" unless original_source.start_with?("# encoding: UTF-8")
 [false, true].each do |english|
   $rules_english = english
+  GameRoomTestLocalization.use_language(english ? :en : :pl)
   documents_by_language = %w[pl-PL en].map do |language|
     options = game.normalize_options("content_language_id" => language)
     game.rule_book(options: options).documents.take(2)

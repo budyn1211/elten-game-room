@@ -1,4 +1,7 @@
+require_relative "game_room_localization"
+
 module GameRoomHistory
+  using GameRoomLocalization::Translations
   Entry = Struct.new(:text, :category, keyword_init: true)
 
   def self.bind(form, &handler)

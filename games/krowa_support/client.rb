@@ -10,7 +10,10 @@ require_relative "sjp_definition_provider"
 require_relative "profile"
 require_relative "private_reveal"
 
+require_relative "../../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   # Local presentation/services adapter. No rooms, polling or multiplayer
   # writes: every move still goes through GameScreen and GameRepository.
   class KrowaClient

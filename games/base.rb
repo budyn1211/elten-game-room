@@ -6,8 +6,12 @@ require_relative "../lib/game_shortcuts"
 require_relative "../lib/game_layout"
 require_relative "../lib/game_rules"
 require_relative "../lib/game_content"
+require_relative "../lib/audio_tutorial"
+
+require_relative "../lib/game_room_localization"
 
 module GameRoomGames
+  using GameRoomLocalization::Translations
   EventCommand = Struct.new(:action, :value, keyword_init: true)
 
   # Untranslated text from a packaged app can retain ASCII-8BIT even when
@@ -275,6 +279,10 @@ module GameRoomGames
       raise NotImplementedError, "a game must implement rule_sections"
     end
 
+    def audio_tutorial_entries
+      []
+    end
+
     def rule_book(options: nil)
       book = GameRoomRules::Book.new(
         game_id: id,
@@ -377,6 +385,10 @@ module GameRoomGames
       end
       team_seats = source[GameRoomTeams::OPTION_KEY] || source[GameRoomTeams::OPTION_KEY.to_sym]
       result[GameRoomTeams::OPTION_KEY] = team_seats.to_a.map(&:to_i) if team_seats.is_a?(Array)
+      team_players = source[GameRoomTeams::PLAYERS_KEY] || source[GameRoomTeams::PLAYERS_KEY.to_sym]
+      if team_players.is_a?(Array) && team_players.length <= 8 && team_players.all? { |player| player.is_a?(String) && !player.empty? && player.length <= 64 }
+        result[GameRoomTeams::PLAYERS_KEY] = team_players.dup
+      end
       normalize_content_options(source, result)
       result
     end
@@ -546,7 +558,40 @@ module GameRoomGames
       error = assignment.validation_error
       raise ArgumentError, error if error != nil
 
-      normalized.merge(GameRoomTeams::OPTION_KEY => assignment.seats.dup)
+      normalized.merge(GameRoomTeams::OPTION_KEY => assignment.seats.dup,
+        GameRoomTeams::PLAYERS_KEY => assignment.players.dup)
+    end
+
+    # A saved choice belongs to people, not row indices. A join, departure,
+    # role change or different team size requires a new confirmation.
+    def prepared_team_assignment(options, players:)
+      raw_seats = options.to_h[GameRoomTeams::OPTION_KEY] || options.to_h[GameRoomTeams::OPTION_KEY.to_sym]
+      return nil unless raw_seats.is_a?(Array) && raw_seats.all? { |seat| seat.is_a?(Integer) }
+      normalized = normalize_options(options)
+      saved = normalized[GameRoomTeams::PLAYERS_KEY]
+      seats = normalized[GameRoomTeams::OPTION_KEY]
+      current = GameRoomParticipants.unique(players)
+      return nil unless saved.is_a?(Array) && saved.length == current.length && seats.is_a?(Array) && seats.length == saved.length
+      return nil unless GameRoomParticipants.unique(saved).length == saved.length &&
+        saved.all? { |player| GameRoomParticipants.includes?(current, player) }
+      size = team_size(normalized, player_count: current.length).to_i
+      return nil unless size.positive? && current.length % size == 0
+      count = current.length / size
+      return nil unless count >= 2 && seats.all? { |seat| seat.is_a?(Integer) && seat.between?(0, count - 1) }
+      assignment = GameRoomTeams::Assignment.new(players: saved, team_size: size, seats: seats)
+      assignment.valid? ? assignment : nil
+    rescue ArgumentError
+      nil
+    end
+
+    def options_for_team_roster(options, players:)
+      normalized = normalize_options(options)
+      assignment = prepared_team_assignment(normalized, players: players)
+      if assignment
+        with_team_assignment(normalized, players: players, seats: assignment.seats_for(players))
+      else
+        normalized.reject { |key, _value| [GameRoomTeams::OPTION_KEY, GameRoomTeams::PLAYERS_KEY].include?(key) }
+      end
     end
 
     def automatic_action(_replay, _actor, context: nil)

@@ -2,7 +2,10 @@
 
 require_relative "server_store"
 
+require_relative "../../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   # Event-driven leaderboard presentation. Persistent queries live in
   # KrowaServerStore; this class only owns forms and user-facing formatting.
   class KrowaLeaderboardClient

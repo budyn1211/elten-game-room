@@ -1,5 +1,8 @@
 # encoding: UTF-8
+require_relative "../game_room_localization"
+
 module GameSurfaces
+  using GameRoomLocalization::Translations
   PongSpec = Struct.new(:game_id, :header, :players, :viewer, :scores, :finished, :score_labels, keyword_init: true)
 
   class PongField < Button
@@ -50,7 +53,7 @@ module GameSurfaces
   class PongSurface
     include ActionEmitter
     attr_reader :spec, :snapshot
-    attr_accessor :on_pong_command, :on_input_reset
+    attr_accessor :on_pong_command, :on_input_reset, :listening_seat
     def _(source); GameRoomContent.utf8(super(source)); end
 
     def initialize(spec, state: {})
@@ -71,6 +74,7 @@ module GameSurfaces
     def present(snapshot, status); @snapshot, @status = snapshot, status; end
 
     def input_active?(form)
+      return false if form.respond_to?(:game_room_background_help?) && form.game_room_background_help?
       # Only the game field drives the paddle. Arrow keys in chat, history,
       # help, or a different application are not gameplay commands.
       active = form.fields[form.index] == @field
@@ -106,9 +110,14 @@ module GameSurfaces
         end
         speak([text, @status].reject(&:empty?).join(' '))
       when 'position'
-        return true if @spec.viewer == nil
-        x = @snapshot && @snapshot['p'][@spec.viewer]
-        speak(x ? (_('Paddle: %{position}.') % { position: x.round }) : @status)
+        seat = @spec.viewer || @listening_seat
+        x = @snapshot && seat.is_a?(Integer) && @snapshot['p'][seat]
+        if x && @spec.viewer == nil
+          speak(_('%{player}: %{position}.') % {
+            player: GameRoomParticipants.display_name(@spec.players[seat]), position: x.round })
+        else
+          speak(x ? (_('Paddle: %{position}.') % { position: x.round }) : @status)
+        end
       when 'effects'
         if @snapshot
           parts = @snapshot['shields'].each_with_index.filter_map do |ticks, i|

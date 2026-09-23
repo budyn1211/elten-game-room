@@ -1,9 +1,12 @@
 require_relative "context_help"
 require_relative "game_room_ui"
+require_relative "game_room_localization"
 require_relative "axel_pong/settings"
 require_relative "table_presets"
 
 module GameRoomScreens
+  using GameRoomLocalization::Translations
+
   MenuResult = Struct.new(:action, :index, keyword_init: true)
 
   class TeamList < ListBox
@@ -168,7 +171,7 @@ module GameRoomScreens
     def wait
       action = nil
       sections = ListBox.new(
-        [_("Lobby messages"), _("Notification settings"), _("Sounds"), _("Widget"), _("Axel Pong")],
+        [_("Lobby messages"), _("Notification settings"), _("Sounds"), _("Widget"), _("Axel Pong"), _("Language")],
         header: _("Settings"), quiet: true
       )
       lobby_games = multiple_game_list(_("Games covered by lobby messages"), @values["lobby_games"])
@@ -221,6 +224,22 @@ module GameRoomScreens
       cancel_button = Button.new(_("Cancel"))
 
       pong_fields = GameRoomPong::SettingsFields.new(@values['pong'])
+      languages = GameRoomLocalization.available_languages
+      language_values = GameRoomLocalization.normalize_settings(@values)
+      language_labels = languages.map { |language| GameRoomContent.utf8(language.fetch(:label)) }
+      primary_language = ListBox.new(language_labels,
+        header: GameRoomContent.utf8(_("Primary interface language")), quiet: true,
+        index: languages.index { |language| language.fetch(:id) == language_values["interface_language"] })
+      known_languages = ListBox.new(language_labels,
+        header: GameRoomContent.utf8(_("Known languages")), quiet: true, flags: ListBox::Flags::MultiSelection)
+      known_languages.select_multiselection_indices(languages.each_index.select do |index|
+        language_values["known_languages"].include?(languages[index].fetch(:id))
+      end)
+      known_languages.require_multiselection_indices([primary_language.index])
+      primary_language.on(:move) { known_languages.require_multiselection_indices([primary_language.index]) }
+      [primary_language, known_languages].each do |control|
+        control.add_tip(GameRoomContent.utf8(_("Missing translations use other known languages, then English. Restart ELTEN to apply language changes.")))
+      end
       presets = TablePresetList.new(@values["table_presets"], editor: @preset_editor,
         writer: @preset_writer) if @preset_editor && @preset_writer
 
@@ -229,7 +248,8 @@ module GameRoomScreens
         [invitation_policy, watched_games, watched_contacts],
         volume_fields.values,
         [widget_enabled, widget_games, widget_unavailable, widget_contacts, presets].compact,
-        pong_fields.fields
+        pong_fields.fields,
+        [primary_language, known_languages]
       ]
       form = PresetSettingsForm.new([sections] + groups.flatten + [save_button, cancel_button], program: @program, quiet: true)
       form.preset_target = -> { sections.index.to_i == 3 ? presets : nil }
@@ -263,6 +283,8 @@ module GameRoomScreens
       # Assignments are independent, immediately saved operations. Returning
       # an opening-time copy here could undo them when Settings is accepted.
       @values.reject { |key, _| key == "table_presets" }.merge({
+        "interface_language" => languages.fetch(primary_language.index).fetch(:id),
+        "known_languages" => known_languages.multiselections.map { |index| languages.fetch(index).fetch(:id) },
         "pong" => pong_fields.values,
         "lobby_games" => selected_game_ids(lobby_games),
         "lobby_known_games" => GameRoomPreferences.normalized_game_ids(
@@ -390,8 +412,9 @@ module GameRoomScreens
   end
 
   class GameRules
-    def initialize(book, program: nil, game_shortcuts: nil)
+    def initialize(book, program: nil, game_shortcuts: nil, audio_tutorial: [])
       @program = program
+      @audio_tutorial = audio_tutorial
       @book = book
       @documents = book.documents
       # Library/waiting-table help is the complete reference. During play use
@@ -410,38 +433,63 @@ module GameRoomScreens
     def wait
       loop do
         action = nil
-        sections = ListBox.new(
-          @documents.map(&:title),
-          header: _("%{game} rules") % { game: @book.title },
-          index: bounded_index(@section_index, @documents),
-          quiet: true
-        )
-        open_button = Button.new(_("Open"))
-        back_button = Button.new(_("Back"))
-        form = GameRoomUI::Form.new([sections, open_button, back_button], program: @program, quiet: true)
-        form.accept_button = open_button
-        form.cancel_button = back_button
-        form.hide(open_button)
-        form.hide(back_button)
-        open_button.on(:press) do
+        form = section_picker
+        sections = form.fields.first
+        form.accept_button.on(:press) do
           @section_index = sections.index.to_i
           action = :open
           form.resume
         end
-        back_button.on(:press) do
+        form.cancel_button.on(:press) do
           action = :back
           form.resume
         end
         form.wait
         return if action == :back
 
-        show_section(@documents[@section_index]) if action == :open
+        if action == :open
+          if @section_index == @documents.length
+            GameRoomAudioTutorial.new(@audio_tutorial, program: @program).wait
+          else
+            section_form(@documents[@section_index]).wait
+          end
+        end
       end
+    end
+
+    def open_on(parent)
+      form = section_picker
+      form.accept_button.on(:press) do
+        @section_index = form.fields.first.index.to_i
+        if @section_index == @documents.length
+          GameRoomAudioTutorial.new(@audio_tutorial, program: @program).open_on(parent)
+        else
+          parent.open_game_room_background_help(section_form(@documents[@section_index]))
+        end
+      end
+      form.cancel_button.on(:press) { form.resume }
+      parent.open_game_room_background_help(form)
     end
 
     private
 
-    def show_section(section)
+    def section_picker
+      titles = @documents.map(&:title)
+      titles << GameRoomContent.utf8(_("Audio tutorial")) unless @audio_tutorial.empty?
+      sections = ListBox.new(titles,
+        header: _("%{game} rules") % { game: @book.title },
+        index: bounded_index(@section_index, titles), quiet: true)
+      open_button = Button.new(_("Open"))
+      back_button = Button.new(_("Back"))
+      form = GameRoomUI::Form.new([sections, open_button, back_button], program: @program, quiet: true)
+      form.accept_button = open_button
+      form.cancel_button = back_button
+      form.hide(open_button)
+      form.hide(back_button)
+      form
+    end
+
+    def section_form(section)
       header = _("%{game}: %{section}") % { game: @book.title, section: section.title }
       shortcuts = section.id == :controls
       content = if shortcuts
@@ -460,7 +508,7 @@ module GameRoomScreens
       form.instance_variable_set(:@game_room_help_open, true) if shortcuts
       form.hide(back_button)
       back_button.on(:press) { form.resume }
-      form.wait
+      form
     end
 
     def bounded_index(index, items)

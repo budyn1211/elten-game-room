@@ -71,6 +71,25 @@ module AudioBallPointTest
     assert(spoken.empty?, 'TTS spoke the score over the goal announcer')
     audio.close
   end
+  check('an agreed preview plays once and a delayed durable point reuses its pause') do
+    [0.8, 4.0].each do |delay|
+      program, spoken = Program.new, []
+      audio = GameRoomAudioBall::Audio.new(program, clock: -> { program.now }, speaker: ->(text) { spoken << text })
+      audio.goal(viewer: 0, winner: 0)
+      goals = program.events.map(&:first)
+      assert(goals.length == 2 && !audio.presents_point, 'Preview announced a score or omitted goal recordings')
+      program.now = delay
+      audio.tick
+      assert(program.events.map(&:first) == goals && spoken.empty?, 'Preview invented a score before durable confirmation')
+      audio.point([1, 0], sets: [0, 0], set_finished: false, winner: 0, viewer: 0, finished: false, goal_at: 0.0)
+      assert(program.events.map(&:first) == goals, 'Durable confirmation repeated the goal')
+      program.now = [3.0, delay].max
+      audio.tick
+      assert(program.events.last.first == 'pong_scores', 'Accepted score restarted the elapsed three-second pause')
+      assert(goals.all? { |name| program.events.count { |event| event.first == name } == 1 }, 'Preview or commit duplicated a goal recording')
+      audio.close
+    end
+  end
   check('recorded scores share Pong scheduling and announce own score first after three seconds') do
     assert(GameRoomAudioBall::Audio.instance_methods.include?(:tick), 'Audio Ball cannot advance the Pong score queue')
     [0, 1, nil].each do |viewer|
@@ -78,13 +97,15 @@ module AudioBallPointTest
       audio = GameRoomAudioBall::Audio.new(program, clock: -> { program.now }, rng: Random.new(17),
         speaker: ->(text) { spoken << text })
       assert(GameRoomAudioBall::PointAudio.superclass == GameRoomPong::Audio, 'Audio Ball copied rather than reused Pong audio')
-      [:point, :goal, :tick, :close].each do |method|
+      # A selected sound pack can replace the goal effect; the default
+      # pack's exact random effect/voice is checked below.
+      [:point, :tick, :close].each do |method|
         assert(GameRoomAudioBall::PointAudio.instance_method(method).owner == GameRoomPong::Audio,
           "Audio Ball diverged from Pong's #{method} implementation")
       end
       expected = GameRoomAudioBall::Audio::ASSETS + GameRoomPong::Audio::ANNOUNCEMENTS
       assert(program.created.map(&:first) == expected, 'Point audio loaded paddle, crowd or echo assets / omitted a recording')
-      assert(program.created.drop(4).all? { |_, sample, loop| !sample && !loop }, 'Point audio must use non-looping host streams')
+      assert(program.created.drop(GameRoomAudioBall::Audio::ASSETS.length).all? { |_, sample, loop| !sample && !loop }, 'Point audio must use non-looping host streams')
       audio.load
       assert(program.created.length == expected.length, 'Repeated load leaked announcement handles')
       audio.point([2, 1], sets: [0, 0], set_finished: false, winner: 0, viewer: viewer, finished: false)
@@ -147,7 +168,7 @@ module AudioBallPointTest
       assert(audio.presents_point == false, 'A fresh audio object claims to present a point')
       audio.point([2, 1], sets: [0, 0], set_finished: false, winner: 0, viewer: 0, finished: false)
       assert(audio.presents_point == true, 'Screen would duplicate a recorded or queued fallback score')
-      [:enabled, :gain, :announcer].each do |setting|
+      [:enabled, :gain].each do |setting|
         audio.point([2, 1], sets: [0, 0], set_finished: false, winner: 0, viewer: 0, finished: false)
         program.send("#{setting}=", setting == :enabled ? false : 0)
         audio.tick
@@ -155,7 +176,7 @@ module AudioBallPointTest
         assert(program.sounds.values.none?(&:playing?), 'Mute left a point stream running')
         audio.point([7, 5], sets: [3, 0], set_finished: true, winner: 0, viewer: 0, finished: true)
         assert(audio.presents_point == false && spoken.empty?, 'Muted point competed with the screen full-result fallback')
-        program.send("#{setting}=", setting == :enabled ? true : (setting == :gain ? 1.0 : 100))
+        program.send("#{setting}=", setting == :enabled ? true : 1.0)
         count = program.events.length
         program.now += 10
         audio.tick
@@ -223,19 +244,19 @@ module AudioBallPointTest
     audio.close
   end
 
-  check('announcement mix uses original half gain and follows live shared/personal volume') do
+  check('announcement mix uses original half gain and shared volume, independent of Pong preferences') do
     program = Program.new
     program.gain, program.announcer = 0.4, 80
     audio = GameRoomAudioBall::Audio.new(program, clock: -> { program.now }, speaker: ->(_) {})
     audio.point([2, 1], sets: [0, 0], set_finished: false, winner: 0, viewer: 0, finished: false)
     check_mix = lambda do
       program.sounds.values.select(&:playing?).each do |sound|
-        assert((sound.volume - 0.5 * program.gain * program.announcer / 100.0).abs < 0.000001, 'Original announcer/category/personal gain was ignored')
+        assert((sound.volume - 0.5 * program.gain).abs < 0.000001, 'Audio Ball ignored category gain or inherited personal Pong volume')
         assert(sound.pan == 0 && sound.frequency == 48_000, 'Non-positional announcer was mirrored or pitch-shifted')
       end
     end
     check_mix.call
-    program.gain, program.announcer = 0.7, 50
+    program.gain, program.announcer = 0.7, 0
     audio.tick
     check_mix.call
     [3.0, 3.5, 4.0].each { |now| program.now = now; audio.tick; check_mix.call }

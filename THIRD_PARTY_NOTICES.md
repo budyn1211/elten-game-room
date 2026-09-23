@@ -2,9 +2,12 @@
 
 ## Unicode normalization
 
-Katalog `lib/vendor/unicode_normalize/` zawiera awaryjną implementację
-normalizacji Unicode pochodzącą z biblioteki standardowej Ruby. Jest używana
-tylko wtedy, gdy środowisko ELTEN-a nie udostępnia `unicode_normalize`.
+Katalog `lib/vendor/unicode_normalize/` zawiera implementację normalizacji
+Unicode pochodzącą z Ruby, używaną przez Game Room z własnymi tabelami
+Unicode 17.0.0. Lokalna adaptacja usuwa wymaganie konkretnej wersji Unicode
+hosta i zastępuje niejawne parametry bloków jawnymi, zgodnymi ze starszym
+Ruby. Dane normalizacji pozostają bez zmian; nie zmieniamy klasy `Encoding`
+w ELTEN-ie ani nie wyłączamy normalizacji znaków.
 Odpowiednie informacje licencyjne znajdują się w nagłówkach tych plików oraz w
 `LICENSES/RUBY.txt` i `LICENSES/RUBY-BSDL.txt`.
 
@@ -26,23 +29,59 @@ scalenia PR-ów na GitHubie. Źródła pomocnicze i zakres zmian opisuje
 
 ### Audio Ball
 
-Cztery nagrania pochodzą z dostarczonych przez użytkownika podglądów
-Freesound `preview-hq-ogg`, z dołączonymi informacjami licencyjnymi:
+Przygotowanie `Audio/audio_ball_prepare.opus` pochodzi z nagrania
+„auto real older car door close rattly.wav”, **kyles**,
+https://freesound.org/s/452549/, licencja **CC0 1.0**,
+https://creativecommons.org/publicdomain/zero/1.0/.
+Przekodowano dostarczony podgląd Vorbis do Opusa 144 kb/s VBR, 48 kHz,
+ramki 20 ms; mono i poziom zachowane, bez przycinania lub zmiany wysokości.
 
-- `Audio/audio_ball_up.opus` — „BallHit.wav”, **minerjr**, https://freesound.org/s/89977/, licencja **CC BY 3.0**, https://creativecommons.org/licenses/by/3.0/.
-- `Audio/audio_ball_left.opus` — „PlasticBall_In_Cooler_11”, **loganzsound**, https://freesound.org/s/774205/, licencja **CC0 1.0**, https://creativecommons.org/publicdomain/zero/1.0/.
-- `Audio/audio_ball_down.opus` — „Boulder Roll”, **sound368**, https://freesound.org/s/807186/, licencja **CC0 1.0**, https://creativecommons.org/publicdomain/zero/1.0/.
-- `Audio/audio_ball_prepare.opus` — „auto real older car door close rattly.wav”, **kyles**, https://freesound.org/s/452549/, licencja **CC0 1.0**, https://creativecommons.org/publicdomain/zero/1.0/.
+23 września zastąpiono trzy domyślne dźwięki lotu plikami użytkownika:
 
-Zmiany: nadano nazwy zasobów gry i przekodowano podglądy Vorbis do Ogg Opus,
-144 kb/s VBR, 48 kHz, ramki 20 ms, libopus audio, complexity 10. Nagranie
-minerjr przepróbkowano z 44,1 kHz, zachowując mono. Nagrania loganzsound
-oraz sound368 zmiksowano ze stereo do mono jako 0,5 L + 0,5 R, aby uzyskać
-jednoznaczną panoramę poruszającej się piłki. Przygotowanie zachowało mono
-oraz 48 kHz. Bez przycinania, normalizacji lub zmiany wysokości. Oryginały
-pozostają niezmienione poza repozytorium. Informacje o autorstwie nie
-oznaczają poparcia gry przez autorów. Szczegóły pomiarów i sum kontrolnych
-zapisano w dokumentacji rozwojowej `docs/AUDIO_BALL_SOUND_LICENSES.md`.
+- `Audio/audio_ball_up.opus` — `Freesound/ball-high.ogg`;
+- `Audio/audio_ball_left.opus` — `Freesound/ball-middle.mp3`;
+- `Audio/audio_ball_down.opus` — `Freesound/ball-down.ogg`.
+
+Zmiany: miks stereo do mono (0,5 L + 0,5 R, jeśli źródło było stereo),
+usunięcie ciszy wyłącznie na brzegach, wyrównanie dynamiki i głośności
+względem pakietu Audiodisc, kodowanie Opus 144 kb/s VBR/48 kHz/20 ms,
+libopus audio, complexity 10. Bez zmiany wysokości; oryginały nietknięte.
+
+Obok plików użytkownika są informacje o następujących nagraniach:
+„Golf Balls Rolling.wav”, **221227**, https://freesound.org/s/655487/,
+**CC BY 4.0**, https://creativecommons.org/licenses/by/4.0/;
+„Rolling ball”, **ChrisGrundlingh**, https://freesound.org/s/765635/,
+**CC0 1.0**, https://creativecommons.org/publicdomain/zero/1.0/;
+„Household_Large_Bottle_Roll_02.wav”, **StephenSaldanha**,
+https://freesound.org/s/127871/, **CC BY 4.0**,
+https://creativecommons.org/licenses/by/4.0/.
+Zmienione nazwy plików nie wskazują jednak jednoznacznie tych źródeł;
+powiązanie nagrań z autorami/licencjami wymaga potwierdzenia przed publiczną
+redystrybucją. Nie przypisujemy im automatycznie licencji poprzednich plików.
+Autorzy nie wyrażają tym poparcia dla gry. Poprzednie trzy nagrania opisane
+w `docs/AUDIO_BALL_SOUND_LICENSES.md` zostały zastąpione i nie są tu używane.
+
+### Audio Ball — pakiet Audiodisc i zatrzymanie piłki
+
+Na polecenie użytkownika dodano sześć dostarczonych nagrań z folderu
+`audiodisc`: `discUp.ogg`, `discCenter.ogg`, `discDown.ogg`,
+`rocketReady.ogg`, `rocketStop.ogg` i `rocketGoal.ogg`. Ich kopie
+wykonawcze to `Audio/audio_ball_audiodisc_{up,center,down,ready,stop,goal}.opus`.
+Domyślne zatrzymanie piłki `Audio/audio_ball_stopped.opus` pochodzi
+z dostarczonego pliku `Freesound/ball-stopped.ogg`.
+
+Przekodowano Vorbis do Ogg Opus, 144 kb/s VBR, 48 kHz, ramki 20 ms,
+libopus audio, complexity 10. Zachowano stereo i dostępne metadane;
+bez normalizacji, zmiany wzmocnienia ani wysokości. Następnie na polecenie
+użytkownika przycięto wyłącznie ciszę brzegową domyślnego zatrzymania piłki:
+około 196 ms z początku i 39 ms z końca, z marginesem 2 ms. Dźwięków
+Audiodisca nie przycinano. Oryginały pozostają niezmienione poza repozytorium.
+
+Do tych siedmiu plików nie dostarczono identyfikatorów źródeł ani
+informacji o autorach/licencjach. Pochodzenie folderu nie potwierdza
+licencji CC0 ani prawa do publicznej redystrybucji. Nie obejmujemy ich
+licencją kodu aplikacji; uprawnienia trzeba potwierdzić przed publikacją.
+Mapowanie i zakres zmiany opisuje `docs/AUDIO_BALL_SOUND_PACKS.md`.
 
 ### Wcześniejsze zasoby
 
@@ -67,6 +106,20 @@ Plik `hit1.opus`, używany przy skompletowaniu grupy w Monopoly, oraz plik
 `notice.opus`, używany przez powiadomienia Game Roomu, pochodzą z dostarczonego
 zestawu Quentin Playroom. Dla tych plików również nie ma w repozytorium
 osobnego potwierdzenia licencji.
+
+### Powiadomienie o nowym stole
+
+`Audio/table_notice.opus` — [Menu Dual Click](https://freesound.org/s/145440/)
+autorstwa **Soughtaftersounds / Varazuvi**, dostarczony z informacją o licencji
+[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+Informacja wskazana przez autora: **Copyright © 2011 Varazuvi™ www.varazuvi.com**.
+
+Źródło: Freesound `145440_Menu Dual Click_preview-hq-ogg.ogg`, pobrane
+23 września 2026 r. Na polecenie użytkownika zwiększono poziom o **9,6 dB**,
+aby zbliżyć zmierzoną głośność do `notice`, i przekodowano do Ogg Opus
+144 kb/s VBR, 48 kHz, ramki 20 ms, zachowując stereo i pełne nagranie.
+Nie stosowano kompresji dynamiki ani ogranicznika; oryginał pozostał bez zmian.
+Dźwięk dotyczy nowych stołów, a zaproszenia nadal używają `notice.opus`.
 
 ### Cat, head, tail
 

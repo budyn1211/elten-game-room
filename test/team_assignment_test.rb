@@ -52,3 +52,19 @@ assert(moved.seats_for(four) == [0, 0, 1, 1], 'moved seats not mapped back to or
 assert(moved.move(3, 1) == 3, 'team move wraps at bottom')
 moved.reset
 assert(moved.players == four && moved.seats == [0, 1, 0, 1], 'automatic assignment does not reset order')
+
+assert(stored['team_players'] == four, 'saved teams have no identities')
+assert(game.prepared_team_assignment(stored, players: four.reverse).members_for(0) == %w[Alice Bob], 'roster order changed partnerships')
+remapped = game.options_for_team_roster(stored, players: four.reverse)
+assert(remapped['team_seats'] == [1, 1, 0, 0] && remapped['team_players'] == four.reverse, 'team indices not remapped for next match')
+assert(!game.prepared_team_assignment(stored, players: %w[Alice Bob Carol Eve]), 'replacement inherited someone else team')
+assert(!game.options_for_team_roster(stored, players: %w[Alice Bob Carol Eve]).key?('team_seats'), 'stale team seats survived roster change')
+[[9, 9, 9, 9], [0, 0, 0, 1], [], [0, 1], ['a', 'a', 1, 1], [0.1, 0.2, 1, 1]].each do |bad|
+  assert(!game.prepared_team_assignment(stored.merge('team_seats' => bad), players: four), 'invalid saved team accepted')
+end
+choices = 20.times.map do |seed|
+  moved.randomize(random: Random.new(seed))
+  assert(moved.valid? && moved.players.sort == four.sort, 'random teams lose people or have invalid sizes')
+  moved.seats_for(four)
+end
+assert(choices.uniq.length > 1, 'random teams always use the same assignment')

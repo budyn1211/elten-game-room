@@ -1,7 +1,10 @@
 require_relative "base"
 require_relative "../lib/hidden_submissions"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class QuizParty < Base
     QUESTIONS_PER_ROUND = 3
     ROUND_CATEGORY_CHOICES = 3

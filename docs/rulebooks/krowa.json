@@ -3,68 +3,156 @@
   "sections": [
     {
       "id": "goal",
-      "title": {"en": "Reading the clues", "pl": "Jak odczytywać wskazówki"},
+      "title": {
+        "en": "Reading the clues",
+        "pl": "Jak odczytywać wskazówki"
+      },
       "paragraphs": [
-        {"en": "Your task is to guess a Polish noun. After each attempt, Krowa tells you how many letters occupy the correct positions, but does not identify them. If the secret is kot and you enter sok, you receive 1 of 3: only the middle letter matches. A letter in a different position gives no credit. Use several such clues to narrow down the word.", "pl": "Twoim zadaniem jest odgadnięcie polskiego rzeczownika. Po każdej próbie Krowa podaje liczbę liter na właściwych miejscach, ale nie wskazuje, które to litery. Gdy rozwiązaniem jest kot, a wpiszesz sok, dostaniesz wynik 1 z 3: pasuje tylko środkowa litera. Litera stojąca w innym miejscu nie jest liczona. Porównując kolejne wskazówki, stopniowo zawężasz poszukiwania."}
+        {
+          "en": "In Krowa, your task is to guess a Polish noun. At the very beginning, a word is drawn and you are told how many letters it has. You enter guesses with the same number of letters as the secret word. After each attempt, you hear how many letters occupy the same positions in both words. If the answer is kot and you enter sok, you get 1 out of 3: only the middle letter matches. K is not counted because it is the first letter in kot but the third in sok.",
+          "pl": "W grze Krowa Twoim zadaniem jest odgadnięcie polskiego rzeczownika. Na samym początku gry losuje się słowo i otrzymujesz informację, na ile jest liter. Wpisujesz swoje propozycje na taką samą liczbę liter, jak słowo do odgadnięcia i po każdej próbie słyszysz liczbę liter stojących na tych samych miejscach w obydwu słowach. Gdy rozwiązaniem jest kot, a wpiszesz sok, dostaniesz wynik 1 z 3: pasuje tylko środkowa litera. K nie jest uwzględnione, ponieważ w słowie kot jest na pierwszym miejscu, a w słowie sok - na trzecim."
+        },
+        {
+          "en": "By comparing successive clues, you gradually narrow down the possibilities.",
+          "pl": "Porównując kolejne wskazówki, stopniowo zawężasz poszukiwania."
+        }
       ]
     },
     {
       "id": "setup",
-      "title": {"en": "Playing alone or with others", "pl": "Samodzielnie albo z innymi"},
+      "title": {
+        "en": "Play on your own or with others",
+        "pl": "Graj samodzielnie albo z innymi"
+      },
       "paragraphs": [
-        {"en": "The host selects the table variant. Daily Krowa and Random word can be started alone; Race and Word Tower require at least two players. A table holds up to eight players.", "pl": "Gospodarz wybiera wariant stołu. Dzienną Krowę i Losowe słowo można rozpocząć samodzielnie; Wyścig i Wieża słów wymagają co najmniej dwóch graczy. Stół mieści do ośmiu graczy."},
-        {"en": "Daily Krowa is private and cannot be joined or observed. Anyone joining a Random word table becomes an observer and can follow the player's attempts without receiving an answer field. Race and Word Tower use the standard Game Room invitations and observer roles.", "pl": "Dzienna Krowa jest prywatna: nie można do niej dołączyć ani jej obserwować. Osoba dołączająca do stołu z Losowym słowem zostaje obserwatorem, śledzi próby gracza i nie otrzymuje pola odpowiedzi. Wyścig i Wieża słów korzystają ze standardowych zaproszeń i ról obserwatorów Game Roomu."},
-        {"en": "The host must remain at the table: their client checks attempts while keeping the solution in local hidden storage.", "pl": "Gospodarz musi pozostawać przy stole: jego klient sprawdza próby, przechowując rozwiązanie w lokalnym magazynie ukrytych danych."}
+        {
+          "en": "If you are the table host, you choose the game variant.",
+          "pl": "Jeśli jesteś gospodarzem stołu, wybierasz wariant rozgrywki."
+        },
+        {
+          "en": "In solo mode, you have two options: Daily Krowa, with a new word each day that is the same for everyone, or Random word, where you can choose the word length. In both modes, you have one superpower. You can add words to a dictionary that stores your nouns locally. Hmmm... if you put asdfasdfasdf in there, it will be stored too, but I hope having fun matters more than racking up leaderboard scores. So, if you want to use smerfy as a guess, just press \"Add noun to dictionary and check\". You will not be able to use that word in multiplayer modes, though. Not because I dislike the Smurfs; it is simply not in the database.",
+          "pl": "W trybie solo masz do wyboru dwie opcje: dzienną krowę, czyli codziennie nowe słowo, które jest takie samo dla wszystkich graczy, lub losowe słowo, czyli grę ze słowami o konfigurowalnej liczbie liter. W obydwu tych trybach masz jedną super moc. Możesz dodawać słowa do słownika, który lokalnie przechowuje Twoje rzeczowniki. Hmmm... jeśli napiszesz tam asdfasdfasdf to też zostanie to przechowane, ale jednak liczę na to, że ważniejszy jest fan, niż nabijanie wyników w rankingach. Jeśli więc chcesz móc wpisywać słowo smerfy jako próby, to po prostu użyj przycisku \"Dodaj rzeczownik do słownika i sprawdź\". Nie będziesz jednak mógł używać tego słowa we wspólnych trybach. I to nie dlatego, że nie lubię smerfów, po prostu nie ma tego w bazie."
+        },
+        {
+          "en": "There are also two ways to play with others:",
+          "pl": "Z kolei gra z innymi osobami również może się odbywać na dwa sposoby:"
+        },
+        {
+          "en": "Race, where you compete to guess the same word. Depending on the setting, the winner is the person who uses fewer attempts or guesses faster.",
+          "pl": "Wyścig, czyli gra przeciwko sobie z tym samym słowem do odgadnięcia. W zależności od ustawienia, wygrywa ta osoba, która ma na koncie mniej prób, lub która odgadła szybciej."
+        },
+        {
+          "en": "Or Word Tower, a cooperative game. Words are drawn, and everyone takes turns entering guesses while seeing what the other players have entered.",
+          "pl": "Albo wierza słów, czyli gra kooperacyjna. Tutaj losują się słowa i zadaniem wszystkich osób jest wpisywać próby po kolei widząc, co wpisali inni gracze."
+        },
+        {
+          "en": "Daily Krowa is private: nobody can join or observe it. That would make guessing it later far too easy!",
+          "pl": "Dzienna Krowa jest prywatna: nie można do niej dołączyć ani jej obserwować. Byłoby wszak zbyt łatwo później ją odgadnąć!"
+        },
+        {
+          "en": "You can observe all the other modes if the table is open. If you join Krowa while someone is guessing a random word, you can check the word length and the list and number of their attempts. You can also write in chat: \"p in the fourth position! Seriously, the fourth letter is p!\" But I am not encouraging that.",
+          "pl": "Wszystkie pozostałe tryby można jednak obserwować, jeśli stół jest otwarty. Kiedy dołączysz do krowy w trakcie zgadywania losowego słowa przez inną osobę, to możesz sprawdzać na ile liter jest słowo, a także listę oraz liczbę jej prób. Możesz również pisać na czacie: \"p na czwartym! Serio p będzie na czwartym!\" Ale nie zachęcam."
+        }
       ]
     },
     {
       "id": "play",
-      "title": {"en": "How to play", "pl": "Jak grać"},
+      "title": {
+        "en": "How to play",
+        "pl": "Jak grać"
+      },
       "paragraphs": [
-        {"en": "Type a noun and press Enter. Every submission clears the field. A wrong length, a word outside the dictionary, a duplicate, or an out-of-turn attempt does not use an attempt.", "pl": "Wpisz rzeczownik i naciśnij Enter. Każde zgłoszenie czyści pole. Zła długość, słowo spoza słownika, powtórka i próba poza turą nie zużywają próby."},
-        {"en": "In a single-player Daily Krowa or Random word game, the add button stores the entered noun in the user's dictionary and immediately checks it as an attempt. The button is unavailable in multiplayer. The person adding a word is responsible for it being a noun. Solutions are drawn from the shared database.", "pl": "W jednoosobowej Dziennej Krowie i Losowym słowie przycisk dodawania przyjmuje wpisany rzeczownik do słownika użytkownika i od razu sprawdza go jako próbę. W grze wieloosobowej przycisk jest niedostępny. Za rzeczownikową poprawność własnych dodatków odpowiada dodająca osoba. Rozwiązania losowane są ze wspólnej bazy."},
-        {"en": "In Race, everyone guesses independently. With time scoring, the shortest time from the start of the word to the correct submission wins; the clock is synchronized with the server and waiting for verification does not increase the result. With attempt scoring, the fewest valid attempts wins. Equal results are a shared win.", "pl": "W Wyścigu każdy zgaduje niezależnie. Na czas wygrywa najkrótszy czas od początku słowa do zgłoszenia poprawnej odpowiedzi, mierzony zegarem zsynchronizowanym z serwerem; oczekiwanie na sprawdzenie nie powiększa wyniku. Na liczbę prób wygrywa najmniejsza liczba poprawnych zgłoszeń. Równe wyniki oznaczają wspólne zwycięstwo."},
-        {"en": "In Word Tower, you take turns. Words have 3 to 8 letters and the shared attempt limit is the word length multiplied by 8. Guessing the word starts another round with a different word. History and the current turn are shared.", "pl": "W Wieży gracie na zmianę. Słowa mają od 3 do 8 liter, a wspólny limit prób wynosi długość słowa razy 8. Odgadnięcie rozpoczyna kolejną rundę z innym słowem. Historia i aktualna tura są wspólne."}
-      ]
-    },
-    {
-      "id": "ending",
-      "title": {"en": "Ending the game", "pl": "Kończenie gry"},
-      "paragraphs": [
-        {"en": "Daily Krowa and Random word end after guessing or surrendering. In a Race scored by time, the word is revealed when only one active player remains. In a Race scored by attempts, the last active player may continue up to the best solved attempt count; after a failed attempt at that count, the word is revealed. If nobody solved, it is revealed immediately. Attempts already waiting to be checked are resolved first. Observers do not block the ending. Results remain at the table.", "pl": "Dzienna Krowa i Losowe słowo kończą się po odgadnięciu albo poddaniu. W Wyścigu na czas słowo zostaje ujawnione, gdy pozostanie tylko jedna aktywna osoba. W Wyścigu na liczbę prób ostatnia aktywna osoba może grać do liczby prób najlepszego odgadującego; słowo poznaje dopiero po nieudanej próbie osiągającej ten limit. Jeśli nikt nie odgadł, słowo zostaje ujawnione od razu. Próby już oczekujące na sprawdzenie zostają rozliczone. Obserwatorzy nie blokują zakończenia. Wyniki pozostają na stole."},
-        {"en": "A person who surrenders a Race immediately learns the solution without revealing it to players who are still racing.", "pl": "Osoba, która podda się w Wyścigu, od razu poznaje rozwiązanie, ale nie ujawnia go graczom, którzy nadal się ścigają."},
-        {"en": "Word Tower ends when the limit is exhausted or the host surrenders. Its score is the number of completed rounds; the round list contains words and attempt counts.", "pl": "Wieża kończy się po wyczerpaniu limitu lub poddaniu przez gospodarza. Wynik to liczba ukończonych rund; lista rund zawiera słowa i liczbę prób."},
-        {"en": "After a word ends, the solution is revealed. The Word definition button opens its SJP description; a missing description also remains readable.", "pl": "Po zakończeniu słowa ujawniane jest rozwiązanie. Przycisk Znaczenie słowa otwiera opis z SJP; brak opisu również pozostaje dostępny do przeczytania."},
-        {"en": "Escape leaves the table. Starting Daily Krowa consumes today's puzzle for the account, so it cannot be reopened after leaving. Other variants use the standard Game Room table-leaving rules.", "pl": "Escape pozwala opuścić stół. W Dziennej Krowie samo rozpoczęcie zużywa dzisiejszą zagadkę dla konta: po wyjściu nie można do niej wrócić. W pozostałych wariantach obowiązują zasady opuszczania stołu Game Roomu."}
-      ]
-    },
-    {
-      "id": "variants",
-      "title": {"en": "Variants and table options", "pl": "Warianty i opcje stołu"},
-      "paragraphs": [
-        {"en": "Daily Krowa: a common 3-to-9-letter word selected for the Warsaw date using server time. Random word: 3 to 13 letters or a random length. Race: the same lengths and a choice between time and attempt scoring. Word Tower: random lengths from 3 to 8 without a length setting.", "pl": "Dzienna Krowa: wspólne słowo długości 3–9, wyznaczone z daty warszawskiej na podstawie czasu serwera. Losowe słowo: długość 3–13 albo losowa. Wyścig: te same długości oraz wybór czasu lub liczby prób. Wieża słów: losowe długości 3–8 bez ustawiania długości."},
-        {"en": "The table form shows only settings relevant to the chosen variant. Number of letters is available in Random word and Race; Scoring criterion appears only in Race. Daily Krowa and Word Tower select their own lengths and hide both settings.", "pl": "Formularz stołu pokazuje tylko ustawienia pasujące do wybranego wariantu. Liczba liter jest dostępna w Losowym słowie i Wyścigu, a Kryterium wyniku tylko w Wyścigu. Dzienna Krowa i Wieża Słów same dobierają długości i ukrywają oba te ustawienia."},
-        {"en": "In Random word, the Draw another word button lets you replace the current word without creating another table. You can use it before the first attempt or later, after submitted attempts have been checked. The previous solution is revealed and the attempts reset; this is not a win and gives no gallery or leaderboard result. Only the player can use it, not observers. The Race host has a similar button that resets every player's attempts and time. Neither Daily Krowa nor Word Tower allows rerolling.", "pl": "W Losowym słowie przycisk „Przelosuj słowo” pozwala zmienić bieżące hasło bez zakładania nowego stołu. Możesz go użyć przed pierwszą próbą albo później, gdy zgłoszone próby zostaną sprawdzone. Poprzednie rozwiązanie zostaje ujawnione, a próby wyzerowane; nie jest to wygrana ani wynik do galerii lub rankingu. Przycisku może użyć tylko gracz, nie obserwator. W Wyścigu podobny przycisk gospodarza zeruje próby i czas wszystkich uczestników. Dzienna Krowa i Wieża Słów nie pozwalają na przelosowanie."},
-        {"en": "Music and Krowa's additional effects are off by default. Ctrl+D opens their switches and separate volume lists, together with your dictionary. These sounds also respect Game Room's shared game-sound switch and volume. Race and Word Tower have separate background tracks; Daily Krowa and Random word share a track.", "pl": "Muzyka i dodatkowe efekty Krowy są domyślnie wyłączone. Pod Ctrl+D znajdziesz ich przełączniki oraz osobne listy głośności, a także własny słownik. Te dźwięki podlegają również wspólnemu wyciszeniu i głośności dźwięków gier w Game Roomie. Wyścig i Wieża Słów mają osobne podkłady, a Dzienna Krowa i Losowe słowo korzystają z tego samego."}
+        {
+          "en": "Type a noun and press Enter. Each entry disappears from the edit field after submission. A wrong length, a word outside the dictionary, a repeated guess or an attempt made out of turn does not use up an attempt, but does make a funny sound.",
+          "pl": "Wpisz rzeczownik i naciśnij Enter. Każdy wpis po wysłaniu znika z pola edycyjnego. Zła długość, słowo spoza słownika, powtórka i próba poza turą nie zużywają próby, ale za to wydają śmieszny dźwięk."
+        },
+        {
+          "en": "More about the modes:",
+          "pl": "Szczegóły dotyczące trybów:"
+        },
+        {
+          "en": "Daily Krowa can draw a word between three and nine letters long. The word is determined using server time, so if you need a different one, you would have to hack into the server and change the date. You can open Daily Krowa only once. If you guess the word, give up or leave the game, it remains unavailable to your account until the next day.",
+          "pl": "W dziennej krowie może się wylosować słowo o długości od trzech do dziewięciu liter. Jest ono wyznaczane na podstawie czasu serwerowego, więc jeśli potrzebujesz zmiany słowa, to musisz się włamać na serwer i zmienić datę. Dzienną krowę możesz otworzyć tylko raz. Jeśli zgadniesz słowo, poddasz się, lub przerwiesz grę, pozostanie ona niedostępna dla Twojego konta aż do kolejnego dnia."
+        },
+        {
+          "en": "In Race, everyone guesses independently. You can set the word length or leave it to chance. Either way, you can draw another word, which resets the attempts. You can also set the winning criterion mentioned above:",
+          "pl": "W Wyścigu każdy zgaduje samodzielnie. Można ustawić liczbę liter słowa lub zdać się na los. Niezależnie od wybranej opcji można przelosować słowo i wtedy próby się zerują. Do ustawienia jest również wspomniane wyżej kryterium wygranej:"
+        },
+        {
+          "en": "- With time scoring, the shortest time from the start of the word to the submission of the correct answer wins, measured by a clock synchronized with the server;",
+          "pl": "- Na czas wygrywa najkrótszy czas od początku słowa do zgłoszenia poprawnej odpowiedzi, mierzony zegarem zsynchronizowanym z serwerem;"
+        },
+        {
+          "en": "- With attempt scoring, the fewest valid submissions wins. Equal results mean a shared victory.",
+          "pl": "- Na liczbę prób wygrywa najmniejsza liczba poprawnych zgłoszeń. Równe wyniki oznaczają wspólne zwycięstwo."
+        },
+        {
+          "en": "In Race, if everyone else has guessed either faster than you or in fewer attempts, the game ends and the word is revealed to you.",
+          "pl": "Gra w wyścig cechuje się tym, że jeśli wszyscy odgadli albo w krótszym czasie niż Ty, albo w mniejszej liczbie prób, to gra się kończy i poznajesz słowo."
+        },
+        {
+          "en": "In Word Tower, you take turns, and guessing the word starts another round. Words have 3 to 8 letters, and the shared attempt limit is the word length multiplied by 8. The tower ends when you run out of attempts or the host gives up. Your score is the number of completed rounds. The round list in the leaderboard contains the words and attempt counts.",
+          "pl": "W Wieży gracie na zmianę, a odgadnięcie przez Was słowa rozpoczyna kolejną rundę. Słowa mają od 3 do 8 liter, a wspólny limit prób wynosi długość słowa razy 8. Wieża kończy się po wyczerpaniu limitu lub poddaniu przez gospodarza. Wynik to liczba ukończonych rund. Lista rund znajdująca się w rankingu zawiera słowa i liczbę prób."
+        },
+        {
+          "en": "Krowa's music and sound effects are off by default. Ctrl+D opens their switches and separate volume sliders. These sounds also respect the shared game-sound mute and volume settings in Game Room.",
+          "pl": "Muzyka i efekty dźwiękowe Krowy są domyślnie wyłączone. Pod Ctrl+D znajdziesz ich przełączniki oraz osobne suwaki głośności. Te dźwięki podlegają również wspólnemu wyciszeniu i głośności dźwięków gier w Game Roomie."
+        }
       ]
     },
     {
       "id": "gallery",
-      "title": {"en": "Your gallery, dictionary and rankings", "pl": "Galeria, słownik i rankingi"},
+      "title": {
+        "en": "Your gallery, dictionary and rankings",
+        "pl": "Galeria, słownik i rankingi"
+      },
       "paragraphs": [
-        {"en": "The gallery remembers words you solved in solo play and your best attempt count for each. You can open it before, during or after a game. Its context menu sorts by newest, attempts or length; selecting a word opens its leaderboard. After finishing a game you can choose to publish a result. Publication is optional, and unavailable rankings do not prevent Random word, Race or Word Tower from being played.", "pl": "Galeria zapamiętuje słowa odgadnięte samodzielnie i najlepszą liczbę prób dla każdego z nich. Możesz ją otworzyć przed partią, w jej trakcie i po zakończeniu. Menu galerii pozwala sortować według daty, liczby prób lub długości, a wybranie słowa otwiera jego ranking. Po zakończeniu gry możesz zgodzić się na opublikowanie wyniku. Jest to dobrowolne. Niedostępność rankingów nie blokuje Losowego słowa, Wyścigu ani Wieży Słów."},
-        {"en": "The main menu's Leaderboards entry gives access to Krowa word results and Word Tower results, including round details. Your gallery and custom dictionary are local and separate for each account. To remove custom words, open My dictionary in Krowa settings, select them with Space and use Remove selected. Removing a word does not rewrite attempts already made in a game.", "pl": "Pozycja Rankingi w menu głównym udostępnia wyniki dla słów oraz wyniki Wieży Słów ze szczegółami rund. Galeria i własny słownik są lokalne i oddzielne dla każdego konta. Aby usunąć własne słowa, otwórz Mój słownik w ustawieniach Krowy, zaznacz je spacją i wybierz Usuń zaznaczone. Usunięcie słowa nie zmienia wcześniejszych prób w partii."},
-        {"en": "The host can save Race or Word Tower after the current word is ready and all submitted attempts have been checked. The local save includes the private solution and can be resumed with the same players in a new table. The table closes only after the save is verified. Daily Krowa and Random word cannot be saved for later.", "pl": "Założyciel może zapisać Wyścig lub Wieżę Słów, gdy bieżące słowo jest gotowe i wszystkie zgłoszone próby zostały sprawdzone. Lokalny zapis zawiera także prywatne rozwiązanie i pozwala wznowić partię z tymi samymi graczami przy nowym stole. Stół zamyka się dopiero po sprawdzeniu zapisu. Dziennej Krowy i Losowego słowa nie można zapisać na później."}
+        {
+          "en": "The gallery remembers the words you have guessed on your own and your best attempt count for each one. You can open it before a game or after it ends. Its menu lets you sort by date, attempt count or word length. Select a word with Enter to open its leaderboard. After a game, you can agree to publish your result, which also opens the leaderboard for that word.",
+          "pl": "Galeria zapamiętuje słowa odgadnięte samodzielnie i najlepszą liczbę prób dla każdego z nich. Możesz ją otworzyć przed partią oraz po jej zakończeniu. Menu galerii pozwala sortować według daty, liczby prób lub długości, a wybranie słowa klawiszem enter otwiera jego ranking. Po zakończeniu gry możesz zgodzić się na opublikowanie wyniku i wtedy również otworzy Ci się ranking dla tego słowa."
+        },
+        {
+          "en": "The Rankings item in the main menu gives you access to word results and Word Tower round counts. Your gallery and custom dictionary are stored locally and separately for each account. To remove your own words, open My dictionary in Krowa settings, select them with Space and choose Delete selected.",
+          "pl": "Pozycja Rankingi w menu głównym udostępnia wyniki dla słów oraz liczbę rund Wieży Słów. Galeria i własny słownik są lokalne i oddzielne dla każdego konta. Aby usunąć własne słowa, otwórz Mój słownik w ustawieniach Krowy, zaznacz je spacją i wybierz Usuń zaznaczone."
+        }
+      ]
+    },
+    {
+      "id": "saving",
+      "title": {
+        "en": "Saving your game",
+        "pl": "Zapisywanie gry"
+      },
+      "paragraphs": [
+        {
+          "en": "The table creator can save a Race or Word Tower while a word is being guessed, once all submitted attempts have been checked. The local save lets you resume the game with the same players at a new table. Solo games cannot be saved for later.",
+          "pl": "Założyciel może zapisać Wyścig lub Wieżę Słów podczas odgadywania słowa, gdy wszystkie zgłoszone próby zostały sprawdzone. Lokalny zapis pozwala na wznowienie partii z tymi samymi graczami przy nowym stole. Gier w trybie solo nie można zapisać na później."
+        }
       ]
     },
     {
       "id": "controls",
-      "title": {"en": "Controls", "pl": "Sterowanie"},
+      "title": {
+        "en": "Controls",
+        "pl": "Sterowanie"
+      },
       "paragraphs": [
-        {"en": "Tab: move to the next field. In table settings, fields unrelated to the selected variant are hidden, so you do not need to skip them.", "pl": "Tab: przejdź do następnego pola. W ustawieniach stołu pola niepasujące do wybranego wariantu są ukryte, więc nie trzeba ich omijać."},
-        {"en": "Shift+Tab: move to the previous field.", "pl": "Shift+Tab: przejdź do poprzedniego pola."},
-        {"en": "Enter in the answer field: submit the typed noun and clear the field for the next attempt.", "pl": "Enter w polu odpowiedzi: zgłoś wpisany rzeczownik i wyczyść pole na następną próbę."},
-        {"en": "Ctrl+D: open Krowa settings for music, effects and your custom dictionary.", "pl": "Ctrl+D: otwórz ustawienia muzyki, efektów i własnego słownika Krowy."}
+        {
+          "en": "Tab: move to the next field. In table settings, fields unrelated to the selected variant are hidden, so you do not need to skip them.",
+          "pl": "Tab: przejdź do następnego pola. W ustawieniach stołu pola niepasujące do wybranego wariantu są ukryte, więc nie trzeba ich omijać."
+        },
+        {
+          "en": "Shift+Tab: move to the previous field.",
+          "pl": "Shift+Tab: przejdź do poprzedniego pola."
+        },
+        {
+          "en": "Enter in the answer field: submit the typed noun and clear the field for the next attempt.",
+          "pl": "Enter w polu odpowiedzi: zgłoś wpisany rzeczownik i wyczyść pole na następną próbę."
+        },
+        {
+          "en": "Ctrl+D: open Krowa settings for music, effects and your custom dictionary.",
+          "pl": "Ctrl+D: otwórz ustawienia muzyki, efektów i własnego słownika Krowy."
+        }
       ]
     }
   ]

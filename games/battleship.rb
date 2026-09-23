@@ -5,7 +5,10 @@ require_relative "../lib/hidden_submissions"
 require_relative "../lib/game_participants"
 require_relative "../lib/battleship_strategy"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class Battleship < Base
     SIZE = 10
     ROUND_ID = "fleet".freeze

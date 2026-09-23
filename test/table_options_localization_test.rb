@@ -3,6 +3,7 @@ require_relative "taboo_rules_dictionary_test"
 game = GameRoomGames::Domino.new
 [true, false].each do |english|
   $rules_english = english
+  GameRoomTestLocalization.use_language(english ? :en : :pl)
   defaults = game.default_options
   GameRoomGames::Domino::SETS.each_key do |key|
     definition = game.effective_option_definitions.find { |d| d.key == "tile_set" }
@@ -26,6 +27,8 @@ puts "PASS compact table options: all 11 Domino sets translated in creation and 
 [GameRoomGames::NinetyNine.new, GameRoomGames::Poker.new].each do |game|
   [false, true].each do |english|
     $rules_english = english
+  GameRoomTestLocalization.use_language(english ? :en : :pl)
+    GameRoomTestLocalization.use_language(english ? :en : :pl)
     text = game.table_options_announcement(game.default_options.merge("thinking_time"=>20))
     expected = english ? "Thinking time: 20 seconds" : "Czas na ruch: 20 sekund"
     raise "New timer not localized: #{game.id}" unless text.include?(expected)

@@ -1,4 +1,7 @@
 require_relative "support/ui"
+require_relative "../lib/game_surfaces"
+require_relative "../lib/game_layout"
+require_relative "../lib/game_history_navigation"
 require_relative "../lib/game_room_screens"
 
 def assert(condition, message)

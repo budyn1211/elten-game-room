@@ -4,7 +4,10 @@ require_relative "../lib/game_action_payload"
 require_relative "../lib/rummy_rules"
 require_relative "../lib/game_bots"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class Rummy < CardGame
     include PublicHistoryAnnouncements
     Rules = GameRoomRummyRules

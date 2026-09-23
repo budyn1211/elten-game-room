@@ -206,7 +206,7 @@ assert(screen.instance_variable_get(:@focus_location) == [:chat, 0], "opening ru
 layout.form.index = layout.form.fields.index(layout.chat)
 
 # A remotely started session may replace an active game while chat is focused.
-# Focus its board once, then preserve the user's field on ordinary updates.
+# Preserve the active chat editor across the remote match boundary as well.
 next_session = session.merge("__id" => 2)
 repository.define_singleton_method(:session_by_id) { |_id, table:| next_session }
 controller.define_singleton_method(:switch_session) { |_id| }
@@ -221,7 +221,7 @@ screen.define_singleton_method(:network_task) { |_title, **_options, &operation|
 screen.send(:switch_to_new_session)
 Form.driver = lambda do |form|
   assert(screen.instance_variable_get(:@session) == next_session, "new session was not opened")
-  assert(layout.focus_location == [:game, 0], "remote game start left focus in chat")
+  assert(layout.focus_location == [:chat, 0], "remote game start stole chat focus")
   assert([layout.chat.text, layout.chat.index, layout.chat.check] == ["live draft", 4, 1], "remote game start lost the chat draft")
   form.index = form.fields.index(layout.chat)
   layout.back_button.trigger(:press)
@@ -255,6 +255,7 @@ assert($spoken_messages.length == spoken_before + 1, "reopening the game repeate
 
 # The finished board stays in the same screen. Ending focuses Restart once;
 # Tab reaches the board and rejected actions retain the game's message.
+layout.focus_game
 screen.instance_variable_set(:@activity_repository, nil)
 screen.instance_variable_set(:@activity_entries, [])
 alerts = []
@@ -393,6 +394,10 @@ Form.driver = lambda do |form|
     menu.options.find { |option| option[0] == "Game rules" }[3].call
   when 3
     assert(current.focus_location == [:game, 0], "returning from finished-game rules lost the board focus")
+    help = form.game_room_background_help_form
+    assert(help && help.fields.first.options == game.rule_book(options: {}).documents.map(&:title), "rules did not open the nonblocking rules panel")
+    match_rules_opened += 1
+    help.cancel_button.trigger(:press)
     assert(current.chat.text == "endgame draft", "reading rules lost the chat draft")
     current.restart_button.trigger(:press)
   else

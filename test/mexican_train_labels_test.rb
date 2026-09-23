@@ -1,11 +1,11 @@
 # encoding: UTF-8
 require 'json'
 require_relative 'support/ui'
+require_relative 'support/localization'
 require_relative '../lib/game_surfaces'
 require_relative '../games/mexican_train'
 
 def assert(value, message); raise message unless value; end
-def _(text); $short_train_messages&.fetch(text, text) || text; end
 
 game = GameRoomGames::MexicanTrain.new
 state = game.initial_state(%w[Alice Bob], game.default_options)
@@ -19,7 +19,7 @@ replay = GameRoomGames::Replay.new(players: state[:players], current_player: 'Al
 before = Marshal.dump(state)
 
 [false, true].each do |polish|
-  $short_train_messages = polish ? JSON.parse(File.read(File.expand_path('../locale/tiles-2-pl.json', __dir__), encoding: 'UTF-8')) : nil
+  GameRoomTestLocalization.use_language(polish ? :pl : :en)
   spec = game.surface_spec(replay, 'Alice')
   expected = polish ? ['Alice, 9, zamknięty', 'Bob, 7, otwarty', 'Pociąg meksykański, 12'] : ['Alice, 9, closed', 'Bob, 7, open', 'Mexican train, 12']
   surface = GameSurfaces.build(spec)

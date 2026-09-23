@@ -1,6 +1,6 @@
 {
   "audio_ball": { "mode": "court", "difficulty": "pace", "sets_to_win": "match" },
-  "axel_pong": { "arcade": "arcade", "team_size": "doubles", "difficulty": "difficulty", "target": "rally" },
+  "axel_pong": { "arcade": "arcade", "team_size": "doubles", "difficulty": "difficulty", "target": "rally", "custom_target": "rally" },
   "battleship": { "fleet": "fleet", "touching": "fleet" },
   "mancala": { "variant": "board", "stones": "board", "skill": "computer", "capture": "kalah" },
   "biblios": {
@@ -168,9 +168,9 @@
     "thinking_time": "speed"
   },
   "krowa": {
-    "variant": "variants",
-    "length": "variants",
-    "race_scoring": "variants"
+    "variant": "setup",
+    "length": "play",
+    "race_scoring": "play"
   },
   "yahtzee": {
     "matches": "sheets",

@@ -3,7 +3,10 @@ require_relative "../lib/game_bots"
 require_relative "../lib/game_tree_search"
 require_relative "../lib/mancala_strategy"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class Mancala < Base
     PITS = 6
     SIDE = PITS + 1

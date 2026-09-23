@@ -7,6 +7,7 @@ module GameRoomSounds
     disconnect
     chatmsg
     notice
+    table_notice
     buzzer
     buzzer2
     ding

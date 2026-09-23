@@ -2,7 +2,10 @@ require_relative "card_game"
 require_relative "../lib/game_bots"
 require_relative "../content/monopoly_boards"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class Monopoly < CardGame
     def id
       "monopoly"

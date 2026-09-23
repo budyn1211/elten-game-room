@@ -12,7 +12,8 @@ module Configuration
   def self.controlspresentation; :voice_only; end
 end
 module EltenAPI; module Controls; class FormField; end; end; end
-load File.expand_path("../../work/elten-3.0.1-app-dev/src/ui/controls/check_box.rb", __dir__)
+host = ENV.fetch("ELTEN_HOST_SOURCE", File.expand_path("../../work/elten-3.0.1-app-dev", __dir__))
+load File.join(host, "src/ui/controls/check_box.rb")
 native_checkbox = EltenAPI::Controls.const_get(:CheckBox)
 def p_(_context, text); "Флажок #{text}"; end
 class Form
@@ -24,6 +25,7 @@ Form.send(:define_method, :wait) { driver.call(self) }
 begin
   %i[pl en fallback].each do |language|
     $rules_english = language == :en
+    GameRoomTestLocalization.use_language(language)
     $rules_dictionary = language == :fallback ? BinaryRuleDictionary.new({}) : native_dictionary
     expected = ->(en, pl) { language == :pl ? pl : en }
     game_ids = EltenGameRoom::GAME_REGISTRY.ids
@@ -145,5 +147,6 @@ begin
 ensure
   Form.send(:define_method, :wait, old_wait)
   $rules_dictionary, $rules_english = native_dictionary, false
+  GameRoomTestLocalization.use_language(:pl)
 end
 puts "Binary feedback UI: PL/EN/fallback, native checkbox, lobby defaults, presets, Nędza/bonus, six rulebooks, Pong credits and Krowa command OK"

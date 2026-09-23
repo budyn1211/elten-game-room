@@ -13,6 +13,7 @@ class AudioBallTestAudio
   def hurry(player); @calls << [:hurry, player]; end
   def announce_set(number); @calls << [:set, number]; end
   def point(scores, **options); @calls << [:point, scores, options]; end
+  def goal(**options); @calls << [:goal, options]; end
 end
 
 class AudioBallTestChannel < PongTestChannel

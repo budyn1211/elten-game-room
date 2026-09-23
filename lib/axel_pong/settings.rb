@@ -2,7 +2,10 @@
 require_relative 'preferences'
 require_relative '../game_room_ui'
 
+require_relative "../game_room_localization"
+
 module GameRoomPong
+  using GameRoomLocalization::Translations
   # The category and quick dialog use precisely the same fields and defaults.
   class SettingsFields
     attr_reader :fields

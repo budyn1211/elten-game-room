@@ -1,6 +1,9 @@
 require_relative '../audio_ball/keyboard'
 
+require_relative "../game_room_localization"
+
 module GameSurfaces
+  using GameRoomLocalization::Translations
   AudioBallSpec = Struct.new(:game_id, :header, :players, :viewer, :scores, :sets, :set_number, :finished, keyword_init: true)
 
   class AudioBallField < Button
@@ -14,24 +17,38 @@ module GameSurfaces
 
     def update
       super
-      down = KEYS.keys.select { |code| key_held?(code) }
-      @blocked &= down
+      native = respond_to?(:keyboard_modifier_held_when_pressed?, true)
+      # Let the host refresh its normal snapshot before reading our metadata.
+      key_pressed?(0x26) if native
+      frame = GameRoomAudioBall::Keyboard.frame if native
+      # held? in the UI may already see a later Windows state than pressed?.
+      # Use the same native snapshot for both, not that asynchronous peek.
+      down = if frame
+        frame.held
+      elsif native && defined?(EltenAPI::KeyboardState)
+        KEYS.keys.select { |code| EltenAPI::KeyboardState.held?(code) }
+      else
+        KEYS.keys.select { |code| key_held?(code) }
+      end
       if GameRoomAudioBall::Keyboard::MODIFIERS.any? { |code| key_held?(code) }
         @blocked |= down
       else
-        candidates = KEYS.keys.select { |code| !@blocked.include?(code) && !@down.include?(code) && key_pressed?(code) }
-        frame = GameRoomAudioBall::Keyboard.frame if respond_to?(:keyboard_modifier_held_when_pressed?, true)
-        if frame == nil || (candidates - frame.map(&:first)).any?
-          presses = candidates.length == 1 ? [[candidates.first, nil]] : []
-        else
+        if frame
           presses = frame.equal?(@last_native_frame) ? [] : frame
+        else
+          candidates = KEYS.keys.select { |code| !@down.include?(code) && key_pressed?(code) }
+          presses = candidates.length == 1 ? [[candidates.first, nil, false]] : []
         end
-        presses.each do |code, modified|
+        presses.each do |code, modified, released|
+          @blocked.delete(code) if released
           modified = modified_when_pressed?(code) if modified == nil
-          @pending << KEYS.fetch(code) if @pending.length < 32 && candidates.include?(code) && !modified
+          next if @blocked.include?(code) || modified
+          @pending.shift if @pending.length == GameRoomAudioBall::Keyboard::MAX_PRESSES
+          @pending << KEYS.fetch(code)
         end
       end
-      @last_native_frame = GameRoomAudioBall::Keyboard.frame
+      @blocked &= down
+      @last_native_frame = frame
       @down = down
     end
 
@@ -78,14 +95,14 @@ module GameSurfaces
     def initialize(spec, state: {})
       @spec = spec
       @field = AudioBallField.new(spec.header)
-      @field.add_tip(_('Up arrow: select the first lane for this incoming ball, or make the first shot after preparing.'))
-      @field.add_tip(_('W: select the first lane for this incoming ball, or make the first shot after preparing.'))
-      @field.add_tip(_('Left arrow: select the second lane for this incoming ball, or make the second shot after preparing.'))
-      @field.add_tip(_('D: select the second lane for this incoming ball, or make the second shot after preparing.'))
-      @field.add_tip(_('Down arrow: select the third lane for this incoming ball, or make the third shot after preparing.'))
-      @field.add_tip(_('S: select the third lane for this incoming ball, or make the third shot after preparing.'))
-      @field.add_tip(_('Right arrow: prepare to serve or to hit after defending.'))
-      @field.add_tip(_('A: prepare to serve or to hit after defending.'))
+      @field.add_tip(_('Up arrow: choose a defence against the first shot type, or play that shot after preparing.'))
+      @field.add_tip(_('W: choose a defence against the first shot type, or play that shot after preparing.'))
+      @field.add_tip(_('Left arrow: choose a defence against the second shot type, or play that shot after preparing.'))
+      @field.add_tip(_('D: choose a defence against the second shot type, or play that shot after preparing.'))
+      @field.add_tip(_('Down arrow: choose a defence against the third shot type, or play that shot after preparing.'))
+      @field.add_tip(_('S: choose a defence against the third shot type, or play that shot after preparing.'))
+      @field.add_tip(_('Right arrow: prepare a shot while holding the ball before a serve or after a defence.'))
+      @field.add_tip(_('A: prepare a shot while holding the ball before a serve or after a defence.'))
       @status = _('Connecting the match.')
     end
 
@@ -115,6 +132,7 @@ module GameSurfaces
     end
 
     def input_active?(form)
+      return false if form.respond_to?(:game_room_background_help?) && form.game_room_background_help?
       active = form.fields[form.index] == @field
       active &&= $activecontrols.include?(@field) if defined?($activecontrols) && $activecontrols.is_a?(Array)
       active && @spec.viewer != nil && !@spec.finished

@@ -95,7 +95,7 @@ module GameRoomPong
     # The spacing is a minimum, not a deadline for interrupting the previous
     # recording. A delayed durable write still reuses the goal's elapsed pause.
     def point(scores, viewer:, winner: nil, finished: false, goal_at: nil,
-      score_text: nil, result_text: nil, observer: false)
+      score_text: nil, result_text: nil)
       goal(viewer: viewer, winner: winner) unless goal_at
       @presents_point = false
       return unless gain('pong_goal') > 0
@@ -109,7 +109,7 @@ module GameRoomPong
       if finished
         final_at = at + 2.7
         voice = winner == viewer ? 'pong_youwin' : 'pong_theywin'
-        result = observer || !@sounds[voice] ? { speech: result_text } : voice
+        result = !@sounds[voice] ? { speech: result_text } : voice
         @score_queue << [final_at, result] if !result.is_a?(Hash) || !result[:speech].to_s.empty?
         @crowd_result = [final_at, winner == viewer ? 'won' : 'lost'] if winner != nil
         score.each_with_index { |item, i| @score_queue << [final_at + 0.3 + i * 0.5, item] }

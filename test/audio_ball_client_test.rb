@@ -17,7 +17,7 @@ client_test('independent client binds the shared reliable peer lane') do
     channel_factory: ->(**args) { AudioBallTestChannel.new(network, **args) })
   client.bind_screen(session_id: 300, table_id: 20, owner: 'Alice', viewer: 'Alice', members: -> { %w[Alice Bob] })
   assert(client.start, 'client did not start')
-  assert(network['alice'].event_protocol == 'audio-ball-peer-1' && network['alice'].routing == :peers, 'gameplay is not on a separate peer dialect')
+  assert(network['alice'].event_protocol == 'audio-ball-peer-2' && network['alice'].routing == :peers, 'gameplay is not on the agreed-goal peer dialect')
   assert(audio.calls.include?([:load]), 'audio was not loaded')
   client.close
   client.close
@@ -33,9 +33,8 @@ client_test('two humans use fresh attacks and lane defense through direct peer e
   assert(h.clients['Alice'].engine.phase == :waiting, 'shot skipped preparation')
   h.press('Alice', 'prepare', 'up')
   assert(h.clients.values.all? { |client| client.engine.phase == :flying && client.engine.turn == 2 }, 'owned hit was not applied by all peers')
-  h.press('Bob', 'up')
-  h.advance(85)
   h.press('Bob', 'left')
+  h.advance_for(h.clients['Bob'].engine.duration * 0.94)
   assert(h.clients['Bob'].engine.phase == :flying, 'wrong lane caught the ball')
   h.press('Bob', 'up')
   h.advance(2, names: %w[Bob Watcher])
@@ -76,7 +75,7 @@ client_test('hurry survives simultaneous preparation and only the holder times o
   h = AudioBallHarness.new(options: {'difficulty' => 1})
   h.advance(12)
   h.press('Alice', 'prepare', 'up')
-  h.advance(87)
+  h.advance_for(h.clients['Bob'].engine.duration * 0.94)
   h.press('Bob', 'up')
   h.advance(4)
   assert(h.clients.values.all? { |client| client.engine.holder == 1 }, 'setup did not catch the ball')
@@ -304,13 +303,13 @@ client_test('owner snapshots cannot replace human authority or the durable serve
   owner = h.network['alice']
   packet = JSON.parse(owner.sent.last)
   packet['n'] += 1
-  foreign = GameRoomAudioBall::Engine.new(level: 3, server: 1)
+  foreign = GameRoomAudioBall::Engine.new(level: 1, server: 1)
   foreign.press(1, 'prepare')
   packet['d'].merge!('state' => foreign.snapshot, 'turn' => foreign.turn)
   %w[bob watcher].each { |name| h.network[name].inbox['alice'] = packet }
   h.advance(names: %w[Bob Watcher])
   assert(h.clients['Bob'].engine.turn == 0, 'owner snapshot replaced a human engine')
-  assert(h.clients['Watcher'].engine.server == 0 && h.clients['Watcher'].engine.level == 2, 'snapshot overrode durable server or table difficulty')
+  assert(h.clients['Watcher'].engine.server == 0 && h.clients['Watcher'].engine.level == 3, 'snapshot overrode durable server or table difficulty')
   h.close
 end
 

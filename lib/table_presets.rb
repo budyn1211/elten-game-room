@@ -3,7 +3,10 @@ require_relative "game_content"
 
 # Local configurations, never game/session state or credentials. A preset is
 # checked against the current game's options before it can create a table.
+require_relative "game_room_localization"
+
 module GameRoomTablePresets
+  using GameRoomLocalization::Translations
   KEYS = %w[1 2 3 4 5 6 7 8 9 0].freeze
   MODIFIERS = %i[control option shift].freeze
   BINDINGS = MODIFIERS.flat_map { |modifier| KEYS.map { |key| [key, modifier].freeze } }.freeze

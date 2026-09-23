@@ -4,14 +4,17 @@ require_relative "context_help"
 require_relative "table_presets"
 require_relative "game_room_ui"
 
+require_relative "game_room_localization"
+
 module GameRoomWidget
+  using GameRoomLocalization::Translations
   Loading = Struct.new(:label)
 
   class TableList < ListBox
     include GameRoomUI::PingControl
     attr_reader :snapshots
 
-    def initialize(loader:, opener:, labeler:, id_for:, active: -> { true }, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, worker: nil, foreground: nil, manual_refresh: -> {}, creator: nil, program: nil)
+    def initialize(loader:, opener:, labeler:, id_for:, active: -> { true }, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, worker: nil, foreground: nil, manual_refresh: -> {}, creator: nil, invitations: nil, program: nil)
       @game_room_program = program
       @loader = loader
       @opener = opener
@@ -21,6 +24,7 @@ module GameRoomWidget
       @active, @clock = active, clock
       @manual_refresh = manual_refresh
       @creator = creator
+      @invitations = invitations
       @foreground = foreground || ->(&operation) { operation.call }
       @load_mutex = Mutex.new
       @generation = 0
@@ -40,7 +44,7 @@ module GameRoomWidget
         empty_label: _("Loading Game Room tables")
       )
       on(:select) { open_selected }
-      bind_creation_actions if @creator
+      bind_widget_actions if @creator || @invitations
     end
 
     def focus(*arguments)
@@ -64,6 +68,11 @@ module GameRoomWidget
         update_game_room_ping
         # Native first-press detection excludes repeats and checks the exact
         # modifiers. Consume here before ListBox's character search.
+        if @invitations && GameRoomTablePresets.pressed?(self, 'j', :control)
+          GameRoomTablePresets.consume_key(self)
+          accept_invitation
+          return
+        end
         if @creator
           key = creation_actions.find { |item| GameRoomTablePresets.pressed?(self, item[0], item[3]) }
           if key
@@ -120,18 +129,35 @@ module GameRoomWidget
       end
     end
 
-    def bind_creation_actions
+    def bind_widget_actions
       # The widget lives inside ELTEN's main screen, not a Game Room Form.
       # Do not register these shortcuts globally or on other main-screen tabs.
       disable_contextinglobal
       bind_context do |menu|
-        creation_actions.each do |_key, slot, label|
+        menu.option(GameRoomContent.utf8(_("Accept invitation"))) { accept_invitation } if @invitations
+        (@creator ? creation_actions : []).each do |_key, slot, label|
           menu.option(GameRoomContent.utf8(label)) { create_table(slot) }
         end
       end
-      tips = creation_actions.map { |_key, slot, label| GameRoomContextHelp.shortcut_tip(slot == nil ? 'Ctrl+N' : GameRoomTablePresets.shortcut(slot), label) }
+      tips = (@creator ? creation_actions : []).map { |_key, slot, label| GameRoomContextHelp.shortcut_tip(slot == nil ? 'Ctrl+N' : GameRoomTablePresets.shortcut(slot), label) }
+      tips.unshift(GameRoomContextHelp.shortcut_tip('Ctrl+J', _("Accept invitation"))) if @invitations
       tips << GameRoomContent.utf8(_("Ctrl+F4: read HTTP and available Communications ping.")) if @game_room_program
       GameRoomContextHelp.replace([self], tips)
+    end
+
+    def accept_invitation
+      return if !@invitations || @creating || @entry_refresh || !active?
+      begin
+        # The host can pump this control while the normal invitation picker
+        # or table is open. Share the guard with table creation.
+        @creating = true
+        @invitations.call
+      rescue StandardError => error
+        Log.warning("ELTEN Game Room widget invitation failed: #{error.class}: #{error.message}") if defined?(Log)
+        alert(_("The operation could not be completed. Please try again."))
+      ensure
+        @creating = false
+      end
     end
 
     def create_table(slot)

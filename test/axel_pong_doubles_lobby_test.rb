@@ -29,6 +29,15 @@ class CheckBox < FakeControl
   def focus(*_arguments); end
 end
 
+class EditBox
+  Flags::Numbers = 8 unless Flags.const_defined?(:Numbers)
+
+  def select_all
+    @check = 0
+    @index = @text.length
+  end
+end
+
 class Form
   class << self
     attr_accessor :pong_steps
@@ -117,7 +126,7 @@ module PongDoublesLobbyTest
     assert(mode.index == 0, "Single was not initially selected")
     assert(difficulty.options[difficulty.index] == "Normal", "Match type changed the default difficulty")
     assert(target.options[target.index] == "11", "Match type changed the default target")
-    assert(form.hidden_controls.empty?, "Creation hid a Pong option")
+    assert(form.hidden_controls == [form.fields[6]] && form.fields[6].is_a?(EditBox), "Creation must hide only the custom point target")
     assert(form.accept_button == button(form, "Create table"), "Creation has the wrong default action")
     assert(form.cancel_button == button(form, "Cancel"), "Creation lost Cancel")
   end
@@ -146,7 +155,7 @@ module PongDoublesLobbyTest
     row = app.opened_tables.first
     stored = app.lobby.snapshot_for(row, force: true).table
     options = JSON.parse(stored.fetch("game_options"))
-    expected = {"arcade" => false, "team_size" => mode == "Doubles" ? 2 : 0, "difficulty" => 2, "target" => 11}
+    expected = {"arcade" => false, "team_size" => mode == "Doubles" ? 2 : 0, "difficulty" => 2, "target" => 11, "custom_target" => 11}
     assert(options == expected, "The actual creation form did not persist its selected match type and defaults")
     assert_no_game(app, stored)
     stored
@@ -179,8 +188,9 @@ module PongDoublesLobbyTest
 
   def team_form(form, players, seats)
     assert(form.fields.map { |field| field.is_a?(Button) ? field.label : field.header } == [
-      "Players and teams", "Change team", "Assign automatically", "Start game", "Cancel"
+      "Players and teams", "Choose teams randomly", "Accept", "Change team", "Cancel"
     ], "Doubles bypassed or changed the shared team selector")
+    assert(form.hidden_controls == [button(form, "Change team"), button(form, "Cancel")], "Tab includes hidden team commands")
     labels = players.each_with_index.map do |player, index|
       "#{GameRoomParticipants.display_name(player)}, team #{seats[index] + 1}"
     end
@@ -210,7 +220,7 @@ module PongDoublesLobbyTest
   def start_teams(players, seats)
     lambda do |form|
       team_form(form, players, seats)
-      button(form, "Start game").trigger(:press)
+      button(form, "Accept").trigger(:press)
     end
   end
 
@@ -225,6 +235,12 @@ module PongDoublesLobbyTest
   end
 
   def assert_started(app, row, result, players, seats)
+    if seats && result == nil
+      assert_no_game(app, row)
+      chosen = JSON.parse(app.lobby.snapshot_for(row, force: true).table.fetch("game_options"))
+      assert(chosen["team_players"] == players && chosen["team_seats"] == seats, "Accept did not persist the line-up in the room")
+      result = with_forms { app.send(:start_new_game, row) }
+    end
     stored = app.games.session_for_table(row, force: true)
     assert(result != nil && stored != nil && result["__id"] == stored["__id"], "Start did not return the session read back from storage")
     assert(start_records(app).length == 1, "Start did not persist exactly one session")
@@ -298,7 +314,7 @@ test("cancelling the real creation form creates no room or session") do
   assert(app.opened_tables.empty? && app.network_calls.empty?, "Cancelling creation opened a table or requested a network write")
 end
 
-test("Assign automatically resets manual choices to alternating 2+2") do
+test("Choose teams randomly shuffles people into valid teams without starting") do
   app = PongDoublesLobbyApp.new
   row = create_pong(app)
   players = %w[Alice Bob Carol Dave]
@@ -309,15 +325,18 @@ test("Assign automatically resets manual choices to alternating 2+2") do
     lambda do |form|
       list = team_form(form, players, [0, 0, 1, 1])
       assert(list.index == 2, "Manual team selection reset the player cursor")
-      button(form, "Assign automatically").trigger(:press)
+      button(form, "Choose teams randomly").trigger(:press)
     end,
     lambda do |form|
-      list = team_form(form, players, [0, 1, 0, 1])
+      list = form.fields.first
+      assert(list.options.map { |text| text.split(', team ').first }.sort == players.sort, "Randomization lost players")
       assert(list.index == 2, "Automatic assignment reset the player cursor")
-      button(form, "Start game").trigger(:press)
+      button(form, "Accept").trigger(:press)
     end
   ) { app.send(:start_new_game, row) }
-  assert_started(app, row, result, players, [0, 1, 0, 1])
+  chosen = JSON.parse(app.lobby.snapshot_for(row, force: true).table["game_options"])["team_seats"]
+  assert(chosen.sort == [0, 0, 1, 1], "Randomized teams are not 2+2")
+  assert_started(app, row, result, players, chosen)
   assert(app.notices.empty?, "Automatic 2+2 assignment raised an error")
 end
 
@@ -376,7 +395,7 @@ test("Start rejects an incomplete 3+1 selection and keeps the chooser open") do
     lambda do |form|
       team_form(form, players, [0, 0, 0, 1])
       invalid_form = form
-      button(form, "Start game").trigger(:press)
+      button(form, "Accept").trigger(:press)
       assert(app.notices == ["Team 1 must contain exactly 2 players; it currently contains 3."], "An incomplete team did not explain why Start was rejected")
       assert_no_game(app, row)
     end,
@@ -436,7 +455,7 @@ test("a same-sized roster change after choosing teams rejects the start") do
       join(app, row, "Eve")
       latest = app.lobby.snapshot_for(row, force: true)
       assert(latest.game_participants == %w[Bob Carol Dave Eve], "Roster-change setup did not replace a player at the same count")
-      button(form, "Start game").trigger(:press)
+      button(form, "Accept").trigger(:press)
     end
   ) { app.send(:start_new_game, row) }
   assert(result == nil, "Teams were started against a changed roster")
@@ -454,7 +473,7 @@ test("an observer joining during selection does not change or block teams") do
     lambda do |form|
       team_form(form, players, [0, 1, 0, 1])
       join(app, row, "Watcher", observer: true)
-      button(form, "Start game").trigger(:press)
+      button(form, "Accept").trigger(:press)
     end
   ) { app.send(:start_new_game, row) }
   assert_started(app, row, result, players, [0, 1, 0, 1])
@@ -533,6 +552,94 @@ test("the table owner may observe while four other humans play Doubles") do
   result = with_forms(start_teams(players, [0, 1, 0, 1])) { app.send(:start_new_game, row) }
   assert_started(app, row, result, players, [0, 1, 0, 1])
   assert(app.notices.empty?, "An observing owner could not start the four actual players")
+end
+
+test("accepted teams survive game end, rematch and unrelated option editing") do
+  app = PongDoublesLobbyApp.new
+  row = create_pong(app)
+  players = %w[Alice Bob Carol Dave]
+  players.drop(1).each { |name| join(app, row, name) }
+  accepted = with_forms(start_teams(players, [0, 1, 0, 1])) { app.send(:start_new_game, row) }
+  first = assert_started(app, row, accepted, players, [0, 1, 0, 1])
+  assert(app.transport.abort_game(first), 'Could not finish test match')
+  saved = with_forms(lambda do |form|
+    form.fields[3].index = 3 # difficulty: an unrelated setting
+    form.accept_button.trigger(:press)
+  end) { app.send(:change_table_game_options, row) }
+  assert(saved, 'Could not edit waiting table settings')
+  next_game = with_forms { app.send(:start_new_game, row) }
+  assert(next_game && next_game['__id'] != first['__id'], 'Rematch needed another team dialog')
+  assert(JSON.parse(next_game['options']).values_at('team_players', 'team_seats') == [players, [0, 1, 0, 1]], 'Rematch lost teams')
+  assert(app.network_calls.count('Starting game') == 2, 'Accept or edit started an extra game')
+end
+
+test("custom point target uses the next field without moving focus or rebuilding the form") do
+  app = PongDoublesLobbyApp.new
+  game = GameRoomGames::AxelPong.new
+  opened_form = nil
+  result = with_forms(lambda do |form|
+    opened_form = form
+    assert_creation_form(form)
+    target, custom = form.fields[5..6]
+    assert(target.options == ["7", "11", "21", "Custom number", "Unlimited"], "Wrong target choices in real form")
+    form.index = 5
+    target.index = 3
+    target.trigger(:move)
+    assert(form.index == 5, "Selecting Custom number unexpectedly moved focus")
+    visible = form.fields.reject { |field| form.hidden_controls.include?(field) }
+    assert(visible[visible.index(target) + 1].equal?(custom), "Tab would skip the custom edit")
+    custom.text = "31"
+    target.index = 4
+    target.trigger(:move)
+    assert(form.hidden_controls.include?(custom) && form.index == 5, "Unlimited leaves the custom field visible or steals focus")
+    target.index = 3
+    target.trigger(:move)
+    assert(custom.text == "31" && !form.hidden_controls.include?(custom), "Switching choices loses the custom value")
+    form.accept_button.trigger(:press)
+  end) { app.send(:configure_game_options, game, creating_table: true) }
+  assert(result[:game_options]["target"] == "custom" && result[:game_options]["custom_target"] == 31, "Custom edit was not saved")
+  options = JSON.parse(JSON.generate(result[:game_options]))
+  row = app.lobby.create_table(name: "Custom Pong", game: "axel_pong", owner: "Alice", game_options: JSON.generate(options)).table
+  join(app, row, "Bob")
+  started = with_forms { app.send(:start_new_game, row) }
+  stored = assert_started(app, row, started, %w[Alice Bob], nil)
+  assert(game.points_to_win(JSON.parse(stored["options"])) == 31, "Starting a custom match lost its limit")
+  assert(opened_form != nil && app.notices.empty?, "Custom target caused an unexpected error")
+end
+
+test("invalid custom input remains editable; Unlimited ignores its hidden value") do
+  app = PongDoublesLobbyApp.new
+  game = GameRoomGames::AxelPong.new
+  first_form = nil
+  steps = ["", "1", "1000"].each_with_index.map do |value, index|
+    lambda do |form|
+      first_form ||= form
+      assert(form.equal?(first_form), "Validation recreated the form")
+      target, custom = form.fields[5..6]
+      assert(app.notices.length == index, "Invalid target was not rejected exactly once")
+      target.index = 3
+      target.trigger(:move)
+      custom.text = value
+      form.accept_button.trigger(:press)
+    end
+  end
+  steps << lambda do |form|
+    assert(form.equal?(first_form) && form.fields[6].text == "1000", "Validation lost the typed value")
+    assert(app.notices.all? { |notice| notice == "Enter a whole number of points from 2 to 999." }, "Wrong target validation message")
+    target = form.fields[5]
+    target.index = 4
+    target.trigger(:move)
+    form.accept_button.trigger(:press)
+  end
+  result = with_forms(*steps) { app.send(:configure_game_options, game, creating_table: true) }
+  assert(result[:game_options]["target"] == "unlimited", "Unlimited could not be saved after an invalid edit")
+  edited = with_forms(lambda do |form|
+    # Ctrl+X has no Private table field, so these indices are one lower.
+    assert(form.fields[4].options[form.fields[4].index] == "Unlimited", "Editing an unlimited table resets its target")
+    assert(form.hidden_controls.include?(form.fields[5]), "Ctrl+X shows a custom edit for Unlimited")
+    form.accept_button.trigger(:press)
+  end) { app.send(:configure_game_options, game, initial_options: result[:game_options]) }
+  assert(edited["target"] == "unlimited", "Ctrl+X changed Unlimited")
 end
 
 end

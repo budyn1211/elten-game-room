@@ -1,5 +1,25 @@
 # Historia zmian
 
+## 2.0.3 — build 237
+
+- Dodano Audio Ball autorstwa budyn1211, znanego na ELTEN-ie jako balteam:
+  dźwiękową grę dla dwóch osób lub z botami,
+  z trzema rodzajami uderzeń i meczami do jednego, dwóch lub trzech wygranych setów.
+- Axel Pong: własny limit od 2 do 999 punktów oraz tryb nieskończony, w singlu i deblu.
+- Zaktualizowano zasady Krowy po polsku i angielsku.
+- Powiadomienia o nowych stołach mają osobny dźwięk; zaproszenia zachowują dotychczasowy.
+- Otwarcie pomocy pod F1 lub zasad pod Ctrl+F1 nie zatrzymuje już gry, botów ani czasu na ruch.
+- Poprawiono samoczynny serw w Axel Pongu po korzystaniu z czatu.
+- Naprawiono błąd instalacji Game Roomu związany ze zgodnością Unicode w niektórych wersjach ELTEN-a.
+- Na widgecie Game Roomu dodano Ctrl+J do przyjmowania zaproszeń, z tym samym usuwaniem powiadomień co w aplikacji.
+- W Ustawieniach → Język można wybrać język interfejsu Game Roomu niezależnie od ELTEN-a oraz dodatkowe języki używane przy brakujących tłumaczeniach. Zmiana wymaga ponownego uruchomienia ELTEN-a.
+- Dzięki zmianom balteama (budyn1211) tłumaczenia interfejsu, zasad i historii zmian mają teraz jeden edytowalny plik PO na język. Ułatwia to dodawanie i poprawianie tłumaczeń bez zmieniania logiki gier.
+
+- Podczas obserwowania Axel Ponga C odczytuje nazwę i położenie paletki wybranego gracza. Końcową wygraną lub przegraną również słychać z perspektywy tej osoby albo jej drużyny.
+- Wybór drużyn jest teraz osobnym etapem: przydziel graczy lub wybierz Wybierz drużyny losowo, a następnie Akceptuj, aby wrócić do stołu. Partię uruchamia Rozpocznij grę. Wszyscy usłyszą zaakceptowany skład, który zostanie zapamiętany na kolejną grę. Zmienisz go przez Wybierz drużyny w menu stołu.
+- Gospodarz może zmienić rolę innej osoby na gracza lub obserwatora w menu kontekstowym listy użytkowników. Podczas partii zmiana dotyczy wyłącznie składu następnej gry.
+- Początek, koniec i ponowne rozpoczęcie gry nie przenoszą kursora z czatu, historii ani listy użytkowników. Wpisywany tekst, zaznaczenie i pozycja czytania pozostają zachowane.
+
 ## 2.0.1.1 — build 230
 
 Tysiąc dla dwóch osób i komunikaty o beczce, wspólny czas serwera,

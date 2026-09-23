@@ -135,7 +135,8 @@ probe = AudioBallKeyboardProbe.new
 probe.frame(probe.tap(0x26))
 assert(probe.input == ['up'], 'fresh press setup failed')
 probe.frame(probe.tap(0x26))
-assert(!EltenAPI::KeyboardState.pressed?(0x26) && probe.input.empty?, 'observer bypassed adjacent-frame host press suppression')
+assert(!EltenAPI::KeyboardState.pressed?(0x26) && probe.input == ['up'],
+  'Audio Ball lost a physical quick tap or changed host suppression globally')
 probe.frame([], held: [0x25])
 probe.input
 EltenAPI::KeyboardState.suppress_held_until_release
@@ -152,9 +153,9 @@ probe = AudioBallKeyboardProbe.new
 probe.frame([[0x26, true, probe.state(0x26)]], held: [0x26])
 probe.input
 probe.frame([[0x26, false], [0x26, true, probe.state(0x26)]], held: [0x26])
-assert(!EltenAPI::KeyboardState.pressed?(0x26) && probe.input.empty?,
-  'observer invented a fresh press for release/repress of a key held in the preceding host frame')
-puts 'PASS existing host limitation preserved: a previously held key repressed within one frame is not a fresh core press'
+assert(!EltenAPI::KeyboardState.pressed?(0x26) && probe.input == ['up'],
+  'Audio Ball lost a physical release/repress or changed host suppression globally')
+puts 'PASS local Audio Ball recovery of physical release/repress; the host core Result stays unchanged'
 
 
 [:clear_input, :focus].each do |operation|

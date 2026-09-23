@@ -1,6 +1,7 @@
 # encoding: UTF-8
 require_relative 'support/ui'
 require_relative 'support/log'
+require_relative 'support/localization'
 
 class Program
   def self.server_app(**_options); end
@@ -87,10 +88,14 @@ check('Audio Ball personal preferences default right and reject malformed values
   assert(defined?(GameRoomAudioBall::Preferences), 'Audio Ball personal preferences are missing')
   prefs = GameRoomAudioBall::Preferences
   [nil, [], 'left', {}, {'listening_side' => 'LEFT'}, {'listening_side' => 1}].each do |values|
-    assert(prefs.normalize(values) == {'listening_side' => 'right'}, 'Invalid listening side changed the default')
+    assert(prefs.normalize(values) == {'listening_side' => 'right', 'sound_pack' => 'default'}, 'Invalid listening side changed the default')
   end
-  assert(prefs.normalize('listening_side' => 'left', 'other' => true) == {'listening_side' => 'left'}, 'Left preference was not normalized')
-  assert(prefs.read(Object.new) == {'listening_side' => 'right'}, 'Programs without personal settings lost the original audio')
+  assert(prefs.normalize('listening_side' => 'left', 'other' => true) == {'listening_side' => 'left', 'sound_pack' => 'default'}, 'Left preference was not normalized')
+  assert(prefs.read(Object.new) == {'listening_side' => 'right', 'sound_pack' => 'default'}, 'Programs without personal settings lost the original audio')
+  [nil, 1, {}, '../audiodisc', 'AUDIODISC'].each do |value|
+    assert(prefs.normalize('sound_pack' => value)['sound_pack'] == 'default', 'Invalid sound pack escaped normalization')
+  end
+  assert(prefs.normalize('sound_pack' => 'audiodisc')['sound_pack'] == 'audiodisc', 'Valid sound pack lost')
   program = Object.new
   program.define_singleton_method(:audio_ball_preferences) { {'listening_side' => 'left'} }
   program.singleton_class.send(:private, :audio_ball_preferences)
@@ -144,32 +149,39 @@ check('Local dialog saves only Audio Ball settings and Cancel preserves file and
     end
     app = build.call
     assert(app.respond_to?(:audio_ball_preferences, true), 'Program does not expose local Audio Ball preferences')
-    100.times { assert(app.send(:audio_ball_preferences) == {'listening_side' => 'right'}, 'Default is not right') }
+    100.times { assert(app.send(:audio_ball_preferences) == {'listening_side' => 'right', 'sound_pack' => 'default'}, 'Default is not right') }
     assert(reads == 1 && writes == 0, 'Audio presentation repeatedly reads disk')
     Form.driver = lambda do |form|
       assert(form.is_a?(GameRoomUI::Form) && form.game_room_program.equal?(app), 'Settings bypassed the Game Room form')
-      assert(form.fields.length == 3, 'Personal settings added unexpected controls')
+      assert(form.fields.length == 4, 'Personal settings added unexpected controls')
       field = form.fields.first
       assert(field.header == 'Your listening side (only for you)', 'Personal setting label is unclear')
       assert(field.options == ['Right (default)', 'Left'] && field.index == 0, 'Listening side choices/default are wrong')
       field.index = 1
+      pack = form.fields[1]
+      assert(pack.header == 'Sound pack (only for you)' && pack.options == ['Default', 'Sounds from Audiodisc'] && pack.index == 0, 'Wrong sound-pack choices or default')
+      pack.index = 1
+      assert(app.send(:audio_ball_preferences)['sound_pack'] == 'default', 'An unsaved pack changed live audio')
       assert(app.send(:audio_ball_preferences)['listening_side'] == 'right', 'An unsaved choice changed live audio')
       form.accept_button.trigger(:press)
     end
     app.send(:show_audio_ball_settings)
     saved = JSON.parse(File.binread(file))
-    assert(saved == initial.merge('audio_ball' => {'listening_side' => 'left'}), 'Save lost other local settings')
+    assert(saved == initial.merge('audio_ball' => {'listening_side' => 'left', 'sound_pack' => 'audiodisc'}), 'Save lost other local settings')
     assert(app.send(:audio_ball_preferences) == saved['audio_ball'], 'Save did not immediately refresh cached audio preferences')
     assert(build.call.send(:audio_ball_preferences) == saved['audio_ball'], 'Preference was not persistent across program instances')
     before = File.binread(file)
     Form.driver = lambda do |form|
       assert(form.fields.first.index == 1, 'Dialog did not reopen on the saved choice')
       form.fields.first.index = 0
+      assert(form.fields[1].index == 1, 'Dialog lost the saved sound pack')
+      form.fields[1].index = 0
       form.cancel_button.trigger(:press)
     end
     app.send(:show_audio_ball_settings)
     assert(File.binread(file) == before && writes == 1, 'Cancel wrote personal settings')
     assert(app.send(:audio_ball_preferences)['listening_side'] == 'left', 'Cancel changed cached listening side')
+    assert(app.send(:audio_ball_preferences)['sound_pack'] == 'audiodisc', 'Cancel changed the saved sound pack')
     File.binwrite(file, JSON.generate(saved.merge('audio_ball' => {'listening_side' => 'right'})))
     app.send(:game_room_settings, reload: true)
     assert(app.send(:audio_ball_preferences)['listening_side'] == 'right', 'Reload kept stale personal settings')
@@ -328,14 +340,20 @@ check('Binary settings labels support Polish, English and untranslated source be
   namespace = Module.new
   %w[preferences settings].each do |name|
     path = File.expand_path("../lib/audio_ball/#{name}.rb", __dir__)
-    namespace.module_eval(File.binread(path), path, 1)
+    source = defined?(BinaryRulesLoad) ? BinaryRulesLoad.read(path) : File.binread(path)
+    namespace.module_eval(source, path, 1)
   end
-  old_translation = Object.instance_method(:_)
+  previous_language = GameRoomTestLocalization.language
   [:pl, :en, :fallback].each do |language|
-    Object.send(:define_method, :_) { |text| language == :pl ? catalog.fetch(text, text).b : text.b }
+    GameRoomTestLocalization.use_language(language)
+    catalog.each do |source, translated|
+      expected = language == :pl ? translated : source
+      assert(GameRoomLocalization.translate(source.b) == expected, "Missing Audio Ball settings translation: #{source}")
+    end
     Form.driver = lambda do |form|
       field = form.fields.first
-      labels = [field.header, *field.options, form.accept_button.label, form.cancel_button.label]
+      pack = form.fields[1]
+      labels = [field.header, *field.options, pack.header, *pack.options, form.accept_button.label, form.cancel_button.label]
       labels.each do |label|
         assert(label.encoding == Encoding::UTF_8 && label.valid_encoding?, 'Binary settings label was not normalized')
         assert((label + ' — выбранное поле').valid_encoding?, 'Settings label cannot be read beside the host role')
@@ -344,12 +362,14 @@ check('Binary settings labels support Polish, English and untranslated source be
       assert(field.header == expected, 'Wrong settings language')
       assert(field.options == (language == :pl ? ['Z prawej (domyślnie)', 'Z lewej'] : ['Right (default)', 'Left']), 'Wrong translated choices')
       field.index = 1
+      assert(pack.options == (language == :pl ? ['Domyślny', 'Dźwięki z audiodisca'] : ['Default', 'Sounds from Audiodisc']), 'Wrong pack translations')
+      pack.index = 1
       form.accept_button.trigger(:press)
     end
-    assert(namespace::GameRoomAudioBall::Settings.new({}, program: nil).wait == {'listening_side' => 'left'}, 'Binary settings saved a translated identifier')
+    assert(namespace::GameRoomAudioBall::Settings.new({}, program: nil).wait == {'listening_side' => 'left', 'sound_pack' => 'audiodisc'}, 'Binary settings saved a translated identifier')
   end
 ensure
-  Object.send(:define_method, :_, old_translation) if old_translation
+  GameRoomTestLocalization.use_language(previous_language) if previous_language
 end
 
 check('Both listening sides preserve real key preparation, attacks, defense, misses and score ordering') do

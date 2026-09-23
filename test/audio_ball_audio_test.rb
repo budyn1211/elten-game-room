@@ -6,9 +6,8 @@ path = File.expand_path('../lib/audio_ball/audio.rb', __dir__)
 assert(File.file?(path), 'Audio Ball audio implementation is missing')
 require path
 
-def _(text)
-  ($audio_ball_translations || {}).fetch(text, text)
-end
+require_relative 'support/localization'
+GameRoomTestLocalization.use_language(:en)
 
 def speak(text, stop:, break_sequence:)
   $audio_ball_speech << [text, stop, break_sequence]
@@ -101,11 +100,11 @@ def flight(shot = 'up', position: 25.0, turn: 1)
   {'phase' => 'flying', 'position' => position, 'shot' => shot, 'turn' => turn, 'goal' => nil}
 end
 
-test('allocates managed shot loops and one prepare stream once') do
+test('allocates managed shot loops and prepare/stop streams once') do
   program = AudioBallAudioProgram.new
   audio = GameRoomAudioBall::Audio.new(program)
-  expected = %w[audio_ball_up audio_ball_left audio_ball_down audio_ball_prepare]
-  assert(GameRoomAudioBall::Audio::ASSETS.sort == expected.sort, 'The asset list does not match the four cues')
+  expected = %w[audio_ball_up audio_ball_left audio_ball_down audio_ball_prepare audio_ball_stopped]
+  assert(GameRoomAudioBall::Audio::ASSETS.sort == expected.sort, 'The asset list does not match the default cues')
   expected += GameRoomPong::Audio::ANNOUNCEMENTS
   assert(program.created.sort == expected.map { |name| [name, false, GameRoomAudioBall::Audio::SHOTS.value?(name)] }.sort,
     'Shots must loop and preparation must play once using host streams')
@@ -278,6 +277,10 @@ end
 
 test('normalizes binary-loaded translations and player names to UTF-8 before speech') do
   binary = Module.new
+  %w[preferences sound_pack].each do |name|
+    dependency = File.expand_path("../lib/audio_ball/#{name}.rb", __dir__)
+    binary.module_eval(File.binread(dependency), dependency, 1)
+  end
   point_path = File.expand_path('../lib/audio_ball/point_audio.rb', __dir__)
   binary.module_eval(File.binread(point_path), point_path, 1)
   binary.module_eval(File.binread(path), path, 1)
@@ -285,26 +288,23 @@ test('normalizes binary-loaded translations and player names to UTF-8 before spe
   now = 0.0
   program = AudioBallAudioProgram.new(missing: GameRoomPong::Audio::ANNOUNCEMENTS)
   audio = binary::GameRoomAudioBall::Audio.new(program, clock: -> { now }, speaker: ->(text) { spoken << text })
-  $audio_ball_translations = {'Score: %{own} to %{opponent}.' => 'Wynik: %{own} do %{opponent}.'.b}
+  GameRoomTestLocalization.use_language(:pl)
   audio.point([2, 3], sets: [0, 0], set_finished: false, winner: 1, viewer: 0, finished: false)
   now = 3.0
   audio.tick
-  assert(spoken.last.encoding == Encoding::UTF_8, 'Binary point speech was not normalized to UTF-8')
-  $audio_ball_translations['First set.'] = 'Pierwszy set.'.b
+  assert(spoken.last == 'Wynik: 2 do 3.' && spoken.last.encoding == Encoding::UTF_8, 'Binary point speech was not translated to UTF-8')
   audio.announce_set(1)
   assert(spoken.last == 'Pierwszy set.' && spoken.last.encoding == Encoding::UTF_8, 'Binary set speech was not normalized')
-  $audio_ball_translations['%{player}, you have 10 seconds left.'] = '%{player}, zostało 10 sekund.'.b
   audio.hurry('Żaneta')
-  assert(spoken.last == 'Żaneta, zostało 10 sekund.' && spoken.last.encoding == Encoding::UTF_8,
+  assert(spoken.last == 'Żaneta, zostało 10 sekund na uderzenie.' && spoken.last.encoding == Encoding::UTF_8,
     'A translated warning corrupted a Unicode name')
-  $audio_ball_translations['You win the set.'] = 'Zwycięstwo w secie.'
   audio.point([7, 3], sets: [1, 0], set_finished: true, winner: 0, viewer: 0, finished: false)
   now += 3.0
   2.times { audio.tick }
-  assert(spoken.last.include?('Zwycięstwo w secie.') && spoken.last.encoding == Encoding::UTF_8,
-    'Mixed host and game translations have incompatible encodings')
+  assert(spoken.last.include?('Wygrywasz set.') && spoken.last.encoding == Encoding::UTF_8,
+    'Game Room translations have incompatible encodings')
 ensure
-  $audio_ball_translations = nil
+  GameRoomTestLocalization.use_language(:en)
 end
 
 test('reset rewinds only flight/preparation and forgets the previous flight without reallocating') do
@@ -357,14 +357,15 @@ test('does not revive a muted prepare cue when volume is restored') do
   assert(sound.plays == 1, 'An explicit muted preparation still played')
 end
 
-test('ships one mono Ogg Opus file per cue without raw Ogg copies') do
+test('ships Ogg Opus cues preserving original channel counts without raw Ogg copies') do
   GameRoomAudioBall::Audio::ASSETS.each do |name|
     asset = File.expand_path("../Audio/#{name}.opus", __dir__)
     assert(File.file?(asset), "Missing encoded Audio Ball asset: #{name}")
     header = File.binread(asset, 128)
     offset = header.index('OpusHead')
     assert(header.start_with?('OggS') && offset, "Not Ogg Opus: #{name}")
-    assert(header.getbyte(offset + 9) == 1, "Reliable pan requires a mono asset: #{name}")
+    channels = name == 'audio_ball_stopped' ? 2 : 1
+    assert(header.getbyte(offset + 9) == channels, "Changed the supplied cue's channel count: #{name}")
     assert(header.byteslice(offset + 12, 4).unpack1('V') == 48_000, "Wrong authoring sample rate: #{name}")
     assert(!File.exist?(asset.sub(/[.]opus$/, '.ogg')), "A raw Ogg copy would fail release validation: #{name}")
   end
@@ -416,12 +417,13 @@ test('pausing or finishing stops an in-progress preparation') do
   assert(program.sounds.values.none?(&:playing?), 'The completed game left preparation audible')
 end
 
-test('documents every shipped recording with attribution and its encoded checksum') do
+test('documents current default recordings without borrowing historical files attribution') do
   notice_path = File.expand_path('../docs/AUDIO_BALL_SOUND_LICENSES.md', __dir__)
   assert(File.file?(notice_path), 'Audio Ball sound attribution is missing')
   notice = File.read(notice_path, encoding: 'UTF-8')
-  {'up' => ['minerjr', '89977'], 'left' => ['loganzsound', '774205'],
-    'down' => ['sound368', '807186'], 'prepare' => ['kyles', '452549']}.each do |cue, (author, id)|
+  # Preparation is unchanged; the other three historical recordings have
+  # been explicitly replaced and must not inherit the old attribution.
+  {'prepare' => ['kyles', '452549']}.each do |cue, (author, id)|
     name = "audio_ball_#{cue}.opus"
     asset = File.expand_path("../Audio/#{name}", __dir__)
     assert(notice.include?(name) && notice.include?(author) && notice.include?("https://freesound.org/s/#{id}/"),
@@ -432,6 +434,20 @@ test('documents every shipped recording with attribution and its encoded checksu
     notice.include?('https://creativecommons.org/publicdomain/zero/1.0/'), 'License links are absent')
   assert(notice.include?('0.5 * L + 0.5 * R') && notice.include?('44,100 Hz to 48,000 Hz'),
     'The recording changes are not disclosed')
+  flights = File.read(File.expand_path('../docs/AUDIO_BALL_FLIGHT_SOUNDS.md', __dir__), encoding: 'UTF-8')
+  packs = File.read(File.expand_path('../docs/AUDIO_BALL_SOUND_PACKS.md', __dir__), encoding: 'UTF-8')
+  shipped = File.read(File.expand_path('../THIRD_PARTY_NOTICES.md', __dir__), encoding: 'UTF-8')
+  {'up' => 'ball-high.ogg', 'left' => 'ball-middle.mp3', 'down' => 'ball-down.ogg',
+    'stopped' => 'ball-stopped.ogg'}.each do |cue, source|
+    name = "audio_ball_#{cue}.opus"
+    asset = File.expand_path("../Audio/#{name}", __dir__)
+    documentation = cue == 'stopped' ? packs : flights
+    assert(shipped.include?(name) && shipped.include?(source), "Missing current provenance for #{name}")
+    assert(documentation.include?(Digest::SHA256.file(asset).hexdigest), "Current checksum missing: #{name}")
+  end
+  assert(flights.include?('exact attribution mapping must be confirmed') &&
+    packs.include?('public redistribution rights for these seven files are unconfirmed'),
+    'Unconfirmed recording licenses were presented as confirmed')
 end
 
 test('follows real engine prepare, flight, defense and miss transitions for both listeners') do

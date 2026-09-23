@@ -10,7 +10,8 @@ module EltenAPI
     class FormField; end
   end
 end
-load File.expand_path("../../work/elten-3.0.1-app-dev/src/ui/controls/check_box.rb", __dir__)
+host = ENV.fetch("ELTEN_HOST_SOURCE", File.expand_path("../../work/elten-3.0.1-app-dev", __dir__))
+load File.join(host, "src/ui/controls/check_box.rb")
 native_checkbox = EltenAPI::Controls.const_get(:CheckBox)
 app = EltenGameRoom.allocate
 app.define_singleton_method(:read_json) { |_, default:| default }
@@ -20,7 +21,7 @@ base_driver = Form.option_encoding_driver
 forms, native_states = 0, 0
 
 Form.option_encoding_driver = lambda do |form|
-  label = GameRoomContent.utf8(_("Private table"))
+  label = GameRoomLocalization.translate("Private table")
   fields = form.fields.select { |field| field.is_a?(CheckBox) && field.label == label }
   raise "Private table checkbox missing/duplicated" unless fields.length == 1
   field = fields.first
@@ -41,8 +42,9 @@ Form.option_encoding_driver = lambda do |form|
   forms += 1
 end
 
-[[nil, "ru"], [nil, "en"], [RULES_CATALOG, "pl"]].each do |catalog, language|
-  $option_test_catalog, $option_host_language = catalog, language
+%w[ru en pl].each do |language|
+  $option_host_language = language
+  GameRoomTestLocalization.use_language(language)
   EltenGameRoom::GAME_REGISTRY.ids.each do |id|
     game = EltenGameRoom::GAME_REGISTRY.build(id)
     result = app.send(:configure_game_options, game, creating_table: true)
