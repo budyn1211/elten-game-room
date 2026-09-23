@@ -6,7 +6,10 @@ require_relative "../lib/game_action_payload"
 require_relative "../lib/game_random"
 require_relative "../lib/game_turn_clock"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class Taboo < Base
     include PublicHistoryAnnouncements
     RESULTS = %w[correct skipped buzzed neutral].freeze

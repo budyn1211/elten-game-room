@@ -4,7 +4,10 @@ require_relative "../lib/domino_tiles"
 require_relative "../lib/game_bots"
 require_relative "../lib/game_turn_clock"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class TileGame < Base
     include PublicHistoryAnnouncements
     Tiles = GameRoomDominoTiles

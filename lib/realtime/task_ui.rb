@@ -1,4 +1,7 @@
+require_relative "../game_room_localization"
+
 module GameRoomRealtime
+  using GameRoomLocalization::Translations
   # Tasks.run owns the native UI loop. This optional UI adapter keeps a real-
   # time client alive while its usual game form is detached for a server read
   # or write. It never pumps the UI, refreshes a form, or runs UI on a worker.

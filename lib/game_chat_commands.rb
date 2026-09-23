@@ -1,4 +1,7 @@
+require_relative "game_room_localization"
+
 module GameRoomChatCommands
+  using GameRoomLocalization::Translations
   Submission = Struct.new(:kind, :text, :action, :message, keyword_init: true)
 
   module_function

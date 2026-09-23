@@ -1,4 +1,7 @@
+require_relative "../game_room_localization"
+
 module GameSurfaces
+  using GameRoomLocalization::Translations
   Piece = Struct.new(:id, :label, :owner, :kind, :value, keyword_init: true)
   PieceBoardSpec = Struct.new(
     :id,

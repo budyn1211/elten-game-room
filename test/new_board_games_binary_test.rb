@@ -10,6 +10,7 @@ sample = [[0,1,2,3],[20,21,22],[40,41,42],[60,61],[80,81],[85,86],[8],[28],[48],
 messages = 0
 [false, true].each do |english|
   $rules_english = english
+  GameRoomTestLocalization.use_language(english ? :en : :pl)
   game = GameRoomGames::Battleship.new
   session = { "__id" => 77, "table_id" => 1, "__players" => players, "options" => JSON.generate(game.default_options) }
   context = GameRoomGames::ActionContext.new(session_id: 77,

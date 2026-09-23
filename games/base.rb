@@ -8,7 +8,10 @@ require_relative "../lib/game_rules"
 require_relative "../lib/game_content"
 require_relative "../lib/audio_tutorial"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   EventCommand = Struct.new(:action, :value, keyword_init: true)
 
   # Untranslated text from a packaged app can retain ASCII-8BIT even when

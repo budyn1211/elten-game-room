@@ -1,7 +1,10 @@
 require "json"
 require_relative "../lib/board_presentation"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   # A complete, legal move exposed by a turn-based board game.  The shared
   # board surface only needs the origin and destination; rule-specific data
   # remains in metadata and is serialized with the server event.

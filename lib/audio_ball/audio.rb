@@ -2,7 +2,10 @@ require_relative "../game_content"
 require_relative "preferences"
 require_relative "point_audio"
 
+require_relative "../game_room_localization"
+
 module GameRoomAudioBall
+  using GameRoomLocalization::Translations
   class Audio
     SHOTS = {'up' => 'audio_ball_up', 'left' => 'audio_ball_left', 'down' => 'audio_ball_down'}.freeze
     PREPARE = 'audio_ball_prepare'.freeze

@@ -13,15 +13,15 @@ require_relative 'audio_ball_relay_test'
 require_relative 'audio_ball_warning_recovery_test'
 require_relative 'audio_ball_spectator_recovery_test'
 require_relative 'audio_ball_settings_client_test'
-previous_translation = Object.instance_method(:_)
+previous_language = GameRoomTestLocalization.language
 begin
-  Object.send(:define_method, :_) { |text| GameRoomContent.utf8(text) }
+  GameRoomTestLocalization.use_language(:en)
   require_relative 'audio_ball_difficulty_test'
   require_relative 'audio_ball_settings_test'
   require_relative 'audio_ball_point_audio_test'
   require_relative 'audio_ball_announcements_test'
 ensure
-  Object.send(:define_method, :_, previous_translation)
+  GameRoomTestLocalization.use_language(previous_language)
 end
 require_relative 'audio_ball_defense_input_test'
 require_relative 'audio_ball_lane_test'

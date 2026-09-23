@@ -23,6 +23,7 @@ session = {'__players' => ['Łucja'.b, 'Żaneta'.b], 'player_one' => 'Łucja'.b,
 native_dictionary = $rules_dictionary
 [:pl, :en, :fallback].each do |language|
   $rules_english = language == :en
+  GameRoomTestLocalization.use_language(language)
   $rules_dictionary = language == :fallback ? BinaryRuleDictionary.new({}) : native_dictionary
   replay = rules.replay(session, [{'__id' => 1, 'actor' => 'Łucja'.b, 'action' => 'pong_point', 'value' => '0:0'}], repo)
   replay.history.each { |entry| assert(entry.text.valid_encoding?, 'binary history encoding') }
@@ -35,7 +36,7 @@ native_dictionary = $rules_dictionary
   state = GameRoomPong::Engine.new.snapshot
   state['p'] = [10, 20]
   state['shields'] = [125, 0]
-  surface.present(state, _('Match in progress.'))
+  surface.present(state, GameRoomLocalization.translate('Match in progress.'))
   field = surface.fields.first
   keys, pressed = [], []
   field.define_singleton_method(:key_held?) { |key| keys.include?(key) }
@@ -106,7 +107,7 @@ native_dictionary = $rules_dictionary
   state['b']['dy'] = 1
   $spoken_messages.clear
   client.send(:set_paused, false)
-  assert($spoken_messages == [GameRoomContent.utf8(_('Match resumed.'))], 'rally recovery announced a new serve')
+  assert($spoken_messages == [GameRoomLocalization.translate('Match resumed.')], 'rally recovery announced a new serve')
   state['b']['dy'] = 0
   client.instance_variable_set(:@paused, true)
   client.send(:set_paused, false)
@@ -120,6 +121,7 @@ native_dictionary = $rules_dictionary
   assert(spectator.input(Form.new(spectator.fields))['move'].zero?, 'observer input')
 end
 $rules_dictionary = native_dictionary
+GameRoomTestLocalization.use_language(:en)
 now = 0.0
 calls = 0
 timer = GameRoomRealtime::Timer.new(clock: -> { now }) { calls += 1 }

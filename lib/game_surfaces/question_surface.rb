@@ -1,4 +1,7 @@
+require_relative "../game_room_localization"
+
 module GameSurfaces
+  using GameRoomLocalization::Translations
   QuestionOption = Struct.new(:id, :label, :value, keyword_init: true)
   QuestionSpec = Struct.new(
     :id,

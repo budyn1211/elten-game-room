@@ -1,7 +1,10 @@
 # encoding: UTF-8
 require_relative "monopoly_regional_data"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomContent
+  using GameRoomLocalization::Translations
   module MonopolyBoards
     BOARD_NAMES = {
       "atlantic_city" => _("American board / Atlantic City"),

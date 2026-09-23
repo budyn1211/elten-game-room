@@ -2,7 +2,10 @@ require "digest"
 require_relative "base"
 require_relative "../lib/card_deck_history"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   # Shared deterministic card helpers.  Games still own their rules and event
   # payloads, but they use one shuffle, labelling and hand presentation model.
   class CardGame < Base

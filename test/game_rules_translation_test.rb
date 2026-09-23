@@ -1,4 +1,5 @@
 require "json"
+require_relative "support/localization"
 
 root = File.expand_path("..", __dir__)
 mo = File.binread(File.join(root, "locale/PL.mo"))
@@ -11,10 +12,19 @@ CATALOG = count.times.to_h do |i|
 end
 
 $missing_rules_translations = []
+$rules_catalog_lookups = 0
+GameRoomLocalization::Catalog.prepend(Module.new do
+  def translate(source, **options)
+    value = super
+    $rules_catalog_lookups += 1
+    $missing_rules_translations << source if value.nil? || value.empty?
+    value
+  end
+end)
+GameRoomTestLocalization.use_language(:pl)
+
 def _(text)
-  value = CATALOG[text]
-  $missing_rules_translations << text if value == nil || value.empty?
-  value || text
+  raise "Game Room called the host translator: #{text}"
 end
 
 files = %w[tic_tac_toe four_in_a_row spades farkle ninety_nine tysiac categories chess checkers reversi ludo monopoly yahtzee uno poker makao rummy domino mexican_train scrabble taboo biblios quiz_party]
@@ -49,6 +59,7 @@ end
 proper_names = GameRoomContent::MonopolyRegionalData::PROFILES.values.flat_map do |profile|
   profile[:layout].filter_map { |type, name, _group| name if type == :property }
 end
+raise "Rules never queried the actual MO catalog" unless $rules_catalog_lookups > 0
 missing = $missing_rules_translations.uniq - proper_names
 abort "Missing translations:\n#{missing.join("\n")}" unless missing.empty?
 puts "Polish rules and settings translations passed for #{types.length} games"

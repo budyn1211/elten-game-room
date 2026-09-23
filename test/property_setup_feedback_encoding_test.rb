@@ -14,6 +14,7 @@ end
 
 %w[pl en fallback].each do |language|
   $rules_english = language != "pl"
+  GameRoomTestLocalization.use_language(language)
   game = GameRoomGames::Monopoly.new
   state = game.send(:initial_state, ["Żaneta", "Łukasz"], game.default_options)
   state[:owners].merge!(1 => "Żaneta", 3 => "Żaneta", 12 => "Łukasz")

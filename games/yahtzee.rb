@@ -1,7 +1,10 @@
 require_relative "base"
 require_relative "../lib/game_bots"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class Yahtzee < Base
     STANDARD_CATEGORIES = %w[
       ones twos threes fours fives sixes three_kind four_kind full_house

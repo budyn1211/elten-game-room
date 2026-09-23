@@ -1,7 +1,10 @@
 require_relative "base"
 require_relative "../lib/hidden_submissions"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class Categories < Base
     EASY_CATEGORY_IDS = %w[
       country city name animal plant thing profession food color

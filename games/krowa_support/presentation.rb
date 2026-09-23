@@ -1,6 +1,9 @@
 # encoding: UTF-8
 
+require_relative "../../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   module KrowaPresentation
     def rule_sections
       # Generated from docs/rulebooks/krowa.json; see tools/compile-rulebooks.rb.

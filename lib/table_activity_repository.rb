@@ -2,7 +2,10 @@ require_relative "game_participants"
 require_relative "game_history_navigation"
 require_relative "game_room_clock"
 
+require_relative "game_room_localization"
+
 class TableActivityRepository
+  using GameRoomLocalization::Translations
   Entry = Struct.new(
     :id,
     :table_id,

@@ -1,5 +1,8 @@
 # encoding: UTF-8
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class Scrabble
     def surface_spec(replay, viewer)
       state = replay.state

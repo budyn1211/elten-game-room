@@ -4,7 +4,10 @@ require_relative "context_help"
 require_relative "table_presets"
 require_relative "game_room_ui"
 
+require_relative "game_room_localization"
+
 module GameRoomWidget
+  using GameRoomLocalization::Translations
   Loading = Struct.new(:label)
 
   class TableList < ListBox

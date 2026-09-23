@@ -9,7 +9,10 @@ require_relative '../realtime/task_ui'
 require_relative '../game_room_ping'
 require_relative 'peer_play'
 
+require_relative "../game_room_localization"
+
 module GameRoomPong
+  using GameRoomLocalization::Translations
   class Client
     include PeerPlay
     SEND_INTERVAL = 0.04

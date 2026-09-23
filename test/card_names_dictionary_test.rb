@@ -3,9 +3,11 @@ require_relative 'taboo_rules_dictionary_test'
 def assert(value, message); raise message unless value; end
 
 dictionary, english = $rules_dictionary, $rules_english
+previous_language = GameRoomTestLocalization.language
 begin
   [:pl, :en, :fallback].each do |language|
     $rules_english = language == :en
+    GameRoomTestLocalization.use_language(language)
     $rules_dictionary = language == :fallback ? BinaryRuleDictionary.new({}) : dictionary
     # UNO's face names are constants translated at load time, as in a new
     # app runtime. Reload only the class with the selected native dictionary.
@@ -68,5 +70,6 @@ begin
   end
 ensure
   $rules_dictionary, $rules_english = dictionary, english
+  GameRoomTestLocalization.use_language(previous_language)
 end
 puts 'PASS UNO classic/No Mercy/Flip names, hand and C; Remik name with stable ID; binary PL/EN/fallback dictionary'

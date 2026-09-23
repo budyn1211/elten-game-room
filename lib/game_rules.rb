@@ -1,7 +1,10 @@
 require_relative "game_content"
 require_relative "context_help"
 
+require_relative "game_room_localization"
+
 module GameRoomRules
+  using GameRoomLocalization::Translations
   REQUIRED_SECTION_IDS = [:controls].freeze
   CTRL_F1_KEY = 0x70
 

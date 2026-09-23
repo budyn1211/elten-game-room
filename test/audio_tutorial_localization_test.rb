@@ -18,6 +18,7 @@ expected_pl = ['Dźwięk piłki: strzałka w górę lub W', 'Dźwięk piłki: st
 welcome_pl = 'Witaj w tutorialu. Tu poznasz dźwięki używane w tej grze. Poruszaj się strzałkami. Aby odtworzyć dźwięk, wciśnij Spację lub Enter.'
 %w[pl en fallback].each do |language|
   $rules_english = language == 'en'
+  GameRoomTestLocalization.use_language(language)
   if language == 'fallback'
     if ENV['ELTEN_DICTIONARY_SOURCE']
       $rules_dictionary.send(:loadmo, nil)

@@ -2,6 +2,7 @@ require_relative "taboo_rules_dictionary_test"
 
 [false, true].each do |english|
   $rules_english = english
+  GameRoomTestLocalization.use_language(english ? :en : :pl)
   [GameRoomGames::Makao.new, GameRoomGames::Poker.new].each do |game|
     state = game.send(:initial_state, %w[Alice Bob], game.default_options)
     state.update(hands: { "Alice" => %w[9H 9S AS], "Bob" => %w[2S] },

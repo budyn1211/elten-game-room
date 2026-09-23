@@ -1,6 +1,9 @@
 require_relative "game_participants"
 
+require_relative "game_room_localization"
+
 module GameRoomTeams
+  using GameRoomLocalization::Translations
   OPTION_KEY = "team_seats"
 
   class Assignment

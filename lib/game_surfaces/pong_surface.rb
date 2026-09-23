@@ -1,5 +1,8 @@
 # encoding: UTF-8
+require_relative "../game_room_localization"
+
 module GameSurfaces
+  using GameRoomLocalization::Translations
   PongSpec = Struct.new(:game_id, :header, :players, :viewer, :scores, :finished, :score_labels, keyword_init: true)
 
   class PongField < Button

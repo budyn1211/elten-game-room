@@ -1,4 +1,8 @@
+require_relative "game_room_localization"
+
 module GameRoomPreferences
+  using GameRoomLocalization::Translations
+
   INVITATION_POLICIES = %w[contacts nobody everyone].freeze
   ROOM_SOUND_NAMES = %w[connect disconnect].freeze
   SOUND_GROUPS = %w[all game room chat notifications].freeze
@@ -87,7 +91,7 @@ module GameRoomPreferences
     LEGACY_SOUND_KEYS.each do |group, key|
       result[key] = result["sound_volumes"][group] > 0
     end
-    result
+    result.merge(GameRoomLocalization.normalize_settings(result))
   end
 
   def lobby_announcement_enabled?(values, kind, game_id, game_ids)

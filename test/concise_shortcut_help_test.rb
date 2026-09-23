@@ -3,6 +3,7 @@ require_relative "taboo_rules_dictionary_test"
 
 %w[pl en fallback].each do |language|
   $rules_english = language != "pl"
+  GameRoomTestLocalization.use_language(language)
   entry = GameRoomParticipantMenu.entries.find { |item| item.action == :table_options }
   expected = language == "pl" ? "Ctrl+R, Odczytaj wariant i ustawienia stołu." : "Ctrl+R, Read the table variant and settings."
   field = ListBox.new(["card"], header: "Hand")

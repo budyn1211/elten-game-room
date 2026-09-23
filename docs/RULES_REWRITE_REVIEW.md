@@ -70,6 +70,11 @@ strategie, protokół oraz reguły gier nie zostały zmienione przez redakcję.
 
 ## Jak utrzymywać teksty
 
+Aktualizacja procesu: poniższy opis dokumentuje dawną redakcję PL/EN.
+Obecnie tłumaczenia edytuje się wyłącznie w `locale/PL.po`; polskie pola JSON
+są generowanym widokiem. `compile-rulebooks.rb` tworzy tylko angielski kod.
+Aktualna instrukcja: `locale/README.md`.
+
 Pliki `docs/rulebooks/*.json` przechowują obok siebie polską i angielską wersję
 każdego nagłówka i akapitu. `tools/compile-rulebooks.rb` aktualizuje wyłącznie
 `rule_sections` odpowiednich klas oraz katalog tłumaczeń. Wspólne teksty

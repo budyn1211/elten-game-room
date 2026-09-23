@@ -1,4 +1,7 @@
+require_relative "../game_room_localization"
+
 module GameSurfaces
+  using GameRoomLocalization::Translations
   ReviewItem = Struct.new(
     :id,
     :author,

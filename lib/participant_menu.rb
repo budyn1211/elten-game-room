@@ -4,7 +4,10 @@ require_relative "context_help"
 
 # One native global menu for the waiting room, active game and final-position
 # view. Only Delete remains local to the selected row in the users list.
+require_relative "game_room_localization"
+
 module GameRoomParticipantMenu
+  using GameRoomLocalization::Translations
   Entry = Struct.new(:action, :label, :menu_key, :help_key, keyword_init: true)
 
   module_function

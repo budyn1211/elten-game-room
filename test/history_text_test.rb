@@ -5,6 +5,7 @@ def assert(value, message); raise message unless value; end
 
 %w[pl en fallback].each do |language|
   $rules_english = language != 'pl'
+  GameRoomTestLocalization.use_language(language)
   view = GameRoomHistory::View.new(header: 'Historia żółtego stołu'.b)
   texts = ["Żaneta: pierwszy\nwiadomość w dwóch wierszach", 'Łukasz: drugi', 'koniec']
   entries = texts.each_with_index.map { |text, i| GameRoomHistory::Entry.new(text: text, category: [:chat, :game, :room][i]) }

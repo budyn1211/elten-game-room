@@ -80,6 +80,8 @@
 =end Elten3AppInfo
 
 require "json"
+require_relative "lib/game_room_localization"
+GameRoomLocalization.boot
 require_relative "lib/game_room_transport"
 require_relative "lib/game_sync"
 require_relative "lib/game_room_server_tables"
@@ -157,6 +159,7 @@ require_relative "games/krowa_support/server_schema"
 require_relative "games/registry"
 
 class EltenGameRoom < Program
+  using GameRoomLocalization::Translations
   extend GameRoomTableWatchRuntime
   extend GameRoomContactFiltersRuntime
   GAME_ROOM_VERSION = "2.0.2.5".freeze
@@ -2267,7 +2270,11 @@ class EltenGameRoom < Program
     @pong_preferences = nil
     self.class.contacts_settings_changed(normalized)
     Programs::Extensions.refresh_ui if defined?(Programs::Extensions) && Programs::Extensions.respond_to?(:refresh_ui)
-    alert(_("Settings saved."))
+    if GameRoomLocalization.normalize_settings(settings) != GameRoomLocalization.normalize_settings(normalized)
+      alert(_("Settings saved. Restart ELTEN to apply the interface language preferences."))
+    else
+      alert(_("Settings saved."))
+    end
   end
 
   def open_new_table_notification(notification)

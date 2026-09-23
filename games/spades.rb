@@ -4,7 +4,10 @@ require_relative "../lib/game_bots"
 require_relative "../lib/spades_learning"
 require_relative "../lib/spades_round_planner"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class Spades < Base
     RANKS = %w[2 3 4 5 6 7 8 9 T J Q K A].freeze
     SUITS = %w[C D H S].freeze

@@ -1,4 +1,7 @@
+require_relative "../game_room_localization"
+
 module GameSurfaces
+  using GameRoomLocalization::Translations
   Die = Struct.new(:id, :value, :sides, :held, :label, :enabled, keyword_init: true)
   DiceTraySpec = Struct.new(
     :id,

@@ -3,7 +3,10 @@ require_relative 'preferences'
 require_relative '../game_content'
 require_relative '../game_room_ui'
 
+require_relative "../game_room_localization"
+
 module GameRoomAudioBall
+  using GameRoomLocalization::Translations
   class Settings
     def _(text); GameRoomContent.utf8(super(text)); end
 

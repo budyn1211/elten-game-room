@@ -1,5 +1,6 @@
 # encoding: UTF-8
 require "securerandom"
+require_relative "game_room_localization"
 
 module GameRoomBotNames
   # These positions are persistent name codes in seats/saved games. Append
@@ -26,8 +27,7 @@ module GameRoomBotNames
   module_function
 
   def interface_language
-    language = Configuration.language if defined?(Configuration) && Configuration.respond_to?(:language)
-    language.to_s.downcase.split(/[-_.]/).first == "pl" ? "pl" : "en"
+    GameRoomLocalization.primary_language == "pl" ? "pl" : "en"
   end
 
   def name_for(token)

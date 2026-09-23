@@ -2,7 +2,10 @@ require "digest"
 require_relative "base"
 require_relative "../lib/tysiac_strategy"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   # Three-player Tysiac and the two-player, two-talon variant.
   # Card identities are reconstructed from the public deal seed, just as in
   # the other card games in Game Room. The interface never announces cards

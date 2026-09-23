@@ -10,6 +10,7 @@ else
   require_relative "../__app"
 end
 require_relative "support/log"
+require_relative "support/localization"
 
 module Session
   class << self
@@ -88,7 +89,7 @@ def open_shortcuts_after_wait(screen, replay, focus: :game, via_menu: false, clo
     if via_menu
       menu = FakeMenu.new
       form.context(menu, false)
-      menu.options.find { |option| option[0] == _("Game rules") }[3].call
+      menu.options.find { |option| option[0] == GameRoomLocalization.translate("Game rules") }[3].call
     else
       form.trigger(:key_f1, [false, true, false])
     end
@@ -138,6 +139,7 @@ languages = defined?(BinaryRulesLoad) ? %w[en pl fallback] : %w[en]
 cases = 0
 languages.each do |language|
   $rules_english = language != "pl"
+  GameRoomTestLocalization.use_language(language)
   game = GameRoomGames::Scrabble.new
   replay = help_replay(game)
   %w[Alice Bob Observer].each do |viewer|

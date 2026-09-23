@@ -7,7 +7,10 @@ require_relative "game_room_ping"
 # in the host's active-controls list can replace a native action. The bridge
 # holds no application/runtime reference. Upgrade the legacy fixed-key bridge
 # once; subsequent application reloads reuse dynamic control dispatch.
+require_relative "game_room_localization"
+
 module GameRoomUI
+  using GameRoomLocalization::Translations
   HostForm = Form
   # Read-only text retains the native reading/selection/copy commands, but
   # Enter belongs to the dialog's Close button rather than a multiline editor.

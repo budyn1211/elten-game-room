@@ -1,4 +1,7 @@
+require_relative "../game_room_localization"
+
 module GameSurfaces
+  using GameRoomLocalization::Translations
   MeldHandSpec = Struct.new(:zones, :turn, :editable, :can_discard, :minimum,
     :validator, :table, :discard_choices, :discard_error, :action_error, keyword_init: true)
 

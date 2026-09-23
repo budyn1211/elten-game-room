@@ -1,6 +1,9 @@
 require_relative "context_help"
 
+require_relative "game_room_localization"
+
 module GameRoomLayout
+  using GameRoomLocalization::Translations
   STANDARD_SECTIONS = [:status, :game, :chat, :history, :users].freeze
 
   class ViewSpec

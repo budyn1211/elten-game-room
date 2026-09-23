@@ -14,6 +14,7 @@ end
 windows = 0
 %w[en pl fallback].each do |language|
   $rules_english = language != "pl"
+  GameRoomTestLocalization.use_language(language)
   EltenGameRoom::GAME_REGISTRY.ids.each do |id|
     game = EltenGameRoom::GAME_REGISTRY.build(id)
     book = game.rule_book(options: game.default_options)

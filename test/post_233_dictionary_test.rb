@@ -7,8 +7,9 @@ end
 translations = JSON.parse(File.read(File.join(BinaryRulesLoad::ROOT, 'locale/post-233-fixes-pl.json'), encoding: 'UTF-8'))
 %w[pl en fallback].each do |language|
   $rules_english = language != 'pl'
+  GameRoomTestLocalization.use_language(language)
   translations.each do |source, translated|
-    actual = GameRoomContent.utf8(_(source.b))
+    actual = GameRoomLocalization.translate(source.b)
     expected = language == 'pl' ? translated : source
     raise "New shortcut translation missing: #{source}" unless actual == expected
     raise 'Binary help encoding' unless (actual + ' — żółty').valid_encoding?

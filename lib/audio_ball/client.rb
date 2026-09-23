@@ -6,7 +6,10 @@ require_relative '../realtime/event_channel'
 require_relative '../realtime/timer'
 require_relative '../realtime/task_ui'
 
+require_relative "../game_room_localization"
+
 module GameRoomAudioBall
+  using GameRoomLocalization::Translations
   class Client
     SEND_INTERVAL = 0.04
     POINT_PAUSE = 5.7

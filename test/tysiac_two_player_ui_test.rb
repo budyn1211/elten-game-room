@@ -4,6 +4,7 @@ def assert(condition, message); raise message unless condition; end
 
 %w[pl en fallback].each do |language|
   $rules_english = language != "pl"
+  GameRoomTestLocalization.use_language(language)
   game = GameRoomGames::Tysiac.new
   players = ["Żaneta", "Łukasz"]
   options = game.normalize_options("variant" => "two_players", "talon_size" => "3")

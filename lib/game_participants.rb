@@ -1,7 +1,10 @@
 # encoding: UTF-8
 require_relative "bot_names"
 
+require_relative "game_room_localization"
+
 module GameRoomParticipants
+  using GameRoomLocalization::Translations
   BOT_PREFIX = "bot:".freeze
   BOT_PATTERN = /\Abot:(\d+):(\d+)(?::((?:pl|en)\d{2}))?\z/
 

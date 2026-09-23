@@ -1,4 +1,7 @@
+require_relative "game_room_localization"
+
 module GameRoomShortcuts
+  using GameRoomLocalization::Translations
   Definition = Struct.new(:id, :key, :label, :modifiers, keyword_init: true)
 
   DEFINITIONS = {

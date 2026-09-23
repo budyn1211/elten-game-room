@@ -12,9 +12,11 @@ options = rules.with_team_assignment({'team_size' => 2}, players: names, seats: 
 session = {'__players' => names.map(&:b), '__insertion_user' => 'Owner', 'options' => JSON.generate(options)}
 events = 11.times.map { |i| {'__id' => i + 1, '__insertion_user' => 'Owner', 'action' => 'pong_point', 'value' => "#{i}:1"} }
 dictionary, english = $rules_dictionary, $rules_english
+previous_language = GameRoomTestLocalization.language
 begin
   [:pl, :en, :fallback].each do |language|
     $rules_english = language == :en
+    GameRoomTestLocalization.use_language(language)
     $rules_dictionary = language == :fallback ? BinaryRuleDictionary.new({}) : dictionary
     definitions = rules.option_definitions
     match_type = definitions.find { |definition| definition.key == 'team_size' }
@@ -57,5 +59,6 @@ begin
   end
 ensure
   $rules_dictionary, $rules_english = dictionary, english
+  GameRoomTestLocalization.use_language(previous_language)
 end
 puts 'PASS binary doubles: native PL/EN/fallback dictionary, four non-ASCII names, team readouts/history and both partners result sounds'

@@ -23,6 +23,10 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "4.0"
+      - name: Install translation authoring tools
+        run: bundle install --gemfile tools/Gemfile.i18n
+      - name: Check compiled translations and generated views
+        run: ruby tools/translations.rb check
       - name: Run tests
         env:
           ELTEN_HOST_SOURCE: ${{ github.workspace }}/.ci/elten3

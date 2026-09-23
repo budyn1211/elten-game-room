@@ -27,6 +27,7 @@ events = [
 
 [:pl, :en, :missing_translation].each do |language|
   $cht_language = language
+  GameRoomTestLocalization.use_language(language)
   original.each do |source, polish|
     expected = language == :pl ? polish : source
     actual = game.send(:_, source.b)
@@ -46,7 +47,13 @@ events = [
   bank_source = "%{player} banked %{points} points and now has %{total}."
   plain_expected = language == :pl ?
     "%{player} zapisuje %{points} punktów i ma teraz %{total}." : bank_source
-  raise "Cat's bank text overwrote the shared Farkle translation" unless _(bank_source.b) == plain_expected
-  raise "Farkle inherited a different game's private dictionary" unless GameRoomGames::Farkle.new.send(:_, bank_source.b) == plain_expected
+  raise "Cat's bank text overwrote the shared Farkle translation" unless GameRoomLocalization.translate(bank_source.b) == plain_expected
+  farkle = GameRoomGames::Farkle.new
+  farkle_state = farkle.send(:initial_state, ["Żaneta", "Łukasz"], farkle.default_options)
+  farkle_state.update(phase: :awaiting_roll, current_player: "Żaneta", turn_points: 100)
+  farkle_history = []
+  raise "Farkle bank fixture was rejected" unless farkle.send(:apply_bank, farkle_state, { "id" => 3 }, "Żaneta", repository, farkle_history)
+  expected_farkle = plain_expected % { player: "Żaneta", points: 100, total: 100 }
+  raise "Farkle inherited a different game's private dictionary" unless farkle_history.find { |entry| entry.kind == :bank }.text == expected_farkle
 end
 puts "PASS exact author rulebook and all ten PL/EN messages, scoped bank/Roll translations, unchanged Farkle, native binary lookup and English fallback"

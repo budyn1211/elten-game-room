@@ -1,6 +1,9 @@
 # encoding: UTF-8
 require_relative "../game_session_clock"
+require_relative "../game_room_localization"
+
 module GameSurfaces
+  using GameRoomLocalization::Translations
   TabooSpec = Struct.new(:token, :phase, :lines, :status, :action, :master, :review, :results, :opponent, keyword_init: true)
   class TabooSurface
     include ActionEmitter

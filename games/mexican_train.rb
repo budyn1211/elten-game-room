@@ -1,7 +1,10 @@
 # encoding: UTF-8
 require_relative "tile_game"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class MexicanTrain < TileGame
     def id; "mexican_train"; end
     def name; _("Mexican Train"); end

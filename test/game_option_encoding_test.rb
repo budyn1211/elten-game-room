@@ -3,12 +3,7 @@ require_relative "packaged_rules_encoding_test"
 # Dictionary#find returns an untranslated source unchanged when its key is
 # absent. In an installed app that source is ASCII-8BIT, not necessarily UTF-8.
 # The host's checkbox role and state can still be translated (e.g. Russian).
-$option_test_catalog = nil
 $option_host_language = "ru"
-def _(text)
-  source = text.to_s
-  $option_test_catalog ? $option_test_catalog.fetch(source.dup.force_encoding("UTF-8"), source) : source
-end
 
 def p_(_context, text)
   {
@@ -100,8 +95,9 @@ end
 # Reversi/Russian first reproduces the real failure before any stricter
 # encoding assertions, with the untranslated em dash in Mandatory capture.
 ids = ["reversi"] + (EltenGameRoom::GAME_REGISTRY.ids - ["reversi"])
-[[nil, "ru"], [nil, "en"], [RULES_CATALOG, "pl"]].each do |catalog, language|
-  $option_test_catalog, $option_host_language = catalog, language
+%w[ru en pl].each do |language|
+  $option_host_language = language
+  GameRoomTestLocalization.use_language(language)
   ids.each do |id|
     game = EltenGameRoom::GAME_REGISTRY.build(id)
     actual = app.send(:configure_game_options, game)

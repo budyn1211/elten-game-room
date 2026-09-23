@@ -35,7 +35,8 @@ assert(!selected.include?("Audio/krowa-word-tower.mp3"), "Original music duplica
 end
 %w[AGENTS.md CHANGELOG.md README.md CONTRIBUTING.md content/QUIZ_IMPORT_REPORT.json
    content/taboo_editorial.txt test/anything.rb tools/anything.rb docs/rulebooks/uno.json
-   .git/config lib/.secret.rb Audio/original.opus.bak locale/authoring.json].each do |file|
+   .git/config lib/.secret.rb Audio/original.opus.bak locale/authoring.json
+   locale/PL.po locale/CS.po locale/game-room.pot tools/plural_forms.json].each do |file|
   assert(!GameRoomReleaseFiles.allowed?(file), "Development/private file admitted: #{file}")
 end
 %w[games/future_game.rb lib/future/service.rb content/future_data.rb Audio/future.opus

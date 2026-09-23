@@ -63,6 +63,12 @@ module BinaryRulesLoad
     end
   end
 
+  def self.localization_runtime(language)
+    paths = @entries ? @entries.keys.grep(%r{\Alocale/[^/]+[.]mo\z}) : Dir.glob(File.join(ROOT, "locale/*.mo"))
+    files = paths.to_h { |path| [File.basename(path, ".mo").downcase, File.expand_path(path, ROOT)] }
+    GameRoomTestLocalization.runtime(language, files: files, reader: method(:read))
+  end
+
   module Requires
     def require_relative(name)
       origin = File.expand_path(caller_locations(1, 1).first.path)
@@ -79,11 +85,6 @@ end
 
 BinaryRulesLoad.package = ARGV.first if ARGV.first
 RULES_CATALOG = BinaryRulesLoad.catalog
-def _(text)
-  utf8 = text.to_s.dup.force_encoding("UTF-8")
-  RULES_CATALOG.fetch(utf8, utf8)
-end
-
 def n_(singular, plural, count)
   _(count.to_i == 1 ? singular : plural)
 end
@@ -93,6 +94,12 @@ class Program
 end
 
 Kernel.prepend(BinaryRulesLoad::Requires)
+require_relative "support/localization"
+module Programs
+  def self.current_runtime
+    @binary_localization_runtime ||= BinaryRulesLoad.localization_runtime(:pl)
+  end
+end
 BinaryRulesLoad.load(File.join(BinaryRulesLoad::ROOT, "__app.rb"))
 registry = EltenGameRoom::GAME_REGISTRY
 GameRoomBotNames::NAMES.each do |token, name|
@@ -163,7 +170,7 @@ end
 # Smoke-check the release's new hooks from decoded binary sources, not a
 # second ordinary require of the checkout. No network or host UI is used.
 raise "Missing binary save engine" unless defined?(SavedGames) && SavedGames::FORMAT == 1
-raise "Missing binary saved games menu" unless EltenGameRoom::MAIN_OPTIONS.include?(_("Saved games"))
+raise "Missing binary saved games menu" unless EltenGameRoom::MAIN_OPTIONS.include?(RULES_CATALOG.fetch("Saved games"))
 raise "Wrong number of saveable games" unless registry.ids.count { |id| registry.build(id).supports_saved_games? } == 24
 %w[reversi checkers chess].each do |id|
   game = registry.build(id)
@@ -245,7 +252,7 @@ binary_widget_worker.define_singleton_method(:closed?) { false }
 binary_widget = GameRoomWidget::TableList.new(loader: -> { [] }, opener: ->(_) {},
   labeler: ->(_) { "" }, id_for: ->(_) { 0 }, worker: binary_widget_worker)
 raise "Binary widget falsely reports no tables before loading" unless binary_widget.empty_label == "Wczytywanie stołów Game Roomu"
-raise "Missing widget failure translation" unless _("Game Room tables could not be loaded. Press R to retry.") == "Nie udało się wczytać stołów Game Roomu. Naciśnij R, aby spróbować ponownie."
+raise "Missing widget failure translation" unless GameRoomLocalization.translate("Game Room tables could not be loaded. Press R to retry.") == "Nie udało się wczytać stołów Game Roomu. Naciśnij R, aby spróbować ponownie."
 
 # Exercise translated UI strings through the same binary-source boundary.
 # No host window is opened: only the modal list construction is captured.

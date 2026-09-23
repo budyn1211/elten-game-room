@@ -1,6 +1,7 @@
 # encoding: UTF-8
 require_relative 'support/ui'
 require_relative 'support/log'
+require_relative 'support/localization'
 
 class Program
   def self.server_app(**_options); end
@@ -328,11 +329,16 @@ check('Binary settings labels support Polish, English and untranslated source be
   namespace = Module.new
   %w[preferences settings].each do |name|
     path = File.expand_path("../lib/audio_ball/#{name}.rb", __dir__)
-    namespace.module_eval(File.binread(path), path, 1)
+    source = defined?(BinaryRulesLoad) ? BinaryRulesLoad.read(path) : File.binread(path)
+    namespace.module_eval(source, path, 1)
   end
-  old_translation = Object.instance_method(:_)
+  previous_language = GameRoomTestLocalization.language
   [:pl, :en, :fallback].each do |language|
-    Object.send(:define_method, :_) { |text| language == :pl ? catalog.fetch(text, text).b : text.b }
+    GameRoomTestLocalization.use_language(language)
+    catalog.each do |source, translated|
+      expected = language == :pl ? translated : source
+      assert(GameRoomLocalization.translate(source.b) == expected, "Missing Audio Ball settings translation: #{source}")
+    end
     Form.driver = lambda do |form|
       field = form.fields.first
       labels = [field.header, *field.options, form.accept_button.label, form.cancel_button.label]
@@ -349,7 +355,7 @@ check('Binary settings labels support Polish, English and untranslated source be
     assert(namespace::GameRoomAudioBall::Settings.new({}, program: nil).wait == {'listening_side' => 'left'}, 'Binary settings saved a translated identifier')
   end
 ensure
-  Object.send(:define_method, :_, old_translation) if old_translation
+  GameRoomTestLocalization.use_language(previous_language) if previous_language
 end
 
 check('Both listening sides preserve real key preparation, attacks, defense, misses and score ordering') do

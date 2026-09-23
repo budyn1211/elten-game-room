@@ -25,6 +25,7 @@ dictionary = $rules_dictionary
 game = GameRoomGames::AudioBall.new
 [:pl, :en, :fallback].each do |language|
   $rules_english = language == :en
+  GameRoomTestLocalization.use_language(language)
   $rules_dictionary = language == :fallback ? BinaryRuleDictionary.new({}) : dictionary
   now = 0.0
   audio = GameRoomAudioBall::Audio.new(program, clock: -> { now })
@@ -95,11 +96,12 @@ game = GameRoomGames::AudioBall.new
     'Left' => 'Z lewej'
   }.each do |source, translation|
     expected = language == :pl ? translation : source
-    actual = GameRoomContent.utf8(_(source.b))
+    actual = GameRoomLocalization.translate(source.b)
     raise "Missing #{language} settings translation: #{source}" unless actual == expected
   end
   audio.close
 end
 $rules_dictionary = dictionary
 $rules_english = false
+GameRoomTestLocalization.use_language(:pl)
 puts 'PASS Audio Ball binary speech/rules: Polish, English, missing translation, binary player name and shared Elten speaker'

@@ -1,6 +1,6 @@
 require_relative 'game_option_encoding_test'
 
-$option_test_catalog = nil
+GameRoomTestLocalization.use_language('en')
 $option_host_language = 'en'
 app = EltenGameRoom.allocate
 app.define_singleton_method(:read_json) { |_path, default:| default }

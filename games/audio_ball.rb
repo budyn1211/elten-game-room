@@ -1,7 +1,10 @@
 # encoding: UTF-8
 require_relative 'base'
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class AudioBall < Base
     include PublicHistoryAnnouncements
 

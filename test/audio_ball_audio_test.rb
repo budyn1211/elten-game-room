@@ -6,9 +6,8 @@ path = File.expand_path('../lib/audio_ball/audio.rb', __dir__)
 assert(File.file?(path), 'Audio Ball audio implementation is missing')
 require path
 
-def _(text)
-  ($audio_ball_translations || {}).fetch(text, text)
-end
+require_relative 'support/localization'
+GameRoomTestLocalization.use_language(:en)
 
 def speak(text, stop:, break_sequence:)
   $audio_ball_speech << [text, stop, break_sequence]
@@ -285,26 +284,23 @@ test('normalizes binary-loaded translations and player names to UTF-8 before spe
   now = 0.0
   program = AudioBallAudioProgram.new(missing: GameRoomPong::Audio::ANNOUNCEMENTS)
   audio = binary::GameRoomAudioBall::Audio.new(program, clock: -> { now }, speaker: ->(text) { spoken << text })
-  $audio_ball_translations = {'Score: %{own} to %{opponent}.' => 'Wynik: %{own} do %{opponent}.'.b}
+  GameRoomTestLocalization.use_language(:pl)
   audio.point([2, 3], sets: [0, 0], set_finished: false, winner: 1, viewer: 0, finished: false)
   now = 3.0
   audio.tick
-  assert(spoken.last.encoding == Encoding::UTF_8, 'Binary point speech was not normalized to UTF-8')
-  $audio_ball_translations['First set.'] = 'Pierwszy set.'.b
+  assert(spoken.last == 'Wynik: 2 do 3.' && spoken.last.encoding == Encoding::UTF_8, 'Binary point speech was not translated to UTF-8')
   audio.announce_set(1)
   assert(spoken.last == 'Pierwszy set.' && spoken.last.encoding == Encoding::UTF_8, 'Binary set speech was not normalized')
-  $audio_ball_translations['%{player}, you have 10 seconds left.'] = '%{player}, zostało 10 sekund.'.b
   audio.hurry('Żaneta')
-  assert(spoken.last == 'Żaneta, zostało 10 sekund.' && spoken.last.encoding == Encoding::UTF_8,
+  assert(spoken.last == 'Żaneta, zostało 10 sekund na uderzenie.' && spoken.last.encoding == Encoding::UTF_8,
     'A translated warning corrupted a Unicode name')
-  $audio_ball_translations['You win the set.'] = 'Zwycięstwo w secie.'
   audio.point([7, 3], sets: [1, 0], set_finished: true, winner: 0, viewer: 0, finished: false)
   now += 3.0
   2.times { audio.tick }
-  assert(spoken.last.include?('Zwycięstwo w secie.') && spoken.last.encoding == Encoding::UTF_8,
-    'Mixed host and game translations have incompatible encodings')
+  assert(spoken.last.include?('Wygrywasz set.') && spoken.last.encoding == Encoding::UTF_8,
+    'Game Room translations have incompatible encodings')
 ensure
-  $audio_ball_translations = nil
+  GameRoomTestLocalization.use_language(:en)
 end
 
 test('reset rewinds only flight/preparation and forgets the previous flight without reallocating') do

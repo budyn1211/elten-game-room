@@ -1,9 +1,12 @@
 require_relative "context_help"
 require_relative "game_room_ui"
+require_relative "game_room_localization"
 require_relative "axel_pong/settings"
 require_relative "table_presets"
 
 module GameRoomScreens
+  using GameRoomLocalization::Translations
+
   MenuResult = Struct.new(:action, :index, keyword_init: true)
 
   class TeamList < ListBox
@@ -168,7 +171,7 @@ module GameRoomScreens
     def wait
       action = nil
       sections = ListBox.new(
-        [_("Lobby messages"), _("Notification settings"), _("Sounds"), _("Widget"), _("Axel Pong")],
+        [_("Lobby messages"), _("Notification settings"), _("Sounds"), _("Widget"), _("Axel Pong"), _("Language")],
         header: _("Settings"), quiet: true
       )
       lobby_games = multiple_game_list(_("Games covered by lobby messages"), @values["lobby_games"])
@@ -221,6 +224,22 @@ module GameRoomScreens
       cancel_button = Button.new(_("Cancel"))
 
       pong_fields = GameRoomPong::SettingsFields.new(@values['pong'])
+      languages = GameRoomLocalization.available_languages
+      language_values = GameRoomLocalization.normalize_settings(@values)
+      language_labels = languages.map { |language| GameRoomContent.utf8(language.fetch(:label)) }
+      primary_language = ListBox.new(language_labels,
+        header: GameRoomContent.utf8(_("Primary interface language")), quiet: true,
+        index: languages.index { |language| language.fetch(:id) == language_values["interface_language"] })
+      known_languages = ListBox.new(language_labels,
+        header: GameRoomContent.utf8(_("Known languages")), quiet: true, flags: ListBox::Flags::MultiSelection)
+      known_languages.select_multiselection_indices(languages.each_index.select do |index|
+        language_values["known_languages"].include?(languages[index].fetch(:id))
+      end)
+      known_languages.require_multiselection_indices([primary_language.index])
+      primary_language.on(:move) { known_languages.require_multiselection_indices([primary_language.index]) }
+      [primary_language, known_languages].each do |control|
+        control.add_tip(GameRoomContent.utf8(_("Missing translations use other known languages, then English. Restart ELTEN to apply language changes.")))
+      end
       presets = TablePresetList.new(@values["table_presets"], editor: @preset_editor,
         writer: @preset_writer) if @preset_editor && @preset_writer
 
@@ -229,7 +248,8 @@ module GameRoomScreens
         [invitation_policy, watched_games, watched_contacts],
         volume_fields.values,
         [widget_enabled, widget_games, widget_unavailable, widget_contacts, presets].compact,
-        pong_fields.fields
+        pong_fields.fields,
+        [primary_language, known_languages]
       ]
       form = PresetSettingsForm.new([sections] + groups.flatten + [save_button, cancel_button], program: @program, quiet: true)
       form.preset_target = -> { sections.index.to_i == 3 ? presets : nil }
@@ -263,6 +283,8 @@ module GameRoomScreens
       # Assignments are independent, immediately saved operations. Returning
       # an opening-time copy here could undo them when Settings is accepted.
       @values.reject { |key, _| key == "table_presets" }.merge({
+        "interface_language" => languages.fetch(primary_language.index).fetch(:id),
+        "known_languages" => known_languages.multiselections.map { |index| languages.fetch(index).fetch(:id) },
         "pong" => pong_fields.values,
         "lobby_games" => selected_game_ids(lobby_games),
         "lobby_known_games" => GameRoomPreferences.normalized_game_ids(

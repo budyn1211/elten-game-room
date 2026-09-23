@@ -2,7 +2,10 @@
 require_relative 'base'
 require_relative '../lib/axel_pong/engine'
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class AxelPong < Base
     include PublicHistoryAnnouncements
 

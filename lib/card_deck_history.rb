@@ -2,7 +2,10 @@ require_relative "game_content"
 
 # Recycling remains part of the game's existing action and seeded shuffle.
 # This helper adds public history only after that action has been accepted.
+require_relative "game_room_localization"
+
 module GameRoomCardDeckHistory
+  using GameRoomLocalization::Translations
   protected
 
   def record_deck_reshuffle(history, previous_count, current_count, event_id)

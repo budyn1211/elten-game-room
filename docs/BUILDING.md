@@ -2,14 +2,28 @@
 
 ## Testy bez ELTEN-a
 
-Testy są samodzielnymi skryptami i korzystają tylko z biblioteki standardowej
-Ruby. Zalecana jest wersja Ruby 4.0, zgodna ze środowiskiem bieżącego ELTEN-a.
+Testy logiki gier są samodzielnymi skryptami Ruby. Testy narzędzi tłumaczeń
+wymagają dodatkowo standardowego gema GetText:
+
+```console
+bundle install --gemfile tools/Gemfile.i18n
+```
+
+Zalecana jest wersja Ruby 4.0, zgodna ze środowiskiem bieżącego ELTEN-a.
 
 ```console
 ruby tools/run-tests.rb
 ```
 
 Runner zatrzymuje się po pierwszym nieudanym teście i zwraca niezerowy kod.
+
+## Tłumaczenia interfejsu
+
+Edytuj jeden plik PO na język, np. `locale/PL.po`. Po edycji uruchom
+`ruby tools/translations.rb compile PL`, następnie
+`ruby tools/translations.rb check PL`. MO i dawne widoki JSON są generowane
+z PO, nigdy odwrotnie. Słowniki wyrazów, pytania i karty gier nie należą do
+tej migracji. Pełna instrukcja: `locale/README.md`.
 
 ## Uruchomienie ze źródeł
 

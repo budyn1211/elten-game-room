@@ -19,8 +19,9 @@ Override `audio_tutorial_entries` in the game class. Return an ordered array of
 The default implementation in `GameRoomGames::Base` returns an empty array.
 
 Use the existing asset name without `Audio/` or an extension. Declare any new
-assets in both release manifests as usual. Add Polish translations through a
-source `locale/*-pl.json` file and `tools/compile-polish-catalog.rb`.
+assets in both release manifests as usual. Add UI messages with
+`ruby tools/translations.rb update`, edit only `locale/PL.po`, then run
+`ruby tools/translations.rb compile PL`. See `locale/README.md`.
 No extra condition in the rules screen or game-specific UI class is needed.
 
 Audio Ball supplies its three shot sounds and the preparation sound. They are

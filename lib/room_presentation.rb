@@ -1,6 +1,9 @@
 require_relative "game_participants"
 
+require_relative "game_room_localization"
+
 module RoomPresentation
+  using GameRoomLocalization::Translations
   User = Struct.new(:participant, :label, keyword_init: true) do
     def to_s
       label

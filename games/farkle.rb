@@ -2,7 +2,10 @@ require_relative "base"
 require_relative "../lib/game_bots"
 require_relative "../lib/farkle_strategy"
 
+require_relative "../lib/game_room_localization"
+
 module GameRoomGames
+  using GameRoomLocalization::Translations
   class Farkle < Base
     DIE_COUNT = 6
 

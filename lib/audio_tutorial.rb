@@ -1,4 +1,7 @@
+require_relative "game_room_localization"
+
 class GameRoomAudioTutorial
+  using GameRoomLocalization::Translations
   Entry = Struct.new(:label, :asset, keyword_init: true) do
     def initialize(label:, asset:)
       super(label: GameRoomContent.utf8(label), asset: asset.to_s)

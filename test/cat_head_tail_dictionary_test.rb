@@ -34,6 +34,7 @@ def repository.event_id(event); event.fetch("id"); end
 
 [:pl, :en, :missing_translation].each do |language|
   $cht_language = language
+  GameRoomTestLocalization.use_language(language)
   game = EltenGameRoom::GAME_REGISTRY.build("cat_head_tail")
   expected_summary = language == :pl ? "do 100 punktów" : "to 100 points"
   raise "Untranslated table summary" unless game.options_summary(game.default_options) == expected_summary

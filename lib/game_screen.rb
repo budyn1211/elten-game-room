@@ -14,7 +14,10 @@ require_relative "participant_menu"
 require_relative "network_errors"
 require_relative "game_session_clock"
 
+require_relative "game_room_localization"
+
 class GameScreen
+  using GameRoomLocalization::Translations
   TIMER_INTERVAL = 0.05
 
   def initialize(
