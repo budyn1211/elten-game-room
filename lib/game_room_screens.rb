@@ -390,8 +390,9 @@ module GameRoomScreens
   end
 
   class GameRules
-    def initialize(book, program: nil, game_shortcuts: nil)
+    def initialize(book, program: nil, game_shortcuts: nil, audio_tutorial: [])
       @program = program
+      @audio_tutorial = audio_tutorial
       @book = book
       @documents = book.documents
       # Library/waiting-table help is the complete reference. During play use
@@ -410,10 +411,12 @@ module GameRoomScreens
     def wait
       loop do
         action = nil
+        titles = @documents.map(&:title)
+        titles << GameRoomContent.utf8(_("Audio tutorial")) unless @audio_tutorial.empty?
         sections = ListBox.new(
-          @documents.map(&:title),
+          titles,
           header: _("%{game} rules") % { game: @book.title },
-          index: bounded_index(@section_index, @documents),
+          index: bounded_index(@section_index, titles),
           quiet: true
         )
         open_button = Button.new(_("Open"))
@@ -435,7 +438,13 @@ module GameRoomScreens
         form.wait
         return if action == :back
 
-        show_section(@documents[@section_index]) if action == :open
+        if action == :open
+          if @section_index == @documents.length
+            GameRoomAudioTutorial.new(@audio_tutorial, program: @program).wait
+          else
+            show_section(@documents[@section_index])
+          end
+        end
       end
     end
 

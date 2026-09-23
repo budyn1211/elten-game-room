@@ -24,6 +24,15 @@ module GameRoomGames
       GameRoomAudioBall::Client.new(program, self)
     end
 
+    def audio_tutorial_entries
+      [
+        GameRoomAudioTutorial::Entry.new(label: _('Ball sound: Up arrow or W'), asset: 'audio_ball_up'),
+        GameRoomAudioTutorial::Entry.new(label: _('Ball sound: Left arrow or D'), asset: 'audio_ball_left'),
+        GameRoomAudioTutorial::Entry.new(label: _('Ball sound: Down arrow or S'), asset: 'audio_ball_down'),
+        GameRoomAudioTutorial::Entry.new(label: _('Preparing the ball: Right arrow or A'), asset: 'audio_ball_prepare')
+      ]
+    end
+
     def option_definitions
       [
         OptionDefinition.new(key: 'mode', label: _('Game mode'), kind: :choice, default: 'classic',

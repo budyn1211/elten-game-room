@@ -899,7 +899,7 @@ class GameScreen
     options = @game.options_from_json(source)
     tips = @layout && GameRoomContextHelp.game_field_tips(@layout.game_help_fields) if tips == nil
     GameRoomScreens::GameRules.new(@game.rule_book(options: options),
-      program: @program, game_shortcuts: tips).wait
+      program: @program, game_shortcuts: tips, audio_tutorial: @game.audio_tutorial_entries).wait
   end
 
   def bind_game_shortcuts(form, fields, shortcuts, &handler)

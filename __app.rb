@@ -734,7 +734,8 @@ class EltenGameRoom < Program
       return
     end
 
-    GameRoomScreens::GameRules.new(game.rule_book(options: options), program: self).wait
+    GameRoomScreens::GameRules.new(game.rule_book(options: options), program: self,
+      audio_tutorial: game.audio_tutorial_entries).wait
   end
 
   def show_create_table

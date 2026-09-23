@@ -6,6 +6,7 @@ require_relative "../lib/game_shortcuts"
 require_relative "../lib/game_layout"
 require_relative "../lib/game_rules"
 require_relative "../lib/game_content"
+require_relative "../lib/audio_tutorial"
 
 module GameRoomGames
   EventCommand = Struct.new(:action, :value, keyword_init: true)
@@ -273,6 +274,10 @@ module GameRoomGames
 
     def rule_sections
       raise NotImplementedError, "a game must implement rule_sections"
+    end
+
+    def audio_tutorial_entries
+      []
     end
 
     def rule_book(options: nil)
