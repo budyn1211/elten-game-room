@@ -16,6 +16,7 @@ require_relative 'audio_ball_settings_client_test'
 previous_translation = Object.instance_method(:_)
 begin
   Object.send(:define_method, :_) { |text| GameRoomContent.utf8(text) }
+  require_relative 'audio_ball_difficulty_test'
   require_relative 'audio_ball_settings_test'
   require_relative 'audio_ball_point_audio_test'
   require_relative 'audio_ball_announcements_test'

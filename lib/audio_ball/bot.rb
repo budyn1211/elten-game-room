@@ -2,14 +2,14 @@ require_relative 'engine'
 
 module GameRoomAudioBall
   class Bot
-    HOLD_DELAY = [0.35, 0.25, 0.18].freeze
-    REACTION_TIME = [0.25, 0.18, 0.12].freeze
-    ERROR_CHANCE = [0.24, 0.14, 0.06].freeze
+    HOLD_DELAY = [0.35, 0.25, 0.18, 0.18].freeze
+    REACTION_TIME = [0.25, 0.18, 0.12, 0.12].freeze
+    ERROR_CHANCE = [0.24, 0.14, 0.06, 0.06].freeze
     attr_reader :side
 
     def initialize(side, level: 1, rng: Random.new)
       raise ArgumentError, 'side must be 0 or 1' unless side.is_a?(Integer) && (side == 0 || side == 1)
-      raise ArgumentError, 'level must be an integer from 1 to 3' unless level.is_a?(Integer) && (1..3).include?(level)
+      raise ArgumentError, 'level must be an integer from 1 to 4' unless level.is_a?(Integer) && (1..4).include?(level)
       @side = side
       @selected_lane = nil
       @level = level

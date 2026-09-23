@@ -131,7 +131,7 @@ module AudioBallBotTest
       end
     end
     test('bot prepares then attacks through separate delayed presses') do
-      [1, 2, 3].each do |level|
+      [1, 2, 3, 4].each do |level|
         [0, 1].each do |side|
           engine = TracedEngine.new(level: level, server: side)
           bot = GameRoomAudioBall::Bot.new(side, level: level, rng: Random.new(10))
@@ -162,7 +162,7 @@ module AudioBallBotTest
     end
     test('fresh lane decisions retain one late attempt and level-dependent accuracy') do
       counts = []
-      [1, 2, 3].each do |level|
+      [1, 2, 3, 4].each do |level|
         defended = 0
         attempts = 0
         [0, 1].each do |side|
@@ -174,7 +174,7 @@ module AudioBallBotTest
             engine.press(1 - side, %w[up left down][trial % 3])
             engine.take_transition
             engine.take_transition
-            200.times do
+            ((engine.duration / 0.01).ceil + 10).times do
               bot.step(engine, seconds: 0.01)
               break unless engine.phase == :flying
               defenses = bot.selected_lane ? {side => bot.selected_lane} : {}
@@ -199,7 +199,7 @@ module AudioBallBotTest
           end
         end
         assert(attempts > 350, 'bot rarely attempted a reachable defense')
-        lower, upper = [[240, 345], [305, 380], [345, 397]][level - 1]
+        lower, upper = [[240, 345], [305, 380], [345, 397], [345, 397]][level - 1]
         assert(defended.between?(lower, upper), "level #{level} accuracy #{defended}/400 is not fair")
         counts << defended
       end
@@ -215,7 +215,7 @@ module AudioBallBotTest
           assert(true, 'invalid side rejected')
         end
       end
-      [nil, 0, 4, '1', 1.0, true].each do |level|
+      [nil, 0, 5, '1', 1.0, true].each do |level|
         begin
           GameRoomAudioBall::Bot.new(0, level: level)
           assert(false, 'invalid bot level accepted')
@@ -239,7 +239,7 @@ module AudioBallBotTest
     test('bounded complete matches remain legal across difficulties and frame sizes') do
       matches = points = ticks = defenses = 0
       winners = [0, 0]
-      [1, 2, 3].each do |level|
+      [1, 2, 3, 4].each do |level|
         [0.01, 0.017, 0.025, 0.05].each do |frame|
           [7, 43, 111, 901].each do |seed|
             result = simulate_match(level, frame, seed)

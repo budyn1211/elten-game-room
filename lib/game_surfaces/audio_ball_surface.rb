@@ -78,14 +78,14 @@ module GameSurfaces
     def initialize(spec, state: {})
       @spec = spec
       @field = AudioBallField.new(spec.header)
-      @field.add_tip(_('Up arrow: select the first lane for this incoming ball, or make the first shot after preparing.'))
-      @field.add_tip(_('W: select the first lane for this incoming ball, or make the first shot after preparing.'))
-      @field.add_tip(_('Left arrow: select the second lane for this incoming ball, or make the second shot after preparing.'))
-      @field.add_tip(_('D: select the second lane for this incoming ball, or make the second shot after preparing.'))
-      @field.add_tip(_('Down arrow: select the third lane for this incoming ball, or make the third shot after preparing.'))
-      @field.add_tip(_('S: select the third lane for this incoming ball, or make the third shot after preparing.'))
-      @field.add_tip(_('Right arrow: prepare to serve or to hit after defending.'))
-      @field.add_tip(_('A: prepare to serve or to hit after defending.'))
+      @field.add_tip(_('Up arrow: choose a defence against the first shot type, or play that shot after preparing.'))
+      @field.add_tip(_('W: choose a defence against the first shot type, or play that shot after preparing.'))
+      @field.add_tip(_('Left arrow: choose a defence against the second shot type, or play that shot after preparing.'))
+      @field.add_tip(_('D: choose a defence against the second shot type, or play that shot after preparing.'))
+      @field.add_tip(_('Down arrow: choose a defence against the third shot type, or play that shot after preparing.'))
+      @field.add_tip(_('S: choose a defence against the third shot type, or play that shot after preparing.'))
+      @field.add_tip(_('Right arrow: prepare a shot while holding the ball before a serve or after a defence.'))
+      @field.add_tip(_('A: prepare a shot while holding the ball before a serve or after a defence.'))
       @status = _('Connecting the match.')
     end
 

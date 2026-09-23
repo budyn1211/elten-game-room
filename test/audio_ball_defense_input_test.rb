@@ -1,10 +1,10 @@
 require_relative 'support/audio_ball_native_keys'
 
-cases = %w[Alice Bob].product([1, 2, 3], {0x26 => 'up', 0x57 => 'up', 0x25 => 'left', 0x44 => 'left', 0x28 => 'down', 0x53 => 'down'}.to_a)
+cases = %w[Alice Bob].product([1, 2, 3, 4], {0x26 => 'up', 0x57 => 'up', 0x25 => 'left', 0x44 => 'left', 0x28 => 'down', 0x53 => 'down'}.to_a)
 cases.each do |native, level, (code, shot)|
   h = AudioBallNativeKeys.new(native: native, level: level)
   side = h.players.index(native)
-  h.approach(shot, 0.2)
+  h.approach(shot, GameRoomAudioBall::Engine::INITIAL_DURATION[level - 1] * 4.0 / GameRoomAudioBall::Engine::WIDTH)
   engine = h.clients[native].engine
   h.keys([code]); h.advance
   assert(engine.phase == :flying, 'held key defended before the two-step range')

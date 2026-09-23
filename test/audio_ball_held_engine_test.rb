@@ -3,7 +3,7 @@ require_relative '../lib/audio_ball/engine'
 def assert(value, message); raise message unless value; end
 assert(GameRoomAudioBall::Engine.instance_method(:step).parameters.include?([:key, :defenses]),
   'physics has no same-frame defense input and awards a goal before checking the key')
-[0, 1].product([1, 2, 3], %w[up left down]).each do |receiver, level, shot|
+[0, 1].product([1, 2, 3, 4], %w[up left down]).each do |receiver, level, shot|
   engine = GameRoomAudioBall::Engine.new(level: level, server: 1 - receiver)
   engine.press(1 - receiver, 'prepare'); engine.press(1 - receiver, shot)
   duration = engine.duration

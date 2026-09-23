@@ -1,10 +1,10 @@
 require_relative 'support/audio_ball_native_keys'
 
 aliases = {0x26 => 'up', 0x57 => 'up', 0x25 => 'left', 0x44 => 'left', 0x28 => 'down', 0x53 => 'down'}
-cases = %w[Alice Bob].product([1, 2, 3], aliases.to_a)
+cases = %w[Alice Bob].product([1, 2, 3, 4], aliases.to_a)
 cases.each do |native, level, (code, shot)|
   h = AudioBallNativeKeys.new(native: native, level: level)
-  h.approach(shot, 0.3)
+  h.approach(shot, GameRoomAudioBall::Engine::INITIAL_DURATION[level - 1] * 4.0 / GameRoomAudioBall::Engine::WIDTH)
   h.tap(code); h.advance
   assert(!EltenAPI::KeyboardState.held?(code), 'early tap test did not release the key')
   assert(h.clients[native].engine.phase == :flying, 'early lane tap caught outside the two-step range')

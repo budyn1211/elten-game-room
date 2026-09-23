@@ -2,14 +2,14 @@ module GameRoomAudioBall
   class Engine
     WIDTH = 25.0
     SHOTS = %w[up left down].map(&:freeze).freeze
-    INITIAL_DURATION = [1.5, 1.2, 0.9].freeze
-    ACCELERATION = [1.1, 1.1, 1.08].freeze
+    INITIAL_DURATION = [4.0, 1.3, 0.9, 0.6].freeze
+    ACCELERATION = [1.05, 1.1, 1.08, 1.04].freeze
 
     attr_reader :phase, :holder, :receiver, :shot, :turn, :goal, :warning,
       :duration, :position, :hits, :server, :level
 
     def initialize(level: 1, server: 0)
-      raise ArgumentError, 'level must be an integer from 1 to 3' unless valid_level?(level)
+      raise ArgumentError, 'level must be an integer from 1 to 4' unless valid_level?(level)
       raise ArgumentError, 'server must be 0 or 1' unless valid_side?(server)
       @level = level
       @server = server
@@ -150,7 +150,7 @@ module GameRoomAudioBall
     end
 
     def valid_level?(value)
-      value.is_a?(Integer) && (1..3).include?(value)
+      value.is_a?(Integer) && (1..4).include?(value)
     end
 
     def valid_snapshot?(data)

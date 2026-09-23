@@ -30,8 +30,8 @@ audio_ball_test('fixed roster, real-time capabilities and ordered table options'
   assert(!game.supports_saved_games?, 'unfinished real-time matches can be saved')
   definitions = game.effective_option_definitions
   assert(definitions.map(&:key) == %w[mode difficulty sets_to_win], 'game options duplicate privacy or have the wrong order')
-  assert(definitions.map { |definition| definition.choices.map(&:value) } == [['classic'], [1, 2, 3], [1, 2, 3]], 'unsupported mode, difficulty or match length is offered')
-  assert(definitions[1].choices.map(&:label) == %w[Easy Normal Hard], 'difficulty labels do not match their numeric values')
+  assert(definitions.map { |definition| definition.choices.map(&:value) } == [['classic'], [1, 2, 3, 4], [1, 2, 3]], 'unsupported mode, difficulty or match length is offered')
+  assert(definitions[1].choices.map(&:label) == %w[Easy Normal Hard Impossible], 'difficulty labels do not match their numeric values')
   assert(game.default_options == {'mode' => 'classic', 'difficulty' => 2, 'sets_to_win' => 1}, 'Audio Ball defaults changed')
   assert(game.normalize_options('mode' => 'arcade', 'difficulty' => 99, 'sets_to_win' => 0) == game.default_options, 'invalid choices did not fall back to defaults')
   assert(game.normalize_options(difficulty: '3', sets_to_win: '2')['sets_to_win'] == 2, 'choice values stopped normalizing to numbers')
@@ -307,11 +307,17 @@ audio_ball_test('authored rules explain fixed scoring, sound, timing and every a
   book = game.rule_book(options: game.default_options)
   assert(book.documents.map(&:id) == [:rules, :controls, :current_options], 'Audio Ball rules bypass the standard three-document help')
   rules = book.documents.first.text
-  ['exactly two players', 'bot', 'Classic', '25 steps', 'on the right', 'on the left', 'two steps', 'three lanes', 'press once', 'After releasing the key', 'wrong lane',
-    'Every new incoming hit clears', 'even when the opponent repeats', 'Axel Pong goal effects', '0 to 21', '5.7-second',
-    '1.5', '1.2', '0.9', '10 percent', '8 percent', 'unlimited', 'ten seconds', 'Preparing', 'random',
-    'every two completed points', 'between sets', '7 points', 'two-point lead', '1, 2 or 3', 'five-second', 'first set', 'second set'].each do |text|
+  ['one against one', 'bot', 'Classic', '25 steps', 'on the right', 'on the left', 'two steps',
+    'press the matching defence key once', 'then release it', 'last direction', 'Every new ball needs a new press',
+    'even if the shot type is the same', 'Preparing', 'ten seconds', 'as long as you like', 'random',
+    'every two completed points', 'across sets', '7 points', 'lead by at least two', '1, 2 or 3', 'five-second',
+    'set number', 'who is serving'].each do |text|
     assert(rules.include?(text), "Audio Ball rules do not explain #{text}")
+  end
+  assert(!rules.match?(/Axel Pong|0 to 21|5\.7-second/), 'player rules contain another game or implementation details')
+  [['Easy', '4.0', '5'], ['Normal', '1.3', '10'], ['Hard', '0.9', '8'], ['Impossible', '0.6', '4']].each do |name, seconds, percent|
+    paragraph = game.rule_sections.flat_map(&:paragraphs).find { |text| text.start_with?(name) }
+    assert(paragraph && paragraph.include?("#{seconds} seconds") && paragraph.include?("#{percent}%"), "rules contain the wrong #{name} speed")
   end
   controls = book.documents[1].text
   ['Up arrow:', 'W:', 'Left arrow:', 'D:', 'Down arrow:', 'S:', 'Right arrow:', 'A:', 'Shift+S:', 'Ctrl+W:', 'Ctrl+P:', 'T:'].each do |text|

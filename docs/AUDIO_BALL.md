@@ -43,8 +43,10 @@ restart the countdown. A repeated warning does not extend it. Expiry awards
 the opponent a point. Only the holder's controller resolves that timeout;
 other computers do not compare wall clocks to invent penalties.
 
-Easy starts at 1.5 seconds per full flight, Normal at 1.2 and Hard at 0.9.
-Later shots increase speed by 10%, 10% or 8% respectively. Flight duration is
+Easy starts at 4.0 seconds per full flight, Normal at 1.3, Hard at 0.9 and
+Impossible at 0.6. Later shots increase speed by 5%, 10%, 8% and 4% respectively.
+The Impossible bot keeps the Hard reaction/error strategy; its flight timing
+is different. Existing bot tuning is otherwise unchanged. Flight duration is
 divided by the speed multiplier, rather than reduced by that percentage.
 Each new rally resets the speed; there is no arbitrary gameplay speed floor.
 

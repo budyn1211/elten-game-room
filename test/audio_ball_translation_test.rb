@@ -69,12 +69,24 @@ game = GameRoomGames::AudioBall.new
   raise "Invalid #{language} queued speech encoding" unless $spoken_messages.all? { |text| text.encoding == Encoding::UTF_8 && text.valid_encoding? }
   label = game.option_definitions.last.label
   raise "Missing #{language} match-length option" unless label == (language == :pl ? 'Sety do zwycięstwa' : 'Sets to win')
-  expected = language == :pl ? 'Trzy uderzenia, jeden przeciwnik' : 'Three shots, one opponent'
+  labels = game.option_definitions.find { |definition| definition.key == 'difficulty' }.choices.map(&:label)
+  expected = language == :pl ? ['Łatwy', 'Normalny', 'Trudny', 'Niemożliwy'] : %w[Easy Normal Hard Impossible]
+  raise "Missing #{language} difficulty labels" unless labels == expected
+  expected = language == :pl ? 'Cel gry' : 'The aim of the game'
   raise "Missing #{language} Audio Ball rulebook" unless game.rule_book.documents.first.text.include?(expected)
   book = game.rule_book.documents.map(&:text).join("\n")
-  expected = language == :pl ? 'Po puszczeniu klawisza pozostajesz na wybranym torze.' : 'After releasing the key, you stay in the selected lane.'
-  raise "Missing #{language} persistent-lane rules" unless book.include?(expected)
-  expected = language == :pl ? 'Twoja strona odsłuchu' : 'Your listening side'
+  expected = language == :pl ? 'Każda nowa piłka wymaga nowego naciśnięcia po uderzeniu przeciwnika' : "Every new ball needs a new press after the opponent's hit"
+  raise "Missing #{language} per-flight defence rules" unless book.include?(expected)
+  raise "Unexpected game references in #{language} rules" if book.include?('Axel Pong')
+  authored = JSON.parse(File.read(File.expand_path('../docs/rulebooks/audio_ball.json', __dir__), encoding: 'UTF-8'))
+  authored.fetch('sections').each do |section|
+    pairs = section.fetch('paragraphs')
+    pairs = [section.fetch('title')] + pairs unless section.fetch('id') == 'controls'
+    pairs.each do |pair|
+      raise "Stale #{language} Audio Ball rules" unless book.include?(pair.fetch(language == :pl ? 'pl' : 'en'))
+    end
+  end
+  expected = language == :pl ? 'Wybór strony odsłuchu' : 'Choosing your listening side'
   raise "Missing #{language} personal-settings rules" unless book.include?(expected)
   {
     'Audio Ball settings' => 'Ustawienia Audio Ball',
