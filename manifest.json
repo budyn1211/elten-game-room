@@ -153,7 +153,11 @@
       "pong_echo_noise_left",
       "pong_echo_noise_right",
       "pong_echo_tone_left",
-      "pong_echo_tone_right"
+      "pong_echo_tone_right",
+      "audio_ball_up",
+      "audio_ball_left",
+      "audio_ball_down",
+      "audio_ball_prepare"
     ]
   }
 }

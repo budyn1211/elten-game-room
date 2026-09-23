@@ -21,7 +21,8 @@ module BinaryRulesLoad
     require "zip"
     require "zstd-ruby"
     require "stringio"
-    require_relative "../../work/elten-3.0.1-app-dev/src/EAPI/programsigning"
+    host_source = ENV['ELTEN_HOST_SOURCE'] || File.expand_path('../../elten3', __dir__)
+    require File.join(host_source, 'src/eapi/programsigning')
     @entries = {}
     Zip::File.open(path) do |zip|
       manifest = JSON.parse(zip.read("__manifest.json")).fetch("payload")
@@ -42,10 +43,12 @@ module BinaryRulesLoad
 
   def self.load(path)
     path = File.expand_path(path)
-    return false if @loaded[path]
+    development_source = path.start_with?(ROOT + "/test/", ROOT + "/tools/")
+    return false if @loaded[path] || (development_source && $LOADED_FEATURES.include?(path))
     @loaded[path] = true
     # Do not force UTF-8 here: that was precisely what hid the build-209 bug.
     TOPLEVEL_BINDING.eval(read(path), path, 1)
+    $LOADED_FEATURES << path if development_source
     true
   end
 
@@ -62,7 +65,7 @@ module BinaryRulesLoad
 
   module Requires
     def require_relative(name)
-      origin = caller_locations(1, 1).first.path
+      origin = File.expand_path(caller_locations(1, 1).first.path)
       if origin.start_with?(BinaryRulesLoad::ROOT + "/")
         path = File.expand_path(name, File.dirname(origin))
         path += ".rb" unless path.end_with?(".rb")
@@ -105,7 +108,8 @@ GameRoomBotNames::NAMES.each do |token, name|
     raise "Binary lobby bot announcement lost name" unless global.valid_encoding? && global.include?(name) && !global.include?("komputer")
   end
 end
-raise "Lost games during binary loading" unless registry.ids.length == 28
+raise "Lost games during binary loading" unless registry.ids.length == 29
+raise "Audio Ball was not loaded from binary sources" unless registry.ids.include?("audio_ball")
 raise "Quiz Party was not loaded from binary sources" unless registry.ids.include?("quiz")
 %w[quiz.general.en quiz.wikidata.pl quiz.witcher.pl quiz.witcher.g.pl quiz.witcher.b.pl].each do |id|
   pack = GameRoomContent.registry.pack(id)

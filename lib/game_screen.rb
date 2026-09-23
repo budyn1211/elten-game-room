@@ -465,7 +465,7 @@ class GameScreen
       end
       actions
     end, game: @game, options: @game.options_from_json(@session["options"]),
-      pong_settings: @game.id == 'axel_pong' && @game_client.respond_to?(:show_settings) ? -> { @game_client.show_settings } : nil,
+      settings: %w[axel_pong audio_ball].include?(@game.id) && @game_client.respond_to?(:show_settings) ? -> { @game_client.show_settings } : nil,
       read_options: -> {
       source = replay.finished? ? @room_snapshot&.table.to_h["game_options"] : @session["options"]
       speak(@game.table_options_announcement(@game.options_from_json(source)))

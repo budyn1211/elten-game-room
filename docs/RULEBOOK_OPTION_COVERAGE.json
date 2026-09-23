@@ -1,4 +1,5 @@
 {
+  "audio_ball": { "mode": "court", "difficulty": "pace", "sets_to_win": "match" },
   "axel_pong": { "arcade": "arcade", "team_size": "doubles", "difficulty": "difficulty", "target": "rally" },
   "battleship": { "fleet": "fleet", "touching": "fleet" },
   "mancala": { "variant": "board", "stones": "board", "skill": "computer", "capture": "kalah" },

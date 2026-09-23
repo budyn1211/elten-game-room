@@ -1,0 +1,159 @@
+{
+  "source": "games/audio_ball.rb",
+  "sections": [
+    {
+      "id": "court",
+      "title": {
+        "en": "Three shots, one opponent",
+        "pl": "Trzy uderzenia, jeden przeciwnik"
+      },
+      "paragraphs": [
+        {
+          "en": "Audio Ball is an audio game for exactly two players, one against one. Play another person or a bot. Classic is currently the only mode. You score a point when the opponent fails to defend your shot. Headphones help you follow the ball and distinguish the three shot sounds.",
+          "pl": "Audio Ball to gra dźwiękowa dla dokładnie dwóch graczy, jeden na jednego. Możesz zagrać z drugą osobą albo z botem. Obecnie dostępny jest tylko tryb Klasyczny. Zdobywasz punkt, gdy przeciwnik nie obroni Twojego uderzenia. Słuchawki pomagają śledzić piłkę i rozróżniać dźwięki trzech rodzajów uderzeń."
+        },
+        {
+          "en": "The playing area is 25 steps wide. By default, each player hears their own end on the right and the opponent's end on the left. You can reverse your listening perspective in the personal settings without changing the opponent's sound.",
+          "pl": "Pole gry ma szerokość 25 kroków. Domyślnie każdy gracz słyszy własny koniec po prawej, a koniec przeciwnika po lewej. Możesz odwrócić własną perspektywę odsłuchu w ustawieniach osobistych, nie zmieniając dźwięku u przeciwnika."
+        }
+      ]
+    },
+    {
+      "id": "shots",
+      "title": {
+        "en": "Choose a lane, defend, then hit",
+        "pl": "Wybierz tor, obroń i uderz"
+      },
+      "paragraphs": [
+        {
+          "en": "There are three lanes, one for each shot sound. After the opponent hits a new ball, Up arrow or W selects the first lane, Left arrow or D the second, and Down arrow or S the third. You only need to press once for that incoming flight. After releasing the key, you stay in the selected lane. If the ball matches that lane, you defend automatically when it is no more than two steps from your end. You do not need to hold the key or press it again at contact.",
+          "pl": "Są trzy tory, po jednym dla każdego dźwięku piłki. Po nowym uderzeniu przeciwnika strzałka w górę albo W wybiera pierwszy tor, strzałka w lewo albo D drugi, a strzałka w dół albo S trzeci. Wystarczy jedno naciśnięcie dla tego nadlatującego zagrania. Po puszczeniu klawisza pozostajesz na wybranym torze. Jeśli piłka pasuje do tego toru, bronisz automatycznie, gdy znajduje się najwyżej dwa kroki od Twojego końca. Nie trzeba trzymać klawisza ani naciskać go ponownie przy kontakcie."
+        },
+        {
+          "en": "Every new incoming hit clears the previous defensive choice. You must press a lane key again even when the opponent repeats exactly the same shot. Without that new press, the ball passes you. Your previous defence, your own attack, a key already held down, or a choice made before the opponent hits do not arm the next defence. During the current flight, the latest accepted choice replaces the previous one. If you are in the wrong lane, you can still change it before the ball passes.",
+          "pl": "Każde nowe uderzenie przeciwnika zeruje poprzedni wybór obrony. Musisz ponownie nacisnąć klawisz toru, nawet jeśli przeciwnik powtarza dokładnie takie samo zagranie. Bez tego nowego naciśnięcia piłka Cię mija. Poprzednia obrona, własny atak, już trzymany klawisz ani wybór sprzed uderzenia przeciwnika nie przygotowują następnej obrony. Podczas bieżącego lotu ostatni zaakceptowany wybór zastępuje poprzedni. Jeśli stoisz na złym torze, możesz go jeszcze zmienić, zanim piłka Cię minie."
+        },
+        {
+          "en": "After defending, you hold the ball. Press Right arrow or A to prepare, then press one of the three shot keys to hit. The server must also prepare before serving. A defence only catches the ball: it does not automatically send it back. An attack does not select the lane for a later incoming ball. Keep focus on the Audio Ball playfield when using these controls. Each new attack needs a fresh press; a selected defensive lane or a key still held after preparation does not hit automatically.",
+          "pl": "Po obronie masz piłkę. Naciśnij strzałkę w prawo albo A, aby się przygotować, a potem jeden z trzech klawiszy uderzenia. Serwujący także musi przygotować się przed serwisem. Obrona tylko przechwytuje piłkę, nie odsyła jej automatycznie. Atak nie wybiera toru obrony na późniejszą nadlatującą piłkę. Aby sterować, pozostaw fokus na polu gry Audio Ball. Każdy nowy atak wymaga osobnego naciśnięcia; wybrany tor obrony ani klawisz nadal trzymany po przygotowaniu nie uderzają automatycznie."
+        }
+      ]
+    },
+    {
+      "id": "pace",
+      "title": {
+        "en": "Ball speed and holding the ball",
+        "pl": "Prędkość piłki i czas na uderzenie"
+      },
+      "paragraphs": [
+        {
+          "en": "Difficulty and ball speed offers Easy, Normal and Hard; Normal is the default. The first flight takes 1.5 seconds on Easy, 1.2 seconds on Normal and 0.9 seconds on Hard. Each later shot in the rally increases speed by 10 percent on Easy and Normal, or 8 percent on Hard. A new point returns to the initial speed.",
+          "pl": "Opcja Trudność i prędkość piłki oferuje poziomy Łatwy, Normalny i Trudny; domyślny jest Normalny. Pierwszy lot trwa 1,5 sekundy na poziomie Łatwym, 1,2 sekundy na Normalnym i 0,9 sekundy na Trudnym. Każde kolejne uderzenie w wymianie zwiększa prędkość o 10 procent na poziomach Łatwym i Normalnym albo o 8 procent na Trudnym. Nowy punkt przywraca początkową prędkość."
+        },
+        {
+          "en": "You have unlimited time while holding the ball, before a serve or after a defence, unless the opponent presses Ctrl+W. That warning gives the holder ten seconds to actually hit the ball. Preparing does not cancel the warning or restart its timer; only hitting does. If time runs out, the opponent receives a point. Repeated warnings do not extend the active deadline. Observers cannot hurry either player.",
+          "pl": "Gdy masz piłkę przed serwisem albo po obronie, czas na uderzenie jest nieograniczony, dopóki przeciwnik nie naciśnie Ctrl+W. To ostrzeżenie daje posiadaczowi piłki dziesięć sekund na rzeczywiste uderzenie. Samo przygotowanie nie anuluje ostrzeżenia ani nie rozpoczyna odliczania od nowa; robi to dopiero uderzenie. Po upływie czasu punkt otrzymuje przeciwnik. Ponowne ostrzeżenia nie przedłużają trwającego odliczania. Obserwatorzy nie mogą ponaglać graczy."
+        }
+      ]
+    },
+    {
+      "id": "match",
+      "title": {
+        "en": "Service, sets and victory",
+        "pl": "Serwis, sety i zwycięstwo"
+      },
+      "paragraphs": [
+        {
+          "en": "The first server is chosen at random once for the match, also against a bot. Service changes after every two completed points. This two-point sequence continues between sets and at deuce; it never changes to one serve each.",
+          "pl": "Pierwszy serwujący jest losowany raz na cały mecz, także w grze z botem. Serwis zmienia się co dwa rozegrane punkty. Ten dwupunktowy cykl trwa również między setami i przy grze na przewagi; nigdy nie zmienia się na jeden serwis na osobę."
+        },
+        {
+          "en": "Every set requires at least 7 points and a two-point lead. At 6:6, 7:6 is not enough; 8:6 wins the set. Sets to win can be 1, 2 or 3, with 1 as the default. The first player to win that many sets wins the match. Points start at zero in the next set, while won sets remain. The final set's score stays available after the match.",
+          "pl": "Każdy set wymaga co najmniej 7 punktów i dwóch punktów przewagi. Przy stanie 6:6 wynik 7:6 nie wystarczy; 8:6 kończy set. Liczba setów potrzebnych do zwycięstwa może wynosić 1, 2 albo 3; domyślnie jest to 1. Mecz wygrywa gracz, który jako pierwszy wygra wybraną liczbę setów. W kolejnym secie punkty zaczynają się od zera, a wygrane sety pozostają. Wynik punktowy ostatniego seta jest dostępny również po meczu."
+        },
+        {
+          "en": "There is a five-second break between sets. The game announces the first set, second set and later sets, together with the server. Shift+S reads points and won sets; T reads the server and connection status. Unfinished Audio Ball matches cannot be saved.",
+          "pl": "Między setami jest pięć sekund przerwy. Gra zapowiada pierwszy, drugi i kolejne sety oraz serwującego. Shift+S odczytuje punkty i wygrane sety, a T podaje serwującego i stan połączenia. Niedokończonego meczu Audio Ball nie można zapisać."
+        },
+        {
+          "en": "Goals use Axel Pong goal effects and goal-announcer recordings. The recorded score introduction is followed by your number and the opponent's number, without overlapping the voices. Scores from 0 to 21 use Pong recordings; if either score is higher or a required recording is missing, Elten speech reads the complete score instead. Observers hear the table's player order. Ordinary points have a 5.7-second restart pause; the break between sets remains five seconds. Set and match information is announced without making gameplay depend on a speech completion callback.",
+          "pl": "Gole korzystają z efektów bramki i nagrań komentatora z Axel Ponga. Po nagranej zapowiedzi wyniku odtwarzana jest Twoja liczba, a potem liczba przeciwnika, bez nakładania głosów. Wyniki od 0 do 21 korzystają z nagrań Ponga; jeśli którykolwiek wynik jest wyższy albo brakuje potrzebnego nagrania, synteza Eltena odczytuje cały wynik. Obserwator słyszy kolejność graczy ze stołu. Po zwykłym punkcie przerwa przed wznowieniem wynosi 5,7 sekundy, a przerwa między setami nadal pięć sekund. Informacje o setach i meczu są ogłaszane bez uzależniania rozgrywki od sygnału zakończenia syntezy."
+        }
+      ]
+    },
+    {
+      "id": "personal",
+      "title": {
+        "en": "Your listening side",
+        "pl": "Twoja strona odsłuchu"
+      },
+      "paragraphs": [
+        {
+          "en": "Ctrl+P and Audio Ball settings in the table menu open your personal settings before or during a match. Right is the default: your attacks travel from right to left and incoming balls from left to right. Choose Left to reverse both flight and preparation sounds only for you. The change is saved locally and does not alter player identities, controls, scores or table rules.",
+          "pl": "Ctrl+P oraz pozycja Ustawienia Audio Ball w menu stołu otwierają Twoje ustawienia osobiste przed meczem i w jego trakcie. Domyślna jest prawa strona: atakujesz od prawej do lewej, a piłka nadlatuje z lewej do prawej. Wybierz lewą stronę, aby odwrócić dźwięki lotu i przygotowania tylko u siebie. Zmiana jest zapisywana lokalnie i nie zmienia graczy, sterowania, wyników ani zasad stołu."
+        },
+        {
+          "en": "Save keeps the selected listening side for future matches; Cancel preserves the previous setting. The match continues while the settings window is open. A defence already armed for the current ball remains active, but a new opponent hit requires a new playfield press. Dialog keys do not arm or change a defence. Close the window to return to the playfield controls.",
+          "pl": "Zapisz zachowuje wybraną stronę odsłuchu na kolejne mecze; Anuluj pozostawia poprzednie ustawienie. Mecz trwa podczas otwarcia okna ustawień. Obrona już wybrana dla bieżącej piłki pozostaje aktywna, ale nowe uderzenie przeciwnika wymaga nowego naciśnięcia na polu gry. Klawisze okna nie wybierają ani nie zmieniają obrony. Zamknij okno, aby wrócić do sterowania na polu gry."
+        }
+      ]
+    },
+    {
+      "id": "controls",
+      "title": {
+        "en": "Audio Ball keyboard shortcuts",
+        "pl": "Skróty klawiszowe Audio Ball"
+      },
+      "paragraphs": [
+        {
+          "en": "Up arrow: select the first lane for this incoming ball, or make the first shot after preparing.",
+          "pl": "Strzałka w górę: wybierz pierwszy tor dla tej nadlatującej piłki lub wykonaj pierwszy rodzaj uderzenia po przygotowaniu."
+        },
+        {
+          "en": "W: select the first lane for this incoming ball, or make the first shot after preparing.",
+          "pl": "W: wybierz pierwszy tor dla tej nadlatującej piłki lub wykonaj pierwszy rodzaj uderzenia po przygotowaniu."
+        },
+        {
+          "en": "Left arrow: select the second lane for this incoming ball, or make the second shot after preparing.",
+          "pl": "Strzałka w lewo: wybierz drugi tor dla tej nadlatującej piłki lub wykonaj drugi rodzaj uderzenia po przygotowaniu."
+        },
+        {
+          "en": "D: select the second lane for this incoming ball, or make the second shot after preparing.",
+          "pl": "D: wybierz drugi tor dla tej nadlatującej piłki lub wykonaj drugi rodzaj uderzenia po przygotowaniu."
+        },
+        {
+          "en": "Down arrow: select the third lane for this incoming ball, or make the third shot after preparing.",
+          "pl": "Strzałka w dół: wybierz trzeci tor dla tej nadlatującej piłki lub wykonaj trzeci rodzaj uderzenia po przygotowaniu."
+        },
+        {
+          "en": "S: select the third lane for this incoming ball, or make the third shot after preparing.",
+          "pl": "S: wybierz trzeci tor dla tej nadlatującej piłki lub wykonaj trzeci rodzaj uderzenia po przygotowaniu."
+        },
+        {
+          "en": "Right arrow: prepare to serve or to hit after defending.",
+          "pl": "Strzałka w prawo: przygotuj się do serwisu lub uderzenia po obronie."
+        },
+        {
+          "en": "A: prepare to serve or to hit after defending.",
+          "pl": "A: przygotuj się do serwisu lub uderzenia po obronie."
+        },
+        {
+          "en": "Shift+S: read points and won sets.",
+          "pl": "Shift+S: odczytaj punkty i wygrane sety."
+        },
+        {
+          "en": "T: read the server and connection status.",
+          "pl": "T: odczytaj serwującego i stan połączenia."
+        },
+        {
+          "en": "Ctrl+W: give the opponent holding the ball ten seconds to hit.",
+          "pl": "Ctrl+W: daj przeciwnikowi, który ma piłkę, dziesięć sekund na uderzenie."
+        },
+        {
+          "en": "Ctrl+P: choose your listening side.",
+          "pl": "Ctrl+P: wybierz swoją stronę odsłuchu."
+        }
+      ]
+    }
+  ]
+}

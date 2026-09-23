@@ -1073,6 +1073,7 @@ module GameSurfaces
 
   require_relative "game_surfaces/command_panel"
   require_relative "game_surfaces/pong_surface"
+  require_relative "game_surfaces/audio_ball_surface"
   require_relative "game_surfaces/pawn_track"
   require_relative "game_surfaces/piece_board"
   require_relative "game_surfaces/dice_tray"
@@ -1311,6 +1312,8 @@ module GameSurfaces
       CommandPanel.new(spec, state: state)
     when PongSpec
       PongSurface.new(spec, state: state)
+    when AudioBallSpec
+      AudioBallSurface.new(spec, state: state)
     when PawnTrackSpec
       PawnTrackSurface.new(spec, state: state)
     when PieceBoardSpec

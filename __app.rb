@@ -69,7 +69,11 @@
       "pong_echo_noise_left",
       "pong_echo_noise_right",
       "pong_echo_tone_left",
-      "pong_echo_tone_right"
+      "pong_echo_tone_right",
+      "audio_ball_up",
+      "audio_ball_left",
+      "audio_ball_down",
+      "audio_ball_prepare"
     ]
   }
 }
@@ -84,6 +88,7 @@ require_relative "lib/table_activity_repository"
 require_relative "lib/game_rules"
 require_relative "lib/game_room_changelog"
 require_relative "lib/game_room_screens"
+require_relative "lib/audio_ball/settings"
 require_relative "lib/invitation_repository"
 require_relative "lib/invitation_notifications"
 require_relative "lib/table_watch_runtime"
@@ -147,6 +152,7 @@ require_relative "games/battleship"
 require_relative "games/mancala"
 require_relative "games/krowa"
 require_relative "games/axel_pong"
+require_relative "games/audio_ball"
 require_relative "games/krowa_support/server_schema"
 require_relative "games/registry"
 
@@ -229,7 +235,8 @@ class EltenGameRoom < Program
     GameRoomGames::Battleship,
     GameRoomGames::Mancala,
     GameRoomGames::Krowa,
-    GameRoomGames::AxelPong
+    GameRoomGames::AxelPong,
+    GameRoomGames::AudioBall
   ])
 
   DEFAULT_SETTINGS = GameRoomPreferences.defaults(GAME_REGISTRY.ids).freeze
@@ -1453,7 +1460,10 @@ class EltenGameRoom < Program
           )
       end, game: state.game, options: state.game&.options_from_json(row["game_options"]),
         read_options: -> { announce_table_options(state.game, row) },
-        pong_settings: state.game&.id == 'axel_pong' ? -> { show_pong_settings } : nil, &dispatch)
+        settings: case state.game&.id
+        when 'axel_pong' then -> { show_pong_settings }
+        when 'audio_ball' then -> { show_audio_ball_settings }
+        end, &dispatch)
       form.add_timer(FormTimer.new(GameScreen::TIMER_INTERVAL, repeat: true) do
         next if action != nil
 
@@ -2025,6 +2035,7 @@ class EltenGameRoom < Program
   def game_room_settings(reload: false)
     if reload || @game_room_settings == nil
       @pong_preferences = nil
+      @audio_ball_preferences = nil
       stored = read_json("settings.json", default: DEFAULT_SETTINGS.dup)
       @game_room_settings = GameRoomPreferences.normalize(stored, GAME_REGISTRY.ids)
     end
@@ -2046,6 +2057,21 @@ class EltenGameRoom < Program
     end
     @game_room_settings = game_room_settings.merge('pong' => updated)
     @pong_preferences = updated.freeze
+  end
+
+  def audio_ball_preferences
+    @audio_ball_preferences ||= GameRoomAudioBall::Preferences.normalize(game_room_settings['audio_ball']).freeze
+  end
+
+  def show_audio_ball_settings(tick: nil, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) })
+    updated = GameRoomAudioBall::Settings.new(audio_ball_preferences, program: self, tick: tick, clock: clock).wait
+    return unless updated
+    update_json('settings.json', default: DEFAULT_SETTINGS.dup) do |state|
+      state['audio_ball'] = updated
+      state
+    end
+    @game_room_settings = game_room_settings.merge('audio_ball' => updated)
+    @audio_ball_preferences = updated.freeze
   end
 
   def build_widget_control

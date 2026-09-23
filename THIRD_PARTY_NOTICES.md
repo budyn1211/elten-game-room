@@ -24,6 +24,28 @@ scalenia PR-ów na GitHubie. Źródła pomocnicze i zakres zmian opisuje
 
 ## Dźwięki
 
+### Audio Ball
+
+Cztery nagrania pochodzą z dostarczonych przez użytkownika podglądów
+Freesound `preview-hq-ogg`, z dołączonymi informacjami licencyjnymi:
+
+- `Audio/audio_ball_up.opus` — „BallHit.wav”, **minerjr**, https://freesound.org/s/89977/, licencja **CC BY 3.0**, https://creativecommons.org/licenses/by/3.0/.
+- `Audio/audio_ball_left.opus` — „PlasticBall_In_Cooler_11”, **loganzsound**, https://freesound.org/s/774205/, licencja **CC0 1.0**, https://creativecommons.org/publicdomain/zero/1.0/.
+- `Audio/audio_ball_down.opus` — „Boulder Roll”, **sound368**, https://freesound.org/s/807186/, licencja **CC0 1.0**, https://creativecommons.org/publicdomain/zero/1.0/.
+- `Audio/audio_ball_prepare.opus` — „auto real older car door close rattly.wav”, **kyles**, https://freesound.org/s/452549/, licencja **CC0 1.0**, https://creativecommons.org/publicdomain/zero/1.0/.
+
+Zmiany: nadano nazwy zasobów gry i przekodowano podglądy Vorbis do Ogg Opus,
+144 kb/s VBR, 48 kHz, ramki 20 ms, libopus audio, complexity 10. Nagranie
+minerjr przepróbkowano z 44,1 kHz, zachowując mono. Nagrania loganzsound
+oraz sound368 zmiksowano ze stereo do mono jako 0,5 L + 0,5 R, aby uzyskać
+jednoznaczną panoramę poruszającej się piłki. Przygotowanie zachowało mono
+oraz 48 kHz. Bez przycinania, normalizacji lub zmiany wysokości. Oryginały
+pozostają niezmienione poza repozytorium. Informacje o autorstwie nie
+oznaczają poparcia gry przez autorów. Szczegóły pomiarów i sum kontrolnych
+zapisano w dokumentacji rozwojowej `docs/AUDIO_BALL_SOUND_LICENSES.md`.
+
+### Wcześniejsze zasoby
+
 21 września 2026 r. ujednolicono wszystkie 123 nagrania do Ogg Opus
 144 kb/s VBR (48 kHz, ramki 20 ms, libopus audio, complexity 10).
 Trzy podkłady Krowy miały już te parametry; pozostałe 120 plików
