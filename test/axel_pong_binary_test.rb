@@ -2,6 +2,10 @@
 # All imported suites consequently exercise binary sources/the supplied package,
 # including the real ELTEN dictionary and its no-argument shuffle overrides.
 require_relative 'axel_pong_ui_test'
+# The UI suite restores the Polish host dictionary. The protocol/physics suites
+# below use English expectations; select English for host and app translations.
+$rules_english = true
+GameRoomTestLocalization.use_language(:en)
 require_relative 'axel_pong_engine_test'
 require_relative 'realtime_protocol_test'
 require_relative 'realtime_channel_test'

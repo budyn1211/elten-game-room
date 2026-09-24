@@ -59,6 +59,7 @@ class GameRoomLiveSessionStore
     @resolved_invitations = {}
     @private_game_messages = Hash.new { |hash, key| hash[key] = [] }
     @mutex = Mutex.new
+    @callback_dispatch_mutex = Mutex.new
   end
 
   def start
@@ -66,6 +67,24 @@ class GameRoomLiveSessionStore
     current = endpoint
     current.sessions.to_a.each { |session| attach_supported_session(session) } if current.respond_to?(:sessions)
     true
+  end
+
+  # ELTEN keeps protocol I/O running while its main scene is suspended, but
+  # does not dispatch callbacks to a parallel scene. Drain only this already
+  # opened endpoint; never reconnect, poll the server or tick other programs.
+  def dispatch_pending_events
+    return 0 unless @callback_dispatch_mutex.try_lock
+
+    begin
+      current = @mutex.synchronize { @endpoint }
+      return 0 unless current && current.respond_to?(:dispatch_events)
+      return 0 if current.closed?
+
+      # The host also bounds this call to 10 ms and guards native reentrancy.
+      current.dispatch_events(32)
+    ensure
+      @callback_dispatch_mutex.unlock
+    end
   end
 
   # Private live messages never enter the public stack or replay. Consumers

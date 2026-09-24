@@ -127,7 +127,7 @@ spades_settings = settings(GameRoomGames::Spades.new, "team_size" => 2, "team_se
 assert(spades_settings.include?("Teams in seating order: 1, 2, 1, 2"), "team numbers are not one-based")
 
 makao = GameRoomGames::Makao.new
-custom_switches = %w[jokers mixed_draw_cards stack_fours ace_changes_suit jack_requests_rank queen_universal attacking_kings draw_responses]
+custom_switches = %w[jokers mixed_draw_cards stack_fours ace_changes_suit jack_requests_rank queen_universal attacking_kings draw_responses allow_playable_draw]
 assert(makao.option_definitions.select { |item| item.kind == :boolean }.map(&:key).sort == custom_switches.sort, "agreed Makao switches changed")
 makao.option_definitions.each do |definition|
   assert(makao.option_visible?(definition, { "profile" => "custom" }), "Makao custom profile hides #{definition.key}")

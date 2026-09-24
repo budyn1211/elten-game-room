@@ -225,6 +225,10 @@ module GameRoomGames
     # One local client per confirmed game session, including a rematch in the
     # same room. GameScreen closes the previous client before building this one.
     def build_client(_program, **_services); nil; end
+    # Turn-based model/actions can continue behind another native scene. A
+    # realtime client owns its simulation, focus and pause protocol separately.
+    def session_runner?; true; end
+    def build_session_game; self.class.new; end
     def build_start_guard(_program, user:, **_services); nil; end
     def supports_leaderboards?; false; end
     def build_leaderboard_client(_program, **_services); nil; end
@@ -627,6 +631,15 @@ module GameRoomGames
     def automatic_surface_action(_replay, _actor, surface:, context: nil)
       nil
     end
+
+    # Opt in only when a draft can be captured without UI and has an explicit
+    # identity. Never reuse a previous round's unsent answers in a new round.
+    def automatic_surface_identity(_replay); nil; end
+
+    # Most controls describe one exact position. Simultaneous-input games may
+    # keep a choice valid across another player's submission, but must compare
+    # its round/phase identity here. action_for still validates the fresh state.
+    def concurrent_session_input?(_before, _after, _selection); false; end
 
     # Timer announcements are local UI cues. A stable key lets the screen say
     # each cue once without writing cosmetic events to the shared game log.

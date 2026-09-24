@@ -557,6 +557,16 @@ module GameRoomGames
       surface.submission_action
     end
 
+    def automatic_surface_identity(replay)
+      [round_id(replay.state), replay.state[:phase]]
+    end
+
+    def concurrent_session_input?(before, after, selection)
+      selection["kind"].to_s == "answer_sheet" && selection["action"].to_s == "submit" &&
+        before.state[:phase] == :answering && after.state[:phase] == :answering &&
+        round_id(before.state) == round_id(after.state)
+    end
+
     def timer_announcements(replay, viewer, now: nil)
       state = replay.state
       now ||= GameRoomSessionClock.for_state(state).to_i

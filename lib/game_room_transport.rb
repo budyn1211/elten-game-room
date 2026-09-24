@@ -1,6 +1,7 @@
 require_relative "game_participants"
 require_relative "live_session_store"
 require "json"
+require_relative "game_session_feed"
 require "securerandom"
 
 class GameRoomTransport
@@ -667,6 +668,7 @@ class GameRoomTransport
     @pending_recoveries = {}
     @newly_joined = {}
     @seen_packets = {}
+    @session_feeds = {}
     @mutex = Mutex.new
   end
 
@@ -679,6 +681,24 @@ class GameRoomTransport
 
   def live_store?
     @live_store != nil
+  end
+
+  def dispatch_pending_events
+    @live_store ? @live_store.dispatch_pending_events : 0
+  end
+
+  def subscribe_game_session(table_id)
+    feed = GameRoomSessionFeed.new(self, table_id)
+    @mutex.synchronize { ((@session_feeds ||= {})[table_id.to_i] ||= []) << feed }
+    feed
+  end
+
+  def unsubscribe_game_session(table_id, feed)
+    @mutex.synchronize do
+      feeds = (@session_feeds || {})[table_id.to_i]
+      feeds&.delete(feed)
+      @session_feeds.delete(table_id.to_i) if feeds&.empty?
+    end
   end
 
   def reconcile(table_id)
@@ -1078,6 +1098,7 @@ class GameRoomTransport
       when :table
         @pending_table_changes[table_id.to_i] = true
       end
+      (@session_feeds || {}).fetch(table_id.to_i, []).each { |feed| feed.notify(kind, value) }
     end
   end
 

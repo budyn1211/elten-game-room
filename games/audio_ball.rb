@@ -17,6 +17,7 @@ module GameRoomGames
     def name; _('Audio Ball'); end
     def supports_bots?; true; end
     def supports_bot_move_delay?; false; end
+    def session_runner?; false; end
     def supports_saved_games?; false; end
     def shortcut_features; []; end
 

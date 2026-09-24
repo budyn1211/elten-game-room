@@ -235,6 +235,12 @@ module GameRoomGames
       !replay.finished? && same_user?(actor, replay.players.first) && makao_deadline_reached?(replay.state, context&.now)
     end
 
+    def concurrent_session_input?(before, after, selection)
+      selection["kind"].to_s == "command" && selection["action"].to_s == "makao" &&
+        before.state[:phase] == :playing && after.state[:phase] == :playing &&
+        before.state[:seed] == after.state[:seed]
+    end
+
     def actions_during_bot_turn?
       true
     end
@@ -822,6 +828,7 @@ module GameRoomGames
 
     def joker_choice?(choice)
       text = choice.to_s
+      return false if text.empty?
       card, request = text.split(":", 2)
       card.length == 2 && RANKS.include?(card[0]) && SUITS.include?(card[1]) &&
         (request == nil || (card[0] == "J" && rank_request?(request)))

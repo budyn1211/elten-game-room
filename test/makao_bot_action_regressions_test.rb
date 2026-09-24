@@ -91,3 +91,28 @@ fresh = game.send(:initial_state, players, game.default_options)
 assert(game.send(:table_text, fresh) == "No card has been dealt yet.", "C announces an empty declared suit before the deal")
 
 puts "Makao bot-turn, joker, packet, catch-priority and pre-deal regressions passed"
+
+# A real foreground match with the joker profile reached J + joker packets.
+# An empty choice is intentional for an ordinary jack without rank requests;
+# it is not itself a joker identity. Generating Z/F1 must never raise here.
+[nil, '', ':', ':5', 'A', 'XXX', 'JH:K'].each do |choice|
+  assert(!game.send(:joker_choice?, choice), "invalid joker choice accepted: #{choice.inspect}")
+end
+%w[2C TH AD JH:5].each do |choice|
+  assert(game.send(:joker_choice?, choice), "valid joker identity rejected: #{choice}")
+end
+GameRoomGames::Makao::RANKS.each do |rank|
+  state = playing_makao_state(game, players, {'profile'=>'joker'}, current:'Alice',
+    hands:{'Alice'=>["#{rank}S", 'X1', '6C'], bot=>['4D']},top:'TS')
+  replay = makao_replay(state)
+  before = Marshal.dump(state)
+  actions = game.legal_actions(replay,'Alice')
+  assert(!actions.empty?, "joker profile has no actions for #{rank}")
+  game.playable_card_navigation(replay,'Alice')
+  assert(Marshal.dump(state) == before, "joker navigation mutated the hand for #{rank}")
+  actions.select { |a| a['action'] == 'play' }.each do |action|
+    status, = game.action_for(action,replay,'Alice',context:context_for)
+    assert(status == :ok, "enumerated joker packet rejected: #{action.inspect}, #{status}")
+  end
+end
+puts 'PASS Makao: empty/nil joker choice, ordinary jack + joker, all ranks and navigation without mutation'

@@ -1,6 +1,4 @@
-def _(text)
-  text
-end
+require_relative "support/ui"
 
 def assert(condition, message)
   raise message if !condition
@@ -33,11 +31,6 @@ class Program
     raise "Access detection must not special-case the author"
   end
 end
-
-class Form; end
-class GridBox; end
-class ListBox; end
-class EditBox; end
 
 module Log
   def self.warning(_message); end

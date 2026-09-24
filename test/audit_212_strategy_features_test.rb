@@ -10,7 +10,9 @@ def choose_audit(game, state, actor)
 end
 
 farkle = GameRoomGames::Farkle.new
-st = farkle.send(:initial_state,%w[A B],farkle.normalize_options('score_limit'=>1000,'entry_minimum'=>0,'turn_minimum'=>0))
+# Under the current final-circuit rule reaching the limit is only a certain
+# victory for the last seat. A first-seat threshold crossing leaves a reply.
+st = farkle.send(:initial_state,%w[B A],farkle.normalize_options('score_limit'=>1000,'entry_minimum'=>0,'turn_minimum'=>0))
 st.update(phase: :selecting,current_player:'A',last_roll:[1,2,2,2,5,6],turn_points:0,dice_to_roll:6)
 st[:scores]['A']=970
 choice=choose_audit(farkle,st,'A')

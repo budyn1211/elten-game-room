@@ -127,7 +127,9 @@ class Form
   end
   alias five_games_original_wait wait
   def wait
-    self.class.on_wait ? self.class.on_wait.call(self) : five_games_original_wait
+    # The application now creates a GameRoomUI::Form subclass. The test driver
+    # belongs to Form, not to the subclass's separate class-instance variables.
+    Form.on_wait ? Form.on_wait.call(self) : five_games_original_wait
   end
   def resume; end
 end

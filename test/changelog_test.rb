@@ -305,4 +305,20 @@ assert(GameRoomChangelog.pending_entries(236, 237).map(&:build) == [237], 'build
 assert(GameRoomChangelog.pending_entries(237, 237).empty?, 'build 237 changelog reopens after being read')
 assert(GameRoomChangelog.list_items([entry_237]).first == 'Version 2.0.3, build 237', 'build 237 heading differs')
 
-puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, old notes preserved and bilingual build 237 notes"
+entry_238 = entries.find { |entry| entry.build == 238 }
+assert(entry_238.version == '2.0.3.1' && entry_238.changes.length == 8 && entry_238.changes.uniq.length == 8,
+  'build 238 must contain seven approved changes and the arcade exception')
+assert(entry_238.changes.all? { |text| !catalog[text].to_s.empty? }, 'build 238 has an untranslated change')
+assert(GameRoomChangelog.pending_entries(237, 238).map(&:build) == [238], 'build 238 repeats older changes')
+assert(GameRoomChangelog.pending_entries(nil, 238).map(&:build) == [238], 'first build 238 launch repeats history')
+assert(GameRoomChangelog.pending_entries(238, 238).empty?, 'build 238 reopens after being read')
+assert(GameRoomChangelog.list_items([entry_238]).first == 'Version 2.0.3.1, build 238', 'build 238 heading differs')
+document_238 = File.read(File.expand_path('../docs/CHANGELOG_2_0_3_1.md', __dir__), encoding: 'UTF-8')
+assert(document_238.start_with?('# Game Room 2.0.3.1 — build 238'), 'build 238 document heading differs')
+polish_238, english_238 = document_238.split('## English', 2)
+[polish_238, english_238].zip([entry_238.changes.map { |text| catalog.fetch(text) }, entry_238.changes]).each do |section, expected|
+  actual = section.lines.grep(/^- /).map { |line| line.delete_prefix('- ').strip }
+  assert(actual == expected.take(7) && section.strip.end_with?(expected.last), 'build 238 approved text or arcade note changed')
+end
+
+puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, old notes preserved and bilingual build 238 notes"

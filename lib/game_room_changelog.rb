@@ -251,6 +251,20 @@ module GameRoomChangelog
         "The table master can change another person's player or observer role from the Users list context menu. During a match, this changes only who will play in the next game.",
         "Starting, ending or restarting a game no longer moves you away from chat, history or the Users list. Chat drafts, text selection and the reading position are preserved."
       ].freeze
+    ).freeze,
+    Entry.new(
+      version: "2.0.3.1",
+      build: 238,
+      changes: [
+        "Game Room now keeps regular games running while you use other ELTEN windows, such as Messages or the forum. Opponents' moves, bot actions and turn timers no longer wait for you to return to the game.",
+        "Game announcements and sounds also reach you while another window covers the game. This includes the waiting room: participants joining and leaving, the start of a game and the table closing.",
+        "Fixed updates when Game Room is opened from another window, such as a conference. Previously, the game could show subsequent moves only after you sent a chat message.",
+        "Returning to the table preserves your chat draft, cursor position and selected field. Events announced while you were in another window are not announced again.",
+        "Reduced interface stalls when receiving new-table notifications for subscribed games. Existing filters, volume settings and removal of outdated notifications are preserved.",
+        "Fixed a rare Makao error with jokers enabled that could interrupt the game while checking available plays.",
+        "Added missing Polish messages, including the notice that Daily Krowa requires a private table.",
+        "Axel Pong and Audio Ball still pause when you switch to another ELTEN window: their controls require the game field to be active. The background-play changes apply to the other games."
+      ].freeze
     ).freeze
   ].freeze
 

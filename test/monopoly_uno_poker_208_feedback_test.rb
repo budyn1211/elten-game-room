@@ -92,8 +92,17 @@ poker = GameRoomGames::Poker.new
 check.call("Monopoly: bot permits useful trades but stops after an offer and remembers rejection") do
   state = initial(monopoly)
   state[:owners].merge!(1 => "Alice", 3 => "Bob", 6 => "Alice", 8 => "Bob", 9 => "Bob")
-  action = { "action" => "trade_offer", "offer" => "1|6|3|0|0" }
-  assert(monopoly.bot_action_score(view(state), "Alice", action) > 100, "Mutually beneficial group completion is ignored")
+  # Completing both groups does not make the bare exchange fair: Alice gives
+  # away the more valuable last light-blue deed. Current valuation correctly
+  # rejects that loss; compensation makes the gains positive for both sides.
+  bare = { "action" => "trade_offer", "offer" => "1|6|3|0|0" }
+  roll_score = monopoly.bot_action_score(view(state), "Alice", { "action" => "roll" })
+  assert(monopoly.bot_action_score(view(state), "Alice", bare) < roll_score, "Bot gives away a valuable group blocker without compensation")
+  value = monopoly.send(:encode_trade_offer, target: 1, give_property: 6, receive_property: 3, receive_cash: 300)
+  action = { "action" => "trade_offer", "offer" => value }
+  offer = monopoly.send(:parse_trade_offer, state, value).merge(from: "Alice")
+  assert(%w[Alice Bob].all? { |player| monopoly.send(:trade_gain, state, offer, player) > 0 }, "Trade fixture is not mutually beneficial")
+  assert(monopoly.bot_action_score(view(state), "Alice", action) > roll_score, "Mutually beneficial group completion is ignored")
   assert(monopoly.send(:apply_trade, state, { "id" => 1, "action" => "trade_offer", "value" => action["offer"] }, "Alice", repo, []), "Useful offer rejected")
   assert(monopoly.send(:apply_trade, state, { "id" => 2, "action" => "trade_reject" }, "Bob", repo, []), "Cannot reject offer")
   assert(best(monopoly, state)["action"] != "trade_offer", "Bot immediately bombards player with a different offer")

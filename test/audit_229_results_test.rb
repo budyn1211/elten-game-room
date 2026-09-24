@@ -60,10 +60,10 @@ session = {"options"=>JSON.generate(game.default_options)}
 events = [{"id"=>1,"actor"=>"Alice","action"=>"roll","value"=>"1"}]
 replay = game.replay(session, events, repo)
 assert(replay.state[:roll] == nil && replay.current_player == "Bob", "Ludo turn did not advance")
-assert(game.shortcut_feature_data(:last_roll, replay, "Alice")[:message] == "Last roll: 1.", "D forgot passed roll")
+assert(game.shortcut_feature_data(:last_roll, replay, "Alice")[:message] == "Alice, 1.", "D forgot passed roll or its author")
 events << {"id"=>2,"actor"=>"Bob","action"=>"roll","value"=>"6"}
 replay = game.replay(session, events, repo)
-assert(game.shortcut_feature_data(:last_roll, replay, "Alice")[:message] == "Last roll: 6.", "D did not update to opponent's roll")
+assert(game.shortcut_feature_data(:last_roll, replay, "Alice")[:message] == "Bob, 6.", "D did not update to opponent's roll and author")
 fresh = game.replay(session, [], repo)
 assert(game.shortcut_feature_data(:last_roll, fresh, "Alice")[:message] == "The dice have not been rolled.", "new game kept roll")
 puts "PASS audit results: Kalah and 99 winner once/history retained, no false extra turn, Ludo D after pass/new roll/new game"

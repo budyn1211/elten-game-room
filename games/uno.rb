@@ -238,6 +238,15 @@ module GameRoomGames
         turn_deadline_reached?(replay.state, context&.now)
     end
 
+    def concurrent_session_input?(before, after, selection)
+      return false unless before.state[:phase] == :playing && after.state[:phase] == :playing &&
+        before.state[:round] == after.state[:round]
+      action = selection["action"].to_s
+      return true if selection["kind"].to_s == "command" && %w[uno buzz].include?(action)
+      selection["kind"].to_s == "card" && %w[select play].include?(action) &&
+        (after.state[:options]["interceptions"] || after.state[:options]["straights"])
+    end
+
     def active_actors(replay)
       state = replay.state
       return [] if state[:current_player] == nil

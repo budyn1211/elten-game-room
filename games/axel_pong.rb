@@ -133,6 +133,8 @@ module GameRoomGames
       GameRoomPong::Client.new(program, self)
     end
 
+    def session_runner?; false; end
+
     def replay(session, events, repository)
       players = repository.players_for(session)
       owner = session['__insertion_user'].to_s

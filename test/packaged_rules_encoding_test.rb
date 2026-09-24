@@ -242,11 +242,17 @@ binary_notice = Struct.new(:id, :app_uuid, :type, :sender, :metadata).new(73,
   })
 def binary_notice.presentation(**options); options; end
 EltenGameRoom.instance_variable_set(:@table_watch_receiver, binary_receiver)
-EltenGameRoom.define_singleton_method(:normalized_settings) { { "invitation_sounds" => false } }
-raise "Binary receiver rejected server ID" unless binary_receiver.visible?(binary_notice)
-binary_presentation = EltenGameRoom.map_notification(binary_notice)
-raise "Binary notice lost translated text" unless binary_presentation[:title] == "Łucja, 99" && binary_presentation[:body] == "Nowy stół"
-raise "Binary notice lost action" unless binary_presentation[:action] == :open_new_table
+binary_original_settings = EltenGameRoom.method(:normalized_settings)
+begin
+  EltenGameRoom.define_singleton_method(:normalized_settings) { { "invitation_sounds" => false } }
+  raise "Binary receiver rejected server ID" unless binary_receiver.visible?(binary_notice)
+  binary_presentation = EltenGameRoom.map_notification(binary_notice)
+  raise "Binary notice lost translated text" unless binary_presentation[:title] == "Łucja, 99" && binary_presentation[:body] == "Nowy stół"
+  raise "Binary notice lost action" unless binary_presentation[:action] == :open_new_table
+ensure
+  # Keep this notification-only fixture out of subsequent package checks.
+  EltenGameRoom.define_singleton_method(:normalized_settings, binary_original_settings)
+end
 binary_widget_worker = Object.new
 binary_widget_worker.define_singleton_method(:closed?) { false }
 binary_widget = GameRoomWidget::TableList.new(loader: -> { [] }, opener: ->(_) {},

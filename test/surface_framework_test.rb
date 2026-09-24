@@ -1,5 +1,9 @@
 require_relative "support/ui"
 
+# ELTEN defines this alongside Form. The lightweight UI fixture does not run
+# timers here, but the form's timer classification still needs the host type.
+class FormTimer; end unless defined?(FormTimer)
+
 require_relative "../lib/game_surfaces"
 require_relative "../lib/game_layout"
 require_relative "../lib/game_chat_commands"
@@ -960,7 +964,7 @@ room_layout.update_users([room_rows[0], room_rows[2], room_rows[3]])
 assert(room_layout.selected_participant == "bot:7:2" && room_layout.users.index == 1, "removing an earlier row moved the selected identity")
 room_layout.form.index = room_layout.form.fields.index(room_layout.chat)
 room_layout.update(view_spec: layout_spec, history_items: ["started"], user_items: room_rows, users_header: "Players", phase: :active)
-assert(room_layout.focus_location == [:game, 0], "starting a game did not focus its board")
+assert(room_layout.focus_location == [:chat, 0], "starting a game interrupted chat")
 room_layout.form.index = room_layout.form.fields.index(room_layout.chat)
 room_layout.update(view_spec: layout_spec, history_items: ["started", "move"], user_items: room_rows, users_header: "Players", phase: :active)
 assert(room_layout.focus_location == [:chat, 0], "an ordinary game update moved focus away from chat")
@@ -969,7 +973,8 @@ assert([room_layout.chat.text, room_layout.chat.index, room_layout.chat.check] =
 assert(!room_layout.form.fields.include?(room_layout.primary_button) && !room_layout.form.fields.include?(room_layout.restart_button), "active game exposed start/restart")
 room_layout.update(view_spec: layout_spec, history_items: ["finished"], user_items: room_rows, users_header: "Players", phase: :finished, own_table: true)
 assert(room_layout.form.fields == [room_layout.restart_button, room_layout.surface.fields.first, room_layout.chat, room_layout.history, room_layout.users, room_layout.back_button], "finished game order is wrong")
-assert(room_layout.focus_location == [:status, 0], "ending a game did not focus Restart game")
+assert(room_layout.focus_location == [:chat, 0], "ending a game interrupted chat")
+room_layout.form.index = room_layout.form.fields.index(room_layout.restart_button)
 room_layout.form.index += 1
 assert(room_layout.focus_location == [:game, 0], "Tab from Restart game does not reach the final board")
 room_layout.update(view_spec: layout_spec, history_items: ["finished", "chat"], user_items: room_rows, users_header: "Players", phase: :finished, own_table: true)
@@ -1032,7 +1037,8 @@ puts "Room layout and participant menu tests passed"
 room_layout.update(view_spec: empty_view, history_items: [], user_items: room_rows, users_header: "Users", phase: :waiting)
 room_layout.form.index = room_layout.form.fields.index(room_layout.chat)
 room_layout.update(view_spec: empty_view, history_items: [], user_items: room_rows, users_header: "Users", phase: :active)
-assert(room_layout.focus_location == [:users, 0], "game without a surface focused a missing board")
-room_layout.update(view_spec: empty_view, history_items: [], user_items: room_rows, users_header: "Users", phase: :waiting)
+assert(room_layout.focus_location == [:chat, 0], "game without a surface interrupted chat")
+room_layout.update(view_spec: empty_view, history_items: [], user_items: room_rows, users_header: "Users", phase: :waiting, own_table: true)
+room_layout.form.index = room_layout.form.fields.index(room_layout.primary_button)
 room_layout.update(view_spec: answer_layout_spec, history_items: [], user_items: room_rows, users_header: "Users", phase: :active)
 assert(room_layout.form.fields[room_layout.form.index] == room_layout.surface.fields.first, "starting a game with several surface fields did not focus the first one")

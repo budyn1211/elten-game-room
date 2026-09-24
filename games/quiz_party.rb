@@ -383,6 +383,12 @@ module GameRoomGames
       nil
     end
 
+    def concurrent_session_input?(before, after, selection)
+      selection["kind"].to_s == "question" && selection["action"].to_s == "submit" &&
+        before.state[:phase] == :answering && after.state[:phase] == :answering &&
+        question_key(before.state) == question_key(after.state)
+    end
+
     def timer_announcements(replay, viewer, now: nil)
       state = replay.state
       now ||= GameRoomSessionClock.for_state(state).to_i

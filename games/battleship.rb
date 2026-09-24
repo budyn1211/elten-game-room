@@ -174,6 +174,11 @@ module GameRoomGames
       replay.current_player == nil ? [] : [replay.current_player]
     end
 
+    def concurrent_session_input?(before, after, selection)
+      before.state[:phase] == :placing && after.state[:phase] == :placing &&
+        %w[select seal random_fleet].include?(selection['action'].to_s)
+    end
+
     def answerer(state)
       state[:pending] == nil ? nil : opponent(state, state[:pending]["shooter"])
     end

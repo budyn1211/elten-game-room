@@ -351,6 +351,7 @@ EltenGameRoom.contacts_stop
 EltenGameRoom.define_singleton_method(:read_json) do |_path, default:|
   default.merge("invitation_notifications" => "contacts", "invitation_sounds" => false)
 end
+EltenGameRoom.remember_settings(EltenGameRoom.read_json("settings.json", default: EltenGameRoom::DEFAULT_SETTINGS))
 bob = EltenGameRoom.map_notification(FakeNotification.new("Bob"))
 cache = EltenGameRoom.contacts_cache
 assert(cache.instance_variable_get(:@worker).instance_variable_get(:@thread).join(3), "contact read did not finish")
@@ -363,6 +364,7 @@ assert(EltenLink::Contacts.calls == 1, "contact filter queried the server for ev
 EltenGameRoom.define_singleton_method(:read_json) do |_path, default:|
   default.merge("invitation_notifications" => "everyone", "invitation_sounds" => true)
 end
+EltenGameRoom.remember_settings(EltenGameRoom.read_json("settings.json", default: EltenGameRoom::DEFAULT_SETTINGS))
 EltenGameRoom.define_singleton_method(:sound_asset_path) { |name| %w[notice table_notice].include?(name) ? "C:/program-assets/#{name}.opus" : nil }
 audible = EltenGameRoom.map_notification(FakeNotification.new("Bob"))
 assert(audible.sound == "C:/program-assets/notice.opus", "Game Room notification did not use notice.opus")

@@ -101,7 +101,8 @@ app.define_singleton_method(:start_new_game) do |_row, **_options|
   state = finished
   session
 end
-app.define_singleton_method(:run_game_screen) do |_session, _game, table:|
+app.define_singleton_method(:run_game_screen) do |_session, _game, table:, prepared_screen: nil|
+  raise 'Unexpected covered screen in foreground fixture' unless prepared_screen.nil?
   layout = @table_layouts.fetch(7)
   assert(original == [layout.form, layout.users, layout.chat, layout.history], "table lifecycle rebuilt shared controls")
   assert(layout.phase == :finished, "finished table did not open its game screen")

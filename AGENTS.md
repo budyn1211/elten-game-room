@@ -1,5 +1,223 @@
 # Instrukcje dla agentów pracujących nad ELTEN Game Room
 
+## Wydanie testowe 2.0.3.1/build 238 — 24 września 2026
+
+Podpisano nową 2.0.3.1/build 238/API 3.0.3 z zatwierdzonym changelogiem PL/EN:
+siedem punktów o pracy w tle, odświeżaniu, powiadomieniach, Makao i tłumaczeniach
+oraz osobne wyjaśnienie pauzy Ponga/Audio Balla. Zawiera wszystkie ukończone
+zmiany opisane niżej jako dotąd niewydane; dokument docs/CHANGELOG_2_0_3_1.md.
+11 celowanych kontroli źródeł i końcowe siedem kontroli binarnej paczki poprawne.
+Podpis papierek; 366 plików zgodnych ze źródłami: 212 Ruby, 142 audio, 1 MO
+w 355 rekordach oraz 11 luzem; instalator ma 13 wpisów. Zachowano wszystkie
+4583 wcześniejsze tłumaczenia i dodano osiem nowych. Nie pełny runner/żywe testy.
+
+Test packaged_rules_encoding przywraca teraz normalized_settings w ensure
+po lokalnej atrapie powiadomienia. Pozostawienie jej psuło następną kontrolę
+zamrożonego snapshotu. Pierwszy wynik 6/7 zachowany osobno, poprawiona próba 7/7;
+nie zmieniano z tego powodu kodu produkcyjnego lub podpisanych bajtów.
+Własne atrapy zawsze ograniczaj do testowanego fragmentu.
+
+../artifacts/game-room/testing/ELTEN-Game-Room-build-238-signed.eltsetup:
+23 921 819 B; SHA-256 5997f31fc7b2aad6823be9a2534e4f3628ea02c250cdf6aa3c8623a06713ba35.
+Raport ../diagnostics/release-238/. Poprzednia 237 zachowana bez zmian.
+Nie instalowano, hotloadowano ani publikowano; bez GitHuba/profili/serwera.
+Wcześniejsze SessionRunnerFix237 w obu klientach pozostają, nie robić restore.
+Status niepotwierdzonych wcześniej licencji nagrań bez zmian.
+
+## Powiadomienia: brak powtarzanego I/O na UI — 24 września 2026
+
+normalized_settings publikuje zamrożony snapshot współdzielony z odczytem
+startowym lokalizacji. Każdy zapis settings.json prowadź przez
+update_game_room_settings: snapshot zmienia się dopiero po udanym zapisie.
+Jawny reload ustawień również go odświeża. Nie przywracaj odczytu pliku
+w mapowaniu/listach, filtrach kontaktów ani callbacku audio. Nie pobieraj
+sound_asset_path, jeśli używasz play_sound_from_asset — to zbędna droga
+na dysk; starszy fallback bez managed playback nadal jest dostępny.
+
+33 celowane skrypty poprawne. Na obu uruchomionych klientach samo mapowanie
+miało wcześniej 400/367 ms; nowy dokładny kod w izolowanej sondzie (100 razy
+na konto) maksimum 0,195/0,357 ms bez I/O. Nie jest to test całej dostawy,
+odsłuch ani gwarancja usunięcia wszelkich przycięć. Brak wysłanych powiadomień,
+instalacji/hotloadu tej zmiany, pełnego runnera, paczki/changelogu/GitHuba.
+Wcześniejsze poprawki pracy w tle pozostawione w klientach; nie wywołuj
+SessionRunnerFix237.restore. Szczegóły docs/NOTIFICATION_UI_LATENCY.md;
+prywatne wyniki ../diagnostics/table-notice-ui-237/ (błędy pomocników zachowane).
+
+## Końcowa regresja wykonawcy i starsze testy — 24 września 2026
+
+Pełny katalog po zatwierdzonej naprawie starych testów: 394/394 poprawne.
+Pierwsze 15 niepowodzeń odtworzono również na HEAD 78fb7afb; trzy dotyczyły
+środowiska gettext, 12 obecnych opcji/UI, fixture strategii i dwóch braków PL.
+Nie usuwano testów ani nie zmieniano botów, aby uzyskać zielony wynik.
+Przy zbiorczym teście binarnym ustawiaj język zarówno aplikacji, jak i
+testowego hosta; sterownik Form musi obsługiwać GameRoomUI::Form. Akceptacja
+drużyn nie startuje partii, a start/koniec nie zabiera fokusu czatu.
+
+Osobno zatwierdzony i odtworzony starszy błąd Makao: joker_choice? musi
+odrzucić pusty tekst przed split/length. Dokładny żywy zapis wywołuje błąd
+starego kodu; po guardzie działa. Regresja sprawdza wszystkie rangi i Z.
+Dwa brakujące tłumaczenia uzupełniono w PO i wygenerowanym MO.
+
+Porównania starego/nowego wykonawcy obejmują 88 podstawowych i 25 dłuższych
+prób; niepełne pomocniki, timeouty i poprawione powtórzenia są rozdzielone.
+20 par prób na dwóch ELTEN-ach, w tym zamierzona pauza Ponga/Audio Balla za
+Wiadomościami. Nie wszystkie były pełnymi sukcesami: pierwszy Makao z
+wyjątkiem, pierwszy pomocnik Ponga niepełny, dwie wymiany Ponga bez punktów.
+Nie gwarantować wszystkich stanów ani fizycznego odsłuchu/klawiatury.
+Szczegóły: docs/BACKGROUND_REGRESSION_GATE.md oraz prywatny katalog
+../diagnostics/regression-237/ (RESULT, ALL-TESTS-FINAL, LIVE-ALL, README).
+
+Komplet pracy w tle i guard Makao pozostają w pamięci obu klientów, bez
+sond/workerów testowych. NIE wywoływać SessionRunnerFix237.restore.
+Po niezależnej awarii API potwierdzono brak ostatniego własnego stołu.
+Bez nowego buildu, instalacji, publikacji, profili lub zmian serwera.
+Podpisana 237 nadal nie zawiera tych zmian. Nowe tłumaczenia tylko w repo.
+
+## Poczekalnia za Wiadomościami/forum — 24 września 2026
+
+Dodano GameRoomTableBackground dla okresu przed powstaniem GameScreen.
+Własny feed, istniejące powiadomienia, odczyt projekcji na workerze i kopia
+danych dla wspólnego prezentera UI. Bez dodatkowego pollingu, sterowania
+przykrytym formularzem lub UI z workera. Dołączenie/wyjście i rozpoczęcie
+gry są prezentowane jeszcze za natywnym oknem. Nowa zwykła gra otrzymuje
+normalny SessionRunner i layout-less GameScreen; powrót przejmuje dokładnie
+ten obiekt, zachowując kursory i dźwięki. Nie tworzyć drugiego wykonawcy.
+Przy przejęciu uwzględniać także activity_cursor odczytany przez poczekalnię.
+Pong/Audio Ball tylko ogłaszają start, bez ukrytej symulacji/Communications.
+
+21 celowanych skryptów i osiem żywych prób na dwóch kontach poprawne,
+cztery zgodne stany gier, pozostałe próby samej poczekalni. Zachowane
+fokus/szkic i brak duplikatów. Natywne Wiadomości/forum, rzeczywista mowa
+i grające audio; handlery, nie fizyczna klawiatura/odsłuch, jeden PC/łącze.
+Obie kopie mają poprawkę w pamięci, sondy/stoły posprzątane. NIE przywracać
+SessionRunnerFix237. Bez nowej paczki/instalacji/GitHuba lub ustawień.
+Dokument: docs/BACKGROUND_WAITING_ROOM.md. Raport prywatny katalog nadrzędny:
+diagnostics/table-background-237/{RESULT,TESTS,LIVE,LEFT-LOADED-main,
+LEFT-LOADED-test}.json. Dawne hashe tych samych plików nie są już aktualne.
+
+## Mowa/audio za innym oknem: źródła i obie działające kopie — 24 września 2026
+
+Ukończono brakującą prezentację podczas otwartych natywnych Wiadomości/forum.
+Poprzedni runner obsługiwał model, nie bieżącą mowę/dźwięki. Nowy zarządzany
+GameRoomBackgroundPresentation korzysta ze skopiowanego pakietu i aktywnego
+wątku UI, nie odświeżając przykrytego formularza ani nie czytając klawiszy.
+Wspólne kursory deduplikacji, rewanż z losowym ID, sekwencja Statków,
+odliczanie quizu i czat. Bez nowych żądań lub zmian źródeł ELTEN-a;
+Pong/Audio Ball nietknięte. Stały hostowy most kompilowany poza przestrzenią
+aplikacji: 20 reloadów bez zatrzymanych namespace/programów/runnerów.
+
+28 celowanych skryptów poprawnych; nie pełny runner. Dziesięć żywych prób
+na dwóch kontach, osiem z dostawą mowy/audio podczas przykrycia i zgodnymi
+końcowymi ID. Dwie pierwsze ograniczone próby (własna tura 99 oraz koniec
+Statków w różnych chwilach) opisane i powtórzone, nie liczyć ich jako pełnych
+sukcesów. 41 rzeczywistych wywołań adaptera mowy, 26 grających uchwytów
+audio przed powrotem, 14 zachowanych powrotów/fokusów, brak duplikacji.
+Normalne stoły Czwórek/99/UNO/Statków, bot i obserwator, rewanż oraz czat;
+prawdziwe listy Wiadomości/forum, bez czytania rozmów/postów. Wejście
+handlerami, bez deklaracji fizycznego odsłuchu/klawiatury, jeden PC/łącze.
+
+Na wyraźną prośbę pozostawiono poprawkę w pamięci papierek/PID30900 i
+papiertestowy/PID13368. Obie Scene_Main, bez sond, testowych stołów lub
+wykonawców. Sprzątnięto tylko cztery koperty własnych prób Statków,
+pozostałe dane bez zmian. NIE przywracać SessionRunnerFix237 automatycznie.
+To nie instalacja: zmiany znikną z pamięci po restarcie/przeładowaniu.
+Bez buildu, wersji/changelogu, publikacji, GitHuba lub schematów/ustawień.
+Podpisana 237 (1e874356…) bez zmian. Dokument: docs/BACKGROUND_GAME_EXECUTION.md.
+Aktualne prywatne raporty: ../diagnostics/session-runner-237/PRESENTATION-*.json
+i PRESENTATION.md. Starsze RESULT.json i 30 prób dotyczą modelu/powrotu,
+nie dowodu mowy podczas przykrycia; ich dawne hashe nie są już końcowe.
+
+## Wczytane do pamięci obu kopii — 24 września 2026
+
+Na osobne polecenie użytkownika wczytano ukończone źródła poprawki do
+głównej papierek/PID30900 i testowej papiertestowy/PID13368. 16 plików
+zgodnych z końcowym raportem testów, 104 metody i oba nowe moduły.
+Bez sond/testowych stołów, instalacji, nowej paczki lub publikacji.
+Istniejący widget głównej i jego endpoint zachowane; bezczynny transport
+dostał inicjalizację nowego mutexu i ponowne związanie callbacku.
+Obie kopie pozostawione Scene_Main. To tymczasowe wczytanie do restartu
+ELTEN-a/przeładowania aplikacji, nie zmiana zainstalowanego buildu 237.
+Nie sprzątać samoczynnie: użytkownik chce testować. Prywatny helper
+diagnostics/session-runner-237/load-for-user.rb poza repo zachowuje
+oryginały w SessionRunnerFix237; brak ThreadProbe237.
+
+## Niewydane wdrożenie pracy przykrytej gry — 24 września 2026
+
+Użytkownik po eksperymencie zlecił implementację i szerokie próby na dwóch
+kontach, również z rzeczywistymi Wiadomościami/forum. Dodano wspólny
+GameRoomSessionRunner i niezależny feed. Dotychczasowe reguły, strategie,
+budżety i transport zachowane; GameScreen nadal wyłącznie prezentuje/UI.
+Pong i Audio Ball wyłączone z tej ścieżki. Szczegóły i ograniczenia:
+docs/BACKGROUND_GAME_EXECUTION.md. Starszy wpis „tylko eksperyment” niżej
+opisuje poprzedni etap, nie bieżący stan źródeł.
+
+65/65 celowanych skryptów, dwie kontrole binarnych źródeł/allowlist i 29
+składni poprawne. Kontrakt wszystkich 23 gier turowych z botami i osobne
+przypadki gier bez botów/ukrytych odpowiedzi. Nie pełny runner. W 30 żywych
+próbach były 24 zgodne porównania po przykryciu, dwa testy zamknięcia/
+przerwania, dwie wczesne różne granice wyjścia, jeden niekompletny helper
+Statków i jedna próba zakończona przed backoffem po rzeczywistym błędzie
+Live Sessions. Osobny kontrolowany błąd: ekran dogonił model po 30,275 s
+bez Entera. Nie przedstawiać wszystkich prób jako sukcesów. Brak
+podwójnych prezentacji/UI z workera; szkic i fokus czatu/historii zachowane.
+Natywne listy Wiadomości i forum, bez rozmów/postów; wejście handlerami,
+nie fizyczna klawiatura/odsłuch. Jeden komputer/łącze, nie fizyczne
+rozłączenie Internetu. Raport prywatny ../diagnostics/session-runner-237/.
+
+Usunięto sondy i przywrócono zainstalowany kod obu kopii. Scene_Main,
+zasoby 0, własne stoły zamknięte. Tylko 10 testowych kopert ukrytych
+odpowiedzi usuniętych, reszta nietknięta. Bez restartów, instalacji,
+schematów, ustawień profili, GitHuba lub paczki. Podpisana 237 nadal
+1e874356… i nie zawiera tej poprawki. Wersja/changelog bez zmian.
+
+## Eksperyment pracy przykrytej gry — 24 września 2026
+
+Dowód wykonalności, bez produkcyjnego wdrożenia: cztery żywe próby na dwóch
+kontach, 25 ruchów Kółka i krzyżyka. Oddzielny, ograniczony worker potrafił
+przetwarzać kolejkę istniejącego endpointu i wykonywać legalne ruchy bota,
+gdy GameScreen był zatrzymany przez natywną równoległą scenę. Pięć ruchów
+bota w tle, zgodne końcowe replaye, brak podwójnej prezentacji. Kontrola
+bez workera czekała z callbackiem i botem do powrotu. Sondy usunięte,
+stoły zamknięte, obie kopie Scene_Main/zasoby 0, paczka 237 bez zmian.
+
+Nie mylić z naprawą aktywnego równoległego Game Roomu niżej. Nie oznacza
+to bezpieczeństwa przeniesienia GameScreen#run do Thread.new ani dowodu
+dla wszystkich gier/okien. Worker nie dotykał UI/mowy; kontrolowanie kończono
+go przed powrotem. Docelowo potrzebny jeden runner niezależny od formularza,
+zachowanie kolejności/lease/niepewnego zapisu i osobna prezentacja. Bez
+serwerowego pollingu lub globalnego patchowania ELTEN-a. Ograniczenia,
+wyniki i dalsze wymagania: docs/BACKGROUND_GAME_EXPERIMENT.md. Surowe
+prywatne próby tylko poza repo, diagnostics/background-game-experiment-237/.
+
+## Niewydane: odświeżanie z równoległego okna — 24 września 2026
+
+Naprawiono w źródłach odtworzone zatrzymywanie ruchów po uruchomieniu
+Game Roomu nad innym oknem (użytkownik potwierdził Konferencję). Protokół
+LiveSessions odbierał dane, ale główna pętla hosta używała wtedy
+`tick(dispatch: false)`, więc callbacki nie budziły synchronizatora gry.
+Wysłanie czatu jednorazowo odczytywało zaległy ruch, nie naprawiając kolejki.
+
+Wspólny Form przekazuje gotowe callbacki wyłącznie z endpointu swojego
+programu na aktywnym równoległym wątku UI, przed istniejącymi timerami.
+Bez nowego odpytywania, sieci w UI, globalnego dispatchu lub zmiany ELTEN-a.
+Limit 32 + natywny budżet 10 ms i ochrona przed ponownym wejściem. Nie
+oznacza to działania całej partii pod przykrywającym ją obcym oknem.
+
+14 celowanych skryptów poprawnych; nowa regresja odrzuciła stary kod.
+Pięć żywych prób na dwóch kontach/jednym PC: równoległa gra, powrót z okna,
+zagnieżdżenie i szkic czatu, bot/obserwator, rewanż. 44 ruchy pokazane raz
+na każdym kliencie, zgodna kolejność i plansze, bez popychania czatem.
+Wejście generowane normalnymi handlerami, nie fizyczne klawisze/odsłuch;
+neutralne okna z natywnym insert_scene, nie rozmowa konferencyjna.
+Pierwsza rozszerzona próba miała błąd pomocnika (finished? na klasie gry
+zamiast replayu); zapis zachowany, po zgodzie restartowano wyłącznie kopię
+testową, poprawiono pomocnik i powtórzono próbę. Głównej nie restartowano.
+Końcowo oba Scene_Main, zasoby 0, stoły testowe zamknięte, sondy i wstrzyknięte
+metody usunięte. Bez instalacji, buildu/podpisu, zmian profili, schematów lub
+GitHuba. Paczka 237 nadal 1e874356… i NIE zawiera tej poprawki.
+Dokument: docs/PARALLEL_SCENE_EVENTS.md. Prywatne wyniki poza repo:
+../diagnostics/live-sessions-threading-fix-237/{README.md,RESULT.json,SOURCE.json}.
+
 ## Podpisana ponownie 2.0.3/build 237: język i obsługa stołu — 23 września 2026
 
 Zakończono wszystkie ostatnio uzgodnione zmiany i przebudowano tę samą
@@ -2356,6 +2574,40 @@ definicje co rzeczywiste skróty (`GameRoomContextHelp`), nie dopisuj na stałe
 tipsów zależnych od fazy. Szczegóły: `docs/VOLUME_AND_HELP_224.md`.
 
 - Najpierw odtwórz problem i wskaż warstwę, która jest jego właścicielem.
+- Działający model za Wiadomościami/forum NIE dowodzi bieżącej mowy/audio.
+  Prezentację przykrytej gry obsługuje GameRoomBackgroundPresentation na
+  aktywnym wątku UI, w runtime właściwej aplikacji; worker tylko publikuje
+  skopiowane dane. Nie aktualizować formularza gry ani klawiatury z tej
+  ścieżki. Zachować wspólne kursory zdarzeń/czatu, kolejkę dźwięków,
+  nieprzerywającą mowę i deduplikację po powrocie/rewanżu. ID sesji są
+  losowe, nie monotoniczne. Rejestracje sprzątać przy zamknięciu, most
+  hosta ma przeżyć reload bez closure starej aplikacji i bez narastania.
+  Żywy test wymaga potwierdzenia wyjścia mowy ORAZ działającego audio
+  jeszcze za natywnym oknem, nie tylko porównania stanów po powrocie.
+  Regresje: game_background_presentation_test i game_background_native_input_test;
+  szczegóły docs/BACKGROUND_GAME_EXECUTION.md.
+- Gry turowe wykonują polityki automatyczne i boty przez wspólny
+  GameRoomSessionRunner zarówno z widocznym, jak i przykrytym formularzem.
+  Nie dodawaj drugiej pętli automatów w klasie gry lub GameScreen.
+  Model/polityki nie mogą wołać UI, mowy, loop_update ani czytać kontrolek.
+  Planowanie jest poza blokadą zapisu; przed zapisem trzeba dostarczyć
+  gotowe callbacki i sprawdzić aktualną sesję/rewizję. Nie blokuj nim UNO
+  interception, Makao ani czatu. Niestandardowy konstruktor zachowaj w
+  build_session_game, szkic oznacz automatic_surface_identity, a wyjątki
+  równoległego wejścia zawęź przez concurrent_session_input? do jednej
+  rundy/fazy/operacji. Reguły nadal sprawdza action_for. Nie przenoś
+  całego GameScreen lub game_client do Thread.new. Realtime ma własny
+  lifecycle i session_runner? false. Przy zmianach testuj wiele instancji,
+  backoff/niepewny zapis, powrót, deadline, freeze/rewanż i zakończenie.
+  Testy: game_session_runner*_test.rb i game_session_screen_test.rb.
+- Uruchomienie nad Konferencją może umieścić Game Room na równoległym wątku
+  UI. Nie zakładaj, że działający protokół LiveSessions oznacza dostarczenie
+  callbacków aplikacji. Własne okna muszą używać wspólnego Form z `program:`;
+  nie zastępuj lokalnego, ograniczonego dispatchu globalnym tickiem, pętlą
+  sieciową lub odpytywaniem serwera. Sprawdzaj uruchomienie główne i równoległe,
+  powrót z innego okna, boty, rewanż oraz niezmienność szkicu/fokusu czatu.
+  Regresje: test/parallel_scene_events_test.rb i parallel_scene_native_test.rb;
+  `ELTEN_HOST_SOURCE` ma wskazywać źródła pasujące do badanego hosta.
 - Rozszerzenie przypięte do globalnego obiektu hosta przeżywa aktualizację
   aplikacji bez restartu ELTEN-a. Znacznik „już zainstalowano” nie może
   pozostawiać closure ze starą przestrzenią aplikacji lub formatem danych.

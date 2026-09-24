@@ -106,6 +106,7 @@ module GameRoomUI
     end
 
     def update
+      dispatch_pending_game_room_events
       if game_room_background_help?
         # Keep the native game wait alive, but send keyboard input only to the
         # help form. Maintenance may resume that wait; the help/caret survives
@@ -246,6 +247,19 @@ module GameRoomUI
     end
 
     private
+
+    def dispatch_pending_game_room_events
+      # The native main loop already dispatches on the main thread. An active
+      # parallel Game Room (e.g. opened over Conference) needs its own delivery
+      # before the usual timers check for replay changes. Covered windows must
+      # not run here; background help is updated by its waiting parent once.
+      return unless @game_room_waiting && !@game_room_help_owner
+      return unless $mainthread && $currentthread.equal?(Thread.current)
+      return if Thread.current.equal?($mainthread)
+      return unless @game_room_program&.respond_to?(:dispatch_pending_game_room_events)
+
+      @game_room_program.dispatch_pending_game_room_events
+    end
 
     def clear_game_room_key
       EltenAPI::KeyboardState.clear_current_frame if defined?(EltenAPI::KeyboardState)

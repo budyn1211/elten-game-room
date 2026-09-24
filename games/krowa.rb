@@ -22,6 +22,15 @@ module GameRoomGames
       @bank = bank
     end
 
+    def build_session_game; self.class.new(bank: @bank); end
+
+    def concurrent_session_input?(before, after, selection)
+      selection["kind"].to_s == "question" && selection["action"].to_s == "submit" &&
+        before.state[:options]["variant"] == "race" && after.state[:options]["variant"] == "race" &&
+        before.state[:phase] == :active && after.state[:phase] == :active &&
+        before.state[:round] == after.state[:round] && before.state[:commitment] == after.state[:commitment]
+    end
+
     def id; "krowa"; end
     def name; _("Krowa"); end
     def minimum_players; 1; end

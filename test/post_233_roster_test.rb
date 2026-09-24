@@ -7,6 +7,9 @@ bob_repository = PongDoublesLobbyTest.join(app, row, 'Bob')
 room = app.lobby.snapshot_for(row, force: true)
 players = room.game_participants
 session = PongDoublesLobbyTest.with_forms(PongDoublesLobbyTest.start_teams(players, [0, 1, 0, 1])) { app.send(:start_new_game, row) }
+assert(session.nil? && app.games.session_for_table(row, force: true).nil?, 'Accept started the game instead of saving teams')
+session = PongDoublesLobbyTest.with_forms { app.send(:start_new_game, row) }
+assert(session, 'Explicit Start did not create the match after accepting teams')
 state = app.send(:load_room_state, row, title: 'test')
 old_replay = state.replay
 old_options = state.session['options'].dup
@@ -46,14 +49,17 @@ list.define_singleton_method(:keyboard_binding_pressed?) { |binding| binding == 
 list.update
 assert(list.index == 2 && assignment.players[2] == fresh.game_participants[1], 'cursor does not follow swapped person')
 assert(assignment.seats_for(fresh.game_participants) == [0, 0, 1, 1], 'swap changed the game turn order instead of team assignment')
-# Confirm through the actual Start path, not only the assignment model.
-next_session = PongDoublesLobbyTest.with_forms(lambda do |form|
+# Accept through the actual selector, then start from the waiting room.
+accepted = PongDoublesLobbyTest.with_forms(lambda do |form|
   control = form.fields.first
   control.index = 1
   control.define_singleton_method(:keyboard_binding_pressed?) { |binding| binding == [:key_down, :shift] }
   control.update
-  PongDoublesLobbyTest.button(form, 'Start game').trigger(:press)
-end) { app.send(:start_new_game, row) }
+  PongDoublesLobbyTest.button(form, 'Accept').trigger(:press)
+end) { app.send(:change_table_teams, row) }
+assert(accepted, 'Team editor did not persist the selected line-up')
+assert(app.games.session_for_table(row, force: true)['__id'] == session['__id'], 'Team editor unexpectedly started a match')
+next_session = PongDoublesLobbyTest.with_forms { app.send(:start_new_game, row) }
 assert(app.games.players_for(next_session) == fresh.game_participants, 'rematch changed participant order')
 assert(JSON.parse(next_session['options'])['team_seats'] == [0, 0, 1, 1], 'Start did not persist Shift team selection')
 puts 'PASS aborted roster, named bot removal/replacement, historical integrity and shared team movement'

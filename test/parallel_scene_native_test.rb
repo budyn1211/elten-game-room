@@ -1,0 +1,70 @@
+# Actual host Form/EditBox/KeyboardState, with deterministic input peripherals.
+require_relative 'background_help_native_test'
+require_relative '../lib/live_session_store'
+host = File.expand_path(ENV.fetch('ELTEN_HOST_SOURCE', '../../elten3'), __dir__)
+require File.join(host, 'src/eapi/live_sessions')
+
+endpoint = EltenAPI::LiveSessions::Endpoint.allocate
+endpoint.instance_variable_set(:@mutex, Mutex.new)
+endpoint.instance_variable_set(:@closed, false)
+endpoint.instance_variable_set(:@callback_queue, SizedQueue.new(1000))
+endpoint.instance_variable_set(:@callback_bytes, 0)
+endpoint.define_singleton_method(:protocol_tick) { raise 'Unexpected network work in UI' }
+store = GameRoomLiveSessionStore.new(nil, endpoint_provider: -> { raise 'Unexpected lazy connection' })
+store.instance_variable_set(:@endpoint, endpoint)
+program = Object.new
+program.define_singleton_method(:dispatch_pending_game_room_events) { store.dispatch_pending_events }
+
+module EltenWindow
+  class << self; attr_accessor :test_character; end
+  def self.take_character(_multi)
+    result = test_character.to_s
+    self.test_character = ''
+    result
+  end
+end
+
+class ParallelNativeDriver < BackgroundHelpNativeDriver
+  attr_accessor :characters, :endpoint, :delivered
+  def tick(form)
+    active = form.equal?(root) && form.instance_variable_get(:@wait)
+    super
+    return unless active
+
+    char = characters.shift
+    EltenWindow.test_character = char.to_s
+    endpoint.enqueue_callback(-> { delivered << char }) if char
+  end
+end
+
+$mainthread = $currentthread = Thread.current
+$activecontrols = []
+Thread.new do
+  $currentthread = Thread.current
+  EltenAPI::KeyboardState.reset
+  driver = ParallelNativeDriver.new
+  $native_tutorial_driver = driver
+  text = 'Zażółć gęślą jaźń, bez Entera.'
+  driver.characters = text.chars
+  driver.keys = text.length.times.map { |i| [i.even? ? 0x41 : 0x42] } + [[]]
+  driver.endpoint, driver.delivered = endpoint, []
+  chat = EditBox.new('Chat', text: '', quiet: true)
+  board = ListBox.new(['Board'], header: 'Game', quiet: true)
+  form = GameRoomUI::Form.new([board, chat], program: program, index: 1, quiet: true)
+  driver.root = form
+  ticks = 0
+  form.add_timer(FormTimer.new(0, repeat: true) do
+    ticks += 1
+    assert(driver.delivered.join == text[0, [ticks, text.length].min], 'Callback delayed past the UI timer')
+    form.resume if ticks > text.length
+  end)
+  form.wait
+  assert(chat.text == text, "Native typing lost/duplicated characters: #{chat.text.inspect}")
+  assert(chat.index == text.length && chat.check == chat.index, 'Typing moved the caret incorrectly')
+  assert(form.index == 1, 'Remote callbacks stole chat focus')
+  assert(driver.delivered == text.chars, 'Queued callbacks were lost or duplicated')
+  assert(endpoint.dispatch_events == 0, 'Native main path would repeat callbacks')
+ensure
+  $currentthread = $mainthread
+end.value
+puts 'PASS parallel native form: Unicode typing and callback delivery in the same frames; no Enter, focus jump or duplicate'

@@ -3,8 +3,8 @@
   "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
   "name": "ELTEN Game Room",
   "description": "Accessible multiplayer games for ELTEN users.",
-  "version": "2.0.3",
-  "build_id": "237",
+  "version": "2.0.3.1",
+  "build_id": "238",
   "EltenAPIVersion": "3.0.3",
   "main_language": "en",
   "supported_languages": ["en", "pl"],
@@ -88,9 +88,15 @@
 
 require "json"
 require_relative "lib/game_room_localization"
-GameRoomLocalization.boot
+# Localization already needs this one startup read. Reuse it for notification
+# preferences: callbacks/list rendering must not reopen the file on every notice.
+game_room_boot_runtime = Programs.current_runtime if defined?(Programs) && Programs.respond_to?(:current_runtime)
+game_room_boot_settings = game_room_boot_runtime.read_json("settings.json", default: {}) if game_room_boot_runtime
+game_room_boot_settings = {} if game_room_boot_runtime && !game_room_boot_settings.is_a?(Hash)
+GameRoomLocalization.boot(settings: game_room_boot_settings)
 require_relative "lib/game_room_transport"
 require_relative "lib/game_sync"
+require_relative "lib/game_table_background"
 require_relative "lib/game_room_server_tables"
 require_relative "lib/game_room_user_registry"
 require_relative "lib/table_activity_repository"
@@ -169,8 +175,8 @@ class EltenGameRoom < Program
   using GameRoomLocalization::Translations
   extend GameRoomTableWatchRuntime
   extend GameRoomContactFiltersRuntime
-  GAME_ROOM_VERSION = "2.0.3".freeze
-  GAME_ROOM_BUILD_ID = 237
+  GAME_ROOM_VERSION = "2.0.3.1".freeze
+  GAME_ROOM_BUILD_ID = 238
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
 
@@ -283,10 +289,14 @@ class EltenGameRoom < Program
   end
 
   def self.normalized_settings
-    GameRoomPreferences.normalize(
-      read_json("settings.json", default: DEFAULT_SETTINGS.dup),
-      GAME_REGISTRY.ids
-    )
+    @normalized_settings || remember_settings(read_json("settings.json", default: DEFAULT_SETTINGS.dup))
+  end
+
+  def self.remember_settings(values)
+    # Publish a complete, detached snapshot. A callback never waits for a save
+    # or sees a partially edited hash; explicit reads/successful saves refresh it.
+    normalized = GameRoomPreferences.normalize(values, GAME_REGISTRY.ids)
+    @normalized_settings = JSON.parse(JSON.generate(normalized), freeze: true)
   end
 
   def self.map_notification(notification)
@@ -303,8 +313,11 @@ class EltenGameRoom < Program
     sound_name = notification.type.to_s == GameRoomTableWatch::TYPE ? "table_notice" : "notice"
     sound = nil
     if settings["invitation_sounds"] && contact_allowed == true
-      notice_sound = respond_to?(:sound_asset_path) ? sound_asset_path(sound_name) : nil
-      sound = notice_sound || sound_name
+      # Managed playback reads the packaged asset directly from memory. Asking
+      # for its path first needlessly materializes it on disk, even for a row
+      # that is never played. Keep the path only for older host fallback.
+      sound = sound_name
+      sound = sound_asset_path(sound_name) || sound_name if !respond_to?(:play_sound_from_asset) && respond_to?(:sound_asset_path)
     end
     presentation = case notification.type.to_s
     when GameRoomTableWatch::TYPE
@@ -417,6 +430,12 @@ class EltenGameRoom < Program
     end
     run_program_interface(row) if row != nil
     true
+  end
+
+  # Called only by an active Game Room form on a parallel host scene. Keep
+  # this safe before service initialization and after normal resource cleanup.
+  def dispatch_pending_game_room_events
+    @transport ? @transport.dispatch_pending_events : 0
   end
 
   private
@@ -1367,6 +1386,7 @@ class EltenGameRoom < Program
     @table_layouts ||= {}
     table_id = @lobby.table_id(row)
     layout = nil
+    background_table = prepared_screen = nil
     last_room_state = nil
     quiet_reentry = false
     synchronizer = GameRoomSync::Controller.new(
@@ -1374,6 +1394,14 @@ class EltenGameRoom < Program
       reconnect: -> { activate_table_transport(row) }
     )
     loop do
+      # Keep the monitor alive through room commands/dialogs too. A native
+      # window can cover Start/inviting/settings after the waiting form resumes.
+      if background_table
+        layout.activity_cursor = background_table.activity_cursor
+        prepared_screen = background_table.take_game_screen
+        stop_table_background(background_table)
+        background_table = nil
+      end
       state = load_room_state(
         row, title: _("Updating table"), synchronizer: synchronizer,
         ui: layout&.focus_location.to_a[0] == :chat ? layout.chat : :none
@@ -1393,7 +1421,11 @@ class EltenGameRoom < Program
       row = snapshot.table
       owner = @lobby.owner_of(row)
       own_table = GameRoomParticipants.same?(owner, Session.name)
-      play_game_sounds(room_membership_tracker(row).observe(snapshot.members))
+      if prepared_screen
+        prepared_screen.send(:present_session_membership, snapshot.members)
+      else
+        play_game_sounds(room_membership_tracker(row).observe(snapshot.members))
+      end
       activity_cursor = announce_new_table_activity(state.activity_entries, after_id: layout&.activity_cursor)
       synchronizer.update_session(state.session_id(@games))
       view_spec = if !state.waiting? && state.replay != nil && state.game != nil
@@ -1417,7 +1449,8 @@ class EltenGameRoom < Program
       layout.activity_cursor = activity_cursor
       layout.primary_button.label = _("Resume game") if own_table && state.session == nil && !row["resume_save_id"].to_s.empty?
       if state.active? || state.finished?
-        result = run_game_screen(state.session, state.game, table: row)
+        current_screen, prepared_screen = prepared_screen, nil
+        result = run_game_screen(state.session, state.game, table: row, prepared_screen: current_screen)
         if result == :room_closed
           forget_room_membership(row)
           return
@@ -1430,6 +1463,8 @@ class EltenGameRoom < Program
         next
       end
 
+      prepared_screen&.close_covered_session
+      prepared_screen = nil
       layout.begin_bindings
       layout.back_button.label = _("Leave")
       form = layout.form
@@ -1487,6 +1522,12 @@ class EltenGameRoom < Program
         action = event.kind == :closed ? :closed : :refresh
         form.resume_for_refresh
       end)
+      if @transport.respond_to?(:live_store?) && @transport.live_store?
+        background_table = GameRoomTableBackground.new(program: self, transport: @transport,
+          repository: @games, lobby: @lobby, activity_repository: @table_activity,
+          table: row, session_id: state.session_id(@games), activity_cursor: layout.activity_cursor,
+          screen_builder: ->(session, game, table) { build_game_screen(session, game, table: table, layout: nil) }).start
+      end
       quiet_reentry ? layout.wait_without_announcement : form.wait
       layout.begin_bindings
       quiet_reentry = false
@@ -1542,8 +1583,17 @@ class EltenGameRoom < Program
       end
     end
   ensure
+    stop_table_background(background_table) if background_table
+    prepared_screen&.close_covered_session
     layout&.begin_bindings
     @table_layouts&.delete(table_id) if table_id != nil
+  end
+
+  def stop_table_background(background)
+    background.close
+    if background.alive?
+      EltenAPI::Tasks.run(title: _("Updating table"), ui: :none, cancellable: false, show_after: 5.0) { background.join }
+    end
   end
 
   def leave_table_from_screen(row)
@@ -2059,8 +2109,22 @@ class EltenGameRoom < Program
       @audio_ball_preferences = nil
       stored = read_json("settings.json", default: DEFAULT_SETTINGS.dup)
       @game_room_settings = GameRoomPreferences.normalize(stored, GAME_REGISTRY.ids)
+      self.class.remember_settings(@game_room_settings)
     end
     @game_room_settings
+  end
+
+  def update_game_room_settings
+    snapshot = nil
+    result = update_json("settings.json", default: DEFAULT_SETTINGS.dup) do |state|
+      yield state
+      snapshot = JSON.parse(JSON.generate(state))
+      state
+    end
+    # Only commit after the host confirms the write. A failed save must not
+    # silently enable sounds, notifications or less restrictive contact filters.
+    self.class.remember_settings(snapshot)
+    result
   end
 
   def pong_preferences
@@ -2072,7 +2136,7 @@ class EltenGameRoom < Program
     # contacts, or table requests are loaded while opening or saving this panel.
     updated = GameRoomPong::Settings.new(pong_preferences, program: self, tick: tick, clock: clock).wait
     return unless updated
-    update_json('settings.json', default: DEFAULT_SETTINGS.dup) do |state|
+    update_game_room_settings do |state|
       state['pong'] = updated
       state
     end
@@ -2087,7 +2151,7 @@ class EltenGameRoom < Program
   def show_audio_ball_settings(tick: nil, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) })
     updated = GameRoomAudioBall::Settings.new(audio_ball_preferences, program: self, tick: tick, clock: clock).wait
     return unless updated
-    update_json('settings.json', default: DEFAULT_SETTINGS.dup) do |state|
+    update_game_room_settings do |state|
       state['audio_ball'] = updated
       state
     end
@@ -2260,7 +2324,7 @@ class EltenGameRoom < Program
   def save_table_preset(slot, entry)
     raise ArgumentError, 'Unknown table shortcut' unless slot.is_a?(Integer) && slot.between?(0, GameRoomTablePresets::COUNT - 1)
     # One local write only on explicit editing, never while navigating the widget.
-    update_json("settings.json", default: DEFAULT_SETTINGS.dup) do |state|
+    update_game_room_settings do |state|
       slots = GameRoomTablePresets.slots(state["table_presets"])
       slots[slot] = entry
       state["table_presets"] = slots
@@ -2291,7 +2355,7 @@ class EltenGameRoom < Program
     updated = updated.reject { |key, _value| %w[table_watch_games table_presets].include?(key) }
 
     normalized = GameRoomPreferences.normalize(updated, GAME_REGISTRY.ids)
-    update_json("settings.json", default: DEFAULT_SETTINGS.dup) do |state|
+    update_game_room_settings do |state|
       normalized.each { |key, value| state[key] = value }
       state
     end
@@ -2780,7 +2844,7 @@ class EltenGameRoom < Program
     )
   end
 
-  def run_game_screen(session, game = nil, table:)
+  def run_game_screen(session, game = nil, table:, prepared_screen: nil)
     self.class.cancel_new_table_notice(table)
     game ||= game_definition(session["game"])
     if game == nil
@@ -2794,6 +2858,16 @@ class EltenGameRoom < Program
       return
     end
 
+    if prepared_screen
+      prepared_screen.attach_table_layout(@table_layouts&.[](@lobby.table_id(table)))
+      return prepared_screen.run
+    end
+    build_game_screen(session, game, table: table, layout: @table_layouts&.[](@lobby.table_id(table))).run
+  ensure
+    prepared_screen&.close_covered_session
+  end
+
+  def build_game_screen(session, game, table:, layout:)
     synchronizer = GameRoomSync::Controller.new(
       transport: @transport,
       table_id: @lobby.table_id(table),
@@ -2822,14 +2896,14 @@ class EltenGameRoom < Program
         @lobby.announce_table_activity(current_table, users, actor: Session.name) if saved != nil
         saved
       end,
-      layout: @table_layouts&.[](@lobby.table_id(table)),
+      layout: layout,
       manage_computer: ->(current_table, action, participant) { change_room_computer(current_table, action, participant) },
       manage_observer: ->(current_table, action, participant = nil) { change_observer_mode(current_table, action, participant) },
       manage_teams: ->(current_table) { change_table_teams(current_table) },
       edit_options: ->(current_table) { change_table_game_options(current_table) },
       abort_game: ->(current_table, current_session) { abort_current_game(current_table, current_session) },
       save_game: game.supports_saved_games? ? ->(current_table, current_session, current_game) { save_current_game(current_table, current_session, current_game) } : nil
-    ).run
+    )
   end
 
   def change_table_game_options(table)
@@ -2929,7 +3003,7 @@ class EltenGameRoom < Program
         if writer != nil
           writer.call(group, level)
         else
-          update_json("settings.json", default: DEFAULT_SETTINGS.dup) do |state|
+          update_game_room_settings do |state|
             # Merge against the latest disk state; no unrelated setting is
             # overwritten when another Game Room instance has changed it.
             current = GameRoomPreferences.sound_volumes(state)
@@ -3003,4 +3077,5 @@ class EltenGameRoom < Program
   end
 end
 
+EltenGameRoom.remember_settings(game_room_boot_settings) if game_room_boot_settings
 GameRoomInvitationReceipts.install(EltenGameRoom)
