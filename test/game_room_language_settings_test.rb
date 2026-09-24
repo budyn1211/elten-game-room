@@ -2,8 +2,10 @@ require_relative "support/ui"
 require_relative "../lib/game_content"
 require_relative "../lib/game_room_screens"
 require_relative "../lib/game_room_localization"
+require_relative "support/localization"
 
-GameRoomLocalization.boot(settings: { "interface_language" => "en" }, host_language: "en")
+base_runtime = GameRoomTestLocalization.runtime("en", files: { "pl" => File.expand_path("../locale/PL.mo", __dir__) })
+GameRoomLocalization.boot(runtime: base_runtime, settings: { "interface_language" => "en" }, host_language: "en")
 
 class CheckBox < FakeControl
   attr_accessor :checked
@@ -152,12 +154,12 @@ settings_dialog do |form|
   form.cancel_button.trigger(:press)
 end
 
-GameRoomLocalization.boot(settings: { "interface_language" => "pl" }, host_language: "en")
+GameRoomLocalization.boot(runtime: base_runtime, settings: { "interface_language" => "pl" }, host_language: "en")
 settings_dialog do |form|
   assert(form.fields.first.header == "Ustawienia", "settings labels did not use the independent Polish catalog")
   form.cancel_button.trigger(:press)
 end
-GameRoomLocalization.boot(settings: { "interface_language" => "en" }, host_language: "en")
+GameRoomLocalization.boot(runtime: base_runtime, settings: { "interface_language" => "en" }, host_language: "en")
 
 translation_path = File.expand_path("../locale/interface-language-pl.json", __dir__)
 assert(File.file?(translation_path), "Polish language-settings translations are missing")
@@ -209,4 +211,24 @@ settings_dialog(future_saved) do |form|
 end
 GameRoomLocalization.boot(settings: { "interface_language" => "en" }, host_language: "en")
 
-puts "PASS Game Room language settings: category order/visibility, native multiselection lock, staged Save/Cancel, normalization, help, Polish labels and future Czech catalog"
+languages = GameRoomLocalization.available_languages
+spanish_index = languages.index { |language| language[:id] == "es" }
+assert(spanish_index && languages[spanish_index][:label] == "español", "the shipped Spanish catalog was not discovered")
+spanish_saved = settings_dialog("interface_language" => "es", "known_languages" => ["es"]) do |form|
+  primary, known = form.fields[-4..-3]
+  assert(primary.options == languages.map { |language| language[:label] } && known.options == primary.options,
+    "shipped catalogs were not added to both language controls")
+  assert(primary.index == spanish_index && known.multiselections == [spanish_index], "Spanish selections were not restored by language code")
+  known.deselect_multiselection_indices([spanish_index])
+  assert(known.multiselections == [spanish_index], "the Spanish primary language can be unchecked")
+  form.accept_button.trigger(:press)
+end
+assert(spanish_saved["interface_language"] == "es" && spanish_saved["known_languages"] == ["es"], "Spanish was not saved by language code")
+GameRoomLocalization.boot(settings: spanish_saved, host_language: "en")
+settings_dialog(spanish_saved) do |form|
+  assert(form.fields.first.header == "Ajustes", "settings did not use the shipped Spanish catalog after reload")
+  form.cancel_button.trigger(:press)
+end
+GameRoomLocalization.boot(settings: { "interface_language" => "en" }, host_language: "en")
+
+puts "PASS Game Room language settings: category order/visibility, native multiselection lock, staged Save/Cancel, normalization, help, Polish labels, future Czech catalog and shipped Spanish catalog"
