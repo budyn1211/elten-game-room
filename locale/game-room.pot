@@ -2057,6 +2057,14 @@ msgstr ""
 msgid "10"
 msgstr ""
 
+#: games/tysiac.rb:56
+msgid "1000 card game"
+msgstr ""
+
+#: games/tysiac.rb:181
+msgid "1000 card game variant"
+msgstr ""
+
 #: games/axel_pong.rb:292
 msgid "1: as an observer, listen from the first player's perspective."
 msgstr ""
@@ -12044,6 +12052,10 @@ msgstr ""
 msgid "The %{piece} on %{field} has no move that resolves the check."
 msgstr ""
 
+#: games/tysiac.rb:63
+msgid "The 1000 card game is played individually, by two or three people. Choose the player count when creating the table; the default is three. The deck has 24 cards: nine, jack, queen, king, ten and ace in every suit. Players bid for the right to take a talon. The winning bidder promises to collect at least the contracted number of points during the deal."
+msgstr ""
+
 msgid "The 33/66 penalty for opponents requires an increase, including doubling 33 to 66. Subtracting from 43 to 33 or from 76 to 66 does not trigger it; neither does leaving the total unchanged with a nine. Exactly paying a penalty can leave you at zero without eliminating you."
 msgstr ""
 
@@ -13358,6 +13370,10 @@ msgstr ""
 
 #: lib/audio_ball/audio.rb:151
 msgid "Third set."
+msgstr ""
+
+#: games/tysiac.rb:206
+msgid "This 1000 card game variant requires exactly %{count} players."
 msgstr ""
 
 #: lib/axel_pong/client.rb:50

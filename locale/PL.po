@@ -2082,6 +2082,14 @@ msgstr "1–6: zaznaczenie do przerzutu jednej zachowanej kości o tej wartości
 msgid "10"
 msgstr "10"
 
+#: games/tysiac.rb:56
+msgid "1000 card game"
+msgstr "Tysiąc"
+
+#: games/tysiac.rb:181
+msgid "1000 card game variant"
+msgstr "Wariant Tysiąca"
+
 #: games/axel_pong.rb:292
 msgid "1: as an observer, listen from the first player's perspective."
 msgstr "1: jako obserwator słuchaj z perspektywy pierwszego gracza."
@@ -12083,6 +12091,10 @@ msgstr "Figura %{piece} na polu %{field} nie może się ruszyć, ponieważ odsł
 msgid "The %{piece} on %{field} has no move that resolves the check."
 msgstr "Figura %{piece} na polu %{field} nie ma ruchu, który usuwa szacha."
 
+#: games/tysiac.rb:63
+msgid "The 1000 card game is played individually, by two or three people. Choose the player count when creating the table; the default is three. The deck has 24 cards: nine, jack, queen, king, ten and ace in every suit. Players bid for the right to take a talon. The winning bidder promises to collect at least the contracted number of points during the deal."
+msgstr "W Tysiąca grają dwie albo trzy osoby, każda na własny rachunek. Liczbę graczy wybiera się przy tworzeniu stołu; domyślnie są to trzy osoby. Talia ma 24 karty: dziewiątki, walety, damy, króle, dziesiątki i asy w każdym kolorze. Gracze licytują prawo do zabrania musiku. Zwycięzca licytacji zobowiązuje się zdobyć w rozdaniu co najmniej tyle punktów, ile wynosi jego kontrakt."
+
 msgid "The 33/66 penalty for opponents requires an increase, including doubling 33 to 66. Subtracting from 43 to 33 or from 76 to 66 does not trigger it; neither does leaving the total unchanged with a nine. Exactly paying a penalty can leave you at zero without eliminating you."
 msgstr "Kara dla przeciwników przy 33/66 wymaga wzrostu, także podwojenia 33 do 66. Odjęcie z 43 do 33 albo z 76 do 66 jej nie uruchamia; podobnie pozostawienie stosu bez zmiany dziewiątką. Zapłacenie całej kary może zostawić Cię z zerem żetonów bez eliminacji."
 
@@ -13398,6 +13410,10 @@ msgstr "Czas na ruch musi wynosić 0 albo od 20 do 600 sekund."
 #: lib/audio_ball/audio.rb:151
 msgid "Third set."
 msgstr "Trzeci set."
+
+#: games/tysiac.rb:206
+msgid "This 1000 card game variant requires exactly %{count} players."
+msgstr "Ten wariant Tysiąca wymaga dokładnie %{count} graczy."
 
 #: lib/axel_pong/client.rb:50
 msgid "This ELTEN version does not provide Communications."

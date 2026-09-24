@@ -53,14 +53,14 @@ module GameRoomGames
     end
 
     def name
-      _("Tysiac")
+      _("1000 card game")
     end
 
     def rule_sections
       # Generated from docs/rulebooks/tysiac.json; see tools/compile-rulebooks.rb.
       [
         rule_section(:auction, GameRoomRules.translate("Win the auction, then fulfil your promise"),
-          GameRoomRules.translate("Tysiac is played individually, by two or three people. Choose the player count when creating the table; the default is three. The deck has 24 cards: nine, jack, queen, king, ten and ace in every suit. Players bid for the right to take a talon. The winning bidder promises to collect at least the contracted number of points during the deal."),
+          GameRoomRules.translate("The 1000 card game is played individually, by two or three people. Choose the player count when creating the table; the default is three. The deck has 24 cards: nine, jack, queen, king, ten and ace in every suit. Players bid for the right to take a talon. The winning bidder promises to collect at least the contracted number of points during the deal."),
           GameRoomRules.translate("The player after the dealer opens at no less than 100. Later bids rise in steps of five. Passing removes you from this auction, not from the game. You may bid up to 120 plus the values of the marriages you currently hold, with an overall maximum of 400. A marriage is a king and queen of the same suit."),
           GameRoomRules.translate("With three players, each receives seven cards and the three remaining cards form one talon. The auction winner takes those three revealed cards, then gives one card to each opponent in the announced order. Each recipient learns only their own card. Everyone then has eight cards, to be played in eight tricks."),
           GameRoomRules.translate("Once the cards have been given away or set aside, the bidder can raise the final contract within the limit allowed by the marriages still held. Playing the first card accepts the current contract, so a second bid is not compulsory.")),
@@ -178,7 +178,7 @@ module GameRoomGames
 
     def option_definitions
       [
-        OptionDefinition.new(key: "variant", label: _("Tysiac variant"), kind: :choice, default: "three_players", choices: [
+        OptionDefinition.new(key: "variant", label: _("1000 card game variant"), kind: :choice, default: "three_players", choices: [
           OptionChoice.new(value: "three_players", label: _("Three players")),
           OptionChoice.new(value: "two_players", label: _("Two players"))
         ]),
@@ -203,7 +203,7 @@ module GameRoomGames
       return _("The target score must be at least 200 and divisible by 5.") if target < 200 || target % 5 != 0
       required = values["variant"] == "two_players" ? 2 : 3
       if player_count != nil && player_count.to_i != required
-        return _("This Tysiac variant requires exactly %{count} players.") % { count: required }
+        return _("This 1000 card game variant requires exactly %{count} players.") % { count: required }
       end
 
       nil
