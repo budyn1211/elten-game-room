@@ -1,4 +1,4 @@
-require_relative 'realtime_two_clients_test'
+require_relative 'support/relay'
 
 module Session
   def self.name; @name || 'Alice'; end

@@ -32,6 +32,9 @@ module GameRoomGames
     end
 
     def id; "krowa"; end
+    def controller_change_phase_error(_replay)
+      _("The current game contains private data that cannot be transferred at this stage.")
+    end
     def name; _("Krowa"); end
     def minimum_players; 1; end
     def maximum_players; 8; end
@@ -262,6 +265,13 @@ module GameRoomGames
       return [] unless replay.state[:phase] == :active
       return [replay.current_player] if tower?(replay.state)
       replay.players.reject { |player| replay.state[:results].key?(player) }
+    end
+
+    def required_decision_key(replay, viewer)
+      return nil if replay == nil || replay.finished?
+      return super if tower?(replay.state)
+      return nil unless active_actors(replay).any? { |actor| same_user?(actor, viewer) }
+      [:word, replay.state[:round]]
     end
 
     def move_error(status)

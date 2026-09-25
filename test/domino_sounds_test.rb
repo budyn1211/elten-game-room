@@ -1,5 +1,5 @@
 if ARGV.first
-  require_relative "packaged_rules_encoding_test"
+  require_relative "support/binary_rules_load"
 else
   require_relative "support/ui"
   require_relative "../lib/game_surfaces"

@@ -2,6 +2,7 @@
 require "digest"
 require "json"
 require "time"
+require_relative 'support/quiz_write_guard'
 require_relative "quiz-pack-writer"
 require_relative "../content/quiz_general_en_data"
 require_relative "../content/quiz_pl_wikidata_data"
@@ -9,9 +10,16 @@ require_relative "../content/quiz_witcher_pl_data"
 require_relative "../content/quiz_witcher_pl_medium_data"
 
 root = File.expand_path("..", __dir__)
+write_options = QuizWriteGuard.options!(ARGV)
 base_audit_root = File.expand_path(ARGV.fetch(0), Dir.pwd)
 recovery_root = File.expand_path(ARGV.fetch(1), Dir.pwd)
 DATA_VERSION = 4
+inputs = %w[ENGLISH_FINAL_DECISIONS.json POLISH_FINAL_DECISIONS_MERGED.json WITCHER_FINAL_DECISIONS.json].map { |name| File.join(base_audit_root, name) }
+inputs << File.join(recovery_root, 'ALL_RECHECK_DECISIONS.json')
+targets = QuizWriteGuard.content_paths(root)
+exit unless QuizWriteGuard.check!(tool: File.basename(__FILE__), inputs: inputs + targets,
+  outputs: targets + [File.join(recovery_root, 'APPLIED.json')],
+  versions: QuizWriteGuard.versions(root, DATA_VERSION), options: write_options)
 
 def read_json(path)
   JSON.parse(File.read(path, encoding: "UTF-8"))

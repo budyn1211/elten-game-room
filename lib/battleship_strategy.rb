@@ -2,6 +2,8 @@ require_relative "game_bots"
 
 module BattleshipPlanning
   class Strategy
+    include GameRoomBots::ReplayOnlyStrategy
+
     def initialize(fallback: GameRoomBots::HeuristicStrategy.new)
       @fallback = fallback
     end

@@ -1,4 +1,6 @@
 require "digest"
+require_relative "game_bots"
+require_relative "game_random"
 
 module NinetyNinePlanning
   module Transition
@@ -112,11 +114,7 @@ module NinetyNinePlanning
       # The seed belongs to the sampled world, never the real game's deck.
       serial = state.fetch(:planning_recycles, 0)
       random = Random.new(Digest::SHA256.hexdigest([state.fetch(:planning_seed, 0), serial, cards].inspect)[0, 16].to_i(16))
-      (cards.length - 1).downto(1) do |index|
-        other = random.rand(index + 1)
-        cards[index], cards[other] = cards[other], cards[index]
-      end
-      state[:draw_pile] = cards
+      state[:draw_pile] = GameRoomRandom.shuffle(cards, random: random)
       state[:planning_recycles] = serial + 1
       state[:discard] = [top]
     end
@@ -162,16 +160,9 @@ module NinetyNinePlanning
 
     private
 
-    # ELTEN's embedded Array implementation intentionally exposes only the
-    # no-argument shuffle method.  Keep seeded planning portable by performing
-    # Fisher-Yates directly instead of relying on MRI's shuffle(random: ...).
+    # Keep this planner entry point and its caller-owned RNG stable.
     def deterministic_shuffle(values, random)
-      shuffled = values.to_a.dup
-      (shuffled.length - 1).downto(1) do |index|
-        other = random.rand(index + 1)
-        shuffled[index], shuffled[other] = shuffled[other], shuffled[index]
-      end
-      shuffled
+      GameRoomRandom.shuffle(values, random: random)
     end
 
     def seed_for(index)
@@ -195,6 +186,8 @@ module NinetyNinePlanning
   # worlds consistent with public play; challenge bots use the exact hands but
   # still do not peek at the future draw order.
   class Strategy
+    include GameRoomBots::ReplayOnlyStrategy
+
     attr_reader :last_stats
 
     def initialize(depth: 4, fair_worlds: 20, omniscient_worlds: 10, node_limit: 45_000)

@@ -1,4 +1,4 @@
-require_relative "table_notice_nonblocking_test"
+require_relative "support/table_notice_presentation"
 
 # Entering the captured app context can fail before the disk callback starts.
 # This must release the busy flag and retain only a bounded retry.

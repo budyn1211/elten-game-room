@@ -8,6 +8,12 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class Makao < CardGame
+    def remembered_option_definitions(definitions, options: nil)
+      return super unless options == nil || options["profile"].to_s == "custom"
+
+      definitions.reject { |definition| definition.key.to_s == "profile" }
+    end
+
     PROFILES = [
       OptionChoice.new(value: "simple", label: _("Simple Makao")),
       OptionChoice.new(value: "polish", label: _("Polish extended Makao")),
@@ -19,6 +25,21 @@ module GameRoomGames
     REQUEST_RANKS = %w[5 6 7 8 9 T].freeze
     SUIT_NAMES = { "C" => _("clubs"), "D" => _("diamonds"), "H" => _("hearts"), "S" => _("spades") }.freeze
     RANK_NAMES = { "T" => "10", "J" => _("jack"), "Q" => _("queen"), "K" => _("king"), "A" => _("ace") }.freeze
+
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      return "shuffle" if action == "deal"
+      return "play" if action == "play"
+      return "draw" if %w[draw catch].include?(action)
+      if action == "makao_timeout"
+        entries = history
+        return "draw" if entries.any? { |entry| entry.kind == :draw }
+      end
+      if action == "makao"
+        event_history = history
+        return "buzzer2" if event_history.any? { |entry| entry.key.to_s.start_with?("makao:") }
+      end
+    end
 
     def id
       "makao"
@@ -228,6 +249,11 @@ module GameRoomGames
       super
     end
 
+    def automatic_actor(replay, viewer, table_owner:)
+      return viewer if forced_penalty_action(replay, viewer)
+      super
+    end
+
     def default_bot_move_delay; 1; end
     def thinking_time_range; 1..600; end
 
@@ -314,7 +340,13 @@ module GameRoomGames
       return [] if replay.finished? || replay.state[:phase] != :playing
       state = replay.state
       declaring = state[:players].select { |player| hand_for(state, player).length == 1 && !(state[:makao_declarations] || {})[player] }
-      (declaring + [state[:current_player]] + state[:players]).compact.uniq.select { |player| !legal_actions(replay, player).empty? }
+      # The current player always has a play, draw, pass or penalty action.
+      # Other players can only declare or catch; finding them must not enumerate
+      # every card packet before the coordinator requests the chosen hand once.
+      (declaring + [state[:current_player]] + state[:players]).compact.uniq.select do |player|
+        player_key(state, player) != nil &&
+          (declaring.include?(player) || same_user?(state[:current_player], player) || catchable_player(state, player) != nil)
+      end
     end
 
     def action_for(selection, replay, actor, context: nil)

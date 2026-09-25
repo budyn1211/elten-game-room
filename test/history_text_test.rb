@@ -1,4 +1,4 @@
-require_relative 'taboo_rules_dictionary_test'
+require_relative 'support/binary_rule_dictionary'
 require_relative '../lib/game_history_view'
 
 def assert(value, message); raise message unless value; end

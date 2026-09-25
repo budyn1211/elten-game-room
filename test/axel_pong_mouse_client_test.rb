@@ -1,5 +1,5 @@
 require_relative 'support/pong_client'
-require_relative 'axel_pong_mouse_test'
+require_relative 'support/axel_pong_mouse'
 
 def attach_mouse(harness, viewer)
   backend = PongMouseBackend.new
@@ -60,11 +60,11 @@ end
     assert(backend.suspends > before, 'long modal gap did not reset mouse')
 
     assert(!mouse.respond_to?(:toggle), 'obsolete user switch')
-    # New optional input field is validated, not trusted blindly.
-    good = {'move' => 0, 'hit' => false, 'press' => 0, 'paddle' => 18}
-    assert(client.send(:valid_input?, good), 'valid mouse input rejected')
+    # Current peer packets transmit position, never raw key/mouse input.
+    good = {'turn' => 0, 'goal' => nil, 'x' => 18, 'edges' => 0}
+    assert(client.send(:valid_peer_position?, good), 'valid mouse position rejected')
     [nil, '18', 0, 30, Float::INFINITY, Float::NAN].each do |bad|
-      assert(!client.send(:valid_input?, good.merge('paddle' => bad)), 'invalid position accepted')
+      assert(!client.send(:valid_peer_position?, good.merge('x' => bad)), 'invalid position accepted')
     end
   ensure
     h.close

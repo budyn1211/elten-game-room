@@ -1,73 +1,4 @@
-require_relative "support/ui"
-require_relative "support/log"
-
-class Program
-  def self.server_app(**_options); end
-end
-
-module Session
-  def self.name
-    "Alice"
-  end
-end
-
-class FormTimer
-  def initialize(_interval, repeat:, &callback)
-    @callback = callback
-  end
-
-  def fire
-    @callback.call
-  end
-end
-
-class Form
-  class << self
-    attr_accessor :driver
-  end
-
-  alias wait_with_native_entry wait
-
-  def wait
-    raise "unexpected form wait" if Form.driver == nil
-    wait_with_native_entry
-    Form.driver.call(self)
-  end
-
-  def resume; end
-
-  def focus
-    fields[index].focus
-  end
-
-  def keyboard_idle_frame?
-    true
-  end
-end
-
-require_relative "../__app"
-
-def assert(condition, message)
-  raise message unless condition
-end
-
-class InterfaceGameRepository
-  def players_for(_session)
-    ["Alice", "Bob"]
-  end
-
-  def actor_of(event, _session = nil)
-    event["actor"]
-  end
-
-  def event_id(event)
-    event["id"]
-  end
-
-  def session_id(session)
-    session.to_h["__id"].to_i
-  end
-end
+require_relative 'support/room_interface'
 
 row = { "__id" => 7, "owner" => "Alice", "game" => "four_in_a_row", "status" => "waiting", "max_players" => 8, "name" => "Test room", "game_options" => "{}" }
 room = LobbyRepository::TableSnapshot.new(table: row, members: ["Alice", "Bob"], bots: [])
@@ -473,6 +404,120 @@ bot_table["owner"] = "Bob"
 bot_manager.send(:change_room_computer, bot_table, :remove_bot, "bot:7:1")
 bot_global_menu.options.find { |option| option[2] == "o" }[3].call
 assert(bot_updates.length == write_count, "UI bypassed current participant, phase, capacity or owner checks")
+# A control anchor arrives as table_changed without another game move. The
+# native screen must leave its old replay even when event IDs are unchanged.
+match_screen.define_singleton_method(:fetch_room_snapshot) { [:updated, room, []] }
+[:refresh, :new_session].each do |next_action|
+  match_sync.define_singleton_method(:next_event) { |**_options| GameRoomSync::Event.new(kind: :table_changed) }
+  match_screen.define_singleton_method(:remote_game_update) do |revision, **_options|
+    assert(revision == [6, 6], 'Table control changed the known move revision')
+    [next_action, next_action == :new_session ? 44 : nil]
+  end
+  current = match_screen.instance_variable_get(:@layout)
+  current.form.index = current.form.fields.index(current.chat)
+  current.chat.text = 'replacement draft'
+  Form.driver = ->(form) { form.instance_variable_get(:@timers).each(&:fire) }
+  result = match_screen.send(:wait_for_action, replay, [6, 6])
+  assert(result == next_action, 'Table-only control change left the old hand/turn on screen')
+  assert(current.focus_location == [:chat, 0] && current.chat.text == 'replacement draft', 'Participant refresh stole the chat focus or draft')
+  assert(match_screen.instance_variable_get(:@new_session_id) == 44, 'Table wake-up lost the next game') if next_action == :new_session
+end
+match_screen.instance_variable_set(:@new_session_id, nil)
+
+# Realtime games do not have a SessionRunner. A member leaving is only a
+# table notification: no move/control epoch has been written yet. It must
+# wake the normal replacement path even when the move revision is unchanged.
+departed_room = LobbyRepository::TableSnapshot.new(table: row, members: ['Alice'], bots: [])
+match_screen.instance_variable_set(:@table_owner, 'Alice')
+match_screen.instance_variable_set(:@session, session)
+replacement_transport = Object.new
+replacement_transport.define_singleton_method(:set_seat_controller) do |*_, **_options|
+  raise 'Replacement must run through the outer network task, not a UI callback'
+end
+match_screen.instance_variable_get(:@game_services)[:transport] = replacement_transport
+match_screen.define_singleton_method(:fetch_room_snapshot) { [:updated, departed_room, []] }
+match_screen.define_singleton_method(:remote_game_update) { |_revision, **_options| [nil, nil] }
+[:table_changed, :recovery].each do |kind|
+  match_sync.define_singleton_method(:next_event) { |**_options| GameRoomSync::Event.new(kind: kind) }
+  current = match_screen.instance_variable_get(:@layout)
+  current.form.index = current.form.fields.index(current.chat)
+  current.chat.text = 'departure draft'
+  waits = 0
+  Form.driver = lambda do |form|
+    waits += 1
+    raise 'Departure refreshed only the player list, leaving the bot replacement asleep' if waits > 1
+    form.instance_variable_get(:@timers).each(&:fire)
+  end
+  assert(match_screen.send(:wait_for_action, replay, [6, 6]) == :refresh,
+    'A confirmed departure did not wake the replacement path')
+  assert(current.focus_location == [:chat, 0] && current.chat.text == 'departure draft',
+    'Departure stole the chat focus or draft')
+end
+match_screen.instance_variable_set(:@room_snapshot, room)
+
+[GameRoomGames::AudioBall.new, GameRoomGames::AxelPong.new].each do |realtime_game|
+  # Exercise run itself, not only its wake-up predicate. The native screen
+  # receives the transport through game_services; it has no @transport field.
+  # Stop at the external write boundary, without pretending to execute a bot.
+  departure_repository = InterfaceGameRepository.new
+  departure_repository.define_singleton_method(:bot_turn_controller) { |_id| GameRoomBots::TurnController.new }
+  departure_repository.define_singleton_method(:snapshot_for) do |current, **_options|
+    GameRepository::GameSnapshot.new(session: current, events: [])
+  end
+  write_context = nil
+  replacement_calls = []
+  departure_transport = Object.new
+  departure_transport.define_singleton_method(:set_seat_controller) do |target, **options|
+    assert(write_context == :none, 'Replacement bypassed its outer network task')
+    replacement_calls << [target, options]
+    throw :departure_write, :observed
+  end
+  departure_screen = GameScreen.new(**arguments.merge(
+    repository: departure_repository, game: realtime_game, layout: nil,
+    room_snapshot_provider: -> { departed_room }, synchronizer: match_sync,
+    game_services: { transport: departure_transport }
+  ))
+  departure_screen.define_singleton_method(:start_game_client) { true }
+  departure_screen.define_singleton_method(:network_task) do |_title, **options, &operation|
+    write_context = options[:ui]
+    begin
+      operation.call
+    ensure
+      write_context = nil
+    end
+  end
+  Form.driver = ->(_form) { raise 'Screen waited for input instead of replacing the departed player' }
+  assert(!departure_screen.instance_variable_defined?(:@transport), 'Test invented a transport absent from the real screen')
+  assert(catch(:departure_write) { departure_screen.run } == :observed, 'Realtime run did not use the supplied transport')
+  assert(replacement_calls == [[row, {session_id: departure_repository.session_id(session), seat: 'Bob', bot: true}]],
+    'Realtime run replaced the wrong seat or wrote more than once')
+
+  gate = GameScreen.allocate
+  gate.instance_variable_set(:@game, realtime_game)
+  gate.instance_variable_set(:@repository, repository)
+  gate.instance_variable_set(:@game_services, { transport: replacement_transport })
+  gate.instance_variable_set(:@session, session)
+  gate.instance_variable_set(:@table_owner, 'Alice')
+  assert(gate.send(:departed_players_for_replacement, replay, departed_room) == ['Bob'], 'Realtime game lost its absent player')
+  assert(gate.send(:departed_players_for_replacement, replay, room).empty?, 'Present human would be replaced')
+  assert(gate.send(:departed_players_for_replacement, replay, nil).empty?, 'A failed read would replace a human')
+  assert(gate.send(:departed_players_for_replacement, finished_replay, departed_room).empty?, 'Finished game would gain a bot')
+  [{ '__frozen' => true }, { '__control_ready' => false }, { '__controllers' => { 'Bob' => 'bot' } }].each do |guard|
+    gate.instance_variable_set(:@session, session.merge(guard))
+    assert(gate.send(:departed_players_for_replacement, replay, departed_room).empty?, "Ignored replacement guard #{guard}")
+  end
+  gate.instance_variable_set(:@session, session)
+  gate.instance_variable_set(:@table_owner, 'Bob')
+  assert(gate.send(:departed_players_for_replacement, replay, departed_room).empty?, 'Guest attempted a replacement')
+  gate.instance_variable_set(:@table_owner, 'Alice')
+  gate.instance_variable_set(:@session_runner, Object.new)
+  assert(gate.send(:departed_players_for_replacement, replay, departed_room).empty?, 'UI duplicated the session runner')
+  gate.instance_variable_set(:@session_runner, nil)
+  gate.instance_variable_set(:@game, GameRoomGames::Scrabble.new)
+  assert(gate.send(:departed_players_for_replacement, replay, departed_room).empty?, 'A game without bots gained one')
+end
+match_screen.instance_variable_get(:@game_services).delete(:transport)
+
 # Remote closure is not Escape: neither active nor finished games may open
 # the voluntary-leave confirmation, or loop back into the closed room.
 match_screen.define_singleton_method(:fetch_room_snapshot) { [:closed, nil, []] }

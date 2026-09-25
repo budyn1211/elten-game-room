@@ -26,7 +26,28 @@ players = users.drop(1)
 session = repo.start_session(table: table, game: game.id, players: players, options: table['game_options'])
 assert(repo.session_for_table(table)['__id'] == session['__id'], 'observer-owned game was not recognized')
 users.each { |user| assert(repositories[user].session_by_id(session['__id'], table: table), "session missing for #{user}") }
-assert(repo.session_by_id(session['__id'], table: table.merge('owner' => 'Attacker', '__insertion_user' => 'Attacker')).nil?, 'wrong creator accepted')
+# The native store authenticates the original author independently of a
+# caller's stale table-owner snapshot (ownership can now be transferred).
+stale_owner = table.merge('owner' => 'Attacker', '__insertion_user' => 'Attacker')
+assert(repo.session_by_id(session['__id'], table: stale_owner), 'authenticated history was rejected against a stale owner')
+assert(!repo.send(:valid_session_for_table?, session.merge('__authority_validated' => false), stale_owner, players: players), 'unverified foreign creator accepted')
+assert(repo.session_by_id(session['__id'], table: table.merge('__id' => table['__id'] + 1)).nil?, 'foreign table accepted')
+begin
+  $game_room_test_user = 'Bob'
+  repositories['Bob'].start_session(table: table, game: game.id, players: players, options: table['game_options'])
+  raise 'non-owner created a native game through the repository'
+rescue ArgumentError, EltenAPI::LiveSessions::NotOwner
+  assert(repo.session_for_table(table)['__id'] == session['__id'], 'rejected start replaced the game')
+ensure
+  $game_room_test_user = 'Moderator'
+end
+raw = transports['Bob'].start_game(table: table, game: game.id, players: players, options: table['game_options'], actor: 'Bob')
+# The low-level sender returns its submitted row; only authenticated stack
+# projection is authoritative, on the sender as well as on every recipient.
+repositories.each_value do |local|
+  assert(local.session_for_table(table)['__id'] == session['__id'], 'native replay accepted a foreign game-start author')
+  assert(local.session_by_id(raw['__id'], table: table).nil?, 'foreign game-start row became replayable')
+end
 random = Object.new
 def random.roll(count:, sides:); Struct.new(:values).new(Array.new(count, 1)); end
 replay = -> { game.replay(session, repo.snapshot_for(session, force_events: true).events, repo) }

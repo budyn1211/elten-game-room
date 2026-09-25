@@ -1,3 +1,5 @@
+require 'weakref'
+
 module GameRoomAudioBall
   module Keyboard
     KEYS = {0x26 => 'up', 0x57 => 'up', 0x25 => 'left', 0x44 => 'left',
@@ -36,6 +38,7 @@ module GameRoomAudioBall
       observer = self
       bridge.module_eval do
         define_method(:update) do |*args, **options, &block|
+          return super(*args, **options, &block) unless observer.active?
           modifiers = MODIFIERS.each_with_object({}) { |key, held| held[key] = held?(key) }
           previous = KEYS.keys.each_with_object({}) { |key, held| held[key] = held?(key) }
           result = super(*args, **options, &block)
@@ -44,6 +47,7 @@ module GameRoomAudioBall
         end
 
         define_method(:suppress_held_until_release) do |*args, **options, &block|
+          return super(*args, **options, &block) unless observer.active?
           blocked = KEYS.keys.select { |key| held?(key) }
           result = super(*args, **options, &block)
           observer.suppress(blocked)
@@ -136,6 +140,27 @@ module GameRoomAudioBall
       MODIFIERS.any? { |key| (state.to_s.getbyte(key).to_i & 0x80) != 0 }
     end
 
+    def active?
+      @active_field && @active_field.weakref_alive?
+    end
+
+    def activate(field)
+      return unless defined?(EltenAPI::KeyboardState)
+      install
+      return if active? && @active_field.__getobj__.equal?(field)
+      @active_field = WeakRef.new(field)
+      @suppressed = {}
+      suppress(KEYS.keys.select { |code| EltenAPI::KeyboardState.held?(code) })
+    end
+
+    def deactivate(field)
+      return unless active? && @active_field.__getobj__.equal?(field)
+      @active_field = nil
+      @suppressed = {}
+      result = EltenAPI::KeyboardState.current
+      result.remove_instance_variable(FRAME) if !result.frozen? && result.instance_variable_defined?(FRAME)
+    end
+
     def suppress(keys)
       @suppressed ||= {}
       keys.each { |code| @suppressed[code] = true }
@@ -149,6 +174,7 @@ module GameRoomAudioBall
 
     def frame
       return unless defined?(EltenAPI::KeyboardState)
+      return unless active?
       value = EltenAPI::KeyboardState.current.instance_variable_get(FRAME)
       value if value.is_a?(Frame)
     end

@@ -1,4 +1,4 @@
-require_relative 'audit_212_rules_and_decisions_test'
+require_relative 'support/audit_212_rules_and_decisions'
 require_relative '../games/reversi'
 require_relative '../games/four_in_a_row'
 require_relative '../lib/game_simulation'

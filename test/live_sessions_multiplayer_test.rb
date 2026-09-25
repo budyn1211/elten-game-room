@@ -1,3 +1,5 @@
+require_relative 'support/sequence_random'
+
 require_relative "support/native_room_harness"
 require_relative "support/ui"
 require_relative "../lib/game_surfaces"

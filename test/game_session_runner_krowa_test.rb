@@ -1,4 +1,4 @@
-require_relative 'game_session_runner_test'
+require_relative 'support/session_runner'
 require_relative 'support/krowa'
 
 fixture = KrowaTestGame.new(variant: 'race', players: %w[Alice Bob])

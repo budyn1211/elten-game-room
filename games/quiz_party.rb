@@ -1,4 +1,5 @@
 require_relative "base"
+require_relative "../lib/game_bots"
 require_relative "../lib/hidden_submissions"
 
 require_relative "../lib/game_room_localization"
@@ -19,8 +20,26 @@ module GameRoomGames
     BOT_KNOWLEDGE_PERCENT = 40
     ROLL_LIMIT = 1_000
 
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      return "shuffle" if action == "round_draw"
+      return "draw" if action == "round_category"
+      return nil if action != "question_finished"
+
+      answered_correctly = history.any? do |entry|
+        entry.kind == :answer_result && entry.field.to_s == "right" &&
+          GameRoomParticipants.same?(entry.actor, viewer)
+      end
+      answered_correctly ? "replay" : nil
+    end
+
     def id
       "quiz"
+    end
+
+    def controller_change_phase_error(replay)
+      _("The current game contains private data that cannot be transferred at this stage.") if
+        %i[answering revealing].include?(replay.state[:phase])
     end
 
     def save_game_error(_replay)
@@ -383,6 +402,13 @@ module GameRoomGames
       nil
     end
 
+    def automatic_actor(replay, viewer, table_owner:)
+      state = replay.state
+      return viewer if state[:phase] == :revealing && player_hash_key?(state[:commitments], viewer) &&
+        !player_hash_key?(state[:reveals], viewer)
+      super
+    end
+
     def concurrent_session_input?(before, after, selection)
       selection["kind"].to_s == "question" && selection["action"].to_s == "submit" &&
         before.state[:phase] == :answering && after.state[:phase] == :answering &&
@@ -436,6 +462,16 @@ module GameRoomGames
       else
         []
       end
+    end
+
+    def required_decision_key(replay, viewer)
+      return nil if replay == nil || replay.finished?
+      state = replay.state
+      if state[:phase] == :answering
+        return nil unless active_actors(replay).any? { |actor| same_user?(actor, viewer) }
+        return [:answering, state[:round], state[:position]]
+      end
+      super
     end
 
     def legal_actions(replay, actor, context: nil)
@@ -532,6 +568,8 @@ module GameRoomGames
     end
 
     class BotStrategy
+      include GameRoomBots::ReplayOnlyStrategy
+
       def initialize(knowledge_percent:)
         @knowledge_percent = knowledge_percent.to_i
       end

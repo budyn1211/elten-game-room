@@ -31,6 +31,35 @@ module GameRoomGames
     ].freeze
     NO_MERCY_DECK = ->(options) { options["deck"].to_s == "no_mercy" }
 
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      event_history = history
+      return nil if event_history.any? { |entry| entry.key.to_s.start_with?("too_late:") }
+      cues = []
+      if action == "deal"
+        cues << "shuffle"
+      elsif action == "uno"
+        cues << "buzzer2" if event_history.any? { |entry| entry.key.to_s.start_with?("uno:") }
+      elsif %w[draw turn_timeout catch challenge].include?(action)
+        cues << "draw"
+      elsif action == "play"
+        cues << "play"
+        type = event["value"].to_s[1]
+        cues << "skip" if type == "S"
+        cues << "reverse3" if %w[V R].include?(type)
+        cues << "reverse" if type == "L"
+        cues << "buzzer" if type == "B" && event_history.any? { |entry| entry.kind == :play }
+      end
+      if event_history.any? { |entry| entry.key.to_s.start_with?("interception:") }
+        cues << "interception"
+      end
+      round_result = event_history.find { |entry| entry.kind == :round_result }
+      if round_result && GameRoomParticipants.includes?(after_replay.players, viewer)
+        cues << (GameRoomParticipants.same?(round_result.actor, viewer) ? "win1" : "lose1")
+      end
+      cues
+    end
+
     def id
       "uno"
     end
@@ -1321,16 +1350,6 @@ module GameRoomGames
       state[:mercy_cards] = []
     end
 
-    def draw_until_playable_count(state)
-      probe = state[:draw_pile].dup
-      count = 0
-      probe.each do |card|
-        count += 1
-        break if playable?(state, card)
-      end
-      [count, 1].max
-    end
-
     def draw_until(state)
       result = []
       loop do
@@ -1340,15 +1359,6 @@ module GameRoomGames
         break if yield(card)
       end
       result
-    end
-
-    def draw_until_colour_count(state, colour)
-      count = 0
-      state[:draw_pile].each do |card|
-        count += 1
-        break if !wild?(card) && card_color(card) == colour
-      end
-      [count, 1].max
     end
 
     def turn_deadline_reached?(state, now)

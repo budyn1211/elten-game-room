@@ -1,5 +1,5 @@
-require_relative "invitation_receipts_test"
-require_relative "table_watch_test"
+require_relative "support/invitation_receipts"
+require_relative "support/table_watch"
 require "timeout"
 
 now, user = 1000.0, "Receipt guest"

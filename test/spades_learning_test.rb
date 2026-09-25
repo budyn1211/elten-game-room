@@ -1,3 +1,4 @@
+require_relative '../tools/training/spades_training'
 def _(text)
   text
 end

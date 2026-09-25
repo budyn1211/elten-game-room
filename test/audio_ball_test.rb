@@ -1,4 +1,5 @@
 # encoding: UTF-8
+require_relative 'support/sequence_random'
 def _(text); text; end
 
 require_relative '../games/base'

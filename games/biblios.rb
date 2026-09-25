@@ -31,6 +31,14 @@ module GameRoomGames
       OptionChoice.new(value: "full", label: _("Full: every other player takes a card"))
     ].freeze
 
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      kinds = history.map(&:kind)
+      return "shuffle" if kinds.include?(:deal)
+      return "draw" if kinds.include?(:take)
+      return "play" if (kinds & [:allocate, :pay, :church, :scriptorium]).any?
+    end
+
     def id
       "biblios"
     end
@@ -914,10 +922,6 @@ module GameRoomGames
         end
       end
       results
-    end
-
-    def discard_cost(card)
-      gold?(card) ? gold_value(card) * 2 : card_value(card)
     end
 
     def church_plans(state)

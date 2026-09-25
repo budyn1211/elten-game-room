@@ -1,4 +1,4 @@
-require_relative 'axel_pong_ui_test'
+require_relative 'support/pong_ui'
 
 def assert(value, message); raise message unless value; end
 

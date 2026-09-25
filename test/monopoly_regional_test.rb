@@ -64,7 +64,7 @@ expected.each do |id, (size, cash, price, first, last)|
   game.send(:move_player, state, "Alice", 1, 2, [])
   assert(state[:cash]["Alice"] == cash + 3 * data[:salary], "#{id}: exact Start does not double salary")
   state[:positions]["Alice"] = board.find { |square| square[:type] == :go_to_jail }[:index]
-  game.send(:resolve_square, state, "Alice", nil, 3, [])
+  game.send(:resolve_square, state, "Alice", 3, [])
   expected_jail = id == "indonesia" ? 50 : 10
   assert(state[:positions]["Alice"] == expected_jail && state[:jail]["Alice"] == 3, "#{id}: jail is at the wrong end of the board")
   state[:phase] = :awaiting_roll

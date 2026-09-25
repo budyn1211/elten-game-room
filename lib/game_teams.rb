@@ -1,4 +1,5 @@
 require_relative "game_participants"
+require_relative "game_random"
 
 require_relative "game_room_localization"
 
@@ -31,12 +32,7 @@ module GameRoomTeams
     end
 
     def randomize(random: Random.new)
-      # Use an explicit Fisher-Yates shuffle: ELTEN overrides Array#shuffle.
-      @players = @initial_players.dup
-      (@players.length - 1).downto(1) do |index|
-        other = random.rand(index + 1)
-        @players[index], @players[other] = @players[other], @players[index]
-      end
+      @players = GameRoomRandom.shuffle(@initial_players, random: random)
       @seats = automatic_seats
       self
     end

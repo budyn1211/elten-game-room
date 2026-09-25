@@ -1,10 +1,10 @@
-require_relative "taboo_rules_dictionary_test"
+require_relative "support/binary_rule_dictionary"
 
 def board_assert(value, message)
   raise message unless value
 end
 
-repo = SavedGames::ReplayRepository.new
+repo = GameRoomSavedGameArchive::ReplayRepository.new
 players = %w[Alice Bob]
 sample = [[0,1,2,3],[20,21,22],[40,41,42],[60,61],[80,81],[85,86],[8],[28],[48],[68]]
 messages = 0

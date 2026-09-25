@@ -59,12 +59,9 @@ class InvitationRepository
   end
 
   DEFAULT_TTL = 5 * 60
-  INVITATION_LIMIT = 200
-  RESPONSE_LIMIT = 500
   RESPONSES = ["accepted", "rejected", "expired"].freeze
 
   def initialize(server_tables: nil, transport: nil, notification_source: nil, response_sender: nil, response_outbox: nil)
-    @server_tables = server_tables
     @transport = transport
     @notification_source = notification_source
     @response_sender = response_sender
@@ -85,7 +82,7 @@ class InvitationRepository
       delivered = yield(result.invitation)
       delivered ? result : nil
     ensure
-      if !delivered && native_live_sessions?
+      if !delivered
         SENT_LOCK.synchronize { @sent_invitations.delete_if { |_key, row| row.equal?(result.invitation) } }
       end
     end
@@ -100,50 +97,31 @@ class InvitationRepository
     raise ArgumentError, "Invitation recipient is required" if clean_recipient.empty?
     raise ArgumentError, "You cannot invite yourself" if same_user?(clean_sender, clean_recipient)
 
-    if native_live_sessions?
-      return SENT_LOCK.synchronize do
-        @sent_invitations.delete_if { |_key, row| row["expires_at"].to_i <= now.to_i }
-        key = [table_id, table["__live_session_id"].to_s, clean_sender.downcase, clean_recipient.downcase]
-        existing = @sent_invitations[key]
-        if existing != nil && existing["expires_at"].to_i > now.to_i
-          next InvitationResult.new(invitation: existing, created: false)
-        end
-
-        id = SecureRandom.random_number(2_000_000_000) + 1
-        row = {
-          "__id" => id,
-          "id" => id,
-          "table_id" => table_id,
-          "live_session_id" => table["__live_session_id"].to_s,
-          "sender" => clean_sender,
-          "recipient" => clean_recipient,
-          "status" => "pending",
-          "created_at" => now.to_i,
-          "expires_at" => now.to_i + [ttl.to_i, 1].max,
-          "updated_at" => now.to_i,
-          "__insertion_user" => clean_sender
-        }
-        @sent_invitations[key] = row
-        InvitationResult.new(invitation: row, created: true)
+    return SENT_LOCK.synchronize do
+      @sent_invitations.delete_if { |_key, row| row["expires_at"].to_i <= now.to_i }
+      key = [table_id, table["__live_session_id"].to_s, clean_sender.downcase, clean_recipient.downcase]
+      existing = @sent_invitations[key]
+      if existing != nil && existing["expires_at"].to_i > now.to_i
+        next InvitationResult.new(invitation: existing, created: false)
       end
-    end
 
-    existing = pending_rows(clean_recipient, now: now).find do |row|
-      row["table_id"].to_i == table_id && same_user?(invitation_sender(row), clean_sender)
+      id = SecureRandom.random_number(2_000_000_000) + 1
+      row = {
+        "__id" => id,
+        "id" => id,
+        "table_id" => table_id,
+        "live_session_id" => table["__live_session_id"].to_s,
+        "sender" => clean_sender,
+        "recipient" => clean_recipient,
+        "status" => "pending",
+        "created_at" => now.to_i,
+        "expires_at" => now.to_i + [ttl.to_i, 1].max,
+        "updated_at" => now.to_i,
+        "__insertion_user" => clean_sender
+      }
+      @sent_invitations[key] = row
+      InvitationResult.new(invitation: row, created: true)
     end
-    return InvitationResult.new(invitation: existing, created: false) if existing != nil
-
-    timestamp = now.to_i
-    inserted = invitations_table.insert(
-      "table_id" => table_id,
-      "sender" => clean_sender,
-      "recipient" => clean_recipient,
-      "status" => "pending",
-      "created_at" => timestamp,
-      "expires_at" => timestamp + [ttl.to_i, 1].max,
-      "updated_at" => timestamp
-    )
-    InvitationResult.new(invitation: inserted, created: true)
   end
 
   def pending_for(recipient, tables:, now: GameRoomClock.now.to_i)
@@ -152,21 +130,14 @@ class InvitationRepository
       result[id] = table if id > 0 && %w[waiting playing].include?(table["status"].to_s)
     end
 
-    if native_live_sessions?
-      rows = (@notification_source == nil ? [] : @notification_source.call(recipient, now)) + @transport.pending_invitations
-      return rows.uniq { |row| row_id(row) }.filter_map do |row|
-        next if !same_user?(row["recipient"], recipient)
-        next if row["expires_at"].to_i.positive? && row["expires_at"].to_i <= now.to_i
-        next if @responses.key?([row_id(row), recipient.to_s.downcase])
+    rows = (@notification_source == nil ? [] : @notification_source.call(recipient, now)) + @transport.pending_invitations
+    return rows.uniq { |row| row_id(row) }.filter_map do |row|
+      next if !same_user?(row["recipient"], recipient)
+      next if row["expires_at"].to_i.positive? && row["expires_at"].to_i <= now.to_i
+      next if @responses.key?([row_id(row), recipient.to_s.downcase])
 
-        table = table_by_id[row["table_id"].to_i]
-        next if table != nil && !row["live_session_id"].to_s.empty? && row["live_session_id"].to_s != table["__live_session_id"].to_s
-        table == nil ? nil : PendingInvitation.new(invitation: row, table: table)
-      end
-    end
-
-    pending_rows(recipient, now: now).filter_map do |row|
       table = table_by_id[row["table_id"].to_i]
+      next if table != nil && !row["live_session_id"].to_s.empty? && row["live_session_id"].to_s != table["__live_session_id"].to_s
       table == nil ? nil : PendingInvitation.new(invitation: row, table: table)
     end
   end
@@ -187,98 +158,25 @@ class InvitationRepository
     raise ArgumentError, "Invitation belongs to another user" if !same_user?(row["recipient"], clean_recipient)
     raise ArgumentError, "Invalid invitation response" if !RESPONSES.include?(clean_response)
 
-    if native_live_sessions?
-      key = [invitation_id, clean_recipient.downcase]
-      return @responses[key] if @responses.key?(key)
+    key = [invitation_id, clean_recipient.downcase]
+    return @responses[key] if @responses.key?(key)
 
-      decision = {
-        "__id" => invitation_id,
-        "invitation_id" => invitation_id,
-        "table_id" => row["table_id"].to_i,
-        "recipient" => clean_recipient,
-        "response" => clean_response,
-        "created_at" => now.to_i
-      }
-      if @response_sender
-        outbox = @response_outbox ||= InvitationResponseOutbox.default
-        decision["response"] = outbox.submit(row, clean_response, &@response_sender)
-      end
-      return @responses[key] = decision
-    end
-
-    existing = response_rows(clean_recipient).find do |candidate|
-      candidate["invitation_id"].to_i == invitation_id
-    end
-    return existing if existing != nil
-
-    responses_table.insert(
+    decision = {
+      "__id" => invitation_id,
       "invitation_id" => invitation_id,
       "table_id" => row["table_id"].to_i,
       "recipient" => clean_recipient,
       "response" => clean_response,
       "created_at" => now.to_i
-    )
+    }
+    if @response_sender
+      outbox = @response_outbox ||= InvitationResponseOutbox.default
+      decision["response"] = outbox.submit(row, clean_response, &@response_sender)
+    end
+    return @responses[key] = decision
   end
 
   private
-
-  def native_live_sessions?
-    @transport.respond_to?(:live_store?) && @transport.live_store?
-  end
-
-  def invitations_table
-    @invitations_table ||= @server_tables.fetch("invitations")
-  end
-
-  def responses_table
-    @responses_table ||= @server_tables.fetch("invitation_responses")
-  end
-
-  def pending_rows(recipient, now:)
-    clean_recipient = recipient.to_s.strip
-    return [] if clean_recipient.empty?
-
-    resolved_ids = response_rows(clean_recipient).map { |row| row["invitation_id"].to_i }
-    invitations_table
-      .select(
-        where: { "recipient" => clean_recipient },
-        order: [["created_at", "desc"]],
-        limit: INVITATION_LIMIT
-      )
-      .to_a
-      .select do |row|
-        row_id(row) > 0 &&
-          row["status"].to_s == "pending" &&
-          row["expires_at"].to_i > now.to_i &&
-          !resolved_ids.include?(row_id(row)) &&
-          valid_sender?(row)
-      end
-  end
-
-  def response_rows(recipient)
-    responses_table
-      .select(
-        where: { "recipient" => recipient.to_s.strip },
-        order: [["created_at", "desc"]],
-        limit: RESPONSE_LIMIT
-      )
-      .to_a
-      .select do |row|
-        author = row["__insertion_user"].to_s
-        author.empty? || same_user?(author, recipient)
-      end
-  end
-
-  def valid_sender?(row)
-    sender = row["sender"].to_s
-    author = row["__insertion_user"].to_s
-    !sender.empty? && (author.empty? || same_user?(sender, author))
-  end
-
-  def invitation_sender(row)
-    author = row["__insertion_user"].to_s
-    author.empty? ? row["sender"].to_s : author
-  end
 
   def row_id(row)
     return 0 if row == nil

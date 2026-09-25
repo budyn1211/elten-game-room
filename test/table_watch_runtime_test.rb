@@ -1,8 +1,5 @@
-require_relative "game_room_settings_widget_test"
-
-Notice2 = Struct.new(:id, :app_uuid, :type, :sender, :metadata, keyword_init: true)
+require_relative 'support/table_watch_runtime'
 now = 2_000_000_000
-EltenGameRoom.define_singleton_method(:server_app_uuid) { "468f59c5-c9d7-47cd-80f1-1a6fbfd1aa80" }
 uuid = EltenGameRoom.server_app_uuid
 session_id = "cP44FMhoJwxaQ80Rm02_JY0K9QxAsveo"
 notice = Notice2.new(id: 500, app_uuid: uuid, type: GameRoomTableWatch::TYPE, sender: "Bob",

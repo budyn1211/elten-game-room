@@ -1,4 +1,4 @@
-require_relative "game_room_clock"
+require_relative "../../lib/game_room_clock"
 module GameRoomRounds
   PhaseDefinition = Struct.new(
     :id,

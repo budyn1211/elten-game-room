@@ -1,32 +1,4 @@
-require_relative "support/ui"
-require_relative "support/native_live_sessions"
-class Program
-  def self.server_app(**_options); end
-  def self.app_runtime; nil; end
-end
-require_relative "../__app"
-
-class LifecycleApp < EltenGameRoom
-  attr_reader :transport, :games, :lobby, :notices, :form_initial
-  attr_accessor :form_answer, :during_dialog, :confirmed
-  def initialize(broker)
-    @notices, @confirmed = [], true
-    program = ProgramDouble.new(broker.endpoint("Alice"))
-    @transport = GameRoomTransport.new(program)
-    @lobby = LobbyRepository.new(program, transport: @transport, server_tables: {})
-    @games = GameRepository.new(program, transport: @transport, server_tables: {})
-    @table_activity = TableActivityRepository.new(transport: @transport, server_tables: {})
-  end
-  def run_network_task(*_args, **_kwargs); yield; end
-  def confirm(_question); @confirmed; end
-  def alert(message); @notices << message; end
-  def remember_multiple_choice_options(*_args); end
-  def configure_game_options(game, initial_options: nil, submit_label: nil)
-    @form_initial = [game.id, initial_options, submit_label]
-    @during_dialog&.call
-    @form_answer
-  end
-end
+require_relative 'support/table_lifecycle_controls_2'
 
 broker = NativeLiveSessionsBroker.new
 $game_room_test_user = "Alice"
@@ -117,11 +89,6 @@ assert(JSON.parse(app.lobby.snapshot_for(table).table['game_options'])['bot_dela
 history = app.instance_variable_get(:@table_activity).entries_for(table)
 assert(history.count { |item| item.kind == 'options_changed' } == old_change_count + 1, 'ignored options conflict created a history entry')
 
-class LifecycleMenu
-  attr_reader :items
-  def initialize; @items = []; end
-  def option(label, value = nil, key = '', &handler); @items << [label,key,handler]; end
-end
 layout = GameRoomLayout::Screen.new(view_spec: GameRoomLayout::ViewSpec.new, history_items: [], user_items: [], users_header: 'Users', phase: :waiting, own_table: true)
 GameRoomParticipantMenu.bind(layout, available: -> { [:edit_options] }) { }
 menu = LifecycleMenu.new

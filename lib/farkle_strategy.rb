@@ -1,3 +1,5 @@
+require_relative "game_bots"
+
 module FarklePlanning
   RollOutcome = Struct.new(:weight, :choices, keyword_init: true)
 
@@ -49,6 +51,8 @@ module FarklePlanning
   # computes Farkle probabilities from the six-sided dice and the real scoring
   # function, including hot dice and the configured banking thresholds.
   class Strategy
+    include GameRoomBots::ReplayOnlyStrategy
+
     attr_reader :last_stats
 
     def initialize(max_future_rolls: 3)

@@ -1,5 +1,5 @@
 # Real host Form/Button/EditBox/help dispatch, with OS/speech peripherals fake.
-require_relative 'background_help_native_test'
+require_relative 'support/background_help_native'
 module GameSurfaces
   module ActionEmitter; end
 end
@@ -39,6 +39,9 @@ field = surface.fields.first
 chat = EditBox.new('Chat', text: 'Keep this text', quiet: true)
 root = GameRoomUI::Form.new([field, chat], quiet: true)
 root.game_room_background_help_enabled = true
+# Form#wait focuses a quiet form before its first native input snapshot.
+# This step-by-step driver calls update directly, so reproduce that entry.
+root.focus
 
 3.times do
   driver.frame(root, driver.tap(0x26))

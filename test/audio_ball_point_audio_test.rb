@@ -1,63 +1,6 @@
-require_relative '../lib/audio_ball/audio'
-
-def _(text); text; end unless Object.private_method_defined?(:_)
+require_relative 'support/audio_ball_point_audio'
 
 module AudioBallPointTest
-  class Sound
-    attr_accessor :pan, :volume, :frequency, :duration
-    attr_reader :plays, :seeks, :closes, :interruptions
-
-    def initialize(program, name)
-      @program, @name = program, name
-      @frequency, @duration = 48_000, 0.35
-      @plays, @closes, @interruptions, @seeks = 0, 0, 0, []
-    end
-
-    def position=(value); @seeks << value; end
-    def length; @duration; end
-    def playing?; @started && @program.now < @started + @duration; end
-    def finished?; !playing?; end
-    def play
-      raise 'Closed point handle played' if @closes > 0
-      @interruptions += 1 if playing?
-      @started = @program.now
-      @plays += 1
-      @program.events << [@name, @started, @duration]
-    end
-    def pause
-      @interruptions += 1 if playing?
-      @started = nil
-    end
-    def close; @closes += 1; @started = nil; end
-  end
-
-  class Program
-    attr_reader :sounds, :created, :managed, :released, :events
-    attr_accessor :now, :gain, :enabled, :announcer
-    def initialize(missing: [])
-      @missing = missing
-      @sounds, @created, @managed, @released, @events = {}, [], [], [], []
-      @now, @gain, @enabled, @announcer = 0.0, 1.0, true, 100
-    end
-    def create_sound_from_asset(name, sample: false, loop: false)
-      @created << [name, sample, loop]
-      return if @missing.include?(name)
-      @sounds[name] = Sound.new(self, name)
-    end
-    def manage(sound); @managed << sound; end
-    def release(sound); @released << sound; end
-    private
-    def game_room_sound_enabled?(_name); @enabled; end
-    def game_room_sound_volume(_name); @gain; end
-    def pong_preferences; {'announcer_volume' => @announcer}; end
-  end
-
-  def self.assert(value, message); raise message unless value; end
-  def self.check(name)
-    yield
-    puts "PASS #{name}"
-  end
-
   check('accepted point immediately plays the real Pong goal effect and goal announcer') do
     program = Program.new
     spoken = []
@@ -96,21 +39,21 @@ module AudioBallPointTest
       program, spoken = Program.new, []
       audio = GameRoomAudioBall::Audio.new(program, clock: -> { program.now }, rng: Random.new(17),
         speaker: ->(text) { spoken << text })
-      assert(GameRoomAudioBall::PointAudio.superclass == GameRoomPong::Audio, 'Audio Ball copied rather than reused Pong audio')
+      assert(GameRoomAudioBall::PointAudio.superclass == Object, 'Audio Ball still inherits unrelated Pong effects and preferences')
       # A selected sound pack can replace the goal effect; the default
       # pack's exact random effect/voice is checked below.
-      [:point, :tick, :close].each do |method|
-        assert(GameRoomAudioBall::PointAudio.instance_method(method).owner == GameRoomPong::Audio,
-          "Audio Ball diverged from Pong's #{method} implementation")
+      [:point, :advance_score_queue, :retire_announcements].each do |method|
+        assert(GameRoomAudioBall::PointAudio.instance_method(method).owner == GameRoomRealtime::ScoreAnnouncements,
+          "Audio Ball diverged from the shared #{method} implementation")
       end
-      expected = GameRoomAudioBall::Audio::ASSETS + GameRoomPong::Audio::ANNOUNCEMENTS
+      expected = GameRoomAudioBall::Audio::ASSETS + GameRoomRealtime::ScoreAnnouncements::ANNOUNCEMENTS
       assert(program.created.map(&:first) == expected, 'Point audio loaded paddle, crowd or echo assets / omitted a recording')
       assert(program.created.drop(GameRoomAudioBall::Audio::ASSETS.length).all? { |_, sample, loop| !sample && !loop }, 'Point audio must use non-looping host streams')
       audio.load
       assert(program.created.length == expected.length, 'Repeated load leaked announcement handles')
       audio.point([2, 1], sets: [0, 0], set_finished: false, winner: 0, viewer: viewer, finished: false)
       random = Random.new(17)
-      expected_goal = [GameRoomPong::Audio::GOALS[random.rand(8)], GameRoomPong::Audio::GOAL_VOICES[random.rand(4)]]
+      expected_goal = [GameRoomRealtime::ScoreAnnouncements::GOALS[random.rand(8)], GameRoomRealtime::ScoreAnnouncements::GOAL_VOICES[random.rand(4)]]
       assert(program.events.map(&:first) == expected_goal, 'Audio Ball changed original goal variant selection')
       program.now = 2.999
       audio.tick
@@ -193,7 +136,7 @@ module AudioBallPointTest
   check('fallback reads the entire ordered score for deuce or any missing required recording') do
     cases = [[[22, 21], []], [[21, 22], []], [[22, 22], []], [[99, 0], []]]
     cases += %w[pong_scores pong_number2 pong_number1].map { |name| [[2, 1], [name]] }
-    cases += [[[2, 1], GameRoomPong::Audio::ANNOUNCEMENTS]]
+    cases += [[[2, 1], GameRoomRealtime::ScoreAnnouncements::ANNOUNCEMENTS]]
     cases.each do |scores, missing|
       [0, 1, nil].each do |viewer|
         program, spoken = Program.new(missing: missing), []
@@ -214,7 +157,7 @@ module AudioBallPointTest
   end
 
   check('a missing goal variant uses the original generic goal and still reads recorded 21 to 21') do
-    program = Program.new(missing: GameRoomPong::Audio::GOALS)
+    program = Program.new(missing: GameRoomRealtime::ScoreAnnouncements::GOALS)
     spoken = []
     audio = GameRoomAudioBall::Audio.new(program, clock: -> { program.now }, speaker: ->(text) { spoken << text })
     audio.point([21, 21], sets: [0, 0], set_finished: false, winner: 0, viewer: 0, finished: false)
@@ -228,14 +171,14 @@ module AudioBallPointTest
   check('slow ticks never overlap or truncate recorded voices') do
     program, spoken = Program.new, []
     audio = GameRoomAudioBall::Audio.new(program, clock: -> { program.now }, speaker: ->(text) { spoken << text })
-    GameRoomPong::Audio::ANNOUNCEMENTS.each { |name| program.sounds[name].duration = 2.0 }
-    GameRoomPong::Audio::GOAL_VOICES.each { |name| program.sounds[name].duration = 5.0 }
+    GameRoomRealtime::ScoreAnnouncements::ANNOUNCEMENTS.each { |name| program.sounds[name].duration = 2.0 }
+    GameRoomRealtime::ScoreAnnouncements::GOAL_VOICES.each { |name| program.sounds[name].duration = 5.0 }
     audio.point([2, 1], sets: [0, 0], set_finished: false, winner: 0, viewer: 0, finished: false)
     program.now = 3.0
     audio.tick
     assert(program.events.length == 2, 'Score interrupted a long goal announcer at the three-second boundary')
     [10.0, 10.0, 10.1, 12.0, 13.0, 14.0, 16.0].each { |now| program.now = now; audio.tick }
-    voices = program.events.reject { |name, *_| GameRoomPong::Audio::GOALS.include?(name) }
+    voices = program.events.reject { |name, *_| GameRoomRealtime::ScoreAnnouncements::GOALS.include?(name) }
     assert(voices.drop(1).map { |name, at, _| [name, at] } == [['pong_scores', 10.0], ['pong_number2', 12.0], ['pong_number1', 14.0]],
       'A delayed tick skipped spacing or played several overdue voices at once')
     voices.each_cons(2) { |(_, at, length), (_, next_at, _)| assert(next_at >= at + length, 'Recorded voices overlap') }
@@ -275,7 +218,7 @@ module AudioBallPointTest
       audio.reset
       audio.silence
       audio.update(snapshot, viewer: 0, paused: true)
-      assert(program.events.select { |name, *_| GameRoomPong::Audio::ANNOUNCEMENTS.include?(name) }.take(2).all? { |name, *_| program.sounds[name].playing? }, 'Reset/detach cut the goal announcement')
+      assert(program.events.select { |name, *_| GameRoomRealtime::ScoreAnnouncements::ANNOUNCEMENTS.include?(name) }.take(2).all? { |name, *_| program.sounds[name].playing? }, 'Reset/detach cut the goal announcement')
     end
     [3.0, 3.5, 4.0].each do |now|
       program.now = now
@@ -312,7 +255,7 @@ module AudioBallPointTest
     source = File.read(File.join(root, '__app.rb'), encoding: 'UTF-8')
     manifests = [JSON.parse(File.read(File.join(root, 'manifest.json'), encoding: 'UTF-8')),
       JSON.parse(source.split('=begin Elten3AppInfo', 2).last.split('=end Elten3AppInfo', 2).first)]
-    GameRoomPong::Audio::ANNOUNCEMENTS.each do |name|
+    GameRoomRealtime::ScoreAnnouncements::ANNOUNCEMENTS.each do |name|
       manifests.each { |manifest| assert(manifest.fetch('required_assets').fetch('sounds').count(name) == 1, "Missing/duplicated shared recording: #{name}") }
       path = File.join(root, 'Audio', "#{name}.opus")
       assert(File.binread(path, 128).include?('OpusHead'), "Shared Pong recording is not shipped as Opus: #{name}")

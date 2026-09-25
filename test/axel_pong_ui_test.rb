@@ -1,19 +1,5 @@
-class FormTimer
-  def initialize(*_args, **_kwargs); end
-end
-require_relative 'taboo_rules_dictionary_test'
-require_relative '../lib/axel_pong/client'
+require_relative 'support/pong_ui'
 
-def assert(value, message); raise message unless value; end
-class PongUiAudio
-  def suspend; end
-  def update(*_args, **_kwargs); end
-  def close; end
-  def cycle_echo
-    @index = (@index || 0) + 1
-    %w[off noise tone][@index % 3]
-  end
-end
 rules = GameRoomGames::AxelPong.new
 repo = Object.new
 def repo.players_for(s); s['__players']; end

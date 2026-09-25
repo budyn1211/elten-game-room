@@ -1,15 +1,4 @@
-require_relative "card_timeouts_test"
-require_relative "../lib/saved_games"
-
-class TimedArchiveMemory
-  def initialize; @root = {}; end
-  def read_json(_path, default:); JSON.parse(JSON.generate(@root)); end
-  def update_json(_path, default:)
-    root = read_json(nil, default: {})
-    yield root
-    @root = JSON.parse(JSON.generate(root))
-  end
-end
+require_relative 'support/card_timeout_restore'
 
 [[GameRoomGames::NinetyNine, {}], [GameRoomGames::Poker, {"variant"=>"holdem"}],
  [GameRoomGames::Poker, {"variant"=>"draw"}], [GameRoomGames::Makao, {}]].each do |type, options|

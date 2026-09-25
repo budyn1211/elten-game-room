@@ -1,4 +1,4 @@
-require_relative 'game_session_runner_test'
+require_relative 'support/session_runner'
 require 'timeout'
 
 game = GameRoomGames::Uno.new

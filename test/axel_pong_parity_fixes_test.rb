@@ -1,6 +1,6 @@
 # encoding: UTF-8
 require_relative 'support/pong_client'
-require_relative 'axel_pong_audio_test'
+require_relative 'support/pong_audio'
 
 # Reference expectations: the checked audio-mode routines in ap_game_start,
 # ap_gamelogic, ap_ball, ap_sounds and ap_audio. No original code is executed.
@@ -223,28 +223,26 @@ check.call('F07: counters cross clients, field recreation and a new rally safely
   end
 end
 
-check.call('F03/F07: malformed optional input fields cannot create work or poison counters') do
+check.call('F03/F07: malformed peer positions cannot create work or poison counters') do
   h = PongHarness.new
   begin
     client = h.clients['Alice']
-    input = {'move' => 0, 'aim' => 0, 'hit' => false, 'press' => 0,
-      'left_press' => 0, 'right_press' => 0}
+    position = {'turn' => 0, 'goal' => nil, 'x' => 15, 'edges' => 0}
     [-1, 2**31, '1', [], nil].each do |bad|
-      assert(!client.send(:valid_input?, input.merge('left_press' => bad)), 'invalid DOWN counter accepted')
       assert(!client.send(:valid_peer_position?, {'turn' => 0, 'goal' => nil, 'x' => 15, 'edges' => bad}),
         'invalid border counter accepted')
       body = {'paused' => false, 'state' => client.engine.snapshot.merge('edges' => [0, bad])}
       assert(!client.send(:valid_state?, body), 'invalid relayed border counter accepted')
     end
-    pointer = input.merge('paddle' => 15, 'pointer_before' => 15, 'pointer_seq' => 1,
-      'pointer_edges' => 0, 'pointer_start' => 15, 'pointer_keys' => [-1, 1])
-    assert(client.send(:valid_input?, pointer), 'bounded simultaneous pointer/key input rejected')
-    [[1] * 4, [0], [nil], 'right'].each do |bad|
-      assert(!client.send(:valid_input?, pointer.merge('pointer_keys' => bad)), 'invalid pointer key path accepted')
+    assert(client.send(:valid_peer_position?, position), 'bounded peer position rejected')
+    [-1, 2**31, '1', [], nil].each do |bad|
+      assert(!client.send(:valid_peer_position?, position.merge('turn' => bad)), 'invalid turn accepted')
     end
-    assert(!client.send(:valid_input?, pointer.merge('pointer_start' => Float::NAN)), 'nonfinite pointer start')
+    [nil, '15', 0, 30, Float::INFINITY, Float::NAN].each do |bad|
+      assert(!client.send(:valid_peer_position?, position.merge('x' => bad)), 'invalid peer position accepted')
+    end
     wire = GameRoomRealtime::Protocol.encode(match: 'm' * 24, epoch: 'e' * 16,
-      sequence: 2**31 - 1, kind: 'input', body: pointer.merge('r' => 999))
+      sequence: 2**31 - 1, kind: 'input', body: position.merge('r' => 999, 'local' => 1))
     assert(wire.bytesize < GameRoomRealtime::Protocol::MAX_BYTES, 'new counters exceeded datagram limit')
   ensure
     h.close

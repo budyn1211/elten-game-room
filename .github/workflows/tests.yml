@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: dawidpieper/elten3
-          ref: 389153fa29d750c3aee90d2a789984490cb97825
+          ref: 5142182f40c901284c5d460b649b5c2e3813ccaf
           path: .ci/elten3
           persist-credentials: false
       - uses: ruby/setup-ruby@v1
@@ -30,4 +30,4 @@ jobs:
       - name: Run tests
         env:
           ELTEN_HOST_SOURCE: ${{ github.workspace }}/.ci/elten3
-        run: ruby tools/run-tests.rb
+        run: ruby tools/run-tests.rb --report test-results.json

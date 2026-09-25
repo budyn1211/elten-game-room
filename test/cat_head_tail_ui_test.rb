@@ -1,4 +1,6 @@
-require_relative "rules_live_help_test"
+require_relative 'support/sequence_random'
+
+require_relative "support/rules_live_help"
 
 game = GameRoomGames::CatHeadTail.new
 repository = Object.new

@@ -65,8 +65,10 @@ end
     h.programs[actor].pong_preferences['auto_return'] = false
     h.advance(5)
     assert(e.instance_variable_get(:@automatic)[0] == false, 'saved setting not applied to running rally')
-    invalid = {'move'=>0, 'hit'=>false, 'press'=>0, 'auto_return'=>'true'}
-    assert(!client.send(:valid_input?, invalid), 'invalid remote preference accepted')
+    h.network.each_value do |channel|
+      assert(channel.sent.none? { |wire| JSON.parse(wire)['d'].key?('auto_return') },
+        'personal automatic-return preference was sent as remote input')
+    end
   ensure
     h.close
   end

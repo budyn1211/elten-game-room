@@ -1,3 +1,4 @@
+require_relative 'support/host_source'
 require_relative 'support/ui'
 require_relative 'support/log'
 
@@ -20,7 +21,7 @@ end
 
 # The actual host queue/dispatch implementation, without a network endpoint or
 # profile. Protocol/network work is deliberately forbidden by this fixture.
-host = File.expand_path(ENV.fetch('ELTEN_HOST_SOURCE', '../../elten3'), __dir__)
+host = EltenTestHost.root
 require File.join(host, 'src/eapi/live_sessions')
 require_relative '../__app'
 

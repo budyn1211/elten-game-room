@@ -1,4 +1,4 @@
-require_relative 'taboo_rules_dictionary_test'
+require_relative 'support/binary_rule_dictionary'
 
 [:pl, :en, :fallback].each do |language|
   GameRoomTestLocalization.use_language(language)

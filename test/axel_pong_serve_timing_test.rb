@@ -1,4 +1,5 @@
-host_source = ENV['ELTEN_HOST_SOURCE'] || File.expand_path('../../elten3', __dir__)
+require_relative 'support/host_source'
+host_source = EltenTestHost.root
 require File.join(host_source, 'src/eapi/speech.rb')
 require_relative 'support/pong_client'
 

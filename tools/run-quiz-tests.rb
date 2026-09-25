@@ -1,31 +1,39 @@
-require "json"
-require "open3"
-require "rbconfig"
+require_relative "run-tests"
 
-# Targeted coverage for Quiz Party and the shared parts changed by PR #3.
-root = File.expand_path("..", __dir__)
-names = %w[
-  quiz_data_cleanup quiz_pack_builder quiz_factual_audit quiz_recovery_audit quiz_party quiz_party_startup
-  quiz_party_review_regressions quiz_party_translation witcher_medium_split game_content
-  hidden_submissions_storage quiz_party_storage categories_storage
-  game_option_form surface_framework packaged_rules_encoding categories
-  tysiac room_interface game_rules_ui game_rules_translation game_messages_ui
-  game_sounds observer_and_shortcut_regressions uno_straights
-  native_live_sessions_store live_sessions_resilience live_sessions_multiplayer
-  transport game_sync
-  connection_recovery connection_recovery_ui synchronization_regressions
+# A named selection only; execution, timeouts and reports belong to the shared runner.
+tests = %w[
+  test/quiz_data_cleanup_test.rb
+  test/quiz_pack_builder_test.rb
+  test/quiz_factual_audit_test.rb
+  test/quiz_recovery_audit_test.rb
+  test/quiz_party_test.rb
+  test/quiz_party_startup_test.rb
+  test/quiz_party_review_regressions_test.rb
+  test/quiz_party_translation_test.rb
+  test/witcher_medium_split_test.rb
+  test/game_content_test.rb
+  test/hidden_submissions_storage_test.rb
+  test/quiz_party_storage_test.rb
+  test/categories_storage_test.rb
+  test/game_option_form_test.rb
+  test/surface_framework_test.rb
+  test/packaged_rules_encoding_test.rb
+  test/categories_test.rb
+  test/tysiac_test.rb
+  test/room_interface_test.rb
+  test/game_rules_ui_test.rb
+  test/game_rules_translation_test.rb
+  test/game_messages_ui_test.rb
+  test/game_sounds_test.rb
+  test/observer_and_shortcut_regressions_test.rb
+  test/uno_straights_test.rb
+  test/native_live_sessions_store_test.rb
+  test/live_sessions_resilience_test.rb
+  test/live_sessions_multiplayer_test.rb
+  test/transport_test.rb
+  test/game_sync_test.rb
+  test/connection_recovery_test.rb
+  test/connection_recovery_ui_test.rb
+  test/synchronization_regressions_test.rb
 ]
-results = names.map do |name|
-  started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-  stdout, stderr, status = Open3.capture3(RbConfig.ruby, "test/#{name}_test.rb", chdir: root)
-  puts "#{status.success? ? 'PASS' : 'FAIL'} #{name}"
-  warn stdout + stderr unless status.success?
-  { name: name, exit_code: status.exitstatus,
-    seconds: (Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).round(3),
-    stdout: stdout, stderr: stderr }
-end
-if ARGV.first
-  File.write(ARGV.first, JSON.pretty_generate(results) + "\n", encoding: "UTF-8")
-end
-abort "Quiz regression failures" unless results.all? { |r| r[:exit_code] == 0 }
-puts "All #{results.length} targeted Quiz/integration tests passed. No live clients were used."
+exit GameRoomTestRunner.cli(ARGV, tests: tests, legacy_report: true)

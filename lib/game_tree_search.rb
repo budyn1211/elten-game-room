@@ -48,6 +48,10 @@ module GameRoomBots
 
     attr_reader :last_stats
 
+    def simulation_required?
+      true
+    end
+
     def initialize(max_depth:, node_limit:, fallback: HeuristicStrategy.new, optimize_transpositions: false)
       @max_depth = [max_depth.to_i, 1].max
       @node_limit = [node_limit.to_i, 1].max

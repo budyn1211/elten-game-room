@@ -1,4 +1,4 @@
-require_relative 'taboo_rules_dictionary_test'
+require_relative 'support/binary_rule_dictionary'
 class DictionaryPingWorker
   def busy?; false; end
   def start(&block); @result = [block.call, nil]; true; end

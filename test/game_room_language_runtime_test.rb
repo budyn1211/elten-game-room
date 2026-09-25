@@ -1,8 +1,5 @@
-host_source = ENV["ELTEN_HOST_SOURCE"]
-if host_source.to_s.empty?
-  puts "SKIP game_room_language_runtime_test: set ELTEN_HOST_SOURCE to the Elten 3 source checkout"
-  exit 0
-end
+require_relative 'support/host_source'
+host_source = EltenTestHost.root
 
 require_relative "support/game_room_language_runtime"
 GameRoomLanguageRuntime.load_host(File.expand_path(host_source))
@@ -75,7 +72,7 @@ def verify_real_ui(runtime, language)
   assert_equal(language == "pl" ? "Zasady" : "Rules", documents.first.title, "The shared rules document ignored the app locale")
 
   cat = app::GAME_REGISTRY.build("cat_head_tail")
-  replay = cat.replay({ "__players" => %w[Alice Bob], "options" => JSON.generate(cat.default_options) }, [], ns::SavedGames::ReplayRepository.new)
+  replay = cat.replay({ "__players" => %w[Alice Bob], "options" => JSON.generate(cat.default_options) }, [], ns::GameRoomSavedGameArchive::ReplayRepository.new)
   cards = cat.surface_spec(replay, "Alice").zones.first.cards
   assert_equal(language == "pl" ? "Rzuć kością" : "Roll", cards.find { |card| card.id == "roll" }.label, "CatHeadTail's context wrapper bypassed app localization")
   assert_equal(language == "pl" ? "Zapisz 0 punktów" : "Bank 0 points", cards.find { |card| card.id == "bank" }.label, "CatHeadTail lost its uncontexted framework fallback")

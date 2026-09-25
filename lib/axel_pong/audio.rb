@@ -1,13 +1,11 @@
 require_relative 'audio_extras'
 require_relative 'preferences'
+require_relative '../realtime/score_announcements'
 
 module GameRoomPong
   class Audio
     include AudioExtras
-    GOALS = (1..8).map { |n| "pong_goal#{n}" }.freeze
-    GOAL_VOICES = (1..4).map { |n| "pong_score#{n}" }.freeze
-    ANNOUNCEMENTS = (GOALS + GOAL_VOICES + ['pong_scores'] +
-      (0..21).map { |n| "pong_number#{n}" } + %w[pong_goal pong_gamestart pong_youwin pong_theywin]).freeze
+    include GameRoomRealtime::ScoreAnnouncements
     SHIELD_HITS = (1..10).flat_map { |n| ["pong_own_shield_hit#{n}", "pong_op_shield_hit#{n}"] }.freeze
     MOVEMENT_ASSETS = %w[pong_move pong_op_move pong_move_double pong_edge pong_op_edge].freeze
     PARTICIPANT_ASSETS = (MOVEMENT_ASSETS + %w[pong_hit pong_op_hit]).freeze
@@ -25,17 +23,15 @@ module GameRoomPong
     # Original default opponent steps = 100%; depth gain .2 times 4.55.
     # Independent of the personal score-announcer regulator.
     OPPONENT_SHIELD_HIT_LEVEL = 0.91
-    ANNOUNCER_LEVEL = 0.5
     WALL_PITCH = [1.3, 1.15, 1.0, 0.85, 0.7].freeze
 
     def initialize(program, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) }, rng: Random.new,
       speaker: nil, speech_active: nil)
       @program, @clock, @rng = program, clock, rng
-      @speaker = speaker || ->(text) { speak(text, stop: false, break_sequence: false) }
-      @speech_active = speech_active || -> { respond_to?(:speech_actived, true) && speech_actived }
+      initialize_score_announcements(speaker: speaker, speech_active: speech_active)
       @sounds, @frequencies = {}, {}
       @voice_assets, @movement_players = {}, 2
-      @announcing, @levels, @pans, @score_queue = {}, {}, {}, []
+      @levels, @pans = {}, {}
       @echo, @crowd = 'off', false
       reset
     end
@@ -71,12 +67,6 @@ module GameRoomPong
       suspend
     end
 
-    def start_match
-      return if @started
-      @started = true
-      play_voice('pong_gamestart')
-    end
-
     # A reliable, mutually agreed miss can sound immediately. The score and
     # match result still come exclusively from an accepted LiveSessions point.
     def goal(viewer:, winner: nil)
@@ -84,36 +74,8 @@ module GameRoomPong
       crowd_reset
       return unless gain('pong_goal') > 0
       suspend
-      goal = GOALS[@rng.rand(GOALS.length)]
-      play_announcement(@sounds[goal] ? goal : 'pong_goal')
-      play_voice(GOAL_VOICES[@rng.rand(GOAL_VOICES.length)])
+      play_goal_recordings
       crowd_event(winner == viewer ? 'cheer' : 'epicfail') if winner != nil
-    end
-
-    attr_reader :presents_point
-
-    # The spacing is a minimum, not a deadline for interrupting the previous
-    # recording. A delayed durable write still reuses the goal's elapsed pause.
-    def point(scores, viewer:, winner: nil, finished: false, goal_at: nil,
-      score_text: nil, result_text: nil)
-      goal(viewer: viewer, winner: winner) unless goal_at
-      @presents_point = false
-      return unless gain('pong_goal') > 0
-      @presents_point = true
-      ordered = viewer == 1 ? scores.reverse : scores
-      at = [@clock.call, (goal_at || @clock.call) + 3.0].max
-      names = ['pong_scores', *ordered.map { |n| "pong_number#{n}" }]
-      recorded = ordered.all? { |n| n.is_a?(Integer) && n.between?(0, 21) } && names.all? { |n| @sounds[n] }
-      score = recorded ? names : [{ speech: score_text || ordered.join(' : ') }]
-      score.each_with_index { |item, i| @score_queue << [at + i * 0.5, item] }
-      if finished
-        final_at = at + 2.7
-        voice = winner == viewer ? 'pong_youwin' : 'pong_theywin'
-        result = !@sounds[voice] ? { speech: result_text } : voice
-        @score_queue << [final_at, result] if !result.is_a?(Hash) || !result[:speech].to_s.empty?
-        @crowd_result = [final_at, winner == viewer ? 'won' : 'lost'] if winner != nil
-        score.each_with_index { |item, i| @score_queue << [final_at + 0.3 + i * 0.5, item] }
-      end
     end
 
     def tick
@@ -127,45 +89,14 @@ module GameRoomPong
         crowd_event(@crowd_result[1])
         @crowd_result = nil
       end
-      @announcing.keys.each do |name|
-        sound = @sounds[name]
-        finished = sound.respond_to?(:finished?) ? sound.finished? : !sound.playing?
-        if finished || now >= @announcing[name]
-          sound.pause
-          @announcing.delete(name)
-        end
-      end
+      retire_announcements(now)
       @levels.each do |name, level|
         apply_mix(name, @pans[name], level) if @sounds[name]&.playing?
       end
-      # A delayed UI tick must not start/cut three voices in the same frame.
-      voice_busy = @voice && @announcing.key?(@voice)
-      speech_busy = @speech_pending && now < @speech_deadline && @speech_active.call
-      @speech_pending = false unless speech_busy
-      if !voice_busy && !speech_busy && @score_queue.first && now >= @score_queue.first[0]
-        scheduled, item = @score_queue.shift
-        if item.is_a?(Hash) && personal_gain('pong_scores') > 0
-          @speaker.call(item[:speech])
-          @speech_pending = true
-          @speech_deadline = now + 30.0
-        elsif !item.is_a?(Hash)
-          play_voice(item)
-        end
-        lag = now - scheduled
-        @score_queue.each { |entry| entry[0] += lag } if lag > 0.05
-      end
+      advance_score_queue(now)
     end
 
-    def play_local_movement(snapshot, viewer:, kind:, position:)
-      positions = snapshot['p'].dup
-      positions[viewer] = position
-      state = snapshot.merge('p' => positions)
-      # Local feedback has no server event number. It cannot consume the
-      # sequence used for remote steps, strikes, walls and goals.
-      play_effect(kind, viewer, position, court_side(state, viewer) * 20, state, viewer)
-    end
-
-    def update(snapshot, viewer:, paused:, local_movement: false)
+    def update(snapshot, viewer:, paused:)
       return suspend unless snapshot
       paddle, ball = snapshot['p'][viewer], snapshot['b']
       pan, volume = spatial(paddle, ball['x'], ball['y'], court_side(snapshot, viewer))
@@ -182,7 +113,6 @@ module GameRoomPong
       snapshot['fx'].each do |number, kind, side, x, y|
         next if number <= @last_effect
         @last_effect = number
-        next if local_movement && side == viewer && %w[step edge].include?(kind)
         next if paused && !%w[step edge].include?(kind)
         play_effect(kind, side, x, y, snapshot, viewer)
         crowd_event('chant') if kind == 'serve'
@@ -316,26 +246,12 @@ module GameRoomPong
     end
 
     def clear_announcements
-      @announcing.each_key { |name| @sounds[name]&.pause }
-      @announcing.clear
-      @score_queue.clear
-      @voice = @crowd_result = nil
-      @speech_pending = false
+      super
+      @crowd_result = nil
     end
 
-    def play_voice(name)
-      @sounds[@voice]&.pause if @voice
-      @announcing.delete(@voice)
-      @voice = play_announcement(name)
-    end
-
-    def play_announcement(name)
-      sound = play_sound(name, level: ANNOUNCER_LEVEL)
-      return unless sound
-      duration = sound.respond_to?(:length) ? sound.length.to_f : 3.0
-      duration = 3.0 unless duration.finite? && duration > 0
-      @announcing[name] = @clock.call + duration.clamp(0.1, 30.0) + 0.25
-      name
+    def score_result_scheduled(at, winner, viewer)
+      @crowd_result = [at, winner == viewer ? 'won' : 'lost']
     end
 
     def play_sound(name, pan: 0, level: 1.0, pitch: 1.0)

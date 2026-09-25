@@ -1,4 +1,4 @@
-require_relative "taboo_rules_dictionary_test"
+require_relative "support/binary_rule_dictionary"
 
 def assert(condition, message); raise message unless condition; end
 
@@ -9,7 +9,7 @@ def assert(condition, message); raise message unless condition; end
   players = ["Żaneta", "Łukasz"]
   options = game.normalize_options("variant" => "two_players", "talon_size" => "3")
   session = { "__players" => players, "options" => JSON.generate(options) }
-  repository = SavedGames::ReplayRepository.new
+  repository = GameRoomSavedGameArchive::ReplayRepository.new
   events = [
     { "id" => 1, "actor" => players.first, "action" => "deal", "value" => "1|0|000102030405060708090a0b0c0d0e0f" },
     { "id" => 2, "actor" => players.last, "action" => "bid", "value" => "100" },

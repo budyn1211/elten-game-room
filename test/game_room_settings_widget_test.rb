@@ -1,71 +1,4 @@
-require_relative "support/ui"
-require_relative "support/log"
-
-class CheckBox < FakeControl
-  attr_accessor :checked
-
-  def initialize(_label, checked: false)
-    super()
-    @checked = checked
-  end
-end
-
-class ListBox
-  attr_reader :sayoption_count
-
-  def sayoption
-    @sayoption_count = @sayoption_count.to_i + 1
-  end
-
-  def update
-    # The actual host focuses the selected row while processing arrows.
-    focus if $game_room_widget_arrow
-    super
-  end
-end
-
-class Program
-  def self.server_app(**_options); end
-  def self.app_runtime; nil; end
-end
-
-module Session
-  def self.name; "Alice"; end
-end
-
-module EltenLink
-  class Error < StandardError; end
-  class Client; end
-  module Contacts
-    class << self
-      attr_accessor :users, :calls, :error
-
-      def list(_client)
-        self.calls = calls.to_i + 1
-        raise error if error
-        users.to_a
-      end
-    end
-  end
-end
-
-module EltenAPI
-  module LiveSessions
-    class Error < StandardError; end
-    class TimeoutError < Error; end
-    class SessionClosed < Error; end
-    class StackFull < Error; end
-  end
-  module Tasks
-    class Cancelled < StandardError; end
-  end
-end
-
-require_relative "../__app"
-
-def assert(condition, message)
-  raise message if !condition
-end
+require_relative 'support/settings_widget'
 
 translations = JSON.parse(File.read(File.expand_path("../locale/settings-widget-after-219-pl.json", __dir__), encoding: "UTF-8"))
 mo = File.binread(File.expand_path("../locale/PL.mo", __dir__))
@@ -117,13 +50,13 @@ Form.class_eval do
   define_method(:wait) do
     captured_form = self
     sections = fields[0]
-    sections.index = 3
+    sections.index = 4
     sections.trigger(:move)
-    raise "widget controls were not shown together" if fields[14..17].any? { |control| hidden_controls.include?(control) }
-    raise "lobby controls remained visible in the widget category" if fields[1..5].any? { |control| !hidden_controls.include?(control) }
-    fields[6].index = 1
-    fields[10].index = 0
-    fields[15].select_multiselection_indices([1])
+    raise "widget controls were not shown together" if fields[18..21].any? { |control| hidden_controls.include?(control) }
+    raise "lobby controls remained visible in the widget category" if fields[5..9].any? { |control| !hidden_controls.include?(control) }
+    fields[10].index = 1
+    fields[14].index = 0
+    fields[19].select_multiselection_indices([1])
     fields[-2].trigger(:press)
   end
 end
@@ -149,21 +82,6 @@ Form.class_eval do
   remove_method :game_room_original_wait
 end
 
-WidgetSnapshot = Struct.new(:table, :members, keyword_init: true)
-class WidgetManualWorker
-  def start(&operation); return false if busy?; @operation = operation; true; end
-  def busy?; @operation != nil || @result != nil; end
-  def closed?; @closed == true; end
-  def finish
-    @result = [@operation.call, nil]
-    @operation = nil
-  rescue StandardError => error
-    @result = [nil, error]
-    @operation = nil
-  end
-  def take; value = @result; @result = nil; value; end
-  def close; @closed = true; end
-end
 worker = WidgetManualWorker.new
 now = 0.0
 active = true
@@ -173,10 +91,6 @@ rows = [
   WidgetSnapshot.new(table: { "__id" => 1, "owner" => "Alice", "game" => "uno" }, members: ["Alice"]),
   WidgetSnapshot.new(table: { "__id" => 2, "owner" => "Bob", "game" => "makao" }, members: ["Bob"])
 ]
-$game_room_widget_r = false
-def key_pressed?(key)
-  key == 0x52 && $game_room_widget_r
-end
 widget = GameRoomWidget::TableList.new(
   loader: -> { loads += 1; rows },
   opener: ->(snapshot) { opened << snapshot.table["__id"] },
@@ -237,13 +151,15 @@ widget.update
 lobby = Object.new
 lobby.define_singleton_method(:owner_of) { |row| row["owner"] }
 lobby.define_singleton_method(:table_id) { |row| row["__id"] }
+lobby.define_singleton_method(:capacity_of) { |_row| 8 }
+lobby.define_singleton_method(:playing?) { |row| row["status"] == "playing" }
 app = EltenGameRoom.allocate
 app.instance_variable_set(:@lobby, lobby)
 app.define_singleton_method(:game_name) { |id| id == "uno" ? "UNO" : "Makao" }
 available = WidgetSnapshot.new(table: { "__id" => 3, "owner" => "Bob", "game" => "uno" }, members: ["Bob"])
-assert(app.send(:table_join_label, available) == "Bob", "the per-game join list still exposes misleading details")
+assert(app.send(:table_join_label, available) == "Bob, 1/8, open", "the per-game join list lost occupancy/status")
 assert(app.send(:game_lobby_label, "uno") == "UNO", "the game picker still exposes an unreliable table count")
-assert(app.send(:widget_table_label, available) == "UNO, Bob", "the main-tab row is not concise")
+assert(app.send(:widget_table_label, available) == "UNO, Bob, 1/8, open", "the main-tab row lost occupancy/status")
 
 # Tab entry must use the same host task as before the asynchronous-widget
 # changes, then allow native focus to read the fresh list exactly once.
@@ -258,7 +174,7 @@ end
 entry_widget = app.send(:build_widget_control)
 entry_widget.focus
 assert(entry_tasks == [["Loading Game Room tables", { silent: true }]], "entry bypassed the host task")
-assert(entry_widget.options == ["UNO, Bob"] && entry_widget.sayoption_count.to_i == 0, "entry did not read current rows through native focus")
+assert(entry_widget.options == ["UNO, Bob, 1/8, open"] && entry_widget.sayoption_count.to_i == 0, "entry did not read current rows through native focus")
 entry_widget.close
 unavailable_session = Object.new
 unavailable_session.define_singleton_method(:can_join?) { false }
@@ -267,7 +183,7 @@ unavailable = WidgetSnapshot.new(
   members: ["Eve"]
 )
 assert(!app.send(:widget_table_available?, unavailable), "a natively unavailable table was treated as open")
-assert(app.send(:widget_table_label, unavailable) == "UNO, Eve, unavailable", "unavailable main-tab row has an unclear label")
+assert(app.send(:widget_table_label, unavailable) == "UNO, Eve, 1/8, open, unavailable", "unavailable main-tab row has an unclear label")
 
 transport = Object.new
 transport.define_singleton_method(:start) { true }
@@ -312,38 +228,6 @@ EltenGameRoom.activate
 assert(captured_tab&.fetch(:key) == "tables", "Game Room main tab was not registered")
 context = Struct.new(:current_control).new(widget)
 assert(captured_tab.fetch(:callback).call(context).equal?(widget), "main scene control was not reused")
-
-class FakePresentation
-  attr_reader :default_suppressed
-
-  def initialize(options)
-    @options = options
-  end
-
-  def sound
-    @options[:sound]
-  end
-
-  def suppress_default!
-    @default_suppressed = true
-    self
-  end
-end
-
-class FakeNotification
-  attr_reader :type, :metadata, :sender, :id, :app_uuid
-
-  def initialize(sender)
-    @id, @app_uuid = 1, "468f59c5-c9d7-47cd-80f1-1a6fbfd1aa80"
-    @type = "game_room.invitation"
-    @sender = sender
-    @metadata = { "sender" => sender, "table_name" => "Room", "game_name" => "UNO" }
-  end
-
-  def presentation(**options)
-    FakePresentation.new(options)
-  end
-end
 
 EltenLink::Contacts.users = ["Bob"]
 EltenLink::Contacts.calls = 0

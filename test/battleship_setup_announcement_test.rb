@@ -1,4 +1,4 @@
-require_relative "battleship_presentation_test"
+require_relative "support/battleship_presentation"
 
 # Model native focus speaking with the default stop=true. The older form
 # simulation did not announce focus and therefore could not detect cuts.

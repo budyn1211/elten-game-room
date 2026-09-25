@@ -1,4 +1,4 @@
-require_relative "game_option_form_test"
+require_relative "support/game_option_form"
 
 game = GameRoomGames::Rummy.new
 app = EltenGameRoom.allocate

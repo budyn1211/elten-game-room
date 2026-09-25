@@ -93,7 +93,7 @@ def test(name, &block)
 end
 
 def audio_ball_assets
-  GameRoomAudioBall::Audio::ASSETS + GameRoomPong::Audio::ANNOUNCEMENTS
+  GameRoomAudioBall::Audio::ASSETS + GameRoomRealtime::ScoreAnnouncements::ANNOUNCEMENTS
 end
 
 def flight(shot = 'up', position: 25.0, turn: 1)
@@ -105,7 +105,7 @@ test('allocates managed shot loops and prepare/stop streams once') do
   audio = GameRoomAudioBall::Audio.new(program)
   expected = %w[audio_ball_up audio_ball_left audio_ball_down audio_ball_prepare audio_ball_stopped]
   assert(GameRoomAudioBall::Audio::ASSETS.sort == expected.sort, 'The asset list does not match the default cues')
-  expected += GameRoomPong::Audio::ANNOUNCEMENTS
+  expected += GameRoomRealtime::ScoreAnnouncements::ANNOUNCEMENTS
   assert(program.created.sort == expected.map { |name| [name, false, GameRoomAudioBall::Audio::SHOTS.value?(name)] }.sort,
     'Shots must loop and preparation must play once using host streams')
   audio.load
@@ -220,7 +220,7 @@ test('falls back to listener-ordered default Elten speech when recordings are mi
   $audio_ball_speech = []
   [0, 1].each do |viewer|
     now = 0.0
-    program = AudioBallAudioProgram.new(missing: GameRoomPong::Audio::ANNOUNCEMENTS)
+    program = AudioBallAudioProgram.new(missing: GameRoomRealtime::ScoreAnnouncements::ANNOUNCEMENTS)
     audio = GameRoomAudioBall::Audio.new(program, clock: -> { now })
     audio.update(flight, viewer: viewer)
     count = $audio_ball_speech.length
@@ -244,7 +244,7 @@ test('speaks complete set and match information after the score fallback') do
     [nil, true, [3, 1], 'Score: 7 to 5. Player 1 wins the set. Sets: 3 to 1. Player 1 wins the match.']
   ].each do |viewer, finished, sets, expected|
     spoken, now = [], 0.0
-    program = AudioBallAudioProgram.new(missing: GameRoomPong::Audio::ANNOUNCEMENTS)
+    program = AudioBallAudioProgram.new(missing: GameRoomRealtime::ScoreAnnouncements::ANNOUNCEMENTS)
     audio = GameRoomAudioBall::Audio.new(program, clock: -> { now }, speaker: ->(text) { spoken << text })
     audio.point([7, 5], sets: sets, set_finished: true, winner: 0, viewer: viewer, finished: finished)
     assert(spoken.empty?, 'Set/match speech skipped the point pause')
@@ -286,7 +286,7 @@ test('normalizes binary-loaded translations and player names to UTF-8 before spe
   binary.module_eval(File.binread(path), path, 1)
   spoken = []
   now = 0.0
-  program = AudioBallAudioProgram.new(missing: GameRoomPong::Audio::ANNOUNCEMENTS)
+  program = AudioBallAudioProgram.new(missing: GameRoomRealtime::ScoreAnnouncements::ANNOUNCEMENTS)
   audio = binary::GameRoomAudioBall::Audio.new(program, clock: -> { now }, speaker: ->(text) { spoken << text })
   GameRoomTestLocalization.use_language(:pl)
   audio.point([2, 3], sets: [0, 0], set_finished: false, winner: 1, viewer: 0, finished: false)
@@ -315,7 +315,7 @@ test('reset rewinds only flight/preparation and forgets the previous flight with
   audio.reset
   assert(program.sounds.values.none?(&:playing?), 'Reset left a stream playing')
   assert(GameRoomAudioBall::Audio::ASSETS.all? { |name| program.sounds[name].position == 0 }, 'Reset retained a flight/preparation position')
-  assert(GameRoomPong::Audio::ANNOUNCEMENTS.all? { |name| program.sounds[name].position == 0.2 }, 'Reset rewound a point recording')
+  assert(GameRoomRealtime::ScoreAnnouncements::ANNOUNCEMENTS.all? { |name| program.sounds[name].position == 0.2 }, 'Reset rewound a point recording')
   before = program.sounds.fetch('audio_ball_up').seeks.length
   audio.update(flight, viewer: 0)
   assert(program.sounds.fetch('audio_ball_up').seeks.length == before + 1, 'Reset retained the previous flight identity')
@@ -374,7 +374,7 @@ end
 test('missing preparation or all assets degrade to silence without losing speech') do
   [ ['audio_ball_prepare'], GameRoomAudioBall::Audio::ASSETS ].each do |missing|
     spoken, now = [], 0.0
-    program = AudioBallAudioProgram.new(missing: missing + GameRoomPong::Audio::ANNOUNCEMENTS)
+    program = AudioBallAudioProgram.new(missing: missing + GameRoomRealtime::ScoreAnnouncements::ANNOUNCEMENTS)
     audio = GameRoomAudioBall::Audio.new(program, clock: -> { now }, speaker: ->(text) { spoken << text })
     audio.update(flight, viewer: 0)
     audio.prepare(0, viewer: 0)

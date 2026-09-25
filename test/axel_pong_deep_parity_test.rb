@@ -1,5 +1,5 @@
 # encoding: UTF-8
-require_relative 'axel_pong_mouse_test'
+require_relative 'support/axel_pong_mouse'
 
 # Expected values are hand-derived from ap_ball.HandleBall, not another
 # implementation of our own formula. No recovered Python is executed.

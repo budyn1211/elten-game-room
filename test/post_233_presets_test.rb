@@ -1,5 +1,6 @@
-require_relative 'widget_inline_presets_test'
-load File.expand_path('../../work/elten-3.0.1-app-dev/src/ui/input.rb', __dir__)
+require_relative 'support/host_source'
+require_relative 'support/widget_inline_presets'
+load EltenTestHost.file("src/ui/input.rb")
 module EltenAPI::KeyboardScheme
   def self.main_modifier; :control; end
   def self.key_code(key); key.is_a?(Integer) ? key : nil; end

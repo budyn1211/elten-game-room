@@ -36,7 +36,6 @@ module GameRoomPong
       @server = @rotation.server
       @guest = guest
       @paddles = paddles ? paddles.dup : Array.new(count, 15.0)
-      @audible_paddles = @paddles.dup
       @step_distance = movement_feedback ? movement_feedback.fetch(:distance).dup : Array.new(count, 0.0)
       @last_step_ms = movement_feedback ? movement_feedback.fetch(:last_ms).dup : Array.new(count, 0)
       @ball = { 'x' => 15.0, 'y' => @rotation.team(@server).zero? ? 0.0 : DEPTH,
@@ -180,7 +179,6 @@ module GameRoomPong
       end
       if audible
         cue('step', side)
-        @audible_paddles[side] = @paddles[side]
         @last_step_ms[side] = @now_ms
         @step_distance[side] = @bots.include?(side) ? @step_distance[side] - 1.0 : 0.0
       end

@@ -31,6 +31,7 @@ h = NativeRoomHarness.new(game: GameRoomGames::TicTacToe.new, users: ['Alice'], 
 h.add_client('Bob')
 program = ProgramDouble.new(h.broker.endpoint('Alice'))
 app = EltenGameRoom.new
+EltenGameRoom.remember_settings(EltenGameRoom::DEFAULT_SETTINGS)
 app.instance_variable_set(:@transport, h.transports['Alice'])
 app.instance_variable_set(:@games, h.repositories['Alice'])
 activity = TableActivityRepository.new(transport: h.transports['Alice'], server_tables: {})
@@ -133,7 +134,7 @@ original_snapshot = lobby.method(:snapshot_for)
 fail_read = false
 lobby.define_singleton_method(:snapshot_for) do |*args|
   reads += 1
-  raise IOError, 'Controlled offline test' if fail_read
+  raise EltenAPI::LiveSessions::TimeoutError, 'Controlled offline test' if fail_read
   original_snapshot.call(*args)
 end
 begin
@@ -189,3 +190,31 @@ restored.define_singleton_method(:start_session_runner) { nil }
 restored.start_covered_session(covered: -> { true }, activity_cursor: 10)
 assert(restored.instance_variable_get(:@last_seen_event_id) == 700, 'Restored game would repeat archived moves')
 puts 'PASS waiting table: restored game skips archived events'
+
+# Internal failures must not turn the monitor into a 20 Hz failing reader.
+# Keep the native scene untouched; the original exception reaches Game Room
+# when its foreground owner resumes, without mutating/closing the room.
+monitor = GameRoomTableBackground.new(program: app, transport: h.transports['Alice'], repository: h.repositories['Alice'],
+  lobby: lobby, activity_repository: activity, table: h.table, session_id: session['__id'], activity_cursor: cursor,
+  covered: -> { true }, screen_builder: ->(*) { raise 'unexpected game creation' })
+reads = 0
+failure = NoMethodError.new('controlled waiting-room bug')
+failure.set_backtrace(['waiting-room.rb:42'])
+original_snapshot = lobby.method(:snapshot_for)
+lobby.define_singleton_method(:snapshot_for) { |*| reads += 1; raise failure }
+pushes = h.view('Alice').calls[:push]
+begin
+  100.times { monitor.step; monitor.present_background_session(monitor) }
+  assert(reads == 1 && !monitor.instance_variable_get(:@sync).recovery_pending?, 'internal waiting-room fault was retried')
+  assert(!h.core.closed && h.view('Alice').calls[:push] == pushes, 'fault changed the server room')
+  begin
+    monitor.take_game_screen
+    raise 'foreground did not receive the waiting-room fault'
+  rescue NoMethodError => error
+    assert(error.equal?(failure), 'foreground lost the original exception')
+  end
+ensure
+  monitor.close
+  lobby.define_singleton_method(:snapshot_for, original_snapshot)
+end
+puts 'PASS waiting table: terminal internal error, no retry/write/close, original foreground exception'

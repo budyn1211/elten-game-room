@@ -1,18 +1,4 @@
-require_relative 'support/ui'
-require_relative '../lib/game_surfaces'
-require_relative 'game_session_runner_test'
-require_relative '../games/makao'
-require_relative '../games/poker'
-require_relative '../games/quiz_party'
-require_relative '../content/languages'
-require_relative '../content/quiz_pl_wikidata'
-
-class RunnerTestClock
-  attr_accessor :value
-  def initialize(value); @value = value; end
-  def now(_session); @value.to_i; end
-  def now_f(_session); @value.to_f; end
-end
+require_relative 'support/game_session_runner_deadline'
 
 [GameRoomGames::Uno.new, GameRoomGames::Makao.new, GameRoomGames::Poker.new].each do |game|
   h = NativeRoomHarness.new(game: game, users: %w[Alice Bob], options: game.default_options.merge('thinking_time' => 3))

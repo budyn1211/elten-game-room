@@ -33,6 +33,13 @@ module GameRoomGames
     SUIT_NAMES = { "C" => _("clubs"), "D" => _("diamonds"), "H" => _("hearts"), "S" => _("spades") }.freeze
     RANK_NAMES = { "T" => "10", "J" => _("jack"), "Q" => _("queen"), "K" => _("king"), "A" => _("ace") }.freeze
 
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      return "shuffle" if action == "deal"
+      return "draw" if action == "exchange" && !GameRoomTurnClock.payload(after_replay.state, event).empty?
+      return "play" if action == "bet" && event["value"].to_s !~ /\A(?:check|fold)\|/
+    end
+
     def id
       "poker"
     end
@@ -538,7 +545,6 @@ module GameRoomGames
       seated = seated_players(state)
       return false if seated.length < 2 || !seated.include?(state[:players][dealer])
       previous_blinds = [current_small_blind(state), current_big_blind(state)]
-      adjust_blinds(state, hand_number)
       deck = shuffled_cards(standard_deck, seed)
       count = state[:options]["variant"] == "holdem" ? 2 : 5
       hands = state[:players].to_h { |player| [player, []] }
@@ -951,16 +957,8 @@ module GameRoomGames
       %w[2 3 4 5 6 7 8 9 T J Q K A].index(card.to_s[0]) || 0
     end
 
-    def hand_strength_for(state, actor)
-      cards = hand_for(state, actor) + state[:community]
-      return hand_rank(cards)[0].to_f / 8.0 if cards.length >= 5
-      ranks = hand_for(state, actor).map { |card| rank_index(card) }
-      pair = ranks.uniq.length < ranks.length
-      (ranks.sum / [ranks.length * 12.0, 1].max) * 0.55 + (pair ? 0.35 : 0.0)
-    end
-
     def poker_public_ranges(replay)
-      events = replay.accepted_events.to_a
+      events = GameRoomParticipantDecisionEvents.for(replay).to_a
       start = events.rindex { |event| event["action"] == "deal" }
       events = events[(start + 1)..] if start
       ranges = Hash.new(0)
@@ -974,7 +972,7 @@ module GameRoomGames
     end
 
     def poker_public_exchanges(replay)
-      events = replay.accepted_events.to_a
+      events = GameRoomParticipantDecisionEvents.for(replay).to_a
       start = events.rindex { |event| event["action"] == "deal" }
       events = events[(start + 1)..] if start
       # Only the announced NUMBER of exchanged cards is usable by opponents.
@@ -1215,11 +1213,6 @@ module GameRoomGames
       when "raise" then _("%{player} raises by %{increase}, to %{amount}.") % { player: participant_name(player), increase: state[:street_bets][player] - (previous_bet || state[:current_bet]), amount: state[:street_bets][player] }
       when "all_in" then _("%{player} is all in for %{amount}.") % { player: participant_name(player), amount: amount }
       end
-    end
-
-    def adjust_blinds(state, hand_number)
-      return if state[:options]["blind_interval"] != "hands"
-      # Computed on demand by current_*_blind; retained for deterministic replays.
     end
 
     def blind_level(state)

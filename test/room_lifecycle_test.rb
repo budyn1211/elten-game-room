@@ -27,33 +27,28 @@ if !defined?(Session)
   end
 end
 
-table = { "__id" => 7, "game" => "four_in_a_row", "owner" => "Alice" }
-sessions = [
-  {
-    "__id" => 11,
-    "table_id" => 7,
-    "game" => "four_in_a_row",
-    "player_one" => "Alice",
-    "player_two" => "Bob",
-    "players_json" => players_json("Alice", "Bob")
-  },
-  {
-    "__id" => 19,
-    "table_id" => 7,
-    "game" => "four_in_a_row",
-    "player_one" => "Alice",
-    "player_two" => "Bob",
-    "players_json" => players_json("Alice", "Bob")
-  }
-]
-repository = GameRepository.allocate
-repository.define_singleton_method(:session_rows) { |table_id: nil| sessions }
-repository.define_singleton_method(:valid_session_for_table?) { |_session, _table, players:| !players.empty? }
-
-latest = repository.session_for_table(table)
-assert(repository.session_id(latest) == 19, "the latest game session was not selected")
-assert(repository.latest_session_id_for_table(table) == 19, "the latest game session id was not detected")
-assert(repository.session_by_id(11, table: table)["__id"] == 11, "a game session could not be restored by id")
+# The lifecycle contract now runs against the native stack, not deleted
+# table insert/select adapters. Older saved player-list parsing stays below.
+require_relative 'support/native_room_harness'
+h = NativeRoomHarness.new(users: %w[Alice Bob], bots: 1)
+$game_room_test_user = 'Alice'
+table = h.table
+repository = h.repositories['Alice']
+first_session = h.start
+second_session = h.start
+sessions = [first_session, second_session]
+assert(repository.session_for_table(table)['__id'] == second_session['__id'], 'latest stack start not selected')
+assert(repository.latest_session_id_for_table(table) == second_session['__id'], 'latest native session ID lost')
+assert(repository.session_by_id(first_session['__id'], table: table)['__id'] == first_session['__id'], 'old session cannot be restored')
+# Random game IDs are NOT chronological: force the opposite order in this
+# facade-only probe and keep stack order as the source of truth.
+probe = GameRepository.allocate
+probe_transport = Object.new
+probe_transport.define_singleton_method(:game_sessions) do |*, **|
+  [first_session.merge('__id' => 999, '__stack_sequence' => 1), second_session.merge('__id' => 2, '__stack_sequence' => 2)]
+end
+probe.instance_variable_set(:@transport, probe_transport)
+assert(probe.session_for_table(table)['__id'] == 2 && probe.latest_session_id_for_table(table) == 2, 'random ID overrode stack order')
 
 room_snapshot = Struct.new(:participants).new(["Alice", "Bob"])
 snapshot_struct = Struct.new(:session)
@@ -107,56 +102,21 @@ assert(
   "history from the previous game leaked into the new game"
 )
 
-stale_repository = GameRepository.allocate
-stale_session = sessions.last.merge("__players" => ["Alice", "Bob"])
-stale_repository.define_singleton_method(:session_for_table) { |_row| stale_session }
-returned_session = stale_repository.start_session(
-  table: table,
-  game: "four_in_a_row",
-  players: ["Alice", "Bob"],
-  expected_previous_session_id: 11
-)
-assert(
-  stale_repository.session_id(returned_session) == 19,
-  "a stale start request created a competing game session"
-)
-
-start_reads = 0
-session_writes = []
-notifications = []
-previous_session = sessions.last.merge("__players" => ["Alice", "Bob"])
-competing_session = previous_session.merge("__id" => 21)
-fake_sessions_table = Object.new
-fake_sessions_table.define_singleton_method(:insert) do |values|
-  session_writes << values
-  values.merge("__id" => 20, "__insertion_user" => "Alice")
-end
-competing_repository = GameRepository.allocate
-competing_repository.define_singleton_method(:session_for_table) do |_row|
-  start_reads += 1
-  start_reads == 1 ? previous_session : competing_session
-end
-competing_repository.define_singleton_method(:sessions_table) { fake_sessions_table }
-competing_repository.define_singleton_method(:events_table) { raise "starting a game wrote participant events" }
-competing_repository.define_singleton_method(:notify_game_changed) do |session, _users, change:|
-  notifications << [session, change]
-end
-resolved_session = competing_repository.start_session(
-  table: table,
-  game: "four_in_a_row",
-  players: ["Alice", "Bob"],
-  expected_previous_session_id: 19
-)
-assert(session_writes.length == 1, "a valid start did not create one candidate session")
-assert(
-  JSON.parse(session_writes.first["players_json"])["seats"].map { |seat| seat["controller"] } == ["Alice", "Bob"],
-  "a valid start did not freeze its complete player list atomically"
-)
-assert(
-  competing_repository.session_id(resolved_session) == 21,
-  "simultaneous starts did not converge on the newest complete session"
-)
-assert(notifications.empty?, "a superseded candidate session was announced as current")
+writes = h.view('Alice').calls[:push]
+returned = repository.start_session(table: table, game: table['game'], players: h.session['__players'], expected_previous_session_id: first_session['__id'])
+assert(returned['__id'] == second_session['__id'] && h.view('Alice').calls[:push] == writes, 'stale start created a competing game')
+simultaneous = 2.times.map do
+  Thread.new do
+    h.as('Alice') do
+      repository.start_session(table: table, game: table['game'], players: h.session['__players'], expected_previous_session_id: second_session['__id'])
+    end
+  end
+end.map(&:value)
+assert(simultaneous.map { |row| row['__id'] }.uniq.length == 1, 'concurrent starts diverged')
+# A native start persists one room checkpoint and one complete game record.
+assert(h.view('Alice').calls[:push] == writes + 2, 'concurrent starts wrote more than one checkpoint/start pair')
+h.instance_variable_set(:@session, simultaneous.first)
+assert(repository.players_for(simultaneous.first) == repository.players_for(second_session), 'atomic start lost frozen seats')
 
 many_players = {
   "__players" => ["Alice", "Bob", "Carol", "Dave"],
@@ -222,214 +182,66 @@ assert(
   "a session did not continue after its greatest accepted sequence"
 )
 
-inserted_values = []
-fake_events_table = Object.new
-fake_events_table.define_singleton_method(:insert) do |values|
-  inserted_values << values
-  values.merge("__id" => 49 + inserted_values.length)
+fast_session = h.session
+pushes = h.view('Alice').calls[:push]
+inserted = repository.append_events(session: fast_session, sequence: 4,
+  events: [{ 'action' => 'answer', 'value' => 'Poland' }, { action: 'answer', value: 'Poznan' }])
+assert(h.view('Alice').calls[:push] == pushes + 1, 'multi-event move was not one native atomic write')
+assert(inserted.length == 2 && inserted.map { |row| row['__id'] }.uniq.length == 2, 'multi-event move lost distinct event IDs')
+assert(inserted.map { |row| row['sequence'] } == [4, 5], 'multi-event sequence changed')
+assert(inserted.all? { |row| row['session_id'] == fast_session['__id'] }, 'write used wrong game')
+native_bot = repository.players_for(fast_session).find { |user| GameRoomParticipants.bot?(user) }
+bot_move = repository.append_events(session: fast_session, sequence: 6, events: [{action: 'place', value: '2,2'}], actor: native_bot)
+assert(repository.actor_of(bot_move.first, fast_session) == native_bot, 'bot move became coordinator move')
+h.broker.deliver
+current = repository.snapshot_for(fast_session).events
+reads = h.view('Alice').calls[:read]
+assert(repository.snapshot_for(fast_session).events == current && h.view('Alice').calls[:read] == reads, 'unchanged native cache reread or lost events')
+h.write('Bob', [{action: 'answer', value: 'remote'}], sequence: 7)
+h.broker.deliver
+h.transports['Alice'].dispatch_pending_events
+updated = repository.snapshot_for(fast_session).events
+assert(updated.first(current.length) == current && updated.length == current.length + 1, 'remote action lost prefix/order')
+revision = repository.events_revision(updated)
+assert(repository.event_revision(fast_session, known_revision: revision) == revision, 'unchanged revision changed')
+h.assert_converged('lifecycle event cache', expected_count: 4)
+
+# Manage computers on actual native rooms, preserving cache identity, history
+# and maximum occupancy. No table-counter repair writes remain in this API.
+managed = NativeRoomHarness.new(users: ['Alice'])
+activity = TableActivityRepository.new(transport: managed.transports['Alice'], server_tables: {})
+lobby = LobbyRepository.new(ProgramDouble.new(managed.broker.endpoint('Alice')), transport: managed.transports['Alice'], activity_repository: activity)
+row = managed.table
+snapshot = lobby.snapshot_for(row)
+writes = managed.view('Alice').calls[:push]
+20.times { assert(lobby.snapshot_for(row).members == ['Alice'], 'native snapshot lost members') }
+assert(managed.view('Alice').calls[:push] == writes, 'unchanged snapshot wrote counters')
+7.times do
+  result = lobby.add_bot(row, snapshot: snapshot)
+  assert(result.updated? && result.snapshot.equal?(snapshot) && result.activity, 'cached bot update/history lost')
 end
-fast_repository = GameRepository.allocate
-fast_repository.define_singleton_method(:events_table) { fake_events_table }
-fast_repository.define_singleton_method(:session_rows) { |table_id: nil| raise "move submission read game sessions" }
-fast_repository.define_singleton_method(:events_for) { |_session| raise "move submission read game events" }
-fast_repository.define_singleton_method(:notify_game_changed) do |_session, _users, change:|
-  assert(change == "action", "game action notification has an invalid change type")
-end
-fast_session = {
-  "__id" => 24,
-  "table_id" => 7,
-  "__insertion_user" => "Alice",
-  "player_one" => "Alice",
-  "__players" => ["Alice", "Bob"]
-}
-inserted_actions = fast_repository.append_events(
-  session: fast_session,
-  sequence: 4,
-  events: [
-    { "action" => "answer", "value" => "Poland" },
-    { action: "answer", value: "Poznan" }
-  ],
-  recipients: ["Alice", "Bob"]
-)
-assert(inserted_actions.map { |row| row["__id"] } == [50, 51], "multi-event action lost inserted rows")
-assert(inserted_values.all? { |values| values["session_id"] == 24 }, "the direct action insert used an invalid session")
-assert(inserted_values.map { |values| values["sequence"] } == [4, 5], "multi-event action has invalid sequence numbers")
-
-fast_session["__players"] << bot
-fast_repository.append_events(
-  session: fast_session,
-  sequence: 6,
-  events: [{ action: "place", value: "2,2" }],
-  recipients: ["Alice", bot, "Bob"],
-  actor: bot
-)
-assert(inserted_values.last["actor"] == bot, "a computer move was written as its coordinating user")
-
-event_selects = []
-cached_rows = [
-  { "__id" => 70, "session_id" => 24, "sequence" => 1, "created_at" => 1 },
-  { "__id" => 71, "session_id" => 24, "sequence" => 2, "created_at" => 2 },
-  { "__id" => 72, "session_id" => 24, "sequence" => 3, "created_at" => 3 }
-]
-fake_cached_events_table = Object.new
-fake_cached_events_table.define_singleton_method(:select) do |where:, order:, limit:, offset: nil|
-  event_selects << { where: where, order: order, limit: limit, offset: offset.to_i }
-  cached_rows.drop(offset.to_i).take(limit.to_i)
-end
-cached_repository = GameRepository.allocate
-cached_repository.define_singleton_method(:events_table) { fake_cached_events_table }
-first_cached = cached_repository.send(:events_for, fast_session)
-second_cached = cached_repository.send(:events_for, fast_session)
-assert(first_cached.map { |row| row["__id"] } == [70, 71, 72], "the event cache changed event order")
-assert(second_cached.map { |row| row["__id"] } == [70, 71, 72], "the event cache lost events")
-assert(event_selects.length == 1, "a fresh event cache repeated the full server read")
-
-cached_rows << { "__id" => 73, "session_id" => 24, "sequence" => 4, "created_at" => 4 }
-incremental = cached_repository.send(:events_for, fast_session, force: true)
-assert(incremental.map { |row| row["__id"] } == [70, 71, 72, 73], "the event cache did not append a remote event")
-assert(event_selects.last[:offset] == 3, "incremental event loading did not begin after cached rows")
-
-revision = cached_repository.events_revision(incremental)
-assert(
-  cached_repository.event_revision(fast_session, known_revision: revision) == revision,
-  "an unchanged event log reported a new revision"
-)
-assert(event_selects.last[:limit] == 1 && event_selects.last[:offset] == 4, "revision checking fetched the full event log")
-
-lobby = LobbyRepository.allocate
-assert(lobby.capacity_of({ "max_players" => 2 }) == 8, "an old two-person table was not upgraded logically")
-assert(lobby.capacity_of({ "max_players" => 12 }) == 8, "an old oversized room capacity was not capped")
-bot_table = { "__id" => 7, "max_players" => 8, "bot_count" => 2 }
-assert(lobby.bots_for(bot_table) == ["bot:7:1", "bot:7:2"], "table computers were not restored")
-snapshot = LobbyRepository::TableSnapshot.new(table: bot_table, members: ["Alice"], bots: lobby.bots_for(bot_table))
-assert(snapshot.participants == ["Alice", "bot:7:1", "bot:7:2"], "table participants lost computers")
-
-listed_rows = [
-  { "__id" => 1, "status" => "playing", "updated_at" => 300, "game" => "spades" },
-  { "__id" => 2, "status" => "waiting", "updated_at" => 100, "game" => "spades" },
-  { "__id" => 3, "status" => "waiting", "updated_at" => 200, "game" => "spades" },
-  { "__id" => 4, "status" => "closed", "updated_at" => 400, "game" => "spades" }
-]
-listing_table = Object.new
-listing_table.define_singleton_method(:select) { |**_arguments| listed_rows }
-listing_lobby = LobbyRepository.allocate
-listing_lobby.define_singleton_method(:tables_table) { listing_table }
-assert(
-  listing_lobby.open_tables.map { |row| row["__id"] } == [3, 2, 1],
-  "open tables are not listed before games in progress"
-)
-
-managed_row = {
-  "__id" => 8,
-  "__insertion_user" => "Alice",
-  "owner" => "Alice",
-  "status" => "waiting",
-  "max_players" => 8,
-  "bot_count" => 0,
-  "player_count" => 1
-}
-fake_tables = Object.new
-fake_tables.define_singleton_method(:update) do |_id, values|
-  managed_row.merge(values)
-end
-managed_lobby = LobbyRepository.allocate
-managed_lobby.define_singleton_method(:active_member_rows) { [] }
-managed_lobby.define_singleton_method(:open_table) { |_id, _tables = nil| managed_row }
-managed_lobby.define_singleton_method(:reconcile_members) { |_row, _members| ["Alice"] }
-managed_lobby.define_singleton_method(:tables_table) { fake_tables }
-managed_lobby.define_singleton_method(:notify_table_changed) { |_row, _users, actor:| actor }
-
-snapshot_updates = []
-snapshot_tables = Object.new
-snapshot_tables.define_singleton_method(:update) do |_id, values|
-  snapshot_updates << values
-  managed_row.merge(values)
-end
-snapshot_lobby = LobbyRepository.allocate
-snapshot_lobby.define_singleton_method(:open_tables) { [managed_row] }
-snapshot_lobby.define_singleton_method(:active_member_rows) { [] }
-snapshot_lobby.define_singleton_method(:reconcile_members) { |_row, _members| ["Alice"] }
-snapshot_lobby.define_singleton_method(:tables_table) { snapshot_tables }
-unchanged_snapshot = snapshot_lobby.snapshot_for(managed_row)
-assert(unchanged_snapshot.members == ["Alice"], "an unchanged table snapshot lost its members")
-assert(snapshot_updates.empty?, "an unchanged table snapshot performed a server write")
-
-managed_row["player_count"] = 7
-repaired_snapshot = snapshot_lobby.snapshot_for(managed_row)
-assert(snapshot_updates.length == 1, "an inconsistent table snapshot was not repaired")
-assert(repaired_snapshot.table["player_count"] == 1, "table counters were repaired incorrectly")
-managed_row["player_count"] = 1
-
-assert(managed_lobby.add_bot(managed_row) == :updated, "the table owner could not add a computer")
-assert(managed_row["bot_count"] == 1 && managed_row["player_count"] == 2, "adding a computer did not update the table")
-assert(managed_lobby.remove_bot(managed_row) == :updated, "the table owner could not remove a computer")
-assert(managed_row["bot_count"] == 0 && managed_row["player_count"] == 1, "removing a computer did not update the table")
-assert(managed_lobby.remove_bot(managed_row) == :none, "removing a missing computer changed the table")
-managed_row["bot_count"] = 9
-assert(managed_lobby.add_bot(managed_row) == :full, "a computer exceeded the table capacity")
-managed_row["bot_count"] = 0
-assert(managed_lobby.set_game_active(managed_row, true)["status"] == "playing", "starting a game did not mark the table as playing")
-assert(managed_lobby.set_game_active(managed_row, false)["status"] == "waiting", "finishing a game did not reopen the table")
-
-# Adding several computers from an already loaded room must not reread the
-# complete tables and membership collections after every click. The confirmed
-# server write remains authoritative and updates the cached snapshot only after
-# it succeeds.
-fast_row = {
-  "__id" => 18,
-  "__insertion_user" => "Alice",
-  "owner" => "Alice",
-  "status" => "waiting",
-  "max_players" => 8,
-  "bot_count" => 0,
-  "player_count" => 1
-}
-fast_snapshot = LobbyRepository::TableSnapshot.new(table: fast_row, members: ["Alice"], bots: [])
-fast_updates = []
-fast_activities = []
-fast_notifications = []
-fast_tables = Object.new
-fast_tables.define_singleton_method(:update) do |_id, values|
-  fast_updates << values.dup
-  fast_row.merge(values)
-end
-fast_lobby = LobbyRepository.allocate
-fast_lobby.define_singleton_method(:tables_table) { fast_tables }
-fast_lobby.define_singleton_method(:active_member_rows) { raise "cached bot update performed a membership read" }
-fast_lobby.define_singleton_method(:open_table) { |_id, _tables = nil| raise "cached bot update performed a table read" }
-fast_lobby.define_singleton_method(:append_activity) do |_row, kind, actor:, table_users:|
-  fast_activities << [kind, actor, table_users.dup]
-  Struct.new(:id).new(100 + fast_activities.length)
-end
-fast_lobby.define_singleton_method(:notify_table_changed) do |_row, users, actor:|
-  fast_notifications << [users.dup, actor]
-end
-
-7.times do |index|
-  result = fast_lobby.add_bot(fast_row, snapshot: fast_snapshot)
-  assert(result.is_a?(LobbyRepository::BotUpdateResult) && result.updated?, "cached computer #{index + 1} was not added")
-  assert(result.snapshot.equal?(fast_snapshot), "cached computer update replaced the room snapshot")
-  assert(result.activity != nil, "cached computer update lost its history entry")
-end
-assert(fast_updates.length == 7, "adding seven computers used extra table writes")
-assert(fast_activities.length == 7, "adding seven computers lost or duplicated activity writes")
-assert(fast_notifications.length == 7, "adding seven computers lost change notifications")
-assert(fast_snapshot.participants.length == 8 && fast_snapshot.bots.length == 7, "cached room did not contain all computers")
-full_result = fast_lobby.add_bot(fast_row, snapshot: fast_snapshot)
-assert(full_result.status == :full, "cached room capacity was not enforced")
-assert(fast_updates.length == 7 && fast_activities.length == 7, "a rejected computer addition wrote to the server")
-
-fast_lobby.set_game_active(fast_row, true, snapshot: fast_snapshot)
-assert(fast_updates.length == 8, "starting a game from a verified room used extra table writes")
-assert(fast_snapshot.table["status"] == "playing", "starting a game did not update the verified room snapshot")
-
-live_members = Object.new
-live_members.define_singleton_method(:connected_users) { |_table_id| ["Alice", "Bob"] }
-fast_lobby.instance_variable_set(:@transport, live_members)
-stale_result = fast_lobby.remove_bot(fast_row, snapshot: fast_snapshot)
-assert(stale_result.status == :stale, "a concurrent human join did not invalidate the local room snapshot")
-assert(fast_snapshot.bots.length == 7, "a stale room snapshot was modified")
-assert(fast_updates.length == 8 && fast_activities.length == 7, "a stale bot update wrote to the server")
+assert(snapshot.participants.length == 8 && snapshot.bots.uniq.length == 7, 'bot occupancy incorrect')
+assert(activity.entries_for(row, viewer: 'Alice').count { |entry| entry.kind == 'bot_added' } == 7, 'bot history missing/duplicated')
+writes = managed.view('Alice').calls[:push]
+assert(lobby.add_bot(row, snapshot: snapshot).status == :full && managed.view('Alice').calls[:push] == writes, 'full room accepted a bot')
+removed_bot = snapshot.bots.last
+assert(lobby.remove_bot(row, snapshot: snapshot).updated?, 'owner could not remove bot')
+managed.add_client('Bob')
+assert(managed.join('Bob'), 'freed place could not be joined')
+managed.broker.deliver
+writes = managed.view('Alice').calls[:push]
+before = snapshot.bots.dup
+assert(lobby.remove_bot(row, snapshot: snapshot, participant: removed_bot).status == :stale, 'a stale selection removed a different bot')
+assert(snapshot.bots == before && managed.view('Alice').calls[:push] == writes, 'stale bot update wrote or changed local state')
+fresh = lobby.snapshot_for(row)
+assert(fresh.members == ['Alice', 'Bob'] && fresh.bots == before, 'human join or stale selection corrupted native occupancy')
+lobby.set_game_active(row, true, snapshot: fresh)
+assert(fresh.table['status'] == 'playing', 'start did not update room status')
+lobby.set_game_active(row, false, snapshot: fresh)
+assert(fresh.table['status'] == 'waiting', 'end did not restore waiting status')
+6.times { assert(lobby.remove_bot(row, snapshot: fresh).updated?, 'bot removal failed') }
+assert(lobby.remove_bot(row, snapshot: fresh).status == :none, 'absent bot removal changed room')
+assert(lobby.capacity_of({'max_players' => 2}) == 8 && lobby.capacity_of({'max_players' => 12}) == 8, 'room capacity contract changed')
 
 active_labels = RoomPresentation.user_labels(
   ["Alice", "Bob", "Carol"],

@@ -10,7 +10,7 @@ require "digest"
 module SpadesPlanning
   class RoundPlanner
     attr_reader :last_failure
-    PlanningWorld = Struct.new(:state, :weight, :index, keyword_init: true)
+    PlanningWorld = Struct.new(:state, :weight, keyword_init: true)
 
     # These budgets keep one UI decision comfortably below a perceptible
     # pause. Fair play spends its budget on different possible deals; perfect
@@ -142,6 +142,11 @@ module SpadesPlanning
       # Planning is deliberately advisory. A malformed historical state must
       # not prevent the existing trained policy from making a legal move.
       @last_failure = { type: error.class.name, message: error.message }
+      failure_key = [error.class.name, Array(error.backtrace).first]
+      if @logged_failure != failure_key
+        @logged_failure = failure_key
+        Log.warning("ELTEN Game Room Spades planner fallback: #{error.class}: #{error.message}; #{failure_key.last}") if defined?(Log)
+      end
       empty_plan(phase)
     end
 
@@ -229,7 +234,7 @@ module SpadesPlanning
 
     def planning_worlds(state, actor, information, count:, offset: 0)
       if omniscient?(state)
-        return [PlanningWorld.new(state: copy_state(state), weight: 1.0, index: 0)]
+        return [PlanningWorld.new(state: copy_state(state), weight: 1.0)]
       end
 
       fair_worlds(state, actor, information, count: count, offset: offset)
@@ -258,8 +263,7 @@ module SpadesPlanning
           opponents.each { |player| world[:hands][player] = assignment.fetch(player) }
           worlds << PlanningWorld.new(
             state: world,
-            weight: world_likelihood(world, actor_key, information),
-            index: offset + worlds.length
+            weight: world_likelihood(world, actor_key, information)
           )
         end
         attempts += 1
@@ -276,7 +280,6 @@ module SpadesPlanning
       exact_limit:,
       variants:
     )
-      decision_public_seed = public_seed(state, player_key(state, actor))
       worlds.flat_map do |planning_world|
         variants.map do |variant|
           cooperative_checkpoint
@@ -286,18 +289,9 @@ module SpadesPlanning
           else
             apply_card(simulated, actor, choice)
           end
-          seed = decision_seed(
-            state,
-            actor,
-            choice,
-            planning_world.index,
-            variant,
-            base_seed: decision_public_seed
-          )
           value = play_round(
             simulated,
             actor,
-            Random.new(seed),
             variant,
             # A fair bot already branches over possible deals. The additional
             # hostile continuation beam remains exclusive to exact information.
@@ -426,8 +420,6 @@ module SpadesPlanning
       bid_weight = world_bid_likelihood(world, actor, initial_hands)
       play_weight = world_play_likelihood(world, initial_hands, plays)
       [[bid_weight * play_weight, 0.15].max, 1.0].min
-    rescue StandardError
-      1.0
     end
 
     def reconstructed_hands(world, plays)
@@ -563,7 +555,6 @@ module SpadesPlanning
     def play_round(
       state,
       root_actor,
-      random,
       variant,
       allow_lookahead: true,
       exact_limit: EXACT_ENDGAME_CARDS
@@ -589,7 +580,7 @@ module SpadesPlanning
         end
         if remaining <= exact_limit
           utilities = exact_utilities(state, @exact_cache)
-          value = utilities.fetch(player_key(state, root_actor), terminal_utility(state, root_actor))
+          value = utilities.fetch(player_key(state, root_actor)) { terminal_utility(state, root_actor) }
           return cache_rollout_result(visited_cache_keys, value)
         end
         if plays >= MAX_PLAYS
@@ -606,7 +597,6 @@ module SpadesPlanning
           state,
           actor,
           legal,
-          random,
           variant,
           allow_lookahead: allow_lookahead,
           exact_limit: exact_limit
@@ -654,7 +644,6 @@ module SpadesPlanning
       state,
       actor,
       legal,
-      random,
       variant,
       allow_lookahead: true,
       exact_limit: EXACT_ENDGAME_CARDS
@@ -764,18 +753,9 @@ module SpadesPlanning
             child = copy_state(state)
             apply_card(child, actor, card)
             continuation_variant = (style + offset) % 4
-            seed = decision_seed(
-              state,
-              actor,
-              card,
-              97 + offset,
-              continuation_variant,
-              base_seed: decision_public_seed
-            )
             play_round(
               child,
               actor,
-              Random.new(seed),
               continuation_variant,
               allow_lookahead: false,
               exact_limit: exact_limit
@@ -916,14 +896,18 @@ module SpadesPlanning
     end
 
     def terminal_utilities(state)
+      scored = terminal_score(state)
       state[:players].each_with_object({}) do |player, result|
-        result[player_key(state, player)] = terminal_utility(state, player)
+        result[player_key(state, player)] = terminal_utility(state, player, scored)
       end
     end
 
-    def terminal_utility(state, actor)
+    def terminal_score(state)
       scoring = @game.class::Scoring.new(state[:players], state[:options])
-      result = scoring.apply(bids: state[:bids], tricks: state[:tricks], scores: state[:scores])
+      scoring.apply(bids: state[:bids], tricks: state[:tricks], scores: state[:scores])
+    end
+
+    def terminal_utility(state, actor, result = terminal_score(state))
       unit = score_unit(state, actor)
       own_before = state[:scores].fetch(unit, 0).to_i
       own_delta = result.scores.fetch(unit, own_before).to_i - own_before

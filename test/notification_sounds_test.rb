@@ -1,4 +1,4 @@
-require_relative "table_watch_runtime_test"
+require_relative "support/table_watch_runtime"
 
 Notice2.class_eval do
   def presentation(**options); FakePresentation.new(options); end

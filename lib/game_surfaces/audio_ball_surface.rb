@@ -70,13 +70,19 @@ module GameSurfaces
     end
 
     def focus(*args, **options)
+      GameRoomAudioBall::Keyboard.activate(self)
       clear_input
       super
     end
 
     def blur
-      @pending.clear
+      deactivate_input
       super if defined?(super)
+    end
+
+    def deactivate_input
+      @pending.clear
+      GameRoomAudioBall::Keyboard.deactivate(self)
     end
 
     def key_processed(key)
@@ -145,6 +151,14 @@ module GameSurfaces
 
     def clear_input
       @field.clear_input
+    end
+
+    def activate_input
+      GameRoomAudioBall::Keyboard.activate(@field)
+    end
+
+    def deactivate_input
+      @field.deactivate_input
     end
   end
 end

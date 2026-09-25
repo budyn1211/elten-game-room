@@ -1,5 +1,5 @@
 require_relative 'support/pong_mixed'
-require_relative 'realtime_event_channel_test'
+require_relative 'support/realtime_event_channel'
 
 class MixedGoalSession < ChannelSession
   attr_reader :reliable_sent

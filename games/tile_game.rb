@@ -1,5 +1,6 @@
 # encoding: UTF-8
 require_relative "base"
+require_relative "../lib/game_round_cues"
 require_relative "../lib/domino_tiles"
 require_relative "../lib/game_bots"
 require_relative "../lib/game_turn_clock"
@@ -9,6 +10,11 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class TileGame < Base
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      GameRoomRoundCues.for_event(history, after_replay, viewer,
+        assets: %w[domino_refill domino_take_chip domino_move_tile])
+    end
+
     include PublicHistoryAnnouncements
     Tiles = GameRoomDominoTiles
     def maximum_players; 8; end

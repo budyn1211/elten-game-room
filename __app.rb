@@ -5,11 +5,13 @@
   "description": "Accessible multiplayer games for ELTEN users.",
   "version": "2.0.3.1",
   "build_id": "238",
-  "EltenAPIVersion": "3.0.3",
+  "EltenAPIVersion": "3.0.4",
   "main_language": "en",
-  "supported_languages": ["en", "pl"],
+  "supported_languages": ["en", "pl", "cs", "es"],
   "localized_descriptions": {
-    "pl": "Dostępne gry wieloosobowe dla użytkowników ELTEN-a."
+    "pl": "Dostępne gry wieloosobowe dla użytkowników ELTEN-a.",
+    "cs": "Přístupné hry pro více hráčů v ELTENu.",
+    "es": "Juegos multijugador accesibles para usuarios de ELTEN."
   },
   "author": "papierek",
   "main": "__app.rb",
@@ -103,6 +105,7 @@ require_relative "lib/table_activity_repository"
 require_relative "lib/game_rules"
 require_relative "lib/game_room_changelog"
 require_relative "lib/game_room_screens"
+require_relative "lib/game_option_editor"
 require_relative "lib/audio_ball/settings"
 require_relative "lib/invitation_repository"
 require_relative "lib/invitation_notifications"
@@ -117,18 +120,15 @@ require_relative "lib/game_teams"
 require_relative "lib/game_bots"
 require_relative "lib/lobby_repository"
 require_relative "lib/game_repository"
-require_relative "lib/saved_games"
+require_relative "lib/account_saved_games"
 require_relative "lib/game_lifecycle"
 require_relative "lib/room_presentation"
-require_relative "lib/game_rounds"
 require_relative "lib/game_random"
-require_relative "lib/game_scoring"
 require_relative "lib/hidden_submissions"
 require_relative "lib/game_shortcuts"
 require_relative "lib/game_surfaces"
 require_relative "lib/game_layout"
 require_relative "lib/game_simulation"
-require_relative "lib/game_training"
 require_relative "lib/game_screen"
 require_relative "lib/game_content"
 require_relative "content/languages"
@@ -150,6 +150,7 @@ require_relative "games/farkle"
 require_relative "games/cat_head_tail"
 require_relative "games/ninety_nine"
 require_relative "games/tysiac"
+require_relative "games/three_five_eight"
 require_relative "games/categories"
 require_relative "games/monopoly"
 require_relative "games/yahtzee"
@@ -235,6 +236,7 @@ class EltenGameRoom < Program
     GameRoomGames::CatHeadTail,
     GameRoomGames::NinetyNine,
     GameRoomGames::Tysiac,
+    GameRoomGames::ThreeFiveEight,
     GameRoomGames::Categories,
     GameRoomGames::Monopoly,
     GameRoomGames::Yahtzee,
@@ -386,10 +388,6 @@ class EltenGameRoom < Program
     end
     play_game_sound("connect") if current != nil
     run_program_interface(current)
-  end
-
-  def signaled(user, packet)
-    (@transport ||= GameRoomTransport.new(self)).receive(user, packet)
   end
 
   def notification_action(action, notification)
@@ -812,7 +810,7 @@ class EltenGameRoom < Program
   end
 
   def saved_games
-    @saved_games ||= SavedGames.new(self, owner: Session.name)
+    @saved_games ||= AccountSavedGames.new(self, owner: Session.name)
   end
 
   def save_current_game(table, session, game)
@@ -862,7 +860,8 @@ class EltenGameRoom < Program
 
   def show_saved_games
     loop do
-      rows = saved_games.list
+      rows = run_network_task(_("Loading saved games")) { saved_games.list }
+      return if rows == nil
       if rows.empty?
         alert(_("You have no saved games."))
         return
@@ -877,17 +876,21 @@ class EltenGameRoom < Program
       operation = select_saved_game_item([_("Resume game"), _("Information"), _("Delete saved game")], game_name(row["game"]))
       case operation
       when 0
+        row = run_network_task(_("Loading saved game")) { saved_games.fetch(row["id"]) }
+        return unless row
         table = create_saved_game_table(row)
         if table != nil
           show_table_screen(table)
           return
         end
       when 1
+        row = run_network_task(_("Loading saved game")) { saved_games.fetch(row["id"]) }
+        return unless row
         game = game_definition(row["game"])
         saved_games.validate(row, game: game)
         speak(game.table_options_announcement(game.options_from_json(row["options"]))) if game != nil
       when 2
-        saved_games.delete(row["id"]) if confirm(_("Delete this saved game?"))
+        run_network_task(_("Deleting saved game")) { saved_games.delete(row["id"]) } if confirm(_("Delete this saved game?"))
       end
     end
   rescue ArgumentError, IOError, SystemCallError
@@ -936,7 +939,7 @@ class EltenGameRoom < Program
     return nil if row == nil
 
     saved["players"].each do |player|
-      next if GameRoomParticipants.bot?(player) || GameRoomParticipants.same?(player, Session.name)
+      next if GameRoomParticipants.bot?(player) || saved.fetch('controllers', {})[player] == 'bot' || GameRoomParticipants.same?(player, Session.name)
       run_network_task(_("Sending invitation"), ui: :none) { deliver_table_invitation(row, player, continuation: true) }
     end
     speak(_("The table is waiting for the original players. Start the game when everyone has joined."))
@@ -948,15 +951,15 @@ class EltenGameRoom < Program
   end
 
   def resume_saved_game_at_table(row, state)
-    saved = saved_games.list.find { |item| item["id"] == row["resume_save_id"] }
+    saved = run_network_task(_("Loading saved game")) { saved_games.fetch(row["resume_save_id"]) }
     if saved == nil
-      alert(_("The local saved game is no longer available."))
+      alert(_("The saved game is no longer available."))
       return nil
     end
     game = state.game
     saved_games.validate(saved, game: game)
     restoration = saved_games.restored_data(saved, game: game, table_id: @lobby.table_id(row))
-    missing = restoration[:players].reject { |player| GameRoomParticipants.includes?(state.room.game_participants, player) }
+    missing = restoration[:players].reject { |player| restoration.fetch(:controllers, {})[player] == 'bot' || GameRoomParticipants.includes?(state.room.game_participants, player) }
     unless missing.empty?
       alert(_("Waiting for these players: %{players}.") % { players: missing.map { |player| GameRoomParticipants.display_name(player) }.join(", ") })
       return nil
@@ -1091,19 +1094,25 @@ class EltenGameRoom < Program
   end
 
   def join_table_snapshot(snapshot)
-    return nil unless game_join_allowed?(snapshot.table)
     return nil if snapshot == nil
+    return nil unless game_join_allowed?(snapshot.table)
 
     run_network_task(_("Joining table")) do
       selected_table = snapshot.table
       pending_invitations = pending_invitations_for_table(selected_table)
-      connected = establish_table_transport(selected_table, bootstrap: true)
-      next :transport_failed if !connected
+      if @transport.live_store?
+        status = establish_invited_table_transport(selected_table)
+        unless [:joined, :already_here].include?(status)
+          next LobbyRepository::JoinResult.new(table: selected_table, status: status, members: [])
+        end
+      else
+        connected = establish_table_transport(selected_table, bootstrap: true)
+        next :transport_failed if !connected
+      end
 
       joined = @lobby.join_table(selected_table, Session.name, announce: false)
       apply_game_join_role(joined.table) if joined.entered?
       if joined&.entered?
-        @lobby.announce_table_joined(joined.table, joined.members, actor: Session.name) if joined.status == :joined
         complete_joined_table_invitations(joined.table, pending_invitations)
       else
         @transport.deactivate_table(table_id: @lobby.table_id(selected_table))
@@ -1162,180 +1171,10 @@ class EltenGameRoom < Program
     action == :select ? game_ids[selected_index] : nil
   end
 
-  # Creation returns table privacy separately from game rules; ordinary
-  # editing (Ctrl+X) keeps its existing options-only result and controls.
-  def configure_game_options(game, initial_options: nil, submit_label: nil, creating_table: false, initial_private_table: false)
-    return creating_table ? nil : {} if game == nil
-
-    selected = initial_options == nil ? {} : game.normalize_options(initial_options)
-    definitions = game.effective_option_definitions(selected).to_a
-    return game.default_options if definitions.empty? && !creating_table
-    built_language = selected.fetch(GameRoomContent::LANGUAGE_OPTION_KEY, game.default_options[GameRoomContent::LANGUAGE_OPTION_KEY]).to_s
-    private_table = initial_private_table == true
-
-    loop do
-      controls = [Static.new(_("Choose game options using Tab and the arrow keys. In lists allowing multiple selections, use Space to select or clear an item."))]
-      privacy_control = nil
-      if creating_table
-        privacy_control = CheckBox.new(GameRoomContent.utf8(_("Private table")), checked: private_table)
-        controls << privacy_control
-      end
-      bindings = []
-      defaults = remembered_game_option_defaults(game, definitions).merge(selected)
-      definitions.each do |definition|
-        key = definition.key.to_s
-        case definition.kind.to_s
-        when "boolean"
-          control = CheckBox.new(
-            definition.label.to_s,
-            checked: defaults[key] == true
-          )
-          controls << control
-          bindings << [definition, control]
-        when "choice"
-          choices = definition.choices.to_a
-          default_index = choices.index do |choice|
-            choice.value.to_s == defaults[key].to_s
-          end.to_i
-          control = ListBox.new(
-            choices.map { |choice| choice.label.to_s },
-            header: definition.label.to_s,
-            index: default_index,
-            quiet: true
-          )
-          controls << control
-          bindings << [definition, control]
-        when "multiple_choice"
-          choices = definition.choices.to_a
-          control = ListBox.new(
-            choices.map { |choice| choice.label.to_s },
-            header: definition.label.to_s,
-            index: 0,
-            flags: ListBox::Flags::MultiSelection,
-            quiet: true
-          )
-          mask = defaults[key].to_i
-          control.select_multiselection_indices(
-            choices.each_index.select { |index| (mask & (1 << index)) != 0 }
-          )
-          controls << control
-          bindings << [definition, control]
-        when "integer"
-          control = EditBox.new(
-            definition.label.to_s,
-            type: EditBox::Flags::Numbers,
-            text: defaults[key].to_i.to_s,
-            quiet: true
-          )
-          control.select_all if !control.text.to_s.empty?
-          controls << control
-          bindings << [definition, control]
-        else
-          raise ArgumentError, "Unsupported game option type: #{definition.kind}"
-        end
-      end
-
-      action = nil
-      save_button = Button.new(submit_label || _("Create table"))
-      cancel_button = Button.new(_("Cancel"))
-      form = GameRoomUI::Form.new(controls + [save_button, cancel_button], program: self, index: 0, quiet: true)
-      form.accept_button = save_button
-      form.cancel_button = cancel_button
-      previous_options = game.normalize_options(game_option_values(bindings))
-      refresh_visibility = lambda do
-        values = game.normalize_options(game_option_values(bindings))
-        game.option_editor_changes(previous_options, values).each do |key, value|
-          binding = bindings.find { |definition, _control| definition.key.to_s == key.to_s }
-          binding[1].text = value.to_s if binding && binding[0].kind.to_s == "integer"
-        end
-        values = game.normalize_options(game_option_values(bindings))
-        previous_options = values
-        bindings.each do |definition, control|
-          if game.option_visible?(definition, values)
-            form.show(control)
-          else
-            form.hide(control)
-          end
-        end
-      end
-      bindings.each do |definition, control|
-        event = definition.kind.to_s == "boolean" ? :change : :move
-        control.on(event) { refresh_visibility.call } if ["boolean", "choice"].include?(definition.kind.to_s)
-      end
-      refresh_visibility.call
-      save_button.on(:press) do
-        action = :save
-        form.resume
-      end
-      cancel_button.on(:press) do
-        action = :cancel
-        form.resume
-      end
-      language_binding = bindings.find do |definition, _control|
-        definition.key.to_s == GameRoomContent::LANGUAGE_OPTION_KEY
-      end
-      if language_binding != nil
-        language_binding[1].on(:move) do
-          # Replace only the dependent choices. Recreating the form here
-          # steals focus (and speech) from the language being browsed.
-          options = game.normalize_options(game_option_values(bindings))
-          definitions = game.effective_option_definitions(options).to_a
-          set_binding = bindings.find { |definition, _control| definition.key.to_s == GameRoomContent::SET_OPTION_KEY }
-          set_definition = definitions.find { |definition| definition.key.to_s == GameRoomContent::SET_OPTION_KEY }
-          if set_binding && set_definition
-            control = set_binding[1]
-            set_binding[0] = set_definition
-            control.options = set_definition.choices.map { |choice| choice.label.to_s }
-            control.index = set_definition.choices.index { |choice| choice.value.to_s == options[GameRoomContent::SET_OPTION_KEY].to_s }.to_i
-          end
-          built_language = options[GameRoomContent::LANGUAGE_OPTION_KEY].to_s
-          refresh_visibility.call
-        end
-      end
-      loop do
-        action = nil
-        form.wait
-        return nil if action != :save
-
-        private_table = privacy_control.checked == true if creating_table
-        raw = game_option_values(bindings)
-        options = game.normalize_options(raw)
-        chosen_language = options[GameRoomContent::LANGUAGE_OPTION_KEY].to_s
-        if chosen_language != built_language
-          selected = options
-          built_language = chosen_language
-          definitions = game.effective_option_definitions(selected).to_a
-          break
-        end
-        error = game.validation_error(options)
-        if error == nil
-          remember_multiple_choice_options(game, definitions, options) if initial_options == nil
-          return creating_table ? { game_options: options, private_table: private_table } : options
-        end
-
-        # Keep the actual controls, including unfinished/invalid input, focus,
-        # dependent choices and table privacy. Validation is not cancellation.
-        alert(error)
-      end
-    end
-  end
-
-  def game_option_values(bindings)
-    bindings.each_with_object({}) do |(definition, control), raw|
-      key = definition.key.to_s
-      raw[key] = if definition.kind.to_s == "boolean"
-        control.checked == true
-      elsif definition.kind.to_s == "integer"
-        control.text.to_s
-      elsif definition.kind.to_s == "multiple_choice"
-        choices = definition.choices.to_a
-        control.multiselections.filter_map { |index| choices[index]&.value }
-      else
-        choices = definition.choices.to_a
-        selected = choices[control.index.to_i]
-        selected == nil ? definition.default : selected.value
-      end
-    end
+  def configure_game_options(game, **options)
+    GameRoomOptionEditor.new(program: self,
+      defaults: method(:remembered_game_option_defaults),
+      remember: method(:remember_multiple_choice_options), alert: ->(message) { alert(message) }).edit(game, **options)
   end
 
   def remembered_game_option_defaults(game, definitions)
@@ -1344,10 +1183,7 @@ class EltenGameRoom < Program
     stored = preferences.is_a?(Hash) ? preferences[game.id.to_s] : nil
     return defaults if !stored.is_a?(Hash)
 
-    definitions.each do |definition|
-      next if definition.kind.to_s != "multiple_choice" && game.id.to_s != "makao"
-      next if game.id.to_s == "makao" && definition.key.to_s == "profile"
-
+    game.remembered_option_definitions(definitions).each do |definition|
       key = definition.key.to_s
       defaults[key] = stored[key] if stored.key?(key)
     end
@@ -1358,11 +1194,7 @@ class EltenGameRoom < Program
   end
 
   def remember_multiple_choice_options(game, definitions, options)
-    remembered = if game.id.to_s == "makao" && options["profile"].to_s == "custom"
-      definitions.reject { |definition| definition.key.to_s == "profile" }
-    else
-      definitions.select { |definition| definition.kind.to_s == "multiple_choice" }
-    end
+    remembered = game.remembered_option_definitions(definitions, options: options)
     return if remembered.empty?
 
     update_json("game_option_preferences.json", default: {}) do |root|
@@ -1509,10 +1341,7 @@ class EltenGameRoom < Program
           )
       end, game: state.game, options: state.game&.options_from_json(row["game_options"]), room: -> { snapshot },
         read_options: -> { announce_table_options(state.game, row) },
-        settings: case state.game&.id
-        when 'axel_pong' then -> { show_pong_settings }
-        when 'audio_ball' then -> { show_audio_ball_settings }
-        end, &dispatch)
+        settings: GameRoomParticipantMenu.settings_callback(state.game, program: self), &dispatch)
       form.add_timer(FormTimer.new(GameScreen::TIMER_INTERVAL, repeat: true) do
         next if action != nil
 
@@ -1556,6 +1385,10 @@ class EltenGameRoom < Program
       when :make_observer, :make_player
         change_observer_mode(row, action, participant)
         quiet_reentry = true
+      when :transfer_master, :replace_player, :restore_player, :close_table
+        changed = change_table_control(row, action, participant)
+        return if changed == :closed
+        quiet_reentry = true
       when :rules
         show_game_rules(state.game, options: state.game&.options_from_json(row["game_options"]))
       when :invite_online
@@ -1564,9 +1397,7 @@ class EltenGameRoom < Program
         show_invite_users(row, source: :contacts)
       when :chat
         entry = run_network_task(_("Sending chat message"), ui: :none) do
-          saved = @table_activity.append(table: row, kind: "chat", message: layout.chat.text)
-          @lobby.announce_table_activity(row, snapshot.members, actor: Session.name) if saved != nil
-          saved
+          @table_activity.append(table: row, kind: "chat", message: layout.chat.text)
         end
         if entry != nil
           play_game_sound("chatmsg")
@@ -1598,8 +1429,19 @@ class EltenGameRoom < Program
 
   def leave_table_from_screen(row)
     own_table = GameRoomParticipants.same?(@lobby.owner_of(row), Session.name)
-    question = own_table ? _("Do you want to leave the table? The table will be closed for everyone.") : _("Do you want to leave the table?")
+    question = _("Do you want to leave the table?")
     game = game_definition(row["game"])
+    if own_table
+      state = load_room_state(row, title: _("Updating table"))
+      return false unless state
+      if state.active? && state.room.members.any? { |user| !GameRoomParticipants.same?(user, Session.name) }
+        error = game&.controller_change_error(state.replay)
+        if error
+          alert(error)
+          return false
+        end
+      end
+    end
     if game && game.private_table_required?(game.options_from_json(row["game_options"]))
       state = load_room_state(row, title: _("Updating table"))
       replay = state.respond_to?(:replay) ? state.replay : nil
@@ -1647,6 +1489,7 @@ class EltenGameRoom < Program
   end
 
   def change_observer_mode(row, action, participant = nil)
+    return change_table_control(row, action, participant) if [:transfer_master, :replace_player, :restore_player, :close_table].include?(action)
     game = game_definition(row["game"])
     return nil if game && !game.role_selection_allowed?(game.options_from_json(row["game_options"]))
     observing = [:observe_next_game, :make_observer].include?(action)
@@ -1660,6 +1503,81 @@ class EltenGameRoom < Program
     message = observing ? _("You will observe the next game.") : _("You will play in the next game.")
     speak(message, stop: false, break_sequence: false) if GameRoomParticipants.same?(participant, Session.name)
     snapshot
+  end
+
+  def change_table_control(row, action, participant = nil, replacement: :choose)
+    state = load_room_state(row, title: _("Updating table"))
+    return unless state && GameRoomParticipants.same?(@lobby.owner_of(state.room.table), Session.name)
+    if action == :close_table
+      return unless confirm(_("Close the table for everyone?"))
+      closed = run_network_task(_("Closing table")) { @lobby.close_table(state.room.table) }
+      forget_room_membership(row) if closed
+      return closed ? :closed : nil
+    end
+    error = state.game.controller_change_error(state.replay)
+    if error
+      alert(error)
+      return nil
+    end
+    players = state.session ? @games.players_for(state.session) : []
+    if participant == nil
+      return nil unless action == :transfer_master
+      candidates = state.room.members.reject { |person| GameRoomParticipants.same?(person, Session.name) }
+      participant = choose_table_participant(candidates, _("Choose the new table master"))
+      return nil unless participant
+    end
+    if action != :transfer_master && (!state.active? || !GameRoomParticipants.includes?(players, participant))
+      alert(_("Choose a player in the current game."))
+      return nil
+    end
+    if action == :transfer_master && !GameRoomParticipants.includes?(state.room.members, participant)
+      alert(_("This player is no longer at the table."))
+      return nil
+    end
+    if action != :transfer_master
+      candidates = GameRoomParticipantMenu.replacement_candidates(room: state.room, players: players, participant: participant, game: state.game)
+      if replacement == :choose
+        if candidates.empty?
+          alert(_("There is nobody available to replace this player."))
+          return nil
+        end
+        replacement = choose_table_participant(candidates, _("Choose the replacement"))
+        return nil unless replacement
+      end
+      unless candidates.include?(replacement) || (replacement == nil && candidates.include?(:new_bot))
+        alert(_("This participant cannot replace the selected player."))
+        return nil
+      end
+      replacement = nil if replacement == :new_bot
+    end
+    run_network_task(_("Updating table"), ui: :none) do
+      if action == :transfer_master
+        @transport.transfer_room_owner(state.room.table, participant)
+      else
+        @transport.replace_game_player(state.room.table, session_id: @games.session_id(state.session),
+          player: participant, replacement: replacement)
+      end
+      @lobby.snapshot_for(state.room.table)
+    end
+  end
+
+  def choose_table_participant(candidates, header)
+    return nil if candidates.empty?
+    labels = candidates.map do |person|
+      person == :new_bot ? _("Add a new computer in this place") : GameRoomParticipants.display_name(person)
+    end.map { |label| GameRoomContent.utf8(label) }
+    selected = nil
+    list = ListBox.new(labels, header: GameRoomContent.utf8(header), index: 0, quiet: true)
+    accept = Button.new(_("Accept"))
+    cancel = Button.new(_("Cancel"))
+    form = GameRoomUI::Form.new([list, accept, cancel], program: self, quiet: true)
+    form.accept_button, form.cancel_button = accept, cancel
+    form.hide(accept)
+    form.hide(cancel)
+    accept.on(:press) { selected = candidates[list.index.to_i]; form.resume }
+    cancel.on(:press) { form.resume }
+    form.wait
+    selected
   end
 
   def show_invite_users(row, source:)
@@ -1961,7 +1879,6 @@ class EltenGameRoom < Program
       joined = @lobby.join_table(current_invitation.table, Session.name, announce: false)
       apply_game_join_role(joined.table) if joined.entered?
       if joined.entered?
-        @lobby.announce_table_joined(joined.table, joined.members, actor: Session.name) if joined.status == :joined
         complete_joined_table_invitations(joined.table, pending)
       elsif joined.status == :closed
         @transport.deactivate_table(table_id: current_invitation.table_id)
@@ -2226,9 +2143,9 @@ class EltenGameRoom < Program
 
   def widget_table_label(snapshot)
     row = snapshot.table
-    label = _("%{game}, %{owner}") % {
-      game: game_name(row["game"]),
-      owner: GameRoomParticipants.display_name(@lobby.owner_of(row))
+    label = GameRoomContent.utf8(_("%{game}, %{table}")) % {
+      game: GameRoomContent.utf8(game_name(row["game"])),
+      table: table_join_label(snapshot)
     }
     widget_table_available?(snapshot) ? label : _("%{table}, unavailable") % { table: label }
   end
@@ -2335,22 +2252,32 @@ class EltenGameRoom < Program
 
   def show_settings
     settings = game_room_settings(reload: true)
-    watched = run_network_task(_("Loading notification settings")) { self.class.table_watch_repository.load(Session.name) }
-    return if watched == nil
-    self.class.table_watch_set_games(watched)
-    settings = settings.merge("table_watch_games" => watched)
+    # Only subscriptions need the server. A denied, failed or cancelled read
+    # must not block local preferences or turn unknown subscriptions into [].
+    watched = nil
+    unless @server_tables && !@server_tables.available?
+      watched = run_network_task(_("Loading notification settings"), silent: true) do
+        self.class.table_watch_repository.load(Session.name)
+      end
+    end
+    if watched != nil
+      self.class.table_watch_set_games(watched)
+      settings = settings.merge("table_watch_games" => watched)
+    end
     games = GAME_REGISTRY.ids.map { |game_id| { id: game_id, name: game_name(game_id) } }
     updated = GameRoomScreens::Settings.new(settings, games: games, program: self,
+      table_watch_available: watched != nil,
       preset_editor: ->(entry) { edit_table_preset(entry) },
       preset_writer: ->(slot, entry) { save_table_preset(slot, entry) }).wait
     return if updated == nil
 
-    if updated["table_watch_games"].to_a.sort != watched.sort
-      saved = run_network_task(_("Saving notification settings")) do
+    watch_save_failed = false
+    if watched != nil && updated["table_watch_games"].to_a.sort != watched.sort
+      saved = run_network_task(_("Saving notification settings"), silent: true) do
         self.class.table_watch_repository.save(Session.name, updated["table_watch_games"])
       end
-      return if saved == nil
-      self.class.table_watch_set_games(saved)
+      watch_save_failed = saved == nil
+      self.class.table_watch_set_games(saved) unless watch_save_failed
     end
     updated = updated.reject { |key, _value| %w[table_watch_games table_presets].include?(key) }
 
@@ -2363,7 +2290,12 @@ class EltenGameRoom < Program
     @pong_preferences = nil
     self.class.contacts_settings_changed(normalized)
     Programs::Extensions.refresh_ui if defined?(Programs::Extensions) && Programs::Extensions.respond_to?(:refresh_ui)
-    if GameRoomLocalization.normalize_settings(settings) != GameRoomLocalization.normalize_settings(normalized)
+    language_changed = GameRoomLocalization.normalize_settings(settings) != GameRoomLocalization.normalize_settings(normalized)
+    if watch_save_failed
+      message = _("Local settings saved. New-table notification subscriptions could not be saved.")
+      message += " " + _("Restart ELTEN to apply the interface language preferences.") if language_changed
+      alert(message)
+    elsif language_changed
       alert(_("Settings saved. Restart ELTEN to apply the interface language preferences."))
     else
       alert(_("Settings saved."))
@@ -2490,7 +2422,11 @@ class EltenGameRoom < Program
   end
 
   def table_join_label(snapshot)
-    GameRoomParticipants.display_name(@lobby.owner_of(snapshot.table))
+    GameRoomContent.utf8(_("%{owner}, %{count}/%{maximum}, %{status}")) % {
+      owner: GameRoomContent.utf8(GameRoomParticipants.display_name(@lobby.owner_of(snapshot.table))),
+      count: snapshot.participant_count, maximum: @lobby.capacity_of(snapshot.table),
+      status: table_status_label(snapshot.table)
+    }
   end
 
   def table_header(snapshot)
@@ -2539,7 +2475,7 @@ class EltenGameRoom < Program
     )
   end
 
-  def announce_new_table_activity(entries, after_id:)
+  def announce_new_table_activity(entries, after_id:, covered: false)
     newest_id = entries.to_a.map(&:id).max.to_i
     return newest_id if after_id == nil
 
@@ -2548,16 +2484,11 @@ class EltenGameRoom < Program
 
       play_game_sound("chatmsg") if entry.kind == "chat"
       text = @table_activity.text_for(entry, game_name: ->(id) { game_name(id) }, global: false)
-      speak(text, stop: false, break_sequence: false) if !text.to_s.empty?
+      if !text.to_s.empty? && GameRoomBackgroundPolicy.speech?(self, covered: covered)
+        speak(text, stop: false, break_sequence: false)
+      end
     end
     [after_id.to_i, newest_id].max
-  end
-
-  def room_history_header(state)
-    return _("Current game history") if active_game?(state)
-    return _("Last game history") if state.replay != nil
-
-    _("Game history")
   end
 
   def room_user_rows(state)
@@ -2571,10 +2502,6 @@ class EltenGameRoom < Program
 
   def table_status_label(row)
     @lobby.playing?(row) ? _("game in progress") : _("open")
-  end
-
-  def room_players(state)
-    state.players
   end
 
   def active_game?(state)
@@ -2891,10 +2818,8 @@ class EltenGameRoom < Program
       game_status_changed: ->(current_table, active) { @lobby.set_game_active(current_table, active) },
       activity_repository: @table_activity,
       game_name: ->(id) { game_name(id) },
-      send_chat: ->(current_table, message, users) do
-        saved = @table_activity.append(table: current_table, kind: "chat", message: message)
-        @lobby.announce_table_activity(current_table, users, actor: Session.name) if saved != nil
-        saved
+      send_chat: ->(current_table, message, _users) do
+        @table_activity.append(table: current_table, kind: "chat", message: message)
       end,
       layout: layout,
       manage_computer: ->(current_table, action, participant) { change_room_computer(current_table, action, participant) },
@@ -3056,12 +2981,6 @@ class EltenGameRoom < Program
         current: current_count.to_i
       }
     end
-  end
-
-  def bounded_index(index, items)
-    return 0 if items.empty?
-
-    [[index.to_i, 0].max, items.length - 1].min
   end
 
   def game_definition(game_id)

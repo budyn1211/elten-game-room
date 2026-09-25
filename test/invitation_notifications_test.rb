@@ -1,36 +1,4 @@
-require_relative "../lib/invitation_notifications"
-
-def assert(condition, message)
-  raise message if !condition
-end
-
-Notification = Struct.new(:id, :app_uuid, :revoked, :payload, :type, :metadata, keyword_init: true)
-
-class FakeNotificationGateway
-  attr_reader :listed, :revoked, :revoked_many
-
-  def initialize(notifications)
-    @notifications = notifications
-    @listed = []
-    @revoked = []
-    @revoked_many = []
-  end
-
-  def list(client, all:, app_uuids:)
-    @listed << [client, all, app_uuids]
-    @notifications
-  end
-
-  def revoke(client, id)
-    @revoked << [client, id]
-    true
-  end
-
-  def revoke_many(client, ids)
-    @revoked_many << [client, ids]
-    true
-  end
-end
+require_relative 'support/invitation_notifications'
 
 uuid = "468f59c5-c9d7-47cd-80f1-1a6fbfd1aa80"
 notifications = [
@@ -65,20 +33,6 @@ assert(direct_cleaner.revoke(0) == 0, "an invalid invitation id triggered cleanu
 
 # Removing form-wide shortcuts must preserve the independent notification
 # entry point, including stale notifications and choosing the exact invitation.
-require_relative "support/ui"
-
-class Program
-  def self.server_app(**_options); end
-  def self.server_app_uuid; "468f59c5-c9d7-47cd-80f1-1a6fbfd1aa80"; end
-end
-
-module Session
-  def self.name
-    "Alice"
-  end
-end
-
-require_relative "../__app"
 
 app = EltenGameRoom.allocate
 app.instance_variable_set(:@invitation_notifications, cleaner)
@@ -138,9 +92,6 @@ join_lobby.define_singleton_method(:join_table) do |row, user, announce:|
   join_calls << [:join, row["__id"], user, announce]
   LobbyRepository::JoinResult.new(table: row, status: :joined, members: ["Alice", user])
 end
-join_lobby.define_singleton_method(:announce_table_joined) do |row, members, actor:|
-  join_calls << [:announce, row["__id"], members, actor]
-end
 join_invitations = Object.new
 join_invitations.define_singleton_method(:pending_for) do |recipient, tables:|
   join_calls << [:pending, recipient, tables.map { |row| row["__id"] }]
@@ -157,15 +108,17 @@ end
 join_app.instance_variable_set(:@lobby, join_lobby)
 join_app.instance_variable_set(:@invitations, join_invitations)
 join_app.instance_variable_set(:@invitation_notifications, join_notifications)
-join_app.instance_variable_set(:@transport, Object.new)
+native_transport = Object.new
+native_transport.define_singleton_method(:live_store?) { true }
+join_app.instance_variable_set(:@transport, native_transport)
 join_app.define_singleton_method(:run_network_task) { |_title, &operation| operation.call }
-join_app.define_singleton_method(:establish_table_transport) do |row, bootstrap:|
-  join_calls << [:transport, row["__id"], bootstrap]
-  true
+join_app.define_singleton_method(:establish_invited_table_transport) do |row|
+  join_calls << [:transport, row["__id"]]
+  :joined
 end
 
 joined = join_app.send(:join_table_snapshot, join_snapshot)
-assert(joined.entered?, "ordinary table-list joining did not succeed")
+assert(joined.entered? && join_calls.include?([:transport, 12]), "ordinary native table-list joining did not succeed")
 assert(join_calls.include?([:respond, 70, "Alice", "accepted"]), "joining did not resolve the invitation for that table")
 assert(join_calls.include?([:revoke_table, 12]), "joining did not clear the notification for that table")
 

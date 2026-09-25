@@ -1,27 +1,8 @@
-require "json"
-require "digest"
-require "securerandom"
-require_relative "game_participants"
-require_relative "live_session_store"
-require_relative "game_session_clock"
-require_relative "hidden_submissions"
+require_relative 'saved_game_archive'
 
-# Local archives contain JSON and the confirmed event log, never executable
-# Ruby/Marshal data or the UI's private controls. Replay remains the rule engine.
-class SavedGames
-  FORMAT = 1
+# Historical local storage. Explicit tools/tests only; the app uses AccountSavedGames.
+class SavedGames < GameRoomSavedGameArchive
   PATH = "saved_games.json".freeze
-  MAX_EVENTS = GameRoomLiveSessionStore::MAX_ARCHIVE_EVENTS
-
-  class ReplayRepository
-    def players_for(session); session["__players"]; end
-    def event_id(event); event["id"]; end
-    def actor_of(event, _session = nil); event["actor"]; end
-  end
-
-  def initialize(program, owner:)
-    @program, @owner = program, owner.to_s
-  end
 
   def list
     state = @program.read_json(PATH, default: {})
@@ -36,30 +17,11 @@ class SavedGames
     rows.sort_by { |row| -row["saved_at"] }
   end
 
-  def put(game:, table:, snapshot:, repository:, now: GameRoomClock.now.to_i)
-    raise ArgumentError, "Unsupported saved game" unless game.supports_saved_games?
-    raise ArgumentError, "Only the founder may save the game" unless GameRoomParticipants.same?(table["owner"], @owner)
-    replay = game.replay(snapshot.session, snapshot.events, repository)
-    error = game.save_game_error(replay)
-    raise ArgumentError, error if error != nil
-    row = {
-      "format" => FORMAT, "game_schema" => game.saved_game_schema_version,
-      "id" => SecureRandom.uuid, "owner" => @owner, "saved_at" => now.to_i,
-      "game" => game.id, "table_name" => table["name"].to_s, "private" => table["private"] == true,
-      "players" => repository.players_for(snapshot.session), "options" => snapshot.session["options"].to_s,
-      "game_time" => GameRoomSessionClock.from_server(snapshot.session, now.to_i),
-      "events" => replay.accepted_events.map do |event|
-        { "id" => repository.event_id(event), "sequence" => event["sequence"].to_i,
-          "actor" => repository.actor_of(event, snapshot.session), "action" => event["action"].to_s,
-          "value" => event["value"].to_s, "created_at" => event["created_at"].to_i }
-      end
-    }
-    private_data = if game.saved_game_requires_private_data?
-      game.saved_private_data(replay, context: private_context(repository.session_id(snapshot.session)))
-    end
-    row["private_data"] = private_data unless private_data == nil
-    row["checksum"] = checksum(row)
-    validate(row, game: game)
+  def fetch(id)
+    list.find { |row| row["id"] == id.to_s }
+  end
+
+  def persist(row)
     @program.update_json(PATH, default: {}) do |root|
       raise ArgumentError, "Invalid saved game storage" unless root.is_a?(Hash) && (!root.key?("games") || root["games"].is_a?(Hash))
       root["games"] ||= {}
@@ -78,75 +40,4 @@ class SavedGames
     end
   end
 
-  def validate(row, game:)
-    raise ArgumentError, "Unsupported saved game" if game == nil || !game.supports_saved_games?
-    raise ArgumentError, "Incompatible saved game" unless row.is_a?(Hash) && row["format"] == FORMAT &&
-      row["game"] == game.id && row["game_schema"] == game.saved_game_schema_version &&
-      GameRoomParticipants.same?(row["owner"], @owner) && row["checksum"] == checksum(row)
-    players = row["players"]
-    raise ArgumentError, "Invalid saved seats" unless players.is_a?(Array) && players.length.between?(game.minimum_players, game.maximum_players) &&
-      players.all? { |player| player.is_a?(String) && player.length.between?(1, 64) } && GameRoomParticipants.unique(players).length == players.length
-    raise ArgumentError, "Invalid saved game time" unless row["saved_at"].is_a?(Integer) && row["saved_at"] > 0 && row["game_time"].is_a?(Integer) && row["game_time"] > 0
-    options = JSON.parse(row.fetch("options"))
-    raise ArgumentError, "Invalid saved rules" unless options.is_a?(Hash) && game.validation_error(options, player_count: players.length) == nil
-    events = row["events"]
-    raise ArgumentError, "Invalid saved events" unless events.is_a?(Array)
-    raise ArgumentError, "The saved game is too large to restore safely" if events.length > MAX_EVENTS
-    last_id = 0
-    events.each do |event|
-      raise ArgumentError, "Invalid saved event" unless event.is_a?(Hash) && event["id"].is_a?(Integer) && event["id"] > last_id &&
-        event["sequence"].is_a?(Integer) && event["sequence"] >= 0 && GameRoomParticipants.includes?(players, event["actor"]) &&
-        event["action"].is_a?(String) && event["action"].length.between?(1, 32) && event["value"].is_a?(String) && event["value"].length <= 64 &&
-        event["created_at"].is_a?(Integer) && event["created_at"] >= 0
-      last_id = event["id"]
-    end
-    replay = game.replay({ "__players" => players, "options" => row["options"] }, events, ReplayRepository.new)
-    raise ArgumentError, "Incompatible saved game events" unless replay.accepted_events.length == events.length
-    error = game.save_game_error(replay)
-    raise ArgumentError, error if error != nil
-    game.validate_saved_private_data(replay, row["private_data"])
-    row
-  rescue JSON::ParserError, KeyError, TypeError
-    raise ArgumentError, "Invalid saved game data"
-  end
-
-  def restored_data(row, game:, table_id:, now: GameRoomClock.now.to_i)
-    validate(row, game: game)
-    bot_number = 0
-    mapping = row["players"].to_h do |player|
-      replacement = if GameRoomParticipants.bot?(player)
-        bot_number += 1
-        GameRoomParticipants.bot_id(table_id, bot_number, name_token: GameRoomParticipants.bot_name_token(player))
-      else
-        player
-      end
-      [player.downcase, replacement]
-    end
-    restored = {
-      players: row["players"].map { |player| mapping.fetch(player.downcase) },
-      events: row["events"].map { |event| event.merge("actor" => mapping.fetch(event["actor"].downcase), "value" => game.restored_event_value(event, mapping)) },
-      clock_offset: now.to_i - row["game_time"].to_i, game_time: row["game_time"].to_i
-    }
-    replay = game.replay({ "__players" => restored[:players], "options" => row["options"] }, restored[:events], ReplayRepository.new)
-    raise ArgumentError, "Incompatible saved game seats" unless replay.accepted_events.length == row["events"].length
-    if row.key?("private_data")
-      # This local callback is not serialized. The transport calls it before
-      # publishing game_started; only the public event archive goes on the wire.
-      restored[:before_publish] = ->(new_session_id) do
-        game.restore_private_data(replay, row["private_data"], context: private_context(new_session_id))
-      end
-    end
-    restored
-  end
-
-  private
-
-  def private_context(session_id)
-    GameRoomGames::ActionContext.new(session_id: session_id,
-      hidden_submissions: HiddenSubmissions::Vault.new(HiddenSubmissions::ProgramStorage.new(@program)))
-  end
-
-  def checksum(row)
-    Digest::SHA256.hexdigest(JSON.generate(row.reject { |key, _value| key == "checksum" }))
-  end
 end

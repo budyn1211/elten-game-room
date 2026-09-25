@@ -1,12 +1,10 @@
+require_relative 'support/host_source'
 require_relative 'support/pong_client'
 
 # Run against the host's actual Tasks implementation, without starting ELTEN
 # or contacting a service. Other checkouts can supply their host source path.
-source = ARGV[0] || File.expand_path('../../work/elten-3.0.1-app-dev/src/eapi/tasks.rb', __dir__)
-if !File.file?(source)
-  puts 'SKIP native Tasks contract: provide src/eapi/tasks.rb as the argument'
-  exit
-end
+source = ARGV[0] || EltenTestHost.file("src/eapi/tasks.rb")
+raise "Missing required native Tasks source: #{source}" unless File.file?(source)
 module EltenAPI; end unless defined?(EltenAPI)
 require source
 Object.include(EltenAPI)

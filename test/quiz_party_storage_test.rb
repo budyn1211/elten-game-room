@@ -1,6 +1,6 @@
 # The existing native-transport regression fixture also checks late/concurrent
 # answers and owner-observer progression before the new file-boundary cases.
-require_relative "quiz_party_review_regressions_test"
+require_relative "support/quiz_party_review_regressions"
 require_relative "support/hidden_submission_files"
 require "tmpdir"
 

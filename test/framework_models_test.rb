@@ -1,6 +1,8 @@
-require_relative "../lib/game_rounds"
+require_relative 'support/sequence_random'
+
+require_relative '../tools/training/game_rounds'
 require_relative "../lib/game_random"
-require_relative "../lib/game_scoring"
+require_relative '../tools/training/game_scoring'
 require_relative "../lib/hidden_submissions"
 
 def assert(condition, message)

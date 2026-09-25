@@ -152,7 +152,7 @@ puts 'PASS local step cadence: four humans, mixed doubles, observing owner with 
       assert(surface.current['p'][1] == client.engine.paddles[1], 'presentation differs from local authoritative paddle')
     end
     client.detach_view
-    assert(client.instance_variable_get(:@paddle_feedback).position == nil, 'detach retained local position')
+    assert(!client.instance_variable_get(:@mouse).active?, 'detach retained active pointer input')
     client.attach_view(Form.new([]), surface)
     advance.call(25)
     before = audio.effects.length
@@ -165,9 +165,9 @@ puts 'PASS local step cadence: four humans, mixed doubles, observing owner with 
 end
 puts 'PASS fallback keyboard, focus, no mutable snapshot sharing, detach/attach and point reset'
 
-# Compare movement feedback with the established engine path: both fresh
-# keyboard edges, held repeat, clamping and mouse border counters.
-feedback = GameRoomPong::PaddleFeedback.new
+# Compare the active peer engine with the established movement rules: both
+# fresh keyboard edges, held repeat, clamping and mouse border counters.
+peer_engine = GameRoomPong::PeerEngine.new(side: 0, authority: true)
 engine = GameRoomPong::Engine.new
 emitted, sequence = [], 0
 inputs = [
@@ -176,17 +176,17 @@ inputs = [
   {'move' => 0, 'paddle' => 1, 'pointer_seq' => 1, 'pointer_before' => 1, 'pointer_start' => 1, 'pointer_keys' => [], 'pointer_edges' => 1},
   {'move' => 0, 'paddle' => 1, 'pointer_seq' => 2, 'pointer_before' => 1, 'pointer_start' => 1, 'pointer_keys' => [1, -1], 'pointer_edges' => 1}
 ]
-inputs.each do |input|
-  own = []
-  feedback.step(input, position: engine.paddles[0]) { |kind, x| own << [kind, x] }
-  engine.send(:move_input, 0, input)
+inputs.each_with_index do |input, index|
+  peer_engine.step([input, {}], now_ms: index * 16)
+  engine.step([input, {}], now_ms: index * 16)
+  own = peer_engine.snapshot['fx'].select { |number, *_| number > sequence }
   effects = engine.snapshot['fx'].select { |number, *_| number > sequence }
   sequence = engine.snapshot['fx'].last&.first || sequence
-  assert(own.map(&:first) == effects.map { |event| event[1] }, "movement feedback differs: #{input}")
-  assert(feedback.position == engine.paddles[0], 'feedback position differs from engine')
+  assert(own == effects, "peer movement feedback differs: #{input}")
+  assert(peer_engine.snapshot == engine.snapshot, 'peer movement snapshot differs from engine')
   emitted.concat(own)
 end
-assert(emitted.any? { |kind, _| kind == 'edge' }, 'no border fixture')
+assert(emitted.any? { |_, kind, *_| kind == 'edge' }, 'no border fixture')
 puts 'PASS movement feedback parity with keyboard/mouse edges and original repeat; no second ball'
 
 audio = LocalFeedbackAudio.new(LocalFeedbackProgram.new)
@@ -196,9 +196,8 @@ state = GameRoomPong::Engine.new(teams: [0, 0, 1, 1]).snapshot
 state['fx'] = [[1, 'step', 1, 15, 0], [2, 'step', 0, 15, 0], [3, 'edge', 1, 15, 0],
   [4, 'hit', 1, 15, 0], [5, 'wall', nil, 15, 10]]
 original = Marshal.dump(state)
-audio.play_local_movement(state, viewer: 1, kind: 'step', position: 16)
-assert(Marshal.dump(state) == original, 'local movement mutated server snapshot')
-2.times { audio.update(state, viewer: 1, paused: false, local_movement: true) }
-assert(audio.effects.map { |_, kind, side, _| [kind, side] } == [['step', 1], ['step', 0], ['hit', 1], ['wall', nil]], 'local feedback swallowed non-movement events or echoed movement')
+2.times { audio.update(state, viewer: 1, paused: false) }
+assert(Marshal.dump(state) == original, 'movement audio mutated the shared snapshot')
+assert(audio.effects.map { |_, kind, side, _| [kind, side] } == [['step', 1], ['step', 0], ['edge', 1], ['hit', 1], ['wall', nil]], 'snapshot audio swallowed non-movement events or echoed movement')
 audio.close
 puts 'PASS local/remote event separation: own steps once, teammate/strike/wall once, shared snapshot unchanged'

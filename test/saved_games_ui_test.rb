@@ -1,51 +1,4 @@
-require_relative "support/ui"
-require_relative "support/native_live_sessions"
-class Program
-  def self.server_app(**_options); end
-  def self.app_runtime; nil; end
-end
-require_relative "../__app"
-def n_(one, many, count); count == 1 ? one : many; end
-
-class SaveAppDriver < EltenGameRoom
-  attr_reader :transport, :games, :lobby, :notices, :errors
-  attr_accessor :write_error
-  def initialize(broker)
-    @json, @errors, @notices = {}, [], []
-    program = ProgramDouble.new(broker.endpoint("Alice"))
-    @transport = GameRoomTransport.new(program)
-    @lobby = LobbyRepository.new(program, transport: @transport, server_tables: {})
-    @games = GameRepository.new(program, transport: @transport, server_tables: {})
-    @invitations = InvitationRepository.new(transport: @transport)
-  end
-  def read_json(path, default:); JSON.parse(JSON.generate(@json.fetch(path, default))); end
-  def update_json(path, default:)
-    raise IOError, "disk denied" if write_error
-    root = read_json(path, default: default)
-    yield(root)
-    @json[path] = JSON.parse(JSON.generate(root))
-  end
-  def run_network_task(*_arguments, **_keywords)
-    yield
-  rescue StandardError => error
-    raise unless GameRoomNetworkErrors.expected?(error)
-    @errors << error
-    nil
-  end
-  def confirm(_message); true; end
-  def alert(message); @notices << message; end
-  def play_game_sound(_name); end
-  def send_notification(user, type:, metadata:, expires_in:); @notices << [user, type, metadata, expires_in]; end
-  def room_state(table)
-    room = @lobby.snapshot_for(table)
-    session = @games.session_for_table(table)
-    snapshot = @games.snapshot_for(session) if session
-    game = game_definition(table["game"])
-    replay = game.replay(snapshot.session, snapshot.events, @games) if snapshot
-    GameRoomLifecycle::State.new(room: room, game_snapshot: snapshot, game: game, replay: replay,
-      players: session == nil ? [] : @games.players_for(session))
-  end
-end
+require_relative 'support/saved_games_ui'
 
 broker = NativeLiveSessionsBroker.new
 app = SaveAppDriver.new(broker)
@@ -73,7 +26,7 @@ assert(app.transport.current_room("Alice") != nil && !app.games.snapshot_for(ses
 view.singleton_class.remove_method(:close)
 assert(app.send(:save_current_game, table, session, game), "confirmed save did not close room: #{app.errors}")
 assert(app.transport.current_room("Alice") == nil && broker.cores.values.first.closed, "successful save kept original table open")
-saved = app.send(:saved_games).list.first
+saved = app.send(:saved_games).fetch(app.send(:saved_games).list.first['id'])
 new_table = app.send(:create_saved_game_table, saved)
 assert(new_table && new_table["resume_save_id"] == saved["id"], "saved game did not create a continuation room")
 assert(broker.cores[new_table["__live_session_id"]].metadata["protocol"] == GameRoomLiveSessionStore::CURRENT_DISCOVERY_PROTOCOL, "legacy clients can join an unsupported archive")
@@ -91,6 +44,6 @@ assert(bob.establish_membership(table_id: new_table["__id"], owner: "Alice", cap
 resumed = app.send(:resume_saved_game_at_table, new_table, app.room_state(new_table))
 assert(resumed && app.games.players_for(resumed) == %w[Alice Bob] + GameRoomParticipants.bots_for(new_table["__id"], 1, names: ["pl20"]), "continuation changed original seats")
 assert(game.replay(resumed, app.games.snapshot_for(resumed).events, app.games).accepted_events.length == saved["events"].length, "UI continuation did not replay all saved events")
-assert(app.send(:saved_games).list.include?(saved), "resume deleted the only archive")
+assert(app.send(:saved_games).fetch(saved['id']) == saved, "resume deleted the only archive")
 assert(app.send(:start_new_game, new_table, state: app.room_state(new_table))["__id"] == resumed["__id"], "active continuation restarted instead of opening")
-puts "Save UI: disk/close failures, original seats, bots, invitations, missing players and duplicate prevention OK"
+puts "Save UI: private upload/close failures, original seats, bots, invitations, missing players and duplicate prevention OK"

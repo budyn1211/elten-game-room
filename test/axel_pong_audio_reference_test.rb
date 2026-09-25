@@ -1,4 +1,4 @@
-require_relative 'axel_pong_audio_test'
+require_relative 'support/pong_audio'
 now = 0.0
 program = PongAudioProgram.new
 audio = GameRoomPong::Audio.new(program, clock: -> { now }, rng: Random.new(12))

@@ -1,4 +1,4 @@
-require_relative 'axel_pong_point_audio_test'
+require_relative 'support/axel_pong_point_audio'
 
 [1.0, 6.0].each do |write_delay|
   now = 0.0

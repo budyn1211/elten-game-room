@@ -1,5 +1,5 @@
-require_relative 'post_233_ping_test'
-require_relative 'realtime_channel_test'
+require_relative 'support/post_233_ping'
+require_relative 'support/realtime_channel'
 require_relative 'support/pong_client'
 
 now = 0.0

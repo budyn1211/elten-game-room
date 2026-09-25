@@ -84,7 +84,7 @@ ensure
 end
 
 # A mixed invitation must not be accepted by the old central-input dialect.
-require_relative 'realtime_event_channel_test'
+require_relative 'support/realtime_event_channel'
 now = 0.0
 work = ChannelWork.new
 program = ChannelProgram.new('Bob')

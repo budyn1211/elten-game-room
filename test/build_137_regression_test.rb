@@ -31,7 +31,7 @@ require_relative "../games/tysiac"
 require_relative "../games/ninety_nine"
 require_relative "../games/four_in_a_row"
 require_relative "../games/tic_tac_toe"
-require_relative "../lib/bot_turn_gate"
+require_relative "support/legacy_turn_gate"
 require_relative "../lib/game_repository"
 
 now = 10.0
@@ -140,37 +140,27 @@ end
   assert(cells.flatten.count("Alice") == 1 && cells.flatten.all? { |x| ["", "Alice"].include?(x) }, "board still names empty cells or owners' pieces")
 end
 
-# Simulate a server saving play and then failing on draw. The next read must
-# see play, rather than retrying the pair from the old in-memory snapshot.
-bot = "bot:7:1"
-session = { "id" => 1, "table_id" => 7, "player_one" => "Alice", "__players" => ["Alice", bot] }
-rows = []
-failure_table = Object.new
-failure_table.define_singleton_method(:insert) do |values|
-  raise "simulated failed draw" if values["action"] == "draw"
-  row = values.merge("id" => rows.length + 1)
-  rows << row
-  row
-end
-failure_table.define_singleton_method(:select) { |**options| rows.drop(options[:offset].to_i) }
-tables = Object.new
-tables.define_singleton_method(:fetch) { |_| failure_table }
-transport = Object.new
-transport.define_singleton_method(:game_changed) { |**_| nil }
-repo = GameRepository.new(Object.new, transport: transport, server_tables: tables)
+# Live Sessions saves the entire command batch atomically, unlike the
+# retired table backend. A lost reply must retain both parts exactly once.
+require_relative 'support/native_room_harness'
+h = NativeRoomHarness.new(users: %w[Alice Bob])
+h.start
+repo = h.repositories.fetch('Alice')
 assert(repo.bot_turn_controller(7).equal?(repo.bot_turn_controller(7)), "screens of one table do not share bot control")
 assert(!repo.bot_turn_controller(7).equal?(repo.bot_turn_controller(8)), "unrelated tables block each other")
-repo.send(:replace_event_cache, session, [])
+h.broker.automatic_delivery = false
+h.view('Alice').fail_next_push = :after
+commands = [GameRoomGames::EventCommand.new(action: 'play', value: '03H|normal'),
+  GameRoomGames::EventCommand.new(action: 'draw', value: '')]
 begin
-  repo.append_events(session: session, sequence: 2, actor: bot, events: [
-    GameRoomGames::EventCommand.new(action: "play", value: "03H|normal"),
-    GameRoomGames::EventCommand.new(action: "draw", value: "")
-  ])
-  raise "expected the submission to fail"
-rescue RuntimeError => error
-  raise unless error.message == "simulated failed draw"
+  h.write('Alice', commands)
+  raise 'expected lost acknowledgement'
+rescue EltenAPI::LiveSessions::TimeoutError
 end
-assert(repo.send(:event_cache_entry, 1).nil?, "uncertain write retained a stale cache")
-assert(repo.snapshot_for(session).events.map { |row| row["action"] } == ["play"], "reconciliation lost the saved part of the move")
-
-puts "Build 137 focused regressions passed: pacing, partial writes, Tysiac and concise speech"
+pushes = h.view('Alice').calls[:push]
+h.as('Alice') { h.transports.fetch('Alice').reconcile(h.table['__id']) }
+h.broker.deliver(duplicate: true)
+h.assert_converged('atomic batch after lost reply', expected_count: 2)
+assert(h.events('Alice').map { |row| row['action'] } == %w[play draw], 'reconciliation lost part of the move')
+assert(h.view('Alice').calls[:push] == pushes, 'persisted batch was sent twice')
+puts 'Build 137 focused regressions passed: pacing, uncertain batch writes, Tysiac and concise speech'

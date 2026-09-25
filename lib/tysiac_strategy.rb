@@ -1,4 +1,6 @@
 require_relative "game_bots"
+require_relative "game_random"
+require_relative "participant_decision_events"
 
 # Information-set planning for two- and three-player Tysiac. The planner never
 # reads the identities of cards in an opponent's real hand. Instead it samples
@@ -6,6 +8,8 @@ require_relative "game_bots"
 # information and suits in which a player has publicly shown a void.
 module TysiacPlanning
   class Strategy
+    include GameRoomBots::ReplayOnlyStrategy
+
     BIDDING_SAMPLES = 64
     PLAY_SAMPLES = 48
     CONTRACT_SAMPLES = 64
@@ -749,16 +753,9 @@ module TysiacPlanning
       }
     end
 
-    # ELTEN's embedded Array implementation exposes only the no-argument
-    # shuffle method. Keep sampled worlds reproducible with a portable,
-    # seeded Fisher-Yates shuffle instead of MRI's shuffle(random: ...).
+    # Keep this planner entry point and its caller-owned RNG stable.
     def deterministic_shuffle(values, random)
-      shuffled = values.to_a.dup
-      (shuffled.length - 1).downto(1) do |index|
-        other = random.rand(index + 1)
-        shuffled[index], shuffled[other] = shuffled[other], shuffled[index]
-      end
-      shuffled
+      GameRoomRandom.shuffle(values, random: random)
     end
 
     def finish_round(world)
@@ -1053,7 +1050,7 @@ module TysiacPlanning
     def events_after_last_deal
       return @events_after_last_deal if defined?(@events_after_last_deal) && @events_after_last_deal != nil
 
-      events = @replay.accepted_events.to_a
+      events = GameRoomParticipantDecisionEvents.for(@replay).to_a
       index = events.rindex { |event| event["action"].to_s == "deal" }
       index == nil ? events : events[(index + 1)..]
     end

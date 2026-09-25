@@ -21,11 +21,12 @@ class TableActivityRepository
     :stack_sequence,
     :teams,
     :role,
+    :replacement,
     keyword_init: true
   )
 
   TABLE_NAME = "table_activity".freeze
-  KINDS = %w[created joined left bot_added bot_removed chat invited invitation_rejected game_aborted options_changed role_changed].freeze
+  KINDS = %w[created joined left bot_added bot_removed chat invited invitation_rejected game_aborted options_changed role_changed owner_changed seat_control_changed player_replaced].freeze
   GLOBAL_KINDS = %w[created joined left bot_added bot_removed].freeze
   BOT_KINDS = %w[bot_added bot_removed].freeze
   TABLE_LIMIT = 2_000
@@ -219,6 +220,16 @@ class TableActivityRepository
         else
           _("%{player} chose %{user} as a player for the next game.") % { player: player, user: GameRoomContent.utf8(GameRoomParticipants.display_name(entry.subject)) }
         end
+      when "owner_changed"
+        _("%{player} becomes the table master.") % { player: player }
+      when 'player_replaced'
+        _("%{replacement} replaces %{player}.") % {
+          replacement: GameRoomContent.utf8(GameRoomParticipants.display_name(entry.replacement)),
+          player: GameRoomContent.utf8(GameRoomParticipants.display_name(entry.subject)) }
+      when "seat_control_changed"
+        subject = GameRoomContent.utf8(GameRoomParticipants.display_name(entry.subject))
+        entry.role == "bot" ? (_("A computer takes over %{player}'s place.") % { player: subject }) :
+          (_("%{player} takes back control of their place.") % { player: subject })
       end
     end
   end
@@ -293,7 +304,8 @@ class TableActivityRepository
   def entry_from(row, table)
     return nil if row_id(row) <= 0 || row["table_id"].to_i != row_id(table)
     return nil if !KINDS.include?(row["kind"].to_s)
-    return nil if row["table_owner"].to_s.casecmp(table_owner(table)) != 0
+    authority = native_live_sessions? && row["__authority_validated"] == true ? row["table_owner"].to_s : table_owner(table)
+    return nil if row["table_owner"].to_s.casecmp(authority) != 0
     return nil if row["game"].to_s != table["game"].to_s
 
     insertion_user = row["__insertion_user"].to_s
@@ -314,8 +326,13 @@ class TableActivityRepository
       return nil if row["subject"].to_s.empty? || row["subject"].to_s.length > 64 || row["invitation_id"].to_i <= 0
     end
     if row["kind"] == "role_changed"
-      return nil unless GameRoomParticipants.same?(actor, table_owner(table)) &&
+      return nil unless GameRoomParticipants.same?(actor, authority) &&
         %w[player observer].include?(row["role"]) && !subject.strip.empty? && subject.length <= 64 && GameRoomParticipants.human?(subject)
+    end
+    if %w[owner_changed seat_control_changed player_replaced].include?(row["kind"])
+      return nil unless native_live_sessions? && row["__authority_validated"] == true && GameRoomParticipants.same?(actor, authority)
+      return nil if row["kind"] == "seat_control_changed" && (!%w[human bot].include?(row["role"]) || subject.empty?)
+      return nil if row['kind'] == 'player_replaced' && (subject.empty? || row['replacement'].to_s.empty?)
     end
 
     Entry.new(
@@ -323,15 +340,15 @@ class TableActivityRepository
       table_id: row["table_id"].to_i,
       kind: row["kind"].to_s,
       actor: actor,
-      owner: table_owner(table),
+      owner: authority,
       game: table["game"].to_s,
       message: message,
       subject: subject,
       invitation_id: row["invitation_id"].to_i,
       created_at: row["created_at"].to_i,
       stack_sequence: row["__stack_sequence"],
-      teams: row["kind"] == "options_changed" && GameRoomParticipants.same?(actor, table_owner(table)) ? teams_from(row) : nil,
-      role: row["role"]
+      teams: row["kind"] == "options_changed" && GameRoomParticipants.same?(actor, authority) ? teams_from(row) : nil,
+      role: row["role"], replacement: row['replacement']
     )
   end
 
@@ -359,7 +376,9 @@ class TableActivityRepository
   def bot_subject(value, table_id)
     candidate = value.to_s
     return "" unless candidate.length <= 64 && GameRoomParticipants.bot?(candidate)
-    return "" unless candidate.start_with?("bot:#{table_id}:") && GameRoomParticipants.bot_number(candidate).between?(1, 8)
+    # This is an identity counter, not the number of occupied seats. Repeated
+    # replacements can create bot 9 and later while the table still has 2 seats.
+    return "" unless candidate.start_with?("bot:#{table_id}:") && GameRoomParticipants.bot_number(candidate).positive?
 
     candidate
   end

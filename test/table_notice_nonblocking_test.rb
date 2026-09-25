@@ -1,4 +1,4 @@
-require_relative "table_notice_presentation_test"
+require_relative "support/table_notice_presentation"
 
 # A blocked disk write must not block receipt, enqueueing, sound or mapping.
 entered, release = Queue.new, Queue.new

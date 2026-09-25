@@ -83,13 +83,15 @@ module HiddenSubmissions
     def initialize(program, path: DEFAULT_PATH)
       @program = program
       @path = path.to_s
-      # Screens sharing a Program also share the read/modify/write transaction.
-      # ELTEN locks individual JSON operations, not the pair of operations.
+      # Program instances delegate file storage to their program class in
+      # ELTEN. Coordinate that shared file, not just one screen's instance.
+      # The class also bounds the lifetime to this loaded application.
+      owner = program.class.respond_to?(:read_json) && program.class.respond_to?(:write_json) ? program.class : program
       @coordinator = COORDINATORS_LOCK.synchronize do
-        stores = program.instance_variable_get(:@game_room_hidden_submission_stores)
+        stores = owner.instance_variable_get(:@game_room_hidden_submission_stores)
         if stores == nil
           stores = {}
-          program.instance_variable_set(:@game_room_hidden_submission_stores, stores)
+          owner.instance_variable_set(:@game_room_hidden_submission_stores, stores)
         end
         stores[@path] ||= { lock: Monitor.new, retry_at: 0.0, warned: false }
       end

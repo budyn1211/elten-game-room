@@ -3,6 +3,7 @@ require_relative "game_room_background"
 require_relative "network_errors"
 require_relative "game_room_clock"
 require_relative "notification_time"
+require_relative "table_query_snapshot"
 
 # Public interests, not saved games. Identity always comes from the server's
 # immutable insertion author. A forged username can never subscribe somebody.
@@ -49,6 +50,7 @@ module GameRoomTableWatch
   class Preferences
     def initialize(table, games:)
       @table, @games = table, games.map(&:to_s)
+      @query_snapshot = GameRoomTableQuerySnapshot.new
     end
 
     def all
@@ -83,11 +85,15 @@ module GameRoomTableWatch
       @table.update(main["__id"].to_i, changes) unless changes.empty?
       rows.drop(1).each { |row| @table.delete(row["__id"].to_i) }
       wanted
+    ensure
+      @query_snapshot.invalidate
     end
 
     def recipients(game, online:, sender:)
       present = online.to_a.to_h { |name| [name.to_s.downcase, name.to_s] }
-      all.filter_map do |row|
+      present.delete(sender.to_s.downcase)
+      return [] if present.empty?
+      @query_snapshot.fetch { all }.filter_map do |row|
         user = row["__insertion_user"].to_s
         present[user.downcase] if !user.casecmp?(sender.to_s) && selected(row).include?(game.to_s)
       end.uniq(&:downcase)

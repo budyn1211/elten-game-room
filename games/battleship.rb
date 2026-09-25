@@ -20,8 +20,23 @@ module GameRoomGames
       OptionChoice.new(value: "polish", label: _("One 4, two 3, three 2 and four 1")),
       OptionChoice.new(value: "classic", label: _("5, 4, 3, 3 and 2"))
     ].freeze
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      kinds = history.map(&:kind)
+      cues = []
+      cues << "play" if kinds.include?(:seal)
+      cues << random_variant.call(%w[rocket_launch1 rocket_launch2 rocket_launch3]) if kinds.include?(:shoot)
+      cues << "rocket_miss" if kinds.include?(:miss)
+      cues << random_variant.call(%w[hit_ship1 hit_ship2]) if (kinds & [:hit, :sunk]).any?
+      cues
+    end
+
     def id
       "battleship"
+    end
+
+    def controller_change_phase_error(_replay)
+      _("The current game contains private data that cannot be transferred at this stage.")
     end
 
     def name
@@ -172,6 +187,21 @@ module GameRoomGames
       return [answerer(state)].compact if state[:phase] == :answering
 
       replay.current_player == nil ? [] : [replay.current_player]
+    end
+
+    def automatic_actor(replay, viewer, table_owner:)
+      return viewer if [:answering, :revealing].include?(replay.state[:phase])
+      super
+    end
+
+    def required_decision_key(replay, viewer)
+      return nil if replay == nil || replay.finished?
+      if replay.state[:phase] == :placing
+        return [:placing] if active_actors(replay).any? { |actor| same_user?(actor, viewer) }
+        return nil
+      end
+      return nil unless replay.state[:phase] == :playing
+      super
     end
 
     def concurrent_session_input?(before, after, selection)

@@ -1,4 +1,4 @@
-require_relative 'background_help_game_screen_test'
+require_relative 'support/background_help_game_screen'
 
 # The real GameScreen lifecycle with the new managed executor selected. Other
 # tests above exercise the unchanged non-native/realtime paths as well.

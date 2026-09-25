@@ -1,4 +1,4 @@
-require_relative "game_room_settings_widget_test"
+require_relative "support/settings_widget"
 
 current_ids = EltenGameRoom::GAME_REGISTRY.ids
 new_2_0 = %w[rummy domino mexican_train scrabble taboo biblios]

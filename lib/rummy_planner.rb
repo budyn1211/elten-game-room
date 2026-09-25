@@ -14,8 +14,10 @@ module GameRoomRummyPlanner
     jokers = hand.select { |c| RULES.joker?(c) }
     result = {}
     add = lambda do |cards|
+      next if result.length >= MAX_CANDIDATES
+
       meld = RULES.validate(cards, identities: identities)
-      result[cards.join] = meld if meld && result.length < MAX_CANDIDATES
+      result[cards.join] = meld if meld
     end
     natural.group_by { |c| RULES.rank(c) }.each_value do |cards|
       by_suit = cards.group_by { |c| c[1] }

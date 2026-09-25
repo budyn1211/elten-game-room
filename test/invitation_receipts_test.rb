@@ -1,15 +1,4 @@
-require_relative "invitation_fresh_endpoint_test"
-
-Receipt = Struct.new(:id, :app_uuid, :type, :sender, :metadata, keyword_init: true)
-class ReceiptGateway
-  attr_accessor :error
-  attr_reader :revoked
-  def initialize; @revoked = []; end
-  def revoke(_client, id)
-    raise error if error
-    @revoked << id
-  end
-end
+require_relative 'support/invitation_receipts'
 program = Object.new
 program.define_singleton_method(:server_app_uuid) { "test-app" }
 receipts = ReceiptGateway.new

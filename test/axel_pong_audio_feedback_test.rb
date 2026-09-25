@@ -1,4 +1,4 @@
-require_relative 'axel_pong_audio_test'
+require_relative 'support/pong_audio'
 require_relative '../lib/axel_pong/bot'
 
 # Original default gain: own cue 50%, far opponent 20%. Highest pitch at

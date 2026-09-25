@@ -1,4 +1,9 @@
-require_relative "taboo_rules_dictionary_test"
+require_relative 'support/host_source'
+require_relative "support/binary_rule_dictionary"
+
+module Session
+  def self.name; 'Alice'; end
+end
 
 def assert(value, message); raise message unless value; end
 native_dictionary = $rules_dictionary
@@ -12,7 +17,7 @@ module Configuration
   def self.controlspresentation; :voice_only; end
 end
 module EltenAPI; module Controls; class FormField; end; end; end
-host = ENV.fetch("ELTEN_HOST_SOURCE", File.expand_path("../../work/elten-3.0.1-app-dev", __dir__))
+host = EltenTestHost.root
 load File.join(host, "src/ui/controls/check_box.rb")
 native_checkbox = EltenAPI::Controls.const_get(:CheckBox)
 def p_(_context, text); "Флажок #{text}"; end
@@ -45,11 +50,14 @@ begin
         native_checkbox.new(field.label, checked: field.checked).focus if field.is_a?(CheckBox)
       end
       if form.fields.first.header == expected.call("Settings", "Ustawienia")
-        lobby_list = form.fields[1]
+        form.fields.first.index = form.fields.first.options.index(expected.call('Lobby messages', 'Komunikaty lobby')) || raise('Missing lobby category')
+        form.fields.first.trigger(:move)
+        lobby_list = form.fields.find { |field| field.is_a?(ListBox) && field.header == expected.call('Games covered by lobby messages', 'Gry objęte komunikatami lobby') }
         assert(lobby_list.is_a?(ListBox) && lobby_list.multiselections.map { |index| game_ids[index] } == expected_lobby,
           "binary Settings lost migrated lobby checks")
         assert(settings["table_watch_games"].empty?, "binary migration enabled notification subscriptions")
-        form.fields.first.index = 3; form.fields.first.trigger(:move)
+        form.fields.first.index = form.fields.first.options.index(expected.call('Widget', 'Widget')) || raise('Missing Widget category')
+        form.fields.first.trigger(:move)
         list = form.fields.find { |field| field.is_a?(ListBox) && field.header == expected.call("Table shortcuts", "Skróty tworzenia stołów") }
         assert(list && !form.hidden_controls.include?(list), "missing translated inline shortcuts")
         assert(list.options.first == expected.call("Ctrl+1: Not assigned. Press Enter to assign.", "Ctrl+1: Nie przypisano. Wciśnij Enter, aby przypisać."), "preset label language")
@@ -137,7 +145,7 @@ begin
     assert(GameRoomGames::AxelPong.new.rule_book.documents.first.text.include?(GameRoomRules.translate(credit)), "Pong rules and changelog attribution differ")
     # Krowa's command carries a round identity through the normal surface.
     game = GameRoomGames::Krowa.new
-    repo = SavedGames::ReplayRepository.new
+    repo = GameRoomSavedGameArchive::ReplayRepository.new
     session = {"__id" => 1, "__players" => ["Łucja"], "options" => JSON.generate(game.default_options.merge("variant" => "random"))}
     replay = game.replay(session, [], repo)
     replay.state.merge!(phase: :active, round: 3, length: 13)

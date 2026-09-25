@@ -1,4 +1,4 @@
-require_relative 'audio_ball_relay_test'
+require_relative 'support/audio_ball_relay'
 
 h = AudioBallRelayHarness.new
 h.wait_ready

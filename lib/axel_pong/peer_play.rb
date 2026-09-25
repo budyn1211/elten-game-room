@@ -9,6 +9,7 @@ module GameRoomPong
     include Hurry
     def frame
       return if @closed || !@replay || @replay.finished?
+      return if @control_ready == false
       tick
       now = @clock.call
       if @channel.epoch && @epoch != @channel.epoch
@@ -88,7 +89,7 @@ module GameRoomPong
     def reset_rally
       options = @replay.state[:options]
       seed = Digest::SHA256.hexdigest("#{@match}:#{@epoch}:#{@replay.state[:rally]}")[0, 12].to_i(16)
-      bots = @players.each_index.select { |side| GameRoomParticipants.bot?(@players[side]) }
+      bots = @players.each_index.select { |side| bot_seat?(@players[side]) }
       owner_side = @players.index { |p| p.to_s.casecmp?(@owner) }
       physics_server = owner_side || 0
       guests = @players.each_index.reject { |side| side == physics_server }
@@ -118,6 +119,9 @@ module GameRoomPong
 
     def receive_peer_packets(now)
       @channel.take_packets.each do |user, packet|
+        # Native room membership is not paddle ownership. A replaced person
+        # can remain as a spectator, but cannot overwrite the bot's position.
+        next if host? && !@required.any? { |player| player.to_s.casecmp?(user) }
         body = packet['d']
         next unless body['r'].is_a?(Integer) && (body['r'] - @replay.state[:rally]).abs <= 1 && body['local'] == 1
         next unless host? ? valid_peer_position?(body) : valid_state?(body) && valid_peer_turn?(body)
@@ -236,7 +240,7 @@ module GameRoomPong
     def peer_event_sender?(sender, data)
       if %w[serve hit shield_hit goal hurry_request].include?(data['action'])
         player = @players[data['side']]
-        if GameRoomParticipants.bot?(player)
+        if bot_seat?(player)
           data['action'] != 'hurry_request' && !host? && @owner.casecmp?(sender)
         else
           player.to_s.casecmp?(sender) && data['side'] != @side

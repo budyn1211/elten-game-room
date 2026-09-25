@@ -1,5 +1,5 @@
 # encoding: UTF-8
-require_relative "biblios_test"
+require_relative "support/biblios"
 require_relative "../lib/game_sounds"
 
 game = GameRoomGames::Biblios.new

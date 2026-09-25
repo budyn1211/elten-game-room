@@ -1,12 +1,13 @@
+require_relative 'support/host_source'
 # Uses the installed source of ELTEN's actual text control, without running
 # an ELTEN process or accessing the clipboard/device. The app code is loaded
 # unchanged into an isolated namespace with that native control as its base.
-require_relative 'taboo_rules_dictionary_test'
-host = ENV.fetch('ELTEN_HOST_SOURCE', File.expand_path('../../work/elten-3.0.1-app-dev', __dir__))
+require_relative 'support/binary_rule_dictionary'
+host = EltenTestHost.root
 native_source = ENV.fetch('ELTEN_EDIT_BOX_SOURCE', File.join(host, 'src/ui/controls/edit_box.rb'))
 module EltenAPI
   module Controls
-    FormField = FakeControl unless const_defined?(:FormField, false)
+    FormBase = FakeControl unless const_defined?(:FormBase, false)
   end
 end
 module EltenLink
@@ -17,6 +18,7 @@ module Clipboard
 end
 def p_(_context, text); text; end
 def alert(*_args); end
+load EltenTestHost.file('src/ui/controls/form_field.rb')
 load native_source
 native = EltenAPI::Controls.const_get(:EditBox)
 native_text_scope = Module.new

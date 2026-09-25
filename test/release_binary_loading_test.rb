@@ -1,4 +1,4 @@
-require_relative "packaged_rules_encoding_test"
+require_relative "support/binary_rules_load"
 
 original_entries = BinaryRulesLoad.instance_variable_get(:@entries)
 keys = %w[games/scrabble.rb lib/game_room_localization.rb locale/pl.mo]

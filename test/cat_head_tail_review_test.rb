@@ -1,4 +1,6 @@
-require_relative "cat_head_tail_test"
+require_relative 'support/sequence_random'
+
+require_relative "support/cat_head_tail"
 
 # The reviewed changes must not turn every final-round tie into a gamble.
 game = GameRoomGames::CatHeadTail.new

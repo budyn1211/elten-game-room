@@ -9,6 +9,24 @@ module GameRoomGames
   class Farkle < Base
     DIE_COUNT = 6
 
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      if action == "bank"
+        return "farkle_bank" if history.any? { |entry| entry.kind == :bank }
+        return nil
+      end
+      if action == "roll"
+        return ["roll", "farkle"] if history.any? { |entry| entry.kind == :farkle }
+
+        return "roll"
+      end
+      return nil if action != "keep"
+
+      kept_count = event["value"].to_s.split(",").reject(&:empty?).length
+      dice_before = before_replay&.state.to_h.fetch(:dice_to_roll, 0).to_i
+      kept_count > 0 && kept_count == dice_before ? "replay" : nil
+    end
+
     def id
       "farkle"
     end

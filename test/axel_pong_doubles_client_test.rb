@@ -1,6 +1,5 @@
-host_source = ENV['ELTEN_HOST_SOURCE'] || File.expand_path('../../elten3', __dir__)
-host_speech = File.join(host_source, 'src/eapi/speech.rb')
-require host_speech if ENV['ELTEN_HOST_SOURCE'] || File.file?(host_speech)
+require_relative 'support/host_source'
+require EltenTestHost.file('src/eapi/speech.rb')
 require_relative 'support/pong_client'
 
 players = %w[Alice Bob Carol Dave]

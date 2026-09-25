@@ -1,4 +1,4 @@
-require_relative 'taboo_rules_dictionary_test'
+require_relative 'support/binary_rule_dictionary'
 
 Form.prepend(Module.new do
   def initialize(fields, **options)

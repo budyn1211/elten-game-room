@@ -1,4 +1,4 @@
-require_relative 'farkle_test'
+require_relative 'support/farkle'
 def final_replay(state)
   GameRoomGames::Replay.new(players: state[:players],current_player: state[:current_player],winner: state[:winner],draw: state[:draw],state: state,history: [],accepted_events: [])
 end

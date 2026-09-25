@@ -1,4 +1,4 @@
-require_relative "cat_head_tail_dictionary_test"
+require_relative "support/cat_head_tail_dictionary"
 require "digest"
 
 # Verbatim wording supplied in TD Programs PR #12, head 7930486.

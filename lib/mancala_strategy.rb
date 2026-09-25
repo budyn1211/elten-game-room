@@ -3,6 +3,10 @@ require_relative "game_tree_search"
 
 module MancalaPlanning
   class Strategy
+    def simulation_required?
+      true
+    end
+
     def choose(actions:, actor:, random_source:, game:, replay:, context: nil, simulation: nil, **extra)
       choices = actions.to_a
       return nil if choices.empty?

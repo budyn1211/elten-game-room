@@ -80,7 +80,7 @@ check.call("Monopoly: actual rent and remaining debt") do
   state[:options]["automatic_rent"] = true
   history = []
   bob_before = state[:cash]["Bob"]
-  game.send(:resolve_square, state, "Alice", nil, 1, history)
+  game.send(:resolve_square, state, "Alice", 1, history)
   assert(state[:cash]["Bob"] == bob_before + 20, "Actual rent transfer changed")
   text = history.map(&:text).join(" ")
   assert(text.include?("pays Bob 20") && text.include?("140") && text.include?(state[:board][1][:name]), "Rent hides partial payment: #{text}")

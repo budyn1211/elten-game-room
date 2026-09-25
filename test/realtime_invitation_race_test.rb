@@ -1,4 +1,4 @@
-require_relative 'realtime_channel_test'
+require_relative 'support/realtime_channel'
 
 class StrictChannelInvitation < ChannelInvitation
   attr_reader :id, :calls

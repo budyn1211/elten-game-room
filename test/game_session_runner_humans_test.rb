@@ -1,4 +1,4 @@
-require_relative 'game_session_runner_deadline_test'
+require_relative 'support/game_session_runner_deadline'
 require_relative '../games/scrabble'
 require_relative '../games/taboo'
 

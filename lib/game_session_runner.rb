@@ -3,6 +3,7 @@ require_relative "game_sync"
 require_relative "game_bots"
 require_relative "game_simulation"
 require_relative "game_session_clock"
+require_relative "game_execution_policy"
 
 # One executor for turn-based automatic actions, in foreground AND background.
 # The screen owns presentation and input; this object never calls a control,
@@ -128,9 +129,12 @@ class GameRoomSessionRunner
   # stale view before action_for can consume a hidden answer or randomness.
   def submit(session:, replay:, selection:, actor:, controller: false)
     synchronize do
+      raise @internal_error if @internal_error
       raise StaleView if closed? || !activate_executor || @sync.waiting?
       refresh(force: @sync.recovery_pending?)
       raise StaleView unless @snapshot && !@session["__frozen"] && !@session["__aborted"] &&
+        session["__control_epoch"] == @session["__control_epoch"] && @session["__control_ready"] != false &&
+        GameRoomParticipants.includes?(@replay.players, actor) &&
         @repository.session_id(session) == @repository.session_id(@session) &&
         (revision(replay) == revision(@replay) || @game.concurrent_session_input?(replay, @replay, selection))
       commit(selection, actor, controller: controller)
@@ -159,7 +163,7 @@ class GameRoomSessionRunner
   def take_error
     # A covered screen may return after the worker has already recovered.
     # Do not turn that historical failure into a fresh UI outage.
-    return nil unless @sync.recovery_pending?
+    return nil unless @internal_error || @sync.recovery_pending?
     @errors.pop(true)
   rescue ThreadError
     nil
@@ -172,7 +176,7 @@ class GameRoomSessionRunner
 
   def take_action_error(session, replay)
     key, status = @action_errors.pop(true)
-    status if key == [@repository.session_id(session), revision(replay)]
+    status if key == [@repository.session_id(session), revision(replay), session['__control_epoch']]
   rescue ThreadError
     nil
   end
@@ -180,7 +184,7 @@ class GameRoomSessionRunner
   # Public for deterministic lifecycle/clock regression tests. Production has
   # exactly one caller, the managed worker above.
   def step
-    return if closed?
+    return if closed? || @internal_error
     bot_work = nil
     @transport.dispatch_pending_events
     synchronize do
@@ -196,7 +200,7 @@ class GameRoomSessionRunner
       verified = @turn.verification_due?
       refresh(force: verified || event&.kind == :recovery) if @dirty || verified
       return unless @snapshot && @replay
-      return if closed? || @session["__frozen"] || @session["__aborted"]
+      return if closed? || @session["__frozen"] || @session["__aborted"] || @session["__control_ready"] == false
       update_table_status
       return if @replay.finished? || @sync.recovery_pending?
       view = @state_lock.synchronize { @view }
@@ -208,11 +212,18 @@ class GameRoomSessionRunner
     perform_bot(bot_work) if bot_work
   rescue StandardError => error
     @dirty = true
-    @sync.failed!(error)
-    synchronize { @execution_group&.defer(recovery_delay) }
-    @turn.defer_verification
+    if GameRoomNetworkErrors.expected?(error) || GameRoomNetworkErrors.cancelled?(error)
+      @sync.failed!(error)
+      synchronize { @execution_group&.defer(recovery_delay) }
+      @turn.defer_verification
+    else
+      # Do not repeatedly execute a broken action or pretend it is an outage.
+      # The UI receives the exception once; no leave/close is sent to the room.
+      @internal_error = error
+      @errors.clear # A recovered, undelivered network error cannot hide this fault.
+    end
     @errors << error if @errors.empty?
-    Log.warning("ELTEN Game Room session runner failed: #{error.class}: #{error.message}") if defined?(Log)
+    Log.warning("ELTEN Game Room session runner failed: #{error.class}: #{error.message}\n#{Array(error.backtrace).first(8).join("\n")}") if defined?(Log)
   end
 
   private
@@ -252,6 +263,7 @@ class GameRoomSessionRunner
         return
       end
       @room, @table = room, copy(room.table)
+      @owner = @table["owner"].to_s
       latest_id = @repository.latest_session_id_for_table(@table)
       if latest_id.positive? && latest_id != @repository.session_id(@session)
         next_session = @repository.session_by_id(latest_id, table: @table)
@@ -266,9 +278,16 @@ class GameRoomSessionRunner
       end
       @snapshot, @session = snapshot, snapshot.session
       @replay = @game.replay(@session, snapshot.events, @repository)
+      if reconcile_departed_players
+        snapshot = @repository.snapshot_for(@session)
+        @snapshot, @session = snapshot, snapshot.session
+        @replay = @game.replay(@session, snapshot.events, @repository)
+        room = @room_snapshot_provider.call || room
+        @room, @table = room, copy(room.table)
+      end
       @turn.observe(session_id: @repository.session_id(@session), events: snapshot.events,
         confirmed_event_ids: @repository.confirmed_event_ids(@session), verified: force)
-      presentation = copy({session: @session, replay: @replay, members: room.members,
+      presentation = copy({session: @session, table: @table, replay: @replay, members: room.members,
         activity: @activity_repository ? @activity_repository.entries_for(@table, viewer: @viewer) : []})
       @state_lock.synchronize { @presentation_snapshot = presentation }
       @dirty = false
@@ -290,19 +309,27 @@ class GameRoomSessionRunner
 
   def perform_automatic(view)
     ctx = context
-    key = [@repository.session_id(@session), revision(@replay)]
+    key = [@repository.session_id(@session), revision(@replay), @session['__control_epoch']]
     now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     retrying = @automatic_retry_key == key
     return false if retrying && now < @automatic_retry_at
+    if GameRoomParticipants.same?(@viewer, @owner)
+      controlled_actors.each do |seat|
+        next unless @game.automatic_action_allowed?(@replay, seat, table_owner: @owner)
+        selection = @game.automatic_action(@replay, seat, context: ctx)
+        return execute_automatic(selection, seat, key, now, controller: true) if selection
+      end
+    end
     # The last UI-owned answer snapshot can be submitted at its real deadline
     # without ever reading an EditBox in this thread. The identity above keeps
     # that draft in its own round; action_for validates the current phase.
-    if view && view[:session_id] == @repository.session_id(@session) && view[:surface] &&
+    if !controlled_actors.include?(@viewer) && view && view[:session_id] == @repository.session_id(@session) && view[:surface] &&
         view[:surface_identity] && view[:surface_identity] == @game.automatic_surface_identity(@replay)
       local = @game.automatic_surface_action(@replay, @viewer, surface: view[:surface], context: ctx)
       return execute_automatic(local, @viewer, key, now) if local
     end
     return false unless @game.automatic_action_allowed?(@replay, @viewer, table_owner: @owner)
+    return false if controlled_actors.include?(@viewer) && !GameRoomParticipants.same?(@owner, @viewer)
     actor = @game.automatic_actor(@replay, @viewer, table_owner: @owner)
     return false if actor.to_s.empty?
     return false if @automatic_checked == key && !retrying &&
@@ -332,7 +359,7 @@ class GameRoomSessionRunner
 
   def prepare_bot
     return nil unless GameRoomParticipants.same?(@owner, @viewer)
-    actor = @coordinator.pending_bot(@game, @replay)
+    actor = @coordinator.pending_bot(@game, @replay, controlled_actors: controlled_actors)
     return nil unless actor
     ctx = context
     rev = @repository.events_revision(@snapshot.events)
@@ -341,7 +368,7 @@ class GameRoomSessionRunner
     lease = @turn.acquire(session_id: @repository.session_id(@session), actor: actor, revision: rev)
     return nil unless lease
     {lease: lease, actor: actor, context: ctx, session: copy(@session), replay: copy(@replay),
-      revision: revision(@replay), players: @repository.players_for(@session)}
+      revision: revision(@replay), players: @repository.players_for(@session), controlled_actors: controlled_actors}
   rescue Exception
     @turn.cancel(lease) if lease
     raise
@@ -354,12 +381,10 @@ class GameRoomSessionRunner
     lease, session, replay = work.values_at(:lease, :session, :replay)
     begin
       return false if closed?
-      seed = @repository.session_id(session).to_i * 1_000_003 +
-        replay.accepted_events.map { |event| @repository.event_id(event) }.max.to_i * 97 + replay.accepted_events.length
       @planning_game.prepare_view(replay, work[:actor], context: work[:context])
-      simulation = GameRoomSimulation::Environment.from_snapshot(game: @planning_game, session: session,
-        events: replay.accepted_events, players: work[:players], seed: seed)
-      decision = @coordinator.decide_next(game: @planning_game, replay: replay, context: work[:context], simulation: simulation)
+      decision = GameRoomExecutionPolicy.bot_decision(game: @planning_game, session: session, replay: replay,
+        repository: @repository, coordinator: @coordinator, context: work[:context], players: work[:players],
+        controlled_actors: work[:controlled_actors])
       return false if closed? || !decision
       # The native client may have received another move while this worker was
       # calculating and the UI was covered. Decode that already queued change
@@ -375,9 +400,11 @@ class GameRoomSessionRunner
         @dirty = true if change
         return false if closed? || @sync.recovery_pending?
         refresh
+        return false unless GameRoomParticipants.same?(@owner, @viewer) && session["__control_epoch"] == @session["__control_epoch"]
         return false if @session["__frozen"] || @session["__aborted"] || !@replay ||
           [@repository.session_id(session), work[:revision]] != [@repository.session_id(@session), revision(@replay)]
-        commit(decision.action, decision.actor, lease: lease).first == :ok
+        commit(decision.action, decision.actor, lease: lease,
+          controller: controlled_actors.include?(decision.actor)).first == :ok
       end
     ensure
       @turn.cancel(lease)
@@ -402,15 +429,17 @@ class GameRoomSessionRunner
       inserted = @repository.append_events(session: @session,
         sequence: @repository.next_sequence(@session, @replay.accepted_events), events: plan.events,
         recipients: GameRoomParticipants.humans(@room.members), actor: actor, controller: controller)
-      raise IOError, "Game action was not confirmed" unless inserted && !inserted.empty?
+      raise GameRoomNetworkErrors::UncertainWrite, "Game action was not confirmed" unless inserted && !inserted.empty?
       @turn.submitted(lease, event_ids: inserted.map { |event| @repository.event_id(event) }) if lease
       @dirty = true
       [:ok, inserted]
-    rescue Exception
+    rescue Exception => error
       @turn.submission_failed(lease) if lease
       @dirty = true
-      @sync.request_recovery!(delay: GameRoomSync::ERROR_BACKOFF)
-      @execution_group&.defer(recovery_delay)
+      if GameRoomNetworkErrors.expected?(error) || GameRoomNetworkErrors.cancelled?(error)
+        @sync.request_recovery!(delay: GameRoomSync::ERROR_BACKOFF)
+        @execution_group&.defer(recovery_delay)
+      end
       raise
     end
   end
@@ -421,6 +450,20 @@ class GameRoomSessionRunner
     return if @table["status"].to_s == desired
     updated = @game_status_changed.call(@table, !@replay.finished?)
     @table = updated if updated.is_a?(Hash)
+  end
+
+  def controlled_actors
+    @session.fetch("__controllers", {}).select { |_seat, kind| kind == "bot" }.keys
+  end
+
+  def reconcile_departed_players
+    departed = GameRoomExecutionPolicy.departed_players(game: @game, replay: @replay, session: @session,
+      players: @repository.players_for(@session), members: @room&.members, owner: @owner, viewer: @viewer, transport: @transport)
+    changed = false
+    departed.each do |seat|
+      changed = @transport.set_seat_controller(@table_id, session_id: @repository.session_id(@session), seat: seat, bot: true) || changed
+    end
+    changed
   end
 
   def revision(replay)

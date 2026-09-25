@@ -1,6 +1,6 @@
 require_relative 'support/ui'
 require_relative '../lib/game_surfaces'
-require_relative 'game_session_runner_test'
+require_relative 'support/session_runner'
 require_relative '../content/languages'
 require_relative '../content/quiz_pl_wikidata'
 require_relative '../games/quiz_party'

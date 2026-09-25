@@ -1,14 +1,20 @@
-require_relative "game_room_settings_widget_test"
+require_relative 'support/host_source'
+require_relative "support/settings_widget"
 
 # Real host objects and list grouping, offline; no altered installed client.
-host = ENV["ELTEN_HOST_EAPI"] || File.expand_path("../../work/elten-3.0.1-app-dev/src/eapi", __dir__)
+host = File.join(EltenTestHost.root, "src/eapi")
 lines = File.readlines(File.join(host, "program.rb"))
 first = lines.index { |line| line.start_with?("  class NotificationPresentation") }
 last = lines.index { |line| line.start_with?("  class Leaderboard") }
+unless first && last && first < last
+  raise "Missing native notification class boundaries in #{File.join(host, 'program.rb')}. Set ELTEN_HOST_SOURCE to the compatible work/elten-test-client checkout."
+end
 Object.class_eval("module Programs\n#{lines[first...last].join}\nend", "host_contacts_notifications.rb")
 %w[app_notification_from notification_value map_app_notification receive_app_notification].each do |name|
   first = lines.index { |line| line.start_with?("    def #{name}(") }
+  raise "Missing native #{name} in #{File.join(host, 'program.rb')}. Check ELTEN_HOST_SOURCE." unless first
   last = ((first + 1)...lines.length).find { |i| lines[i].start_with?("    def ") }
+  raise "Missing native #{name} end boundary in #{File.join(host, 'program.rb')}. Check ELTEN_HOST_SOURCE." unless last
   Object.class_eval("module Programs\nclass << self\n#{lines[first...last].join}\nend\nend", "host_#{name}.rb")
 end
 def p_(_context, text); text; end

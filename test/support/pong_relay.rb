@@ -1,4 +1,4 @@
-require_relative '../realtime_channel_test'
+require_relative 'realtime_channel'
 require_relative 'pong_client'
 
 # Actual EventChannel/PeerEngine, with only native I/O and finite-worker timing

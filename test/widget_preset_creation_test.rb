@@ -1,4 +1,4 @@
-require_relative "private_table_creation_test"
+require_relative "support/private_table_creation"
 
 announcements = []
 original_announcement = EltenGameRoom.method(:announce_new_public_table)

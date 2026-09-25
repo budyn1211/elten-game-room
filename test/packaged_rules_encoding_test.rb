@@ -1,106 +1,5 @@
-require "json"
-require_relative "support/ui"
-require_relative "support/elten_array_shuffle"
+require_relative 'support/binary_rules_load'
 
-# ELTEN evaluates decompressed sources as binary strings, unlike Ruby's
-# ordinary require. Reproduce that boundary without installing or running UI.
-module BinaryRulesLoad
-  ROOT = File.expand_path("..", __dir__)
-  @loaded = {}
-
-  def self.read(path)
-    relative = path.delete_prefix(ROOT + "/")
-    # Test/support code belongs to the checkout, not the player installer.
-    # Production code/data MUST still come from the package: no disk fallback
-    # for a missing runtime record, which would hide an incomplete release.
-    development_source = relative.start_with?("test/", "tools/")
-    @entries && !development_source ? @entries.fetch(relative.downcase).b : File.binread(path)
-  end
-
-  def self.package=(path)
-    require "zip"
-    require "zstd-ruby"
-    require "stringio"
-    host_source = ENV['ELTEN_HOST_SOURCE'] || File.expand_path('../../elten3', __dir__)
-    require File.join(host_source, 'src/eapi/programsigning')
-    @entries = {}
-    Zip::File.open(path) do |zip|
-      manifest = JSON.parse(zip.read("__manifest.json")).fetch("payload")
-      data = Programs::ProgramSigning.decode_package(zip.read(manifest.fetch("entry"))).fetch(:code_file)
-      io = StringIO.new(data)
-      magic = "Elten3AppPackage"
-      raise "Invalid code header" unless io.read(magic.bytesize) == magic
-      u32 = -> { io.read(4).unpack1("V") }
-      @metadata = JSON.parse(Zstd.decompress(io.read(u32.call)))
-      until io.eof?
-        type = io.read(1).unpack1("C")
-        name = type == 3 ? "locale/#{io.read(2)}.mo" : io.read(io.read(2).unpack1("v"))
-        payload = io.read(u32.call)
-        @entries[name.downcase] = type == 2 ? payload : Zstd.decompress(payload).b
-      end
-    end
-  end
-
-  def self.load(path)
-    path = File.expand_path(path)
-    development_source = path.start_with?(ROOT + "/test/", ROOT + "/tools/")
-    return false if @loaded[path] || (development_source && $LOADED_FEATURES.include?(path))
-    @loaded[path] = true
-    # Do not force UTF-8 here: that was precisely what hid the build-209 bug.
-    TOPLEVEL_BINDING.eval(read(path), path, 1)
-    $LOADED_FEATURES << path if development_source
-    true
-  end
-
-  def self.catalog
-    bytes = read(File.join(ROOT, "locale/PL.mo"))
-    count, originals, translations = bytes.byteslice(8, 12).unpack("V3")
-    count.times.to_h do |index|
-      length, offset = bytes.byteslice(originals + index * 8, 8).unpack("V2")
-      source = bytes.byteslice(offset, length).force_encoding("UTF-8")
-      length, offset = bytes.byteslice(translations + index * 8, 8).unpack("V2")
-      [source, bytes.byteslice(offset, length).force_encoding("UTF-8")]
-    end
-  end
-
-  def self.localization_runtime(language)
-    paths = @entries ? @entries.keys.grep(%r{\Alocale/[^/]+[.]mo\z}) : Dir.glob(File.join(ROOT, "locale/*.mo"))
-    files = paths.to_h { |path| [File.basename(path, ".mo").downcase, File.expand_path(path, ROOT)] }
-    GameRoomTestLocalization.runtime(language, files: files, reader: method(:read))
-  end
-
-  module Requires
-    def require_relative(name)
-      origin = File.expand_path(caller_locations(1, 1).first.path)
-      if origin.start_with?(BinaryRulesLoad::ROOT + "/")
-        path = File.expand_path(name, File.dirname(origin))
-        path += ".rb" unless path.end_with?(".rb")
-        return BinaryRulesLoad.load(path) if path.start_with?(BinaryRulesLoad::ROOT + "/")
-      end
-      require File.expand_path(name, File.dirname(origin))
-    end
-    private :require_relative
-  end
-end
-
-BinaryRulesLoad.package = ARGV.first if ARGV.first
-RULES_CATALOG = BinaryRulesLoad.catalog
-def n_(singular, plural, count)
-  _(count.to_i == 1 ? singular : plural)
-end
-
-class Program
-  def self.server_app(**_options); end
-end
-
-Kernel.prepend(BinaryRulesLoad::Requires)
-require_relative "support/localization"
-module Programs
-  def self.current_runtime
-    @binary_localization_runtime ||= BinaryRulesLoad.localization_runtime(:pl)
-  end
-end
-BinaryRulesLoad.load(File.join(BinaryRulesLoad::ROOT, "__app.rb"))
 registry = EltenGameRoom::GAME_REGISTRY
 GameRoomBotNames::NAMES.each do |token, name|
   raise "Invalid bot name encoding" unless name.encoding == Encoding::UTF_8 && name.valid_encoding?
@@ -115,7 +14,7 @@ GameRoomBotNames::NAMES.each do |token, name|
     raise "Binary lobby bot announcement lost name" unless global.valid_encoding? && global.include?(name) && !global.include?("komputer")
   end
 end
-raise "Lost games during binary loading" unless registry.ids.length == 29
+raise "Lost games during binary loading" unless registry.ids.length == 30
 raise "Audio Ball was not loaded from binary sources" unless registry.ids.include?("audio_ball")
 raise "Quiz Party was not loaded from binary sources" unless registry.ids.include?("quiz")
 %w[quiz.general.en quiz.wikidata.pl quiz.witcher.pl quiz.witcher.g.pl quiz.witcher.b.pl].each do |id|
@@ -151,7 +50,7 @@ end
 metadata = BinaryRulesLoad.instance_variable_get(:@metadata) || JSON.parse(File.read(File.join(BinaryRulesLoad::ROOT, "manifest.json")))
 raise "Runtime build differs from package manifest" unless EltenGameRoom::GAME_ROOM_BUILD_ID.to_s == metadata.fetch("build_id").to_s
 raise "Runtime version differs from package manifest" unless EltenGameRoom::GAME_ROOM_VERSION == metadata.fetch("version")
-raise "Wrong target ELTEN runtime" unless metadata.fetch('EltenAPIVersion') == '3.0.3'
+raise "Wrong target ELTEN runtime" unless metadata.fetch('EltenAPIVersion') == '3.0.4'
 current_changelog = GameRoomChangelog::ENTRIES.find { |entry| entry.build == EltenGameRoom::GAME_ROOM_BUILD_ID }
 raise "Binary changelog version differs" unless current_changelog && current_changelog.version == EltenGameRoom::GAME_ROOM_VERSION
 current_changelog.changes.each do |change|
@@ -169,13 +68,13 @@ end
 
 # Smoke-check the release's new hooks from decoded binary sources, not a
 # second ordinary require of the checkout. No network or host UI is used.
-raise "Missing binary save engine" unless defined?(SavedGames) && SavedGames::FORMAT == 1
+raise "Missing binary save engine" unless defined?(GameRoomSavedGameArchive) && GameRoomSavedGameArchive::FORMAT == 1
 raise "Missing binary saved games menu" unless EltenGameRoom::MAIN_OPTIONS.include?(RULES_CATALOG.fetch("Saved games"))
-raise "Wrong number of saveable games" unless registry.ids.count { |id| registry.build(id).supports_saved_games? } == 24
+raise "Wrong number of saveable games" unless registry.ids.count { |id| registry.build(id).supports_saved_games? } == 25
 %w[reversi checkers chess].each do |id|
   game = registry.build(id)
   session = { "__players" => %w[Alice Bob], "options" => JSON.generate(game.default_options) }
-  replay = game.replay(session, [], SavedGames::ReplayRepository.new)
+  replay = game.replay(session, [], GameRoomSavedGameArchive::ReplayRepository.new)
   raise "Missing binary material counter: #{id}" unless game.remaining_piece_counts(replay).length == 2
   raise "Invalid binary settings summary: #{id}" unless game.table_options_announcement(game.default_options).valid_encoding?
 end
@@ -331,7 +230,7 @@ end
   game = registry.build(id)
   players = id == 'taboo' ? %w[Łucja Bob Carol Dave] : %w[Łucja Bob]
   session = { '__players' => players, 'options' => JSON.generate(game.default_options) }
-  repository = SavedGames::ReplayRepository.new
+  repository = GameRoomSavedGameArchive::ReplayRepository.new
   events = []
   replay = game.replay(session, events, repository)
   surfaces = {}

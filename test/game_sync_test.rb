@@ -72,14 +72,14 @@ assert(result == :current && reconnects == 1, "synchronization did not reconnect
 assert(controller.next_reconcile_at.infinite?, "successful synchronization did not disable polling again")
 
 begin
-  controller.synchronize { raise StandardError, "temporary network failure" }
+  controller.synchronize { raise GameRoomNetworkErrors::UncertainWrite, "temporary network failure" }
 rescue StandardError
 end
 assert(controller.next_reconcile_at == 134.0, "a normal failure did not use the shared backoff")
 
 now = 140.0
 begin
-  controller.synchronize { raise StandardError, "HTTP 429: Too many requests" }
+  controller.synchronize { raise GameRoomNetworkErrors::UncertainWrite, "HTTP 429: Too many requests" }
 rescue StandardError
 end
 assert(controller.next_reconcile_at == 200.0, "a rate limit did not use the longer shared backoff")
@@ -89,3 +89,13 @@ controller.update_session(15, discard_pending: true)
 assert(!transport.game_changes.key?(15), "switching games did not discard its already handled notification")
 
 puts "Game synchronization tests passed"
+
+controller.synchronized!
+fault = NoMethodError.new('callback programming fault')
+transport.define_singleton_method(:consume_recovery) { |_| fault }
+begin
+  controller.next_event
+  raise 'callback programming error was swallowed'
+rescue NoMethodError => error
+  assert(error.equal?(fault) && !controller.recovery_pending?, 'internal error became an outage')
+end

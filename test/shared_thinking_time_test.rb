@@ -1,4 +1,4 @@
-require_relative "packaged_rules_encoding_test" if ARGV.first
+require_relative "support/binary_rules_load" if ARGV.first
 require_relative "support/new_games_fixture"
 require_relative "../games/mexican_train"
 require_relative "../games/domino"

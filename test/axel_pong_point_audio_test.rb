@@ -1,10 +1,4 @@
-require_relative 'axel_pong_audio_test'
-require_relative 'axel_pong_client_test'
-
-class PongSound
-  def length; 2.0; end
-  def finished?; !playing?; end
-end
+require_relative 'support/axel_pong_point_audio'
 
 now = 0.0
 program = PongAudioProgram.new

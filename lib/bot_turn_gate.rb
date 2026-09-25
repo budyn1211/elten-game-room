@@ -30,12 +30,23 @@ module GameRoomBots
       @session_id = nil
       @decision_key = nil
       @decision_ready_at = 0.0
+      @retired = false
     end
 
     def state
       @mutex.synchronize do
         advance_cooldown
         @state
+      end
+    end
+
+    # Eviction and lease acquisition share this mutex. A stale reference may
+    # remain in a closed screen, but can never start a second coordinator.
+    def retire_if_idle
+      @mutex.synchronize do
+        advance_cooldown
+        return false unless @state == :idle && @lease == nil
+        @retired = true
       end
     end
 
@@ -48,6 +59,7 @@ module GameRoomBots
 
     def ready?(session_id:, actor:)
       @mutex.synchronize do
+        return false if @retired
         prepare_session(session_id)
         advance_cooldown
         @state == :idle && @lease == nil && !actor.to_s.empty? && @clock.call >= @decision_ready_at
@@ -73,6 +85,7 @@ module GameRoomBots
 
     def acquire(session_id:, actor:, revision:)
       @mutex.synchronize do
+        return nil if @retired
         prepare_session(session_id)
         advance_cooldown
         return nil if @state != :idle || @lease != nil || actor.to_s.empty?
@@ -280,37 +293,4 @@ module GameRoomBots
     end
   end
 
-  # Kept for compatibility with focused regressions for the earlier fixed
-  # pacing implementation. Active game screens use the event-driven
-  # TurnController above and do not impose a constant delay between moves.
-  class TurnGate
-    def initialize(interval: 1.0, clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) })
-      @interval = interval
-      @clock = clock
-      @mutex = Mutex.new
-      @lease = nil
-      @ready_at = 0.0
-    end
-
-    def ready?
-      @mutex.synchronize { @lease == nil && @clock.call >= @ready_at }
-    end
-
-    def acquire
-      @mutex.synchronize do
-        return nil if @lease != nil || @clock.call < @ready_at
-
-        @lease = Object.new
-      end
-    end
-
-    def release(lease, attempted: false)
-      @mutex.synchronize do
-        return if lease == nil || !@lease.equal?(lease)
-
-        @ready_at = @clock.call + @interval if attempted
-        @lease = nil
-      end
-    end
-  end
 end

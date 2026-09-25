@@ -3,7 +3,7 @@ require_relative "game_rules"
 require_relative "context_help"
 
 # One native global menu for the waiting room, active game and final-position
-# view. Only Delete remains local to the selected row in the users list.
+# view. Removing/replacing a participant belongs to the selected Users row.
 require_relative "game_room_localization"
 
 module GameRoomParticipantMenu
@@ -21,13 +21,45 @@ module GameRoomParticipantMenu
       Entry.new(action: :play_next_game, label: _("Play in the next game"), menu_key: "O", help_key: "Ctrl+Shift+O"),
       Entry.new(action: :rules, label: _("Game rules"), menu_key: :ctrl_f1, help_key: "Ctrl+F1"),
       Entry.new(action: :table_options, label: _("Read the table variant and settings"), menu_key: "r", help_key: "Ctrl+R"),
-      Entry.new(action: :personal_settings, label: GameRoomContent.utf8(game&.id == 'audio_ball' ? _("Audio Ball settings") : _("Pong settings")), menu_key: "p", help_key: "Ctrl+P"),
+      personal_settings_entry(game),
       Entry.new(action: :edit_options, label: _("Change settings for the next game"), menu_key: "x", help_key: "Ctrl+X"),
       Entry.new(action: :edit_teams, label: _("Choose teams"), menu_key: ""),
       Entry.new(action: :abort_game, label: _("End the current game without closing the table"), menu_key: "q", help_key: "Ctrl+Q"),
+      Entry.new(action: :transfer_master, label: _("Transfer table master"), menu_key: "m", help_key: "Ctrl+M"),
       Entry.new(action: :save_game, label: _("Save the game and close the table"), menu_key: "s", help_key: "Ctrl+S"),
+      Entry.new(action: :close_table, label: _("Close the table for everyone"), menu_key: ""),
       Entry.new(action: :leave, label: _("Leave"), menu_key: "")
-    ]
+    ].compact
+  end
+
+  def personal_settings_entry(game)
+    label = game&.personal_settings_label
+    return nil if label == nil
+
+    Entry.new(action: :personal_settings, label: GameRoomContent.utf8(label), menu_key: "p", help_key: "Ctrl+P")
+  end
+
+  # The game describes an action, while this UI boundary chooses the waiting
+  # room or the active client. Active clients retain their modal timer/tick.
+  def settings_callback(game, program: nil, client: nil)
+    action = game&.personal_settings_action
+    return nil if action == nil
+    return -> { client.show_settings } if client.respond_to?(:show_settings)
+    return -> { program.__send__(action) } if program
+
+    nil
+  end
+
+  def replacement_entry
+    Entry.new(action: :replace_player, label: _("Replace this player"), menu_key: "R", help_key: "Ctrl+Shift+R")
+  end
+
+  def replacement_candidates(room:, players:, participant:, game:)
+    return [] unless GameRoomParticipants.includes?(players, participant)
+
+    candidates = GameRoomParticipants.humans(room.members).reject { |person| GameRoomParticipants.includes?(players, person) }
+    candidates << :new_bot if GameRoomParticipants.human?(participant) && game&.supports_bots?
+    candidates
   end
 
   def management_actions(room:, game:, active:, viewer:, owner:, restoring: false)
@@ -46,6 +78,7 @@ module GameRoomParticipantMenu
 
     actions = room.observer?(viewer) ? [:play_next_game] : [:observe_next_game]
     actions << :manage_roles if owner && GameRoomParticipants.same?(viewer, owner)
+    actions.concat([:manage_control, :close_table]) if owner && GameRoomParticipants.same?(viewer, owner)
     actions
   end
 
@@ -55,14 +88,18 @@ module GameRoomParticipantMenu
     active ? [:abort_game] : [:edit_options]
   end
 
-  def bind(layout, available:, read_options: nil, game: nil, options: nil, settings: nil, pong_settings: nil, room: nil, &dispatch)
-    settings ||= pong_settings if game&.id == 'axel_pong'
+  def bind(layout, available:, read_options: nil, game: nil, options: nil, settings: nil, pong_settings: nil, room: nil, control: nil, &dispatch)
+    # Keep the former keyword as a compatibility alias for its host action.
+    settings ||= pong_settings if game&.personal_settings_action == :show_pong_settings
     supplied = available
     available = -> do
       actions = supplied.call + (read_options == nil ? [] : [:table_options])
-      actions << :personal_settings if settings && %w[axel_pong audio_ball].include?(game&.id)
+      actions << :personal_settings if settings && game&.personal_settings_action
       actions -= [:invite_online, :invite_contacts] if game && !game.table_invitations_allowed?(options.to_h)
       actions -= [:observe_next_game, :play_next_game, :manage_roles] if game && !game.role_selection_allowed?(options.to_h)
+      if actions.include?(:manage_control)
+        actions << :transfer_master
+      end
       actions
     end
     layout.form.bind_context do |menu|
@@ -89,6 +126,11 @@ module GameRoomParticipantMenu
     end
 
     add_context_help(layout, available.call, game: game)
+    if available.call.include?(:manage_control) && control&.call&.dig(:active)
+      entry = replacement_entry
+      tips = layout.users.game_room_context_help_tips.to_a + [GameRoomContextHelp.shortcut_tip(entry.help_key, entry.label)]
+      GameRoomContextHelp.replace([layout.users], tips)
+    end
     GameRoomRules.bind_ctrl_f1(layout.form, []) do
       dispatch.call(:rules, nil) if available.call.include?(:rules)
     end
@@ -105,6 +147,21 @@ module GameRoomParticipantMenu
         end
       end
       snapshot = room&.call
+      if actions.include?(:manage_control) && snapshot
+        if GameRoomParticipants.human?(participant) && GameRoomParticipants.includes?(snapshot.members, participant) && !GameRoomParticipants.same?(participant, Session.name)
+          menu.option(_("Transfer table master")) { dispatch.call(:transfer_master, participant) }
+        end
+        seats = control&.call
+        if seats && seats[:active] && GameRoomParticipants.includes?(seats[:players], participant)
+          entry = replacement_entry
+          menu.option(entry.label, nil, entry.menu_key) do
+            current = control&.call
+            if available.call.include?(:manage_control) && current&.dig(:active) && GameRoomParticipants.includes?(current[:players], participant)
+              dispatch.call(:replace_player, participant)
+            end
+          end
+        end
+      end
       if actions.include?(:manage_roles) && snapshot && GameRoomParticipants.human?(participant) &&
           GameRoomParticipants.includes?(snapshot.members, participant) && !GameRoomParticipants.same?(participant, Session.name)
         observing = snapshot.observer?(participant)

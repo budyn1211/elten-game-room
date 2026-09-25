@@ -1,4 +1,4 @@
-require_relative "card_timeout_restore_test"
+require_relative "support/card_timeout_restore"
 require_relative "support/native_live_sessions"
 require_relative "../lib/game_session_clock"
 

@@ -1,4 +1,4 @@
-require_relative 'background_help_game_screen_test'
+require_relative 'support/background_help_game_screen'
 require_relative '../games/quiz_party'
 
 # Only the host's outer loop is a peripheral double here. The screen,

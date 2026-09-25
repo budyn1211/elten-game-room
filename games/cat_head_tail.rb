@@ -6,6 +6,22 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class CatHeadTail < Base
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      entries = history
+      if action == "bank"
+        return "cht-bank" if entries.any? { |entry| entry.kind == :bank }
+        return nil
+      end
+      return nil if action != "roll"
+
+      cues = ["cht-roll-dice"]
+      cues << "cht-lost-points" if entries.any? { |entry| entry.kind == :lost_points }
+      cues << "cht-cat-minus-8" if entries.any? { |entry| entry.kind == :cat_minus }
+      cues << "cht-cat-plus-8" if entries.any? { |entry| entry.kind == :cat_plus }
+      cues
+    end
+
     def id
       "cat_head_tail"
     end

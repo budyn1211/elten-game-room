@@ -32,7 +32,7 @@ assert(other_context[:round_plan][:partner_nil_risks]==risks,'nil risk cannot re
 
 safe=Marshal.load(Marshal.dump(state))
 safe[:current_trick]=[{player:'D',card:'2C'},{player:'A',card:'AC'}]
-world=SpadesPlanning::RoundPlanner::PlanningWorld.new(state:safe,weight:1.0,index:0)
+world=SpadesPlanning::RoundPlanner::PlanningWorld.new(state:safe,weight:1.0)
 assert(planner.send(:immediate_partner_nil_risks,safe,'B',%w[3C KC],[world]).empty?,
   'do not burn control to protect a partner who already discarded safely')
 small_difference={round_plan:{partner_nil_risks:{'3C'=>0.10,'KC'=>0.0}}}

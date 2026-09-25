@@ -1,8 +1,9 @@
-require_relative 'realtime_receive_poll_test'
+require_relative 'support/host_source'
+require_relative 'support/realtime_receive_poll'
 
 # Actual ELTEN Session/EventQueue, with only endpoint I/O replaced. No account,
 # connection, loop pumping, source rewriting or changes to native queue limits.
-source = ARGV[0] || File.expand_path('../../work/elten-test-client/src/eapi/communication.rb', __dir__)
+source = ARGV[0] || EltenTestHost.file("src/eapi/communication.rb")
 abort 'Provide current ELTEN src/eapi/communication.rb' unless File.file?(source)
 require source
 

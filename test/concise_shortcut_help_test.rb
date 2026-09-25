@@ -1,5 +1,5 @@
 # Binary sources and the real ELTEN dictionary, including its binary msgstrs.
-require_relative "taboo_rules_dictionary_test"
+require_relative "support/binary_rule_dictionary"
 
 %w[pl en fallback].each do |language|
   $rules_english = language != "pl"
@@ -23,7 +23,7 @@ require_relative "taboo_rules_dictionary_test"
   screen = GameScreen.allocate
   screen.send(:bind_game_shortcuts, form, [field], shortcuts) { raise "Help invoked a move" }
   tips = GameRoomContextHelp.game_field_tips([field])
-  wanted = shortcuts.map { |s| GameRoomContextHelp.shortcut_tip(screen.send(:shortcut_key_label,s),s.label) }
+  wanted = shortcuts.map { |s| GameRoomContextHelp.shortcut_tip(GameRoomShortcutBindings.key_label(s),s.label) }
   raise "Rules and F1 disagree" unless tips == wanted && wanted.all? { |tip| field.get_tips.include?(tip) }
   raise "Verbose wrapper retained" if tips.any? { |tip| tip.start_with?("Press ","Naciśnij ") || tip.include?(", aby:") }
 end

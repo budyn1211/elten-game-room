@@ -1,7 +1,7 @@
 # Exercise the real wait -> Ctrl+F1 -> cleanup -> rules dialog sequence.
 # The earlier live-help test opened the dialog before wait_for_action cleanup.
 if ARGV.first || ENV["RULES_LIFECYCLE_BINARY_SOURCE"] == "1"
-  require_relative "taboo_rules_dictionary_test"
+  require_relative "support/binary_rule_dictionary"
 else
   require_relative "support/ui"
   class Program

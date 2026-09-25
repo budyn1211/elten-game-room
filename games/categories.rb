@@ -56,6 +56,11 @@ module GameRoomGames
       "categories"
     end
 
+    def controller_change_phase_error(replay)
+      _("The current game contains private data that cannot be transferred at this stage.") if
+        %i[answering revealing].include?(replay.state[:phase])
+    end
+
     def save_game_error(_replay)
       _("Saving is not supported for this game.")
     end
@@ -555,6 +560,13 @@ module GameRoomGames
       return nil if !surface.respond_to?(:submission_action)
 
       surface.submission_action
+    end
+
+    def automatic_actor(replay, viewer, table_owner:)
+      state = replay.state
+      return viewer if state[:phase] == :revealing && player_hash_key?(state[:commitments], viewer) &&
+        !player_hash_key?(state[:reveals], viewer)
+      super
     end
 
     def automatic_surface_identity(replay)
@@ -1141,13 +1153,6 @@ module GameRoomGames
       end
     end
 
-    def revealed_answer_text(item)
-      _("%{category}: %{answer}.") % {
-        category: category_label(item[:category]),
-        answer: item[:answer]
-      }
-    end
-
     def expected_round_scores(state)
       scores = state[:active_players].each_with_object({}) { |player, result| result[player] = 0 }
       review_items(state).each do |item|
@@ -1436,6 +1441,17 @@ module GameRoomGames
       maximum = candidates.map { |player| player_hash_value(state[:scores], player).to_i }.max.to_i
       candidates.select { |player| player_hash_value(state[:scores], player).to_i == maximum }
     end
+
+    def required_decision_key(replay, viewer)
+      return nil if replay == nil || replay.finished?
+      state = replay.state
+      if state[:phase] == :answering
+        return nil unless includes_player?(state[:active_players], viewer) && !player_hash_key?(state[:commitments], viewer)
+        return [:answering, round_id(state)]
+      end
+      super
+    end
+    public :required_decision_key
 
     def current_actor(state)
       return state[:judge] if state[:phase] == :review

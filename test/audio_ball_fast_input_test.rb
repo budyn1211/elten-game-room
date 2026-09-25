@@ -9,6 +9,9 @@ class AudioBallFastInputProbe
     @field = GameSurfaces::AudioBallField.new('Fast input')
     @field.extend(EltenAPI::UI)
     @now = 0.0
+    # Enter a focused native field before delivering its first game frame.
+    frame([], update: false)
+    @field.focus
   end
 
   def state(*codes)

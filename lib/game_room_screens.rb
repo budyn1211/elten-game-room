@@ -160,18 +160,19 @@ module GameRoomScreens
   class Settings
     INVITATION_POLICIES = %w[contacts nobody everyone].freeze
 
-    def initialize(values, games:, program: nil, preset_editor: nil, preset_writer: nil)
+    def initialize(values, games:, program: nil, preset_editor: nil, preset_writer: nil, table_watch_available: true)
       @program = program
       @values = values.to_h
       @games = games.to_a
       @preset_editor = preset_editor
       @preset_writer = preset_writer
+      @table_watch_available = table_watch_available
     end
 
     def wait
       action = nil
       sections = ListBox.new(
-        [_("Lobby messages"), _("Notification settings"), _("Sounds"), _("Widget"), _("Axel Pong"), _("Language")],
+        [_("General"), _("Lobby messages"), _("Notification settings"), _("Sounds"), _("Widget"), _("Axel Pong")],
         header: _("Settings"), quiet: true
       )
       lobby_games = multiple_game_list(_("Games covered by lobby messages"), @values["lobby_games"])
@@ -197,7 +198,13 @@ module GameRoomScreens
         index: [INVITATION_POLICIES.index(@values["invitation_notifications"].to_s).to_i, 0].max,
         quiet: true
       )
-      watched_games = multiple_game_list(_("Notify me about new public tables (preferences are visible to table creators)"), @values["table_watch_games"])
+      watched_header = GameRoomContent.utf8(_("Notify me about new public tables (preferences are visible to table creators)"))
+      watched_games = if @table_watch_available
+        multiple_game_list(watched_header, @values["table_watch_games"])
+      else
+        EditBox.new(watched_header, type: EditBox::Flags::ReadOnly | EditBox::Flags::MultiLine,
+          text: GameRoomContent.utf8(_("New-table subscriptions are unavailable without access to server settings. Other settings can still be changed.")), quiet: true)
+      end
       watched_contacts = CheckBox.new(
         GameRoomContent.utf8(_("Notify me about new tables only from contacts")),
         checked: @values["table_watch_contacts_only"] == true
@@ -224,6 +231,10 @@ module GameRoomScreens
       cancel_button = Button.new(_("Cancel"))
 
       pong_fields = GameRoomPong::SettingsFields.new(@values['pong'])
+      background_speech = CheckBox.new(GameRoomContent.utf8(_("Read table messages outside the table window")),
+        checked: setting_enabled?("background_table_speech"))
+      background_turn = CheckBox.new(GameRoomContent.utf8(_("Play a sound for my turn outside the table window")),
+        checked: setting_enabled?("background_turn_sound"))
       languages = GameRoomLocalization.available_languages
       language_values = GameRoomLocalization.normalize_settings(@values)
       language_labels = languages.map { |language| GameRoomContent.utf8(language.fetch(:label)) }
@@ -244,15 +255,15 @@ module GameRoomScreens
         writer: @preset_writer) if @preset_editor && @preset_writer
 
       groups = [
+        [primary_language, known_languages, background_speech, background_turn],
         [lobby_games, created, joined, left, computers],
         [invitation_policy, watched_games, watched_contacts],
         volume_fields.values,
         [widget_enabled, widget_games, widget_unavailable, widget_contacts, presets].compact,
-        pong_fields.fields,
-        [primary_language, known_languages]
+        pong_fields.fields
       ]
       form = PresetSettingsForm.new([sections] + groups.flatten + [save_button, cancel_button], program: @program, quiet: true)
-      form.preset_target = -> { sections.index.to_i == 3 ? presets : nil }
+      form.preset_target = -> { sections.index.to_i == 4 ? presets : nil }
       # Function-key edits in Settings affect the same staged values as the
       # lists. Cancel discards both; Save persists them together, without I/O
       # on every arrow movement.
@@ -282,8 +293,10 @@ module GameRoomScreens
 
       # Assignments are independent, immediately saved operations. Returning
       # an opening-time copy here could undo them when Settings is accepted.
-      @values.reject { |key, _| key == "table_presets" }.merge({
+      result = @values.reject { |key, _| %w[table_presets table_watch_games].include?(key) }.merge({
         "interface_language" => languages.fetch(primary_language.index).fetch(:id),
+        "background_table_speech" => background_speech.checked,
+        "background_turn_sound" => background_turn.checked,
         "known_languages" => known_languages.multiselections.map { |index| languages.fetch(index).fetch(:id) },
         "pong" => pong_fields.values,
         "lobby_games" => selected_game_ids(lobby_games),
@@ -296,7 +309,6 @@ module GameRoomScreens
         "announce_computer_changes" => computers.checked,
         "announce_lobby_changes" => [created, joined, left, computers].any?(&:checked),
         "invitation_notifications" => INVITATION_POLICIES[invitation_policy.index.to_i] || "everyone",
-        "table_watch_games" => selected_game_ids(watched_games),
         "table_watch_contacts_only" => watched_contacts.checked,
         "sound_volumes" => form.game_room_volume_reader.call,
         "widget_enabled" => widget_enabled.checked,
@@ -307,6 +319,8 @@ module GameRoomScreens
         ),
         "widget_show_unavailable" => widget_unavailable.checked
       })
+      result["table_watch_games"] = selected_game_ids(watched_games) if @table_watch_available
+      result
     end
 
     private

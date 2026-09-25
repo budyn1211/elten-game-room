@@ -1,3 +1,4 @@
+require_relative 'training/match_runner'
 def _(text)
   text
 end

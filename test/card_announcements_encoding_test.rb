@@ -1,4 +1,6 @@
-require_relative "taboo_rules_dictionary_test"
+require_relative "support/binary_rule_dictionary"
+$rules_english = true
+GameRoomTestLocalization.use_language(:en)
 # Load the new regression scenarios through the same binary source boundary.
 BinaryRulesLoad.load(File.expand_path("score_announcement_order_test.rb", __dir__))
 BinaryRulesLoad.load(File.expand_path("card_reshuffle_test.rb", __dir__))

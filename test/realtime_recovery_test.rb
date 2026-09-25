@@ -1,4 +1,4 @@
-require_relative 'realtime_channel_test'
+require_relative 'support/realtime_channel'
 require_relative '../lib/realtime/operation'
 
 now = 0.0

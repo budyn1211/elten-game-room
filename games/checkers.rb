@@ -29,6 +29,11 @@ module GameRoomGames
       end.flatten(1).compact.freeze
     end.freeze
 
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      action == "move" ? "play2" : nil
+    end
+
     def id
       "checkers"
     end

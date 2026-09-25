@@ -1,4 +1,4 @@
-require_relative "domino_test"
+require_relative "support/domino"
 require_relative "../games/mexican_train"
 game = GameRoomGames::MexicanTrain.new
 tiles = GameRoomDominoTiles

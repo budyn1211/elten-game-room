@@ -3,8 +3,8 @@
 ## Przepływ danych
 
 ELTEN uruchamia `EltenGameRoom` z pliku `__app.rb`. Program tworzy repozytoria
-stołów i partii nad jednym magazynem LiveSessions. Każdy widoczny stół jest
-publiczną sesją, a jej stos jest autorytatywną, uporządkowaną historią pokoju,
+stołów i partii nad jednym magazynem LiveSessions. Stół jest sesją publiczną
+albo prywatną, a jej stos jest autorytatywną, uporządkowaną historią pokoju,
 czatu, rozpoczętych partii i ruchów.
 Stan partii nie jest przechowywany jako jeden mutowany obiekt. Serwer zawiera
 uporządkowane zdarzenia, a klasa danej gry odtwarza z nich `Replay`.
@@ -25,10 +25,11 @@ interpretuje ruchów.
 
 ### Manifest i składanie programu
 
-`__app.rb` zawiera metadane ELTEN-a, deklarację dwóch trwałych tabel pomocniczych,
-rejestr gier i główną klasę programu. Tabele służą wyłącznie rejestracji
-użytkowników Game Roomu i krótkim ogłoszeniom globalnego lobby; nie przechowują
-stołów, członkostwa, zaproszeń, partii ani ruchów.
+`__app.rb` zawiera metadane ELTEN-a, deklaracje tabel pomocniczych,
+rejestr gier i główną klasę programu. Bieżące tabele służą rejestracji
+użytkowników, ogłoszeniom globalnego lobby, subskrypcjom stołów oraz funkcjom
+Krowy. Dawne tabele stołów, członkostwa, zaproszeń i ruchów nie są drugim
+backendem gry. Archiwa konta przechowuje usługa prywatnych plików, nie tabela.
 
 ### Dostęp do tabel pomocniczych
 
@@ -39,9 +40,11 @@ Detekcja korzysta z odpowiedzi serwera: kod
 `apps.tables.stamp_required` oznacza tryb deweloperski bez tabel.
 
 Po odmowie nie są wykonywane dalsze odczyty ani zapisy tabel pomocniczych.
-Nie uruchamia się odpytywanie globalnej historii lobby, a próba wysłania
-zaproszenia kończy się informacją o ograniczeniu. Discovery, rozgrywka,
-odbieranie zaproszeń oraz historia i czat pokoju nadal korzystają z LiveSessions.
+Nie uruchamia się odpytywanie globalnej historii lobby; funkcje wymagające
+tabel wskazują ograniczenie dostępu. Lokalne kategorie Ustawień nadal działają,
+a nieznanych subskrypcji nie wolno zapisać jako pustej listy. Discovery,
+rozgrywka, zaproszenia oraz historia i czat pokoju korzystają z LiveSessions
+i powiadomień ELTEN-a, nie z dawnej tabeli zaproszeń.
 Timeout i inne błędy również wstrzymują operacje tabelowe do kolejnego wejścia,
 ale są przedstawiane jako problem sprawdzenia dostępu, nie tryb deweloperski.
 Ponowne uruchomienie maina może przywrócić funkcje tabelowe bez tworzenia
@@ -72,12 +75,10 @@ zakończeniu, oba tylko dla właściciela. Pozostali uczestnicy widzą w tym sam
 miejscu nieaktywną informację o oczekiwaniu. Nową sesję tworzy standardowe
 repozytorium, a kontroler stołu otwiera jej ekran.
 Wejście do własnego oczekującego stołu ustawia fokus na rozpoczęciu gry, a u
-pozostałych osób na informacji o oczekiwaniu. Rozpoczęcie lub restart partii
-przenosi go na pierwsze pole powierzchni gry, również po otrzymaniu nowej sesji
-od innego klienta. Gdy powierzchni nie ma, fokus przechodzi na pierwszy
-dostępny element. Zakończenie partii przenosi fokus na restart albo oczekiwanie,
-pozostawiając planszę dostępną przez Tab. Przejście jest ciche, aby nie przerwać
-końcowych komunikatów. Nie ma osobnego przycisku ani trybu podglądu. Próby
+pozostałych osób na informacji o oczekiwaniu. Start, restart i koniec partii
+nie wyrywają fokusu z czatu, historii lub listy osób: zachowują również szkic,
+zaznaczenie i oglądany wpis. Zmiana powierzchni gry jest wykonywana cicho,
+bez przerywania końcowych komunikatów. Nie ma osobnego trybu podglądu. Próby
 wykonania akcji nadal przechodzą przez `action_for`, które
 odrzuca je z komunikatem zakończonej gry. Zwykłe aktualizacje tej samej partii zachowują
 aktywną sekcję, tożsamość zaznaczonej osoby, szkic i zaznaczenie czatu oraz
@@ -121,21 +122,21 @@ formularza, przechwytywać systemowych klawiszy ani ręcznie sterować pętlą U
 repozytoria lobby i aktywności obsługują tworzenie stołu, dołączanie, boty,
 rozpoczęcie, zakończenie i następną partię.
 
-Komputery w pokoju nadal wynikają z `bot_count` i mają numery od 1 do N.
-Delete na dowolnym zaznaczonym komputerze wywołuje istniejącą operację
-zmniejszenia ich liczby o jeden. Numeracja pozostaje ciągła, a lista zachowuje
-bieżącą pozycję, o ile nadal istnieje. UI sprawdza uprawnienia, fazę partii,
-limit graczy i obecność wskazanego komputera przed wywołaniem repozytorium.
-Protokół Game Room pozostaje w wersji **2**, z dotychczasowym formatem danych,
-discovery i zaproszeniami; refaktor interfejsu nie wymaga zmiany pozostałych
-klientów.
+Bot ma trwały identyfikator i losowaną nazwę. Usuwa się wybranego bota,
+nie ostatnią pozycję numerowanej listy. Skład drużyn odwołuje się do obecnych
+uczestników. Uprawnienia, fazę i obecność osoby sprawdza się ponownie przy
+zatwierdzeniu. Ctrl+M przekazuje gospodarza; Ctrl+Shift+R na liście osób
+zastępuje wskazanego gracza/bota obecnym niegrającym człowiekiem albo nowym
+botem, jeśli gra to dopuszcza. To nie zamiana dwóch grających osób.
 
 Skład rozpoczętej partii jest utrwalany w zdarzeniu `game_started` na stosie
-sesji, dzięki czemu miejsca graczy są stabilne przez całą partię.
+sesji. Późniejsze zastępstwa mają własną historię i epokę; odtwarzanie mapuje
+akcje według obsady z chwili ich wykonania. Powrót człowieka nie odbiera
+botowi miejsca automatycznie. Samo przykrycie okna nie oznacza odejścia.
 
 ### Transport
 
-`GameRoomLiveSessionStore` używa natywnego API ELTEN-a 3.0.3. Publiczne
+`GameRoomLiveSessionStore` używa natywnego API ELTEN-a 3.0.4. Publiczne
 wyszukiwanie sesji zastępuje tabelę stołów, bezpośrednie dołączenie do odkrytej
 sesji zastępuje bootstrap przez Signals, a natywne zaproszenia zastępują własne
 tabele zaproszeń. Zmiany pokoju, czat, start partii i ruchy trafiają do jednego
@@ -150,6 +151,25 @@ chronologicznym strumieniem i nie rozdziela ponownie danych na osobne magazyny.
 odzyskanie stanu po błędzie lub luce. Nie należy zastępować tego częstym,
 okresowym odpytywaniem serwera.
 
+`GameRoomSessionRunner` jest jednym wykonawcą zwykłej partii w widocznym
+i przykrytym oknie. `GameRoomExecutionPolicy` współdzieli czyste decyzje
+o zastępstwie i przygotowanie planu bota z osobną ścieżką realtime; nie scala
+ich pętli. Planowanie nadal odbywa się poza blokadą zapisu, a zatwierdzenie
+ponownie sprawdza sesję, rewizję, gospodarza i epokę kontroli.
+
+Most pracy w tle przekazuje dane do prezenterów na aktywnym wątku UI, nigdy
+nie odczytuje klawiatury z workera. `GameRoomPresentationReplay` przechowuje
+odizolowaną kopię ostatniego prefiksu: zachowuje wszystkie przejścia przed/po,
+ale nie odtwarza drugi raz już gotowego stanu końcowego. Zmiana sesji, epoki,
+opcji albo prefiksu wymusza pełną rekonstrukcję. `nil` stanu planszówki jest
+poprawną wartością, nie błędem. Błąd programistyczny zatrzymuje wykonawcę
+i trafia do UI/logu; nie udaje przejściowego rozłączenia i nie ponawia ruchów.
+
+Format i walidację zapisu opisuje `saved_game_archive.rb`. `AccountSavedGames`
+korzysta wyłącznie z prywatnych plików konta i potwierdza zapis przed
+zamknięciem stołu. Historyczny adapter lokalny jest oddzielny, bez automatycznego
+fallbacku. Ochrona niepewnego zapisu, czasu gry i sekretów nadal obowiązuje.
+
 ### Boty
 
 `game_bots.rb` definiuje wspólną rejestrację i uruchamianie strategii.
@@ -157,6 +177,10 @@ Planowanie nie zapisuje ruchu bezpośrednio: wybiera legalną akcję, która
 przechodzi przez tę samą walidację gry i repozytorium co akcja człowieka.
 Specjalizowane strategie znajdują się w plikach `*_strategy.rb`; wspólny
 przeszukiwacz drzewa w `game_tree_search.rb`.
+
+Trening, arena, kampanie, eksperymentalne MCTS i narzędziowe modele punktacji
+znajdują się w `tools/training/`. Nie są ładowane przez aplikację. Produkcyjne
+polityki, wytrenowane profile i środowisko symulacji pozostają w `lib/`.
 
 ### Treści i języki
 

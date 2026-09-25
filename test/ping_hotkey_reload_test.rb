@@ -1,5 +1,6 @@
+require_relative 'support/host_source'
 require_relative 'support/ui'
-require_relative '../../work/elten-3.0.1-app-dev/src/eapi/quickactions'
+require EltenTestHost.file("src/eapi/quickactions.rb")
 
 # The original bridge remains on the host singleton after an application
 # reload. It predates Ctrl+F4 and only recognizes help and volume shortcuts.
@@ -19,13 +20,13 @@ end
 target.prepend(legacy)
 target.instance_variable_set(:@game_room_dispatch_bridge, true)
 
-# Run the same complete ping/dispatch tests with the old bridge already
-# installed, not just on a fresh host.
-require_relative 'post_233_ping_test'
+# Load only the shared host fixture, then upgrade the already installed bridge.
+require_relative 'support/post_233_ping'
+GameRoomUI.install_hotkeys
 
 # Exercise the real native conversion Ctrl+F4 -> 16, not only calls to
 # hotkey_actions with an already decoded number. No keyboard or network I/O.
-load File.expand_path('../../work/elten-3.0.1-app-dev/src/ui/input.rb', __dir__)
+load EltenTestHost.file("src/ui/input.rb")
 module GlobalMenu
   def self.opened?; false; end
 end

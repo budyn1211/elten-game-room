@@ -50,6 +50,10 @@ game = GameRoomGames::Tysiac.new
 repository = TysiacRepository.new(players)
 session = { "options" => JSON.generate(game.default_options) }
 
+assert(game.name == "1000 card game", "English game name should be 1000 card game")
+assert(game.option_definitions.first.label == "1000 card game variant", "English variant label should be 1000 card game variant")
+assert(game.options_error({ "variant" => "two_players" }, player_count: 3).include?("1000 card game"), "English validation message should mention 1000 card game")
+
 assert(game.minimum_players == 2 && game.maximum_players == 3, "Tysiac player range changed")
 assert(game.default_options["variant"] == "three_players", "legacy three-player default changed")
 assert(game.supports_bots?, "Tysiac does not expose computer players")

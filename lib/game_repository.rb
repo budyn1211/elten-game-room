@@ -1,18 +1,12 @@
-require_relative "game_room_clock"
-require "securerandom"
 require "json"
 require_relative "game_room_transport"
 require_relative "game_participants"
-require_relative "game_room_server_tables"
+require_relative "participant_replay"
 require_relative "bot_turn_gate"
 
 class GameRepository
   GameSnapshot = Struct.new(:session, :events, keyword_init: true)
 
-  SESSION_LIMIT = 500
-  EVENT_LIMIT = 2_000
-  EVENT_CACHE_LIMIT = 8
-  EVENT_CACHE_FRESHNESS = 0.25
   MAX_EVENTS_PER_ACTION = 50
   MAX_ACTION_LENGTH = 32
   MAX_VALUE_LENGTH = 64
@@ -23,15 +17,24 @@ class GameRepository
 
   def initialize(program, transport: nil, server_tables: nil)
     @program = program
-    @server_tables = server_tables || GameRoomServerTables.new(program)
     @transport = transport || GameRoomTransport.new(program)
-    @event_cache = {}
-    @event_cache_mutex = Mutex.new
+    @bot_turn_mutex = Mutex.new
     @bot_turn_controllers = {}
   end
 
   def bot_turn_controller(table_id)
-    @event_cache_mutex.synchronize do
+    lookup = lambda do |retained|
+      @bot_turn_mutex.synchronize do
+        @bot_turn_controllers.delete_if do |id, controller|
+          id != table_id.to_i && !retained[id] && controller.retire_if_idle
+        end
+        @bot_turn_controllers[table_id.to_i] ||= GameRoomBots::TurnController.new
+      end
+    end
+    # Foreign injected adapters may not expose local lifecycle information;
+    # absence of that information must not mean that all their rooms closed.
+    return @transport.with_retained_rooms(&lookup) if @transport.respond_to?(:with_retained_rooms)
+    @bot_turn_mutex.synchronize do
       @bot_turn_controllers[table_id.to_i] ||= GameRoomBots::TurnController.new
     end
   end
@@ -50,53 +53,28 @@ class GameRepository
     table_id = row_id(table)
     return nil if table_id <= 0
 
-    if native_live_sessions?
-      return @transport.game_sessions(table, force: force)
-        .sort_by { |row| -row["__stack_sequence"].to_i }
-        .find { |row| valid_session_for_table?(row, table, players: players_for(row)) }
-    end
-
-    session_rows(table_id: table_id)
-      .sort_by { |row| -session_id(row) }
-      .each do |row|
-        players = persisted_players_for(row)
-        return with_players(row, players) if valid_session_for_table?(row, table, players: players)
-      end
-    nil
+    return @transport.game_sessions(table, force: force)
+      .sort_by { |row| -row["__stack_sequence"].to_i }
+      .find { |row| valid_session_for_table?(row, table, players: players_for(row)) }
   end
 
   def latest_session_id_for_table(table)
     table_id = row_id(table)
     return 0 if table_id <= 0
 
-    if native_live_sessions?
-      latest = @transport.game_sessions(table).max_by { |row| row["__stack_sequence"].to_i }
-      return session_id(latest)
-    end
-
-    session_rows(table_id: table_id).map { |row| session_id(row) }.max.to_i
+    latest = @transport.game_sessions(table).max_by { |row| row["__stack_sequence"].to_i }
+    return session_id(latest)
   end
 
   def session_by_id(id, table: nil)
     target_id = id.to_i
     return nil if target_id <= 0
 
-    if native_live_sessions?
-      row = @transport.game_session(target_id, table: table)
-      return nil if row == nil
-      return row if table == nil
-
-      return valid_session_for_table?(row, table, players: players_for(row)) ? row : nil
-    end
-
-    table_id = table == nil ? nil : row_id(table)
-    row = session_rows(table_id: table_id).find { |candidate| session_id(candidate) == target_id }
+    row = @transport.game_session(target_id, table: table)
     return nil if row == nil
+    return row if table == nil
 
-    players = persisted_players_for(row)
-    return with_players(row, players) if table == nil
-
-    valid_session_for_table?(row, table, players: players) ? with_players(row, players) : nil
+    return valid_session_for_table?(row, table, players: players_for(row)) ? row : nil
   end
 
   def start_session(table:, game:, players:, options: "{}", recipients: players, expected_previous_session_id: nil)
@@ -120,32 +98,17 @@ class GameRepository
     return nil if players.empty?
 
     current = with_players(session, players)
-    if native_live_sessions?
-      refreshed = @transport.game_session(session_id(current), table: current["table_id"])
-      current = with_players(refreshed, players) if refreshed != nil
-    end
+    refreshed = @transport.game_session(session_id(current), table: current["table_id"])
+    current = with_players(refreshed, players_for(refreshed)) if refreshed != nil
     events = events_for(current, force: force_events)
     # A terminal boundary can have arrived in the event read just completed.
-    if native_live_sessions?
-      refreshed = @transport.game_session(session_id(current), table: current["table_id"])
-      current = with_players(refreshed, players) if refreshed != nil
-    end
+    refreshed = @transport.game_session(session_id(current), table: current["table_id"])
+    current = with_players(refreshed, players_for(refreshed)) if refreshed != nil
     GameSnapshot.new(session: current, events: events)
   end
 
   def event_revision(session, known_revision: nil, force: false)
-    return events_revision(events_for(session, force: force)) if native_live_sessions?
-
-    return events_revision(events_for(session)) if known_revision == nil
-
-    known_count = [known_revision.to_a[0].to_i, 0].max
-    row = events_table.select(
-      where: event_scope(session),
-      order: event_order,
-      limit: 1,
-      offset: known_count
-    ).to_a.first
-    row == nil ? known_revision : [known_count + 1, event_id(row)]
+    events_revision(events_for(session, force: force))
   end
 
   def events_revision(events)
@@ -153,21 +116,10 @@ class GameRepository
     [ids.length, ids.max.to_i]
   end
 
-  # Locally appended events are present in the optimistic cache immediately,
-  # but only this prefix has been observed again in an ordered server read.
   def confirmed_event_ids(session)
-    # Native entries arrive only through a persisted push acknowledgement,
-    # notification or read. An uncertain write is verified by a forced snapshot
-    # before observing the gate; do not repeat that read for its identifiers.
-    return events_for(session).map { |event| event_id(event) }.select(&:positive?) if native_live_sessions?
-
-    entry = event_cache_entry(session_id(session))
-    return [] if entry == nil
-
-    entry[:events]
-      .first(entry[:confirmed_count].to_i)
-      .map { |event| event_id(event) }
-      .select { |id| id > 0 }
+    # Native entries are already persisted; an uncertain write is reconciled
+    # by the store before this prefix can confirm a bot's move.
+    events_for(session).map { |event| event_id(event) }.select(&:positive?)
   end
 
   def next_sequence(session, accepted_events)
@@ -175,7 +127,7 @@ class GameRepository
   end
 
   def consume_recovered_events(session)
-    native_live_sessions? ? @transport.consume_recovered_game_events(session) : []
+    @transport.consume_recovered_game_events(session)
   end
 
   def append_events(session:, sequence:, events:, recipients: nil, actor: Session.name, controller: false)
@@ -186,11 +138,11 @@ class GameRepository
     event_actor = actor.to_s
     raise ArgumentError, "A game event requires an actor" if event_actor.empty?
     if GameRoomParticipants.bot?(event_actor)
-      owner = insertion_user(session, "player_one")
+      owner = session["__table_owner"] || insertion_user(session, "player_one")
       raise ArgumentError, "Only the table owner may move a computer" if owner.casecmp(Session.name.to_s) != 0
       raise ArgumentError, "The computer is not a player in this game" if !includes_user?(players, event_actor)
     elsif controller
-      owner = insertion_user(session, "player_one")
+      owner = session["__table_owner"] || insertion_user(session, "player_one")
       raise ArgumentError, "Only the table owner may submit an automatic player action" if owner.casecmp(Session.name.to_s) != 0
       raise ArgumentError, "The automatic action actor is not a player in this game" if !includes_user?(players, event_actor)
     else
@@ -203,50 +155,20 @@ class GameRepository
       raise ArgumentError, "The game action contains an invalid number of events"
     end
 
-    if native_live_sessions?
-      commands.each do |command|
-        action = command_value(command, "action").to_s
-        value = command_value(command, "value").to_s
-        raise ArgumentError, "A game event requires an action" if action.empty?
-        raise ArgumentError, "The game event action is too long" if action.length > MAX_ACTION_LENGTH
-        raise ArgumentError, "The game event value is too long" if value.length > MAX_VALUE_LENGTH
-      end
-      return @transport.append_game_action(
-        session: current,
-        sequence: sequence,
-        events: commands,
-        actor: event_actor,
-        controller: controller == true
-      )
-    end
-
-    timestamp = GameRoomClock.now.to_i
-    inserted = commands.each_with_index.map do |command, offset|
+    commands.each do |command|
       action = command_value(command, "action").to_s
       value = command_value(command, "value").to_s
       raise ArgumentError, "A game event requires an action" if action.empty?
       raise ArgumentError, "The game event action is too long" if action.length > MAX_ACTION_LENGTH
       raise ArgumentError, "The game event value is too long" if value.length > MAX_VALUE_LENGTH
-
-      events_table.insert(
-        "session_id" => session_id(current),
-        "table_id" => current["table_id"].to_i,
-        "sequence" => sequence.to_i + offset,
-        "move_id" => SecureRandom.uuid,
-        "actor" => event_actor,
-        "action" => action,
-        "value" => value,
-        "created_at" => timestamp
-      )
     end
-    append_to_event_cache(current, inserted)
-    notify_game_changed(current, GameRoomParticipants.humans(recipients || players), change: "action")
-    inserted
-  rescue Exception
-    # A response can fail after a row was saved (also between play and draw).
-    # Never retry from the pre-write cache or assume the entire action failed.
-    event_cache_mutex.synchronize { event_cache.delete(session_id(session)) }
-    raise
+    return @transport.append_game_action(
+      session: current,
+      sequence: sequence,
+      events: commands,
+      actor: event_actor,
+      controller: controller == true
+    )
   end
 
   def players_for(session)
@@ -259,18 +181,18 @@ class GameRepository
   def actor_of(event, session = nil)
     author = insertion_user(event, "actor")
     claimed = event["actor"].to_s
-    if native_live_sessions? && event["__controller"] == true
+    if event["__controller"] == true
       return "" if session == nil
-      owner = insertion_user(session, "player_one")
+      owner = event["__authority_user"] || insertion_user(session, "player_one")
       return "" if !GameRoomParticipants.same?(author, owner)
-      return "" if !includes_user?(players_for(session), claimed)
+      return "" if !includes_user?(event_players(session, event), claimed)
       return claimed
     end
     return author if !GameRoomParticipants.bot?(claimed)
     return "" if session == nil
 
-    players = players_for(session)
-    owner = insertion_user(session, "player_one")
+    players = event_players(session, event)
+    owner = event["__authority_user"] || insertion_user(session, "player_one")
     return "" if !includes_user?(players, claimed)
     return "" if author.casecmp(owner) != 0
 
@@ -287,8 +209,9 @@ class GameRepository
 
   private
 
-  def native_live_sessions?
-    @transport.respond_to?(:live_store?) && @transport.live_store?
+  def event_players(session, event)
+    return players_for(session) if session.fetch('__seat_changes', []).empty?
+    GameRoomParticipantReplay.roster_at(session, event_id(event))
   end
 
   def start_session_once(table:, game:, players:, options:, recipients:, expected_previous_session_id:)
@@ -304,50 +227,14 @@ class GameRepository
     raise ArgumentError, "A game requires at least one player" if participants.empty?
     raise ArgumentError, "A game supports at most #{MAX_PLAYERS} players" if participants.length > MAX_PLAYERS
     raise ArgumentError, "A game participant name is too long" if participants.any? { |participant| participant.length > MAX_PLAYER_LENGTH }
-    if !native_live_sessions? && participants.first.casecmp(owner) != 0
-      raise ArgumentError, "The table owner must be the first player"
-    end
-
-    if native_live_sessions?
-      inserted = @transport.start_game(
-        table: table,
-        game: game,
-        players: participants,
-        options: options,
-        actor: Session.name
-      )
-      return inserted
-    end
-
-    timestamp = GameRoomClock.now.to_i
-    inserted = sessions_table.insert(
-      "table_id" => row_id(table),
-      "game" => game.to_s,
-      "player_one" => participants[0],
-      "player_two" => participants[1].to_s,
-      "players_json" => encode_players(participants),
-      "status" => "active",
-      "options" => options.to_s,
-      "created_at" => timestamp,
-      "updated_at" => timestamp
+    inserted = @transport.start_game(
+      table: table,
+      game: game,
+      players: participants,
+      options: options,
+      actor: Session.name
     )
-    inserted = with_players(inserted, participants)
-    replace_event_cache(inserted, [])
-    resolved = resolve_started_session(inserted, table)
-    if session_id(resolved) == session_id(inserted)
-      notify_game_changed(inserted, GameRoomParticipants.humans(recipients), change: "started")
-    end
-    resolved
-  end
-
-  def resolve_started_session(inserted, table)
-    latest = session_for_table(table)
-    return inserted if latest == nil || session_id(latest) < session_id(inserted)
-
-    latest
-  rescue EltenLink::Error => error
-    Log.warning("ELTEN Game Room could not reconcile simultaneous game starts: #{error.class}: #{error.message}")
-    inserted
+    return inserted
   end
 
   def command_value(command, key)
@@ -359,146 +246,8 @@ class GameRepository
     nil
   end
 
-  def session_rows(table_id: nil)
-    return @transport.game_sessions(table_id) if native_live_sessions?
-
-    where = table_id == nil ? nil : { "table_id" => table_id.to_i }
-    sessions_table
-      .select(where: where, order: [["created_at", "desc"]], limit: SESSION_LIMIT)
-      .to_a
-  end
-
   def events_for(session, force: false)
-    return @transport.game_events(session, force: force) if native_live_sessions?
-
-    id = session_id(session)
-    return [] if id <= 0
-
-    entry = event_cache_entry(id)
-    if entry != nil && !force && monotonic_time - entry[:checked_at] < EVENT_CACHE_FRESHNESS
-      return entry[:events].dup
-    end
-
-    # Locally inserted rows are visible optimistically, but they do not extend
-    # the contiguous prefix already fetched from the server. Another client may
-    # have inserted an earlier row which this repository has not seen yet.
-    offset = entry == nil ? 0 : entry[:confirmed_count].to_i
-    remaining = EVENT_LIMIT - offset
-    return entry[:events].dup if remaining <= 0
-
-    rows = events_table.select(
-      where: event_scope(session),
-      order: event_order,
-      limit: remaining,
-      offset: offset
-    ).to_a
-    merge_event_cache(id, entry, rows, confirmed_count: offset + rows.length)
-  end
-
-  def event_order
-    # Incremental reads use the cached row count as their offset. Therefore the
-    # server order must be append-only: a concurrently inserted row may share a
-    # client sequence and timestamp, but its server ID can never move in front
-    # of rows that have already been read.
-    [["__id", "asc"]]
-  end
-
-  def event_scope(session)
-    {
-      "session_id" => session_id(session),
-      "table_id" => session["table_id"].to_i
-    }
-  end
-
-  def event_cache_entry(id)
-    event_cache_mutex.synchronize do
-      entry = event_cache[id]
-      if entry == nil
-        nil
-      else
-        entry[:touched_at] = monotonic_time
-        {
-          events: entry[:events].dup,
-          confirmed_count: entry[:confirmed_count].to_i,
-          checked_at: entry[:checked_at]
-        }
-      end
-    end
-  end
-
-  def merge_event_cache(id, entry, rows, confirmed_count: nil)
-    combined = (entry == nil ? [] : entry[:events]) + rows.to_a
-    combined = combined.each_with_object({}) do |row, unique|
-      key = event_id(row)
-      unique[key > 0 ? key : [row["sequence"], row["move_id"]]] = row
-    end.values.sort_by { |row| event_id(row) }
-    previous_confirmed = entry == nil ? 0 : entry[:confirmed_count].to_i
-    next_confirmed = confirmed_count == nil ? previous_confirmed : [previous_confirmed, confirmed_count.to_i].max
-    event_cache_mutex.synchronize do
-      event_cache[id] = {
-        events: combined,
-        confirmed_count: next_confirmed,
-        checked_at: monotonic_time,
-        touched_at: monotonic_time
-      }
-      prune_event_cache
-    end
-    combined.dup
-  end
-
-  def append_to_event_cache(session, rows)
-    id = session_id(session)
-    entry = event_cache_entry(id)
-    return if entry == nil
-
-    merge_event_cache(id, entry, rows)
-  end
-
-  def replace_event_cache(session, rows)
-    id = session_id(session)
-    return if id <= 0
-
-    event_cache_mutex.synchronize do
-      now = monotonic_time
-      event_cache[id] = {
-        events: rows.to_a.sort_by { |row| event_id(row) },
-        confirmed_count: rows.length,
-        checked_at: now,
-        touched_at: now
-      }
-      prune_event_cache
-    end
-  end
-
-  def prune_event_cache
-    overflow = event_cache.length - EVENT_CACHE_LIMIT
-    return if overflow <= 0
-
-    event_cache.sort_by { |_id, entry| entry[:touched_at] }
-      .first(overflow)
-      .each { |id, _entry| event_cache.delete(id) }
-  end
-
-  def event_cache
-    @event_cache ||= {}
-  end
-
-  def event_cache_mutex
-    @event_cache_mutex ||= Mutex.new
-  end
-
-  def monotonic_time
-    Process.clock_gettime(Process::CLOCK_MONOTONIC)
-  rescue Exception
-    Time.now.to_f
-  end
-
-  def sessions_table
-    @sessions_table ||= @server_tables.fetch("game_sessions")
-  end
-
-  def events_table
-    @events_table ||= @server_tables.fetch("game_events")
+    @transport.game_events(session, force: force)
   end
 
   def persisted_players_for(session)
@@ -521,30 +270,8 @@ class GameRepository
     []
   end
 
-  def encode_players(players)
-    encoded = JSON.generate(
-      "version" => PLAYERS_FORMAT_VERSION,
-      "seats" => players.each_with_index.map do |player, index|
-        { "id" => index + 1, "controller" => player }
-      end
-    )
-    raise ArgumentError, "The game participant list is too large" if encoded.length > MAX_PLAYERS_JSON_LENGTH
-
-    encoded
-  end
-
   def with_players(session, players)
     session.merge("__players" => unique_users(players))
-  end
-
-  def notify_game_changed(session, users, change:)
-    @transport.game_changed(
-      table_id: session["table_id"],
-      session_id: session_id(session),
-      users: users,
-      change: change,
-      actor: Session.name
-    )
   end
 
   def row_id(row)
@@ -563,12 +290,10 @@ class GameRepository
     creator = insertion_user(session, "player_one")
     # LiveSessions authenticates the author independently of the playing seats.
     # The table master may be an observer (including a Taboo moderator).
-    valid_first_seat = native_live_sessions? ?
-      session["player_one"].to_s.casecmp(players.first.to_s) == 0 :
-      session["player_one"].to_s.casecmp(owner) == 0 && players.first.to_s.casecmp(owner) == 0
+    valid_first_seat = session["player_one"].to_s.casecmp(players.first.to_s) == 0
     session["table_id"].to_i == row_id(table) &&
       session["game"].to_s == table["game"].to_s &&
-      creator.casecmp(owner) == 0 &&
+      (creator.casecmp(owner) == 0 || session["__authority_validated"] == true) &&
       !players.empty? &&
       valid_first_seat
   end

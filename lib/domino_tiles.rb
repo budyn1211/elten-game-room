@@ -1,4 +1,6 @@
 # encoding: UTF-8
+require_relative "game_random"
+
 module GameRoomDominoTiles
   module_function
 
@@ -22,11 +24,6 @@ module GameRoomDominoTiles
 
   def shuffle(deck, seed)
     random = Random.new(seed.to_i(16))
-    result = deck.dup
-    (result.length - 1).downto(1) do |i|
-      j = random.rand(i + 1)
-      result[i], result[j] = result[j], result[i]
-    end
-    result
+    GameRoomRandom.shuffle(deck, random: random)
   end
 end

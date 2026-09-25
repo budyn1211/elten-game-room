@@ -1,57 +1,4 @@
-require_relative "support/ui"
-require_relative "support/log"
-
-class Program
-  def self.server_app(**_options); end
-end
-
-module Session
-  def self.name
-    "Alice"
-  end
-end
-
-class EditBox
-  module Flags
-    Numbers = 8
-  end
-
-  def select_all
-    @index, @check = 0, text.length
-  end
-end
-
-class Static < FakeControl
-  attr_reader :text
-
-  def initialize(text)
-    super()
-    @text = text
-  end
-
-  def focus(*_arguments); end
-end
-
-class Form
-  class << self
-    attr_accessor :driver
-  end
-
-  alias wait_with_option_test_driver wait
-
-  def wait
-    wait_with_option_test_driver
-    Form.driver.call(self)
-  end
-
-  def resume; end
-end
-
-require_relative "../__app"
-
-def assert(condition, message)
-  raise message if !condition
-end
+require_relative 'support/game_option_form'
 
 app = EltenGameRoom.allocate
 app.define_singleton_method(:read_json) { |_path, default:| default }
@@ -146,14 +93,6 @@ end
 multiple_options = app.send(:configure_game_options, multiple_choice_game)
 assert(multiple_step == 2, "multiple-choice test did not finish in the same form")
 assert(multiple_options["topics"] == 3, "updating choices lost the multiple-choice mask")
-
-class CheckBox < FakeControl
-  attr_accessor :checked
-  def initialize(label, checked: false)
-    super()
-    @header, @checked = label, checked
-  end
-end
 
 # Exercise dependent defaults and visibility through the actual shared editor,
 # not only by calling each game's normalization method in isolation.

@@ -172,6 +172,9 @@
     "length": "play",
     "race_scoring": "play"
   },
+  "three_five_eight": {
+    "card_exchange": "exchange"
+  },
   "yahtzee": {
     "matches": "sheets",
     "extra_categories": "scores",

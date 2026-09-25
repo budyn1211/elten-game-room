@@ -23,8 +23,7 @@ class PongTestAudio
   def goal(viewer:, winner:); end
   def start_match; end
   def close; end
-  def play_local_movement(*_args, **_options); end
-  def update(s, viewer:, paused:, local_movement: false); @updates << [s, viewer, paused]; end
+  def update(s, viewer:, paused:); @updates << [s, viewer, paused]; end
 end
 class PongTestChannel
   attr_accessor :epoch, :connected, :drop, :hold_events

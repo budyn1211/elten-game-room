@@ -1,5 +1,5 @@
 # Native EditBox/Form/KeyboardState and speech adapter, finite input peripherals.
-require_relative 'parallel_scene_native_test'
+require_relative 'support/parallel_scene_native'
 require_relative '../lib/game_background_presentation'
 
 module EltenAPI::UI

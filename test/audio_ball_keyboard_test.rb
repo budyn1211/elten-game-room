@@ -46,6 +46,7 @@ class AudioBallKeyboardProbe
     @field = GameSurfaces::AudioBallField.new('Native keyboard probe')
     @field.extend(EltenAPI::UI)
     @now = 0.0
+    @field.focus
   end
 
   def state(*codes)

@@ -1,3 +1,5 @@
+require_relative 'support/sequence_random'
+
 require_relative 'support/audio_ball_client'
 
 module Session

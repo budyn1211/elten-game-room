@@ -1,4 +1,4 @@
-require_relative 'realtime_event_channel_test'
+require_relative 'support/realtime_event_channel'
 
 # A temporarily missing required recipient is not an empty successful delivery.
 now = 0.0

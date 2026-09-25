@@ -1,5 +1,5 @@
 # encoding: UTF-8
-require_relative "tile_interaction_test"
+require_relative "support/tile_interaction"
 game, state, surface = train_fixture
 actions = []
 surface.on_action { |action| actions << action }

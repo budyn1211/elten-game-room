@@ -12,6 +12,11 @@ module GameRoomGames
     SIZE = 8
     DIRECTIONS = [-1, 0, 1].product([-1, 0, 1]).reject { |dx, dy| dx == 0 && dy == 0 }.freeze
 
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      action == "place" ? "play2" : nil
+    end
+
     def id
       "reversi"
     end

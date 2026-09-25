@@ -2,6 +2,7 @@
 require "digest"
 require "json"
 require "time"
+require_relative 'support/quiz_write_guard'
 require_relative "quiz-pack-writer"
 require_relative "../content/quiz_general_en_data"
 require_relative "../content/quiz_pl_wikidata_data"
@@ -9,7 +10,12 @@ require_relative "../content/quiz_witcher_pl_data"
 require_relative "../content/quiz_witcher_pl_medium_data"
 
 root = File.expand_path("..", __dir__)
+write_options = QuizWriteGuard.options!(ARGV)
 audit_root = File.expand_path(ARGV.fetch(0), Dir.pwd)
+inputs = %w[ENGLISH_FINAL_DECISIONS.json POLISH_FINAL_DECISIONS_MERGED.json WITCHER_FINAL_DECISIONS.json].map { |name| File.join(audit_root, name) }
+targets = QuizWriteGuard.content_paths(root)
+exit unless QuizWriteGuard.check!(tool: File.basename(__FILE__), inputs: inputs + targets,
+  outputs: targets + [File.join(audit_root, 'APPLIED.json')], versions: QuizWriteGuard.versions(root, 3), options: write_options)
 
 def read_decisions(audit_root, filename)
   path = File.join(audit_root, filename)
@@ -32,6 +38,13 @@ def reviewed_questions(source_questions, decisions)
   previously_applied_source = (retained_ids - source_ids).empty? && (source_ids - decision_ids).empty?
   unless untouched_source || previously_applied_source
     raise "audit decisions do not cover the source pack"
+  end
+  by_id = decisions.to_h { |row| [row.fetch('id'), row] }
+  source_questions.each do |question|
+    row = by_id.fetch(question.fetch('id'))
+    unless question == row.fetch('original') || question == row['reviewed']
+      raise "question changed since this historical review: #{question.fetch('id')}"
+    end
   end
 
   decisions.filter_map do |row|

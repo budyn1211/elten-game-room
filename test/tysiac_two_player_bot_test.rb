@@ -1,4 +1,4 @@
-require_relative "tysiac_two_player_test"
+require_relative "support/tysiac_two_player"
 
 def planner_for(game, replay, actor, seed = 13)
   TysiacPlanning::Planner.new(game, replay, actor, GameRoomRandom::SeededSource.new(seed))

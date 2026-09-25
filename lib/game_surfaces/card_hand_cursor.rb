@@ -50,5 +50,18 @@ module GameSurfaces
         candidates.find { |index| index > current } || candidates.first
       end
     end
+
+    # Pure decision shared by ordinary hands and packet hands. Their UI-specific
+    # guards (open choice/prepared packet) remain with the owning surface.
+    def self.playable_navigation(card_ids, current_index, payload)
+      playable = payload['card_ids'] || payload[:card_ids]
+      target = navigation_index(card_ids, current_index, playable, payload['direction'] || payload[:direction])
+      return [nil, nil] if target == nil
+      auto_id = (payload['auto_card_id'] || payload[:auto_card_id]).to_s
+      action = payload['auto_action'] || payload[:auto_action]
+      automatic = playable.to_a.map(&:to_s).uniq.length == 1 &&
+        card_ids[target].to_s == auto_id && action.respond_to?(:to_h)
+      [target, automatic ? action : nil]
+    end
   end
 end

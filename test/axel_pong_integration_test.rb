@@ -1,4 +1,4 @@
-require_relative 'axel_pong_client_test'
+require_relative 'support/pong_client'
 require_relative '../lib/game_repository'
 
 module Session

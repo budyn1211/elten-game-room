@@ -174,6 +174,10 @@ class Form < FakeControl
     @updated = true
   end
 
+  def resume
+    @wait = false
+  end
+
   def show_all
     @hidden_controls = []
   end

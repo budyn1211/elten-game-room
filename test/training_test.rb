@@ -2,7 +2,7 @@ def _(text)
   text
 end
 
-require_relative "../lib/game_training"
+require_relative '../tools/training/game_training'
 require_relative "../games/tic_tac_toe"
 
 def assert(condition, message)

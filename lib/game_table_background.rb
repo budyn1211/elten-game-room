@@ -1,6 +1,7 @@
 require "thread"
 require_relative "game_sync"
 require_relative "game_background_presentation"
+require_relative "game_background_policy"
 require_relative "game_room_localization"
 
 # Covers the gap BEFORE GameScreen exists. The worker reads the ordinary room
@@ -37,7 +38,7 @@ class GameRoomTableBackground
     @thread = Thread.new do
       Thread.current.report_on_exception = false
       work = -> do
-        until closed? || @lock.synchronize { @handed_over }
+        until closed? || @lock.synchronize { @handed_over || @internal_error }
           step
           @lock.synchronize { @wake.wait(@lock, 0.05) unless @closed || @handed_over }
         end
@@ -63,7 +64,7 @@ class GameRoomTableBackground
   def presentation_snapshot; @lock.synchronize { @packet }; end
 
   def step
-    return if closed? || !covered? || @lock.synchronize { @handed_over }
+    return if closed? || !covered? || @lock.synchronize { @handed_over || @internal_error }
     @transport.dispatch_pending_events
     event = @sync.next_event
     if event&.kind == :closed
@@ -93,9 +94,17 @@ class GameRoomTableBackground
     end
     @dirty = false
   rescue StandardError => error
-    @dirty = true
-    @sync.failed!(error)
-    Log.warning("ELTEN Game Room waiting-room refresh failed: #{error.class}: #{error.message}") if defined?(Log)
+    if GameRoomNetworkErrors.expected?(error) || GameRoomNetworkErrors.cancelled?(error)
+      @dirty = true
+      @sync.failed!(error)
+      Log.warning("ELTEN Game Room waiting-room refresh failed: #{error.class}: #{error.message}") if defined?(Log)
+    else
+      # Keep the original exception for the foreground owner. Never flood the
+      # server or tear down the unrelated native scene from this worker.
+      @dirty = false
+      @lock.synchronize { @internal_error = error; @wake.broadcast }
+      Log.warning("ELTEN Game Room waiting-room internal failure: #{error.class}: #{error.message}\n#{error.backtrace.to_a.first(8).join("\n")}") if defined?(Log)
+    end
   end
 
   # The host bridge calls this on the active UI thread, never on the worker.
@@ -104,20 +113,20 @@ class GameRoomTableBackground
     return if !packet || packet.equal?(@presented_packet)
     @presented_packet = packet
     if packet[:closed]
-      @program.send(:speak, _("This table is no longer available."), stop: false, break_sequence: false)
+      speak_table(_("This table is no longer available."))
       return
     end
     data = Marshal.load(Marshal.dump(packet))
     table = data[:room].table
     tracker = @program.send(:room_membership_tracker, table)
     @program.send(:play_game_sounds, tracker.observe(data[:room].members))
-    @activity_cursor = @program.send(:announce_new_table_activity, data[:activity], after_id: @activity_cursor)
+    @activity_cursor = @program.send(:announce_new_table_activity, data[:activity], after_id: @activity_cursor, covered: true)
     session = data[:session]
     id = @repository.session_id(session)
     return if id <= 0 || id == @baseline_session_id || session["__aborted"]
     @baseline_session_id = id
     players = @repository.players_for(session).map { |player| GameRoomParticipants.display_name(player) }
-    @program.send(:speak, _("Game started: %{players}.") % {players: players.join(", ")}, stop: false, break_sequence: false)
+    speak_table(_("Game started: %{players}.") % {players: players.join(", ")})
     game = @program.send(:game_definition, session["game"])
     # Realtime clients have their own UI/Communications lifecycle. Announce
     # their start, but do not create them inside another application's scene.
@@ -132,8 +141,15 @@ class GameRoomTableBackground
   # Foreground-only ownership transfer. The screen keeps its event cursors,
   # audio queue and executor, rather than replaying announcements on return.
   def take_game_screen
+    error = @lock.synchronize { @internal_error }
+    raise error if error
     screen, @game_screen = @game_screen, nil
     screen
+  end
+
+  def speak_table(text)
+    return unless GameRoomBackgroundPolicy.speech?(@program, covered: true)
+    @program.send(:speak, text, stop: false, break_sequence: false)
   end
 
   def close

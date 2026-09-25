@@ -58,6 +58,7 @@ guest.join_room(table,"Bob")
 session = store.start_game(table:table,game:"makao",players:%w[Alice Bob],options:"{}",actor:"Alice")
 broker.deliver
 session = store.game_session(session["__id"],table:table)
+$game_room_test_user = 'Alice'
 store.append_game_action(session:session,sequence:1,events:[{action:"draw",value:""},{action:"pass",value:""}],actor:"Alice")
 events_before = store.game_events(session)
 session_before = store.game_session(session["__id"],table:table)

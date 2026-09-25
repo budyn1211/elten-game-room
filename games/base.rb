@@ -7,6 +7,7 @@ require_relative "../lib/game_layout"
 require_relative "../lib/game_rules"
 require_relative "../lib/game_content"
 require_relative "../lib/audio_tutorial"
+require_relative "../lib/participant_replay"
 
 require_relative "../lib/game_room_localization"
 
@@ -220,6 +221,11 @@ module GameRoomGames
   end
 
   class Base
+    def self.inherited(game)
+      super
+      game.prepend(GameRoomParticipantReplay)
+    end
+
     # Optional room services. Games without local services retain the existing
     # lifecycle and never create a service object or perform an extra request.
     # One local client per confirmed game session, including a rematch in the
@@ -228,6 +234,37 @@ module GameRoomGames
     # Turn-based model/actions can continue behind another native scene. A
     # realtime client owns its simulation, focus and pause protocol separately.
     def session_runner?; true; end
+
+    # Pure presentation cues from one accepted event. The presenter supplies
+    # its event-local history and cosmetic RNG, then owns playback and mixing.
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      nil
+    end
+
+    # A new participant inherits the existing place, never a rewritten event log.
+    # Private commitments cannot be reconstructed by a different computer.
+    # Games with a private protocol must explicitly opt in at a safe boundary.
+    def controller_change_error(replay, replacement: false)
+      return _("This game does not support computers.") if replacement && !supports_bots?
+      return nil if replay == nil || replay.finished?
+      controller_change_phase_error(replay)
+    end
+
+    # Called only for an unfinished game. Models owning private commitments
+    # describe their safe boundaries; an unknown realtime model stays closed.
+    def controller_change_phase_error(_replay)
+      _("Wait until the current game has finished before changing its controller.") unless session_runner?
+    end
+
+    # Describe the host-owned settings entry point; models never run its UI.
+    def personal_settings_label; nil; end
+    def personal_settings_action; nil; end
+
+    # No options means loading defaults. Saving may depend on the selected
+    # profile; the model selects definitions, the application owns persistence.
+    def remembered_option_definitions(definitions, options: nil)
+      definitions.select { |definition| definition.kind.to_s == "multiple_choice" }
+    end
     def build_session_game; self.class.new; end
     def build_start_guard(_program, user:, **_services); nil; end
     def supports_leaderboards?; false; end
@@ -616,7 +653,7 @@ module GameRoomGames
     end
 
     def automatic_actor(replay, viewer, table_owner:)
-      !GameRoomParticipants.includes?(replay.players, viewer) && same_user?(viewer,table_owner) ? replay.players.first : viewer
+      same_user?(viewer, table_owner) ? replay.players.first : viewer
     end
 
     # The game screen uses this pure predicate to wake a form for a deadline.
@@ -667,6 +704,15 @@ module GameRoomGames
 
     def active_actors(replay)
       replay.current_player == nil ? [] : [replay.current_player]
+    end
+
+    # A local alert for a new decision, not a list of all actors allowed to
+    # send an event. Interceptions and automatic reveals must not ring.
+    # Simultaneous-input games override this with their public phase/round key.
+    def required_decision_key(replay, viewer)
+      return nil if replay == nil || replay.finished? || !same_user?(replay.current_player, viewer)
+
+      [turn_phase_kind(replay), viewer.to_s.downcase]
     end
 
     def legal_actions(_replay, _actor, context: nil)

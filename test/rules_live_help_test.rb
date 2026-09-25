@@ -1,35 +1,7 @@
-require_relative "game_rules_ui_test"
+require_relative 'support/rules_live_help'
 
 # Open Ctrl+F1 through GameScreen, with the same real game/surface bindings
 # that feed F1. Only the host's modal event loop is driven by a test double.
-def read_live_shortcuts(screen, replay, close_with: :enter)
-  visits = 0
-  result = nil
-  Form.driver = lambda do |form|
-    visible = form.fields - form.hidden_controls
-    assert(visible.length == 1 && visible.first.is_a?(ListBox), "shortcuts gained extra focus stops")
-    list = visible.first
-    case visits
-    when 0
-      assert(list.options == ["Rules", "In-game keyboard shortcuts", "Current table options"], "table rules lost their document picker")
-      list.index = 1
-      visits += 1
-      form.accept_button.trigger(:press)
-    when 1
-      result = list.options.dup
-      assert(form.accept_button.equal?(form.cancel_button), "Enter does not close the shortcut list")
-      visits += 1
-      (close_with == :enter ? form.accept_button : form.cancel_button).trigger(:press)
-    else
-      assert(list.index == 1, "return did not preserve the selected rules document")
-      form.cancel_button.trigger(:press)
-    end
-  end
-  screen.send(:show_game_rules, replay)
-  result
-ensure
-  Form.driver = nil
-end
 
 [GameRoomGames::Makao.new, GameRoomGames::Poker.new].each do |game|
   state = game.send(:initial_state, %w[Alice Bob], game.default_options)

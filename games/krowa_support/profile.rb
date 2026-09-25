@@ -22,14 +22,9 @@ module GameRoomGames
 
     def observe(replay)
       before = JSON.generate(@data)
-      additions = []
-      replay.history.select { |entry| entry.kind == :dictionary && entry.actor.to_s.casecmp(@user).zero? }.each do |entry|
-        event = replay.accepted_events.find { |candidate| candidate["action"] == "krowa_vocab" && (candidate["__id"] || candidate["id"]).to_i == entry.event_id }
-        additions << [event["value"], Digest::SHA256.hexdigest(JSON.generate([replay.state[:commitment], event]))] if event
-      end
-      additions.each do |word, identity|
+      dictionary_additions(replay).each do |word, identity, already_processed|
         next if @data["dictionary_events"][identity]
-        @data["dictionary"] |= [word]
+        @data["dictionary"] |= [word] unless already_processed
         @data["dictionary_events"][identity] = true
       end
       state = replay.state
@@ -70,6 +65,38 @@ module GameRoomGames
     rescue StandardError
       @data = JSON.parse(before) if before
       raise
+    end
+
+    private
+
+    def dictionary_additions(replay)
+      own_entries = replay.history.each_with_object({}) do |entry, ids|
+        ids[entry.event_id.to_i] = true if entry.kind == :dictionary && entry.actor.to_s.casecmp(@user).zero?
+      end
+      events = replay.accepted_events
+      # Old versions hashed the whole event with the CURRENT commitment,
+      # including commitments of later rerolls. Recognize those old markers
+      # without dropping them or undoing a deliberate removal during migration.
+      legacy_commitments = [nil, replay.state[:commitment]] + events.filter_map do |event|
+        event["value"] if event["action"] == "krowa_commit"
+      end
+      legacy_commitments.uniq!
+      commitment = nil
+      events.filter_map do |event|
+        commitment = event["value"] if event["action"] == "krowa_commit"
+        id = (event["__id"] || event["id"]).to_i
+        next unless event["action"] == "krowa_vocab" && own_entries[id]
+
+        # The originating round isolates sessions. Wall-clock reconciliation
+        # and later rounds must not turn the same addition into a new one.
+        origin = [commitment, id, event["actor"].to_s.downcase, event["action"], event["value"]]
+        identity = "v2:#{Digest::SHA256.hexdigest(JSON.generate(origin))}"
+        next if @data["dictionary_events"][identity]
+        processed = legacy_commitments.any? do |previous|
+          @data["dictionary_events"][Digest::SHA256.hexdigest(JSON.generate([previous, event]))]
+        end
+        [event["value"], identity, processed]
+      end
     end
   end
 end

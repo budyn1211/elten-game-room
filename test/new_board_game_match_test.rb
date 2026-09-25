@@ -1,4 +1,5 @@
-require_relative "new_board_games_test"
+require_relative '../tools/training/match_runner'
+require_relative "support/new_board_games"
 
 def run_random_match(game, players:, seed:, limit:)
   GameRoomSimulation::MatchRunner.new(

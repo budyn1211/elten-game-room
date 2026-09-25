@@ -1,21 +1,6 @@
-require_relative 'volume_and_help_test'
-require 'timeout'
-
-class PingManualWorker
-  attr_reader :starts
-  def initialize; @starts = 0; end
-  def busy?; !!(@operation || @result); end
-  def closed?; false; end
-  def start(&block); @starts += 1; @operation = block; true; end
-  def finish
-    @result = [@operation.call, nil]
-  rescue StandardError => error
-    @result = [nil, error]
-  ensure
-    @operation = nil
-  end
-  def take; result, @result = @result, nil; result; end
-end
+require_relative 'support/post_233_ping'
+# These dispatch checks bypass Form#wait, which normally installs the bridge.
+GameRoomUI.install_hotkeys
 
 now = 0.0
 worker = PingManualWorker.new
@@ -79,7 +64,7 @@ widget_active = false
 assert(EltenAPI::QuickActions.hotkey_actions(16) == native, 'widget stole native shortcut outside its tab')
 
 # Use the host's real typed System API against a fake client: no sockets.
-load File.expand_path('../../work/elten-3.0.1-app-dev/src/eltenlink/system.rb', __dir__)
+load EltenTestHost.file("src/eltenlink/system.rb")
 client = Object.new
 calls = []
 client.define_singleton_method(:api_data) do |*arguments, **options|

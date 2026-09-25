@@ -18,6 +18,9 @@ module GameRoomGames
     def supports_bots?; true; end
     def supports_bot_move_delay?; false; end
     def session_runner?; false; end
+    def controller_change_phase_error(_replay); nil; end
+    def personal_settings_label; _('Audio Ball settings'); end
+    def personal_settings_action; :show_audio_ball_settings; end
     def supports_saved_games?; false; end
     def shortcut_features; []; end
 
@@ -70,7 +73,7 @@ module GameRoomGames
       events.each do |event|
         break if winner
         author = event['__insertion_user'] || repository.actor_of(event, session)
-        next unless valid_roster?(players) && same_user?(author, owner)
+        next unless valid_roster?(players) && same_user?(author, event['__authority_user'] || owner)
         value = event['value']
         next unless value.is_a?(String) && value.length <= 64
         case event['action']
@@ -117,6 +120,7 @@ module GameRoomGames
         end
       end
       state[:server] = (state[:first_server] + state[:rally] / 2) % 2 unless state[:first_server] == nil
+      state[:owner] = session['__table_owner'] || owner
       Replay.new(board: nil, players: players, current_player: nil, winner: winner, draw: false,
         accepted_events: accepted, history: history, state: state)
     end

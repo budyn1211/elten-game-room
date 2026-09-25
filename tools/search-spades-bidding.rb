@@ -1,3 +1,4 @@
+require_relative 'training/spades_training'
 require "json"
 require "optparse"
 require "time"

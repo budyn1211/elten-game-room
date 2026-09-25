@@ -1,4 +1,4 @@
-require_relative 'audit_212_rules_and_decisions_test'
+require_relative 'support/audit_212_rules_and_decisions'
 
 BoundReplay = Struct.new(:state) { def finished?; false; end }
 class BoundEnvironment

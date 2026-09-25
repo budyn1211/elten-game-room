@@ -1,4 +1,4 @@
-require_relative "game_room_settings_widget_test"
+require_relative "support/settings_widget"
 
 ids = EltenGameRoom::GAME_REGISTRY.ids
 legacy_ids = GameRoomPreferences::LEGACY_WIDGET_GAME_IDS
@@ -92,8 +92,10 @@ driver = nil
 Form.define_method(:wait) { driver.call(self) }
 begin
   driver = lambda do |form|
+    form.fields.first.index = form.fields.first.options.index('Lobby messages')
+    form.fields.first.trigger(:move)
     list = form.fields.find { |field| field.is_a?(ListBox) && field.header == "Games covered by lobby messages" }
-    assert(list && !form.hidden_controls.include?(list), "lobby list missing from initial settings section")
+    assert(list && !form.hidden_controls.include?(list), "lobby list missing from Lobby messages")
     assert(list.multiselections.map { |index| ids[index] } == expected, "Settings displays stale lobby choices")
     list.instance_variable_get(:@selected)[ids.index("domino")] = false
     form.accept_button.trigger(:press)

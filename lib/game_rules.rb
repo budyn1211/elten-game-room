@@ -84,26 +84,9 @@ module GameRoomRules
     end
   end
 
-  def self.common_controls
-    [
-      translate("Tab and Shift+Tab: move between the game's fields, chat and the other table sections. Game letter keys do not replace typing in an editable field."),
-      translate("F1: open the current field's help list. Arrows browse it; Enter or Escape closes it. Ctrl+F1: open rules, game shortcuts and, at a table, its current settings. During a game the shortcuts list reflects the current game fields; outside a game it is a reference for all phases."),
-      translate("F2 and F3: lower or raise the selected sound group's volume by 10 percentage points. Shift+F2 and Shift+F3: choose the sound group. All Game Room sounds controls the master level without changing each group's setting. Speech and other ELTEN sounds are unaffected."),
-      translate("Outside text entry, Shift+Left and Shift+Right choose the history view: all, game, chat or room events. Ctrl+Left and Ctrl+Right read its previous or next entry; adding Shift jumps to the first or last. In editable fields these keys keep their editing meaning."),
-      translate("Enter in Chat: send the typed message. In grid games, /a1 can place a piece and /e2 e4 can move one, using the same legality checks as the board. Draughts also accepts numbered squares. Start a message with // to send a literal slash. Escape closes an open list or dialog.")
-    ]
-  end
-
-  # Some ELTEN dictionaries index MO keys as binary bytes. UTF-8 source keys
-  # containing e.g. an en dash then miss despite an existing translation.
-  # Retry only an untranslated key, locally; never patch the host dictionary.
   def self.translate(text)
     source = GameRoomContent.utf8(text)
-    translated = GameRoomContent.utf8(_(source))
-    if translated == source && !source.ascii_only?
-      translated = GameRoomContent.utf8(_(source.b))
-    end
-    translated
+    GameRoomContent.utf8(_(source))
   end
 
   def self.bind_ctrl_f1(form, fields, &handler)

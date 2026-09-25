@@ -1,4 +1,4 @@
-require_relative "invitation_notifications_test"
+require_relative "support/invitation_notifications"
 require_relative "../lib/table_watch"
 
 ClockNotice = Struct.new(:id,:app_uuid,:type,:sender,:metadata,:created_at,keyword_init:true)

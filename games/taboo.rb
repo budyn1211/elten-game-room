@@ -14,6 +14,13 @@ module GameRoomGames
     include PublicHistoryAnnouncements
     RESULTS = %w[correct skipped buzzed neutral].freeze
     MODERATOR_ACTIONS = %w[deal begin timeout approve correct_result restart_turn].freeze
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      kinds = history.map(&:kind)
+      { taboo_start: "shuffle", taboo_correct: "replay", taboo_skipped: "skip",
+        taboo_buzzed: "buzzer2", taboo_timeout: "ding" }.select { |kind,_| kinds.include?(kind) }.values
+    end
+
     def id; "taboo"; end
     def name; _("Taboo"); end
     def minimum_players; 4; end
@@ -54,7 +61,7 @@ module GameRoomGames
         candidate, additions = clone_state(state), []
         authorized = batch.all? do |event|
           author = event["__insertion_user"] || event["actor"]
-          same_user?(author, state[:master])
+          same_user?(author, event["__authority_user"] || state[:master])
         end
         next if MODERATOR_ACTIONS.include?(data["action"]) && !authorized
         next unless apply(candidate, data, actor, repository.event_id(batch.last), additions) == :ok
@@ -64,6 +71,7 @@ module GameRoomGames
         batch.each { |event| seen[repository.event_id(event)] = true }
       end
       GameRoomSessionClock.attach(state, session)
+      state[:master] = session['__table_owner'] if session['__table_owner']
       Replay.new(board: [], players: state[:players], current_player: state[:current_player],
         winner: state[:winner], draw: state[:draw], state: state, history: history, accepted_events: accepted)
     end

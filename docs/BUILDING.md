@@ -10,12 +10,20 @@ bundle install --gemfile tools/Gemfile.i18n
 ```
 
 Zalecana jest wersja Ruby 4.0, zgodna ze środowiskiem bieżącego ELTEN-a.
+Testy kontraktów hosta wymagają także jego zgodnych źródeł (obecnie ELTEN
+3.0.4). Ustaw `ELTEN_HOST_SOURCE` na katalog zawierający `src/` i `locale/`.
+W CI źródła hosta są przypięte do konkretnego commita w workflow testów.
 
 ```console
-ruby tools/run-tests.rb
+ruby tools/run-tests.rb --report test-results.json
 ```
 
-Runner zatrzymuje się po pierwszym nieudanym teście i zwraca niezerowy kod.
+Runner uruchamia skrypty w osobnych procesach i po błędzie kontynuuje,
+zapisując wynik każdego z nich. Domyślny limit to 180 sekund na skrypt;
+można go zmienić przez `--timeout`. Błąd, timeout i niezatwierdzone pominięcie
+zwracają niezerowy kod. Brak wymaganej zależności nie jest sukcesem.
+Nazwy lub wzorce plików podane na końcu polecenia ograniczają zakres do
+wybranych prób, np. `test/game_sync_test.rb test/transport_test.rb`.
 
 ## Tłumaczenia interfejsu
 

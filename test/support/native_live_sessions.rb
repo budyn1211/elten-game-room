@@ -182,6 +182,16 @@ class NativeLiveSessionsBroker
       @join_reason == nil
     end
 
+    def limits; {"discovery_refresh" => true}; end
+    def state; @core.closed ? :closed : :active; end
+
+    def refresh(timeout: 45)
+      @discovery_metadata = @core.discovery_metadata
+      @participant_count = @core.participants.length
+      @join_reason = @participant_count >= @capacity ? :full : nil
+      self
+    end
+
     def join(participant_metadata: {})
       raise "full" if !can_join?
 
@@ -234,6 +244,8 @@ class NativeLiveSessionsBroker
       @join_callbacks = []
       @left_callbacks = []
       @closed_callbacks = []
+      @owner_callbacks = []
+      @discovery_callbacks = []
       @closed = false
       @gap_callbacks = []
       @delivery_cursor = 0
@@ -256,6 +268,26 @@ class NativeLiveSessionsBroker
 
     def owner?
       @endpoint.user.casecmp(@core.owner) == 0
+    end
+
+    def discovery_metadata; @core.discovery_metadata; end
+    def on_owner_changed(&block); @owner_callbacks << block; end
+    def on_discovery_metadata_changed(&block); @discovery_callbacks << block; end
+    def transfer_ownership(target, timeout: 45)
+      raise EltenAPI::LiveSessions::NotOwner unless owner?
+      raise ArgumentError, "Unknown participant" unless participants.include?(target)
+      previous = owner
+      @core.owner = target.user
+      @core.views.each { |view| view.instance_variable_get(:@owner_callbacks).each { |cb| cb.call(previous, target) } }
+      target
+    end
+
+    def update_discovery_metadata(metadata, timeout: 45)
+      raise EltenAPI::LiveSessions::NotOwner unless owner?
+      raise ArgumentError, "discovery too large" if JSON.generate(metadata).bytesize > 1024
+      @calls[:discovery_update] += 1
+      @core.discovery_metadata = JSON.parse(JSON.generate(metadata))
+      @core.views.each { |view| view.instance_variable_get(:@discovery_callbacks).each { |cb| cb.call(@core.discovery_metadata) } }
     end
 
     def closed?
@@ -370,9 +402,17 @@ class NativeLiveSessionsBroker
 
     def leave
       return true if closed?
+      was_owner = owner?
+      if was_owner && @core.participants.size > 1
+        successor = @core.participants.values.find { |entry| entry.user.casecmp(@endpoint.user) != 0 }
+        transfer_ownership(successor)
+      end
       participant = @core.participants.delete(@endpoint.user.downcase)
       @closed = true
       @core.views.each { |view| view.participant_left(participant) unless view.equal?(self) }
+      # Native Session#leave calls close_local(:left), which also delivers
+      # on_closed. Omitting it hides stale close events on a later rejoin.
+      @closed_callbacks.each { |callback| callback.call(:left) }
       true
     end
 

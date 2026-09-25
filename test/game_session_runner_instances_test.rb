@@ -1,4 +1,4 @@
-require_relative 'game_session_runner_test'
+require_relative 'support/session_runner'
 
 # An old covered window must not play past a newer visible window's serial
 # presentation. This failed with independent per-screen background executors.

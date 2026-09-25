@@ -381,7 +381,7 @@ check.call("human writes share uncertainty recovery and report a replay rejectio
     [:ok, GameRoomGames::ActionPlan.new(events: [GameRoomGames::EventCommand.new(action: "tick", value: "human")])]
   end
   screen.instance_variable_set(:@game, game)
-  replay = Struct.new(:accepted_events).new([])
+  replay = GameRoomGames::Replay.new(accepted_events: [], players: %w[Alice Bob])
   h.as("Alice") do
     h.view("Alice").fail_next_push = :before
     assert(!screen.send(:submit_action, replay), "failed human write reported success")

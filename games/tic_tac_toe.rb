@@ -11,6 +11,11 @@ module GameRoomGames
     SIZE = 3
     MARKS = ["X", "O"].freeze
 
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      action == "place" ? "play2" : nil
+    end
+
     def id
       "tic_tac_toe"
     end

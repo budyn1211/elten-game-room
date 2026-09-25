@@ -59,19 +59,6 @@ module GameRoomKrowa
       @all_words[numeric]
     end
 
-    def words_between(minimum_length, maximum_length)
-      minimum = minimum_length.to_i
-      maximum = maximum_length.to_i
-      @all_words.select { |word| word.length.between?(minimum, maximum) }.freeze
-    end
-
-    def random_word(length: nil, random: Random)
-      pool = length.nil? ? @all_words : words_of_length(length)
-      raise ArgumentError, "No nouns of the requested length" if pool.empty?
-
-      pool[random.rand(pool.length)]
-    end
-
     EMPTY_WORDS = [].freeze
     private_constant :EMPTY_WORDS
   end

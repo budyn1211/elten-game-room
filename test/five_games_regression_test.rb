@@ -259,7 +259,7 @@ check("Monopoly: bankrupted rent payer cannot create unearned money") do
   state[:houses][1] = 5
   state[:owners][3] = "Alice"
   before = state[:cash]["Bob"]
-  monopoly.send(:resolve_square, state, "Alice", 1, 1, [])
+  monopoly.send(:resolve_square, state, "Alice", 1, [])
   expect(monopoly.send(:apply_bankruptcy, state, event("bankrupt"), "Alice", REPO, []), "Fixture bankruptcy rejected")
   expect(state[:cash]["Bob"] - before <= 1 || state[:owners][3] == "Bob", "Creditor received #{state[:cash]['Bob'] - before} from 1 cash, debtor property returned to bank instead of creditor")
 end
@@ -271,7 +271,7 @@ check("Monopoly: advance to Start counts a completed board lap") do
   state[:card_decks][:community].unshift(0)
   monopoly.send(:draw_event_card, state, "Alice", :community, 1, [])
   state[:positions]["Alice"] = 1
-  monopoly.send(:resolve_square, state, "Alice", 1, 2, [])
+  monopoly.send(:resolve_square, state, "Alice", 2, [])
   expect(state[:phase] == :property_decision, "After advance-to-Start: laps=#{state[:laps]['Alice']}, phase=#{state[:phase]} (buying still forbidden)")
 end
 check("Monopoly: doubles releasing a jailed player do not grant another roll") do

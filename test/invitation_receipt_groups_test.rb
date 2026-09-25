@@ -1,13 +1,10 @@
-require_relative "invitation_receipts_test"
+require_relative 'support/host_source'
+require_relative "support/invitation_receipts"
 def p_(_context, text); text; end
 
 # Execute the actual host grouping and notification objects, not an imagined
 # suppress_default implementation. This is entirely offline.
-host = ENV["ELTEN_HOST_EAPI"] || File.expand_path("../../work/elten-3.0.1-app-dev/src/eapi", __dir__)
-unless File.file?(File.join(host, "program.rb")) && File.file?(File.join(host, "notificationgroups.rb"))
-  warn "SKIP actual host grouping probe: set ELTEN_HOST_EAPI to an ELTEN 3.0.3 src/eapi directory. Portable receipt regressions above passed."
-  exit 0
-end
+host = File.join(EltenTestHost.root, "src/eapi")
 lines = File.readlines(File.join(host, "program.rb"))
 first = lines.index { |line| line.start_with?("  class NotificationPresentation") }
 last = lines.index { |line| line.start_with?("  class Leaderboard") }

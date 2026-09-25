@@ -1,6 +1,6 @@
 # Selected numerical examples and easily confused local variants used by the
 # manuals. This is not an exhaustive rules-engine audit or a game simulation.
-require_relative "rulebook_authoring_test"
+require_relative "support/rulebook_authoring"
 
 yahtzee = GameRoomGames::Yahtzee.new
 state = yahtzee.send(:initial_state, %w[Alice Bob], yahtzee.default_options)

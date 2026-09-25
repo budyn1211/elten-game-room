@@ -1,7 +1,8 @@
 # encoding: UTF-8
+require_relative 'support/host_source'
 # Uses binary-loaded production sources and the real PL dictionary, like the
 # installed runtime, without reading or changing a user's settings file.
-require_relative 'axel_pong_ui_test' unless defined?(BinaryRuleDictionary)
+require_relative 'support/pong_ui' unless defined?(BinaryRuleDictionary)
 require_relative 'support/pong_client' unless defined?(PongHarness)
 
 def _(source)
@@ -21,7 +22,7 @@ module EltenAPI
     class FormField; end
   end
 end
-host = ENV['ELTEN_HOST_SOURCE'] || File.expand_path('../../work/elten-3.0.1-app-dev', __dir__)
+host = EltenTestHost.root
 load File.join(host, 'src/ui/controls/check_box.rb')
 native_checkbox = EltenAPI::Controls.const_get(:CheckBox)
 def p_(_context, source); "Флажок #{source}"; end
@@ -76,8 +77,9 @@ begin
     # intermediate settings button. Tab continues into the selected category.
     driver = lambda do |form|
       categories = form.fields.first
-      assert(categories.options[4] == 'Axel Pong', 'missing Pong category')
-      categories.index = 4; categories.trigger(:move)
+      pong_index = categories.options.index('Axel Pong')
+      assert(pong_index, 'missing Pong category')
+      categories.index = pong_index; categories.trigger(:move)
       visible = form.fields - form.hidden_controls
       pong = visible[1..4]
       assert(pong[0].checked && pong[1..3].map(&:index) == [75, 150, 40], 'category differs from quick panel')

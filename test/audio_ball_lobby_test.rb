@@ -1,4 +1,4 @@
-require_relative 'game_option_encoding_test'
+require_relative 'support/game_option_encoding'
 
 GameRoomTestLocalization.use_language('en')
 $option_host_language = 'en'

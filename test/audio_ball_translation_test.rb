@@ -1,4 +1,4 @@
-require_relative 'taboo_rules_dictionary_test'
+require_relative 'support/binary_rule_dictionary'
 require_relative '../lib/audio_ball/audio'
 
 class TranslatedPointSound

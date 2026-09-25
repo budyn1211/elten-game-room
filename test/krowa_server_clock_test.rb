@@ -1,4 +1,4 @@
-require_relative "krowa_services_test"
+require_relative "support/krowa_services"
 
 # Exercise the default daily guard, not an injected Time-returning test fetch.
 previous_clock = GameRoomClock.instance_variable_get(:@clock)

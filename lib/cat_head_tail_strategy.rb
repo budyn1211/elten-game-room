@@ -3,6 +3,8 @@ require_relative "game_participants"
 
 module CatHeadTailPlanning
   class Strategy
+    include GameRoomBots::ReplayOnlyStrategy
+
     def choose(actions:, actor:, random_source:, replay:, **_extra)
       choices = actions.to_a
       return nil if choices.empty?

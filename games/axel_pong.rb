@@ -134,6 +134,9 @@ module GameRoomGames
     end
 
     def session_runner?; false; end
+    def controller_change_phase_error(_replay); nil; end
+    def personal_settings_label; _('Pong settings'); end
+    def personal_settings_action; :show_pong_settings; end
 
     def replay(session, events, repository)
       players = repository.players_for(session)
@@ -157,7 +160,7 @@ module GameRoomGames
       events.each do |event|
         break if winner
         author = event['__insertion_user'] || repository.actor_of(event, session)
-        next unless event['action'] == 'pong_point' && same_user?(author, owner)
+        next unless event['action'] == 'pong_point' && same_user?(author, event['__authority_user'] || owner)
         match = /\A(\d{1,8}):([01])(:timeout)?\z/.match(event['value'].to_s)
         next unless valid && match && match[1].to_i == accepted.length
         side = match[2].to_i
@@ -180,7 +183,7 @@ module GameRoomGames
       end
       Replay.new(board: nil, players: players, current_player: nil, winner: winner, draw: false,
         accepted_events: accepted, history: history,
-        state: { options: options, scores: scores, rally: accepted.length, owner: owner })
+        state: { options: options, scores: scores, rally: accepted.length, owner: session['__table_owner'] || owner })
     end
 
     def action_for(selection, replay, actor, context: nil)

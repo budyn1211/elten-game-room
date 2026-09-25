@@ -1,3 +1,5 @@
+require_relative 'support/sequence_random'
+
 def _(text)
   text
 end

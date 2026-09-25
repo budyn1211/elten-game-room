@@ -2,12 +2,12 @@ require_relative 'engine'
 require_relative 'bot'
 require_relative 'audio'
 require_relative 'mouse'
-require_relative 'paddle_feedback'
 require_relative '../realtime/event_channel'
 require_relative '../realtime/timer'
 require_relative '../realtime/task_ui'
 require_relative '../game_room_ping'
 require_relative 'peer_play'
+require_relative '../realtime/table_control'
 
 require_relative "../game_room_localization"
 
@@ -15,6 +15,7 @@ module GameRoomPong
   using GameRoomLocalization::Translations
   class Client
     include PeerPlay
+    include GameRoomRealtime::TableControl
     SEND_INTERVAL = 0.04
     MAX_PHYSICS_STEPS = 4
     HANDSHAKE_TIMEOUT = 10.0
@@ -28,7 +29,6 @@ module GameRoomPong
       @channel_factory = channel_factory || ->(**args) { GameRoomRealtime::EventChannel.new(**args) }
       @audio = audio || Audio.new(program, clock: clock)
       @mouse = mouse || MouseControl.new
-      @paddle_feedback = PaddleFeedback.new
       @peers = {}
       @sequence = 0
       @next_send = 0.0
@@ -41,6 +41,7 @@ module GameRoomPong
       @owner, @viewer = owner.to_s, viewer.to_s
       @connection_started_at = @clock.call
       @match = Digest::SHA256.hexdigest("GameRoom:axel_pong:#{table_id}:#{session_id}")[0, 24]
+      @base_match, @members_provider = @match, members
       @channel = @channel_factory.call(program: @program, match: @match, owner: @owner,
         viewer: @viewer, clock: @clock, members: members)
     end
@@ -52,8 +53,7 @@ module GameRoomPong
       end
       # Register the endpoint while loading the recordings. Session metadata
       # is selected by before_wait before any subsequent setup tick.
-      @ping_service = GameRoomPing.for(@program)
-      @ping_service.communications_channel = @channel
+      register_ping_channel
       @channel.tick
       @audio.load
       true
@@ -105,17 +105,19 @@ module GameRoomPong
       changed = @replay == nil || @replay.state[:rally] != replay.state[:rally]
       @replay = replay
       @players = replay.players
+      @initial_players ||= @players.dup
       @audio.prepare_players(@players.length) if @audio.respond_to?(:prepare_players)
       @side = @players.index { |p| p.to_s.casecmp?(viewer.to_s) }
+      @side = nil if bot_seat?(viewer)
       assignment = @game.team_assignment(replay.state[:options], players: @players)
       @teams = assignment ? assignment.seats : [0, 1]
       @rotation = Rotation.new(teams: @teams, rally: replay.state[:rally], first_server: first_server)
       observer_side(@players) if @side == nil
-      @required = @players.reject { |p| GameRoomParticipants.bot?(p) || p.to_s.casecmp?(@viewer) }
+      @required = @players.reject { |p| bot_seat?(p) || p.to_s.casecmp?(@viewer) }
       @channel.required_members = (@required + [@owner]).uniq if @channel.respond_to?(:required_members=)
       # The engine path is shared. A distinct mixed-match dialect rejects old
       # clients which would still send remote key presses instead of actions.
-      mixed = @players.any? { |p| GameRoomParticipants.bot?(p) }
+      mixed = @players.any? { |p| bot_seat?(p) }
       dialect = @rotation.doubles? ? 'pong-doubles-' : 'pong-'
       dialect += mixed ? 'mixed-peer-1' : 'peer-2'
       # Older clients normalize either new choice to 11 and would disconnect
@@ -126,6 +128,7 @@ module GameRoomPong
       if replay.finished?
         @mouse.suspend
         @audio.suspend
+        unregister_ping_channel
         @channel.close
       end
     end
@@ -135,7 +138,7 @@ module GameRoomPong
       return unless surface.respond_to?(:present) && @replay && !@replay.finished?
       @form, @surface = form, surface
       @surface.on_pong_command = method(:local_command) if @surface.respond_to?(:on_pong_command=)
-      @surface.on_input_reset = -> { @mouse.suspend; @paddle_feedback.suspend } if @surface.respond_to?(:on_input_reset=)
+      @surface.on_input_reset = -> { @mouse.suspend } if @surface.respond_to?(:on_input_reset=)
       @timer = GameRoomRealtime::Timer.new(clock: @clock) { frame }
       @form.add_timer(@timer)
       present
@@ -144,7 +147,6 @@ module GameRoomPong
     def detach_view
       @timer&.stop
       @mouse.suspend
-      @paddle_feedback.suspend
       @surface.on_pong_command = nil if @surface.respond_to?(:on_pong_command=)
       @surface.on_input_reset = nil if @surface.respond_to?(:on_input_reset=)
       @form.delete_timer(@timer) if @form && @timer
@@ -180,9 +182,7 @@ module GameRoomPong
     def close
       return if @closed
       @closed = true
-      if @ping_service && @ping_service.communications_channel.equal?(@channel)
-        @ping_service.communications_channel = nil
-      end
+      unregister_ping_channel
       detach_view
       @channel&.close
       @audio.close
@@ -193,17 +193,28 @@ module GameRoomPong
       opened_here = true
       @settings_open = true
       @mouse.suspend
-      @paddle_feedback.suspend
       @program.send(:show_pong_settings, tick: -> { frame }, clock: @clock)
     ensure
       if opened_here
         @mouse.suspend
-        @paddle_feedback.suspend
         @settings_open = false
       end
     end
 
     private
+
+    # Keep the original service identity while replacing the channel. The
+    # following replay rebuilds Pong's rally with its existing physics profile.
+    def reset_table_control
+      @service_match ||= @match
+      @connection_started_at = @clock.call
+      @epoch = nil
+      @peers, @connection_peers, @deferred_events = {}, {}, []
+      @sequence = @event_sequence = 0
+      @pending_point = @goal_preview = @replay = nil
+      @paused = true
+      @surface.clear_input if @surface&.respond_to?(:clear_input)
+    end
 
     def observer_side(players = @players)
       side = players.to_a.index { |player| player.to_s.casecmp?(@observed_player.to_s) }
@@ -261,12 +272,10 @@ module GameRoomPong
       # motion during that gap as a new game movement on resuming the form.
       if @mouse_sample_at && (now < @mouse_sample_at || now - @mouse_sample_at > Engine::STEP * MAX_PHYSICS_STEPS + 0.000001)
         @mouse.suspend
-        @paddle_feedback.suspend(raw)
       end
       @mouse_sample_at = now
       active = healthy && !@settings_open && !@network_wait && @side != nil && @surface && @form &&
         @surface.respond_to?(:input_active?) && @surface.input_active?(@form)
-      @paddle_input_active = active
       @mouse.sample(active: active)
       # Keep independent counters: a recreated keyboard field may restart at
       # zero, while mouse clicks must neither vanish nor become extra presses.
@@ -314,11 +323,12 @@ module GameRoomPong
     end
 
     def first_server
-      human = @players.index { |p| !GameRoomParticipants.bot?(p) }
-      return human || 0 if @teams.length == 2 && @players.any? { |p| GameRoomParticipants.bot?(p) }
+      initial = @initial_players || @players
+      human = initial.index { |p| !GameRoomParticipants.bot?(p) }
+      return human || 0 if @teams.length == 2 && initial.any? { |p| GameRoomParticipants.bot?(p) }
       # One shared once-per-match choice, like original time parity, but not
       # separately sampled from each computer's potentially incorrect clock.
-      @match[-1].to_i(16) % 2
+      (@service_match || @match)[-1].to_i(16) % 2
     end
 
     def playable_input(raw, active:, moving: active)
@@ -359,12 +369,10 @@ module GameRoomPong
 
     def reset_rally_feedback
       @mouse.reset_rally
-      @paddle_feedback.reset
       @pending_point = nil
       @press_base = @total_press.to_i
       @direction_base = (@direction_totals || {}).dup
       @audio.reset
-      @last_frame = nil
       @physics_at = @physics_updated_at = nil
       @next_send = 0.0
       initial = @replay.state[:rally].zero?
@@ -379,23 +387,6 @@ module GameRoomPong
       end
       @server_announced = false
       @paused = true
-    end
-
-    def valid_input?(body)
-      [-1, 0, 1].include?(body['move']) && [true, false].include?(body['hit']) &&
-        (!body.key?('auto_return') || [true, false].include?(body['auto_return'])) &&
-        (!body.key?('serve_wait') || [true, false].include?(body['serve_wait'])) &&
-        (!body.key?('aim') || [-1, 0, 1].include?(body['aim'])) &&
-        KeyboardMovement::COUNTERS.all? { |key| !body.key?(key) || valid_input_count?(body[key]) } &&
-        body['press'].is_a?(Integer) && body['press'].between?(0, 2**31 - 1) &&
-        (!body.key?('paddle') || finite?(body['paddle'], 1, 29)) &&
-        (!body.key?('pointer_seq') || (finite?(body['paddle'], 1, 29) &&
-          finite?(body['pointer_before'], 1, 29) &&
-          body['pointer_seq'].is_a?(Integer) && body['pointer_seq'].between?(1, 2**31 - 1) &&
-          body['pointer_edges'].is_a?(Integer) && body['pointer_edges'].between?(0, 2**31 - 1))) &&
-        (!body.key?('pointer_keys') || (body.key?('pointer_seq') && finite?(body['pointer_start'], 1, 29) &&
-          body['pointer_keys'].is_a?(Array) && body['pointer_keys'].length <= 3 &&
-          body['pointer_keys'].all? { |direction| [-1, 1].include?(direction) }))
     end
 
     def valid_state?(body)

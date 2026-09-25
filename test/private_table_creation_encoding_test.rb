@@ -1,17 +1,4 @@
-require_relative "game_option_encoding_test"
-
-# Actual host checkbox speech, in addition to the binary-loaded form and the
-# existing faithful control doubles. This does not launch an ELTEN client.
-module Configuration
-  def self.controlspresentation; :voice_only; end
-end
-module EltenAPI
-  module Controls
-    class FormField; end
-  end
-end
-host = ENV.fetch("ELTEN_HOST_SOURCE", File.expand_path("../../work/elten-3.0.1-app-dev", __dir__))
-load File.join(host, "src/ui/controls/check_box.rb")
+require_relative 'support/private_table_creation_encoding'
 native_checkbox = EltenAPI::Controls.const_get(:CheckBox)
 app = EltenGameRoom.allocate
 app.define_singleton_method(:read_json) { |_, default:| default }

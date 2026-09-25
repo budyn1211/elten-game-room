@@ -1,4 +1,4 @@
-require_relative 'audio_tutorial_test'
+require_relative 'support/audio_tutorial'
 
 def visit_tutorial(game, program)
   stage = 0

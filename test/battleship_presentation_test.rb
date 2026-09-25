@@ -1,6 +1,6 @@
 binary_screen_run = nil
 if ARGV.first || ENV["BATTLESHIP_BINARY_SOURCE"] == "1"
-  require_relative "packaged_rules_encoding_test"
+  require_relative "support/binary_rules_load"
   binary_screen_run = GameScreen.instance_method(:run)
 else
   require_relative "support/ui"
@@ -12,34 +12,7 @@ require_relative "support/native_room_harness"
 require_relative "support/log"
 raise "Binary screen was replaced by filesystem code" if binary_screen_run && GameScreen.instance_method(:run) != binary_screen_run
 
-module EltenAPI::Tasks
-  class Cancelled < StandardError; end unless const_defined?(:Cancelled)
-  def self.run(**_options)
-    token = Object.new
-    def token.raise_if_cancelled!; end
-    yield nil, token
-  end
-end
-
-class FormTimer
-  def initialize(_interval, repeat:, &callback); @callback = callback; end
-  def fire; @callback.call; end
-end
-class Form
-  class << self; attr_accessor :driver; end
-  def wait; Form.driver.call(self); end
-  def keyboard_idle_frame?; true; end
-  def resume; end
-end
-
-class BattleshipClip
-  attr_accessor :done
-  attr_reader :name, :volume, :closed
-  def initialize(name, volume:); @name, @volume = name, volume; end
-  def length; 4.0; end
-  def finished?; @done || @closed; end
-  def close; @closed = true; end
-end
+require_relative 'support/battleship_presentation'
 
 h = NativeRoomHarness.new(game: GameRoomGames::Battleship.new, users: %w[Alice Bob])
 h.start

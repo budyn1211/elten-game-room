@@ -1,4 +1,4 @@
-require_relative 'realtime_event_channel_test'
+require_relative 'support/realtime_event_channel'
 
 class TestDelivery
   attr_accessor :results

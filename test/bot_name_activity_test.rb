@@ -109,7 +109,7 @@ assert(activities["Alice"].text_for(private_entry, game_name: game_name) == "Add
 
 # Stored activity must remain interpretable without server schema extensions;
 # malformed metadata and names belonging to another table are rejected.
-["bot:#{h.table['__id'] + 1}:1:pl20", "bot:0:1:pl20", "bot:#{h.table['__id']}:99:pl20", "invalid"].each do |subject|
+["bot:#{h.table['__id'] + 1}:1:pl20", "bot:0:1:pl20", "bot:#{h.table['__id']}:0:pl20", "invalid"].each do |subject|
   begin
     activities["Alice"].append(table: h.table, kind: "bot_added", subject: subject)
   rescue ArgumentError

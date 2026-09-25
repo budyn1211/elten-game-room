@@ -1,4 +1,4 @@
-require_relative 'axel_pong_doubles_lobby_test'
+require_relative 'support/axel_pong_doubles_lobby'
 
 app = PongDoublesLobbyApp.new
 row = PongDoublesLobbyTest.create_pong(app)

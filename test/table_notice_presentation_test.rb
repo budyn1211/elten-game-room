@@ -1,8 +1,4 @@
-require_relative "table_watch_runtime_test"
-
-Notice2.class_eval do
-  def presentation(**options); FakePresentation.new(options); end
-end
+require_relative 'support/table_notice_presentation'
 now = 2_000_000_000
 uuid = EltenGameRoom.server_app_uuid
 receiver = GameRoomTableWatch::Receiver.new(user: "Alice", games: ["uno"], uuid: uuid, clock: -> { now })

@@ -36,6 +36,30 @@ module GameRoomGames
       "A" => _("ace")
     }.freeze
 
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      return "shuffle" if action == "deal"
+      return "draw" if action == "draw"
+      return nil if !["play", "play_draw"].include?(action)
+
+      previous_total = before_replay&.state.to_h.fetch(:total, 0).to_i
+      current_total = after_replay&.state.to_h.fetch(:total, previous_total).to_i
+      viewer_played = GameRoomParticipants.same?(event["actor"], viewer)
+      cues = ["play"]
+      card, _mode = event["value"].to_s.split("|", 2)
+      rank = card.to_s[1]
+      cues << "reverse" if rank == "J"
+      if rank == "4" && before_replay&.state.to_h.fetch(:eliminated, {}).count { |_player, eliminated| !eliminated } >= 3
+        cues << "reverse3"
+      end
+      cues << "draw2" if [33, 66].any? { |limit| previous_total < limit && current_total > limit }
+      cues << "ninety3366" if [33, 66].include?(current_total) && current_total > previous_total
+      cues << (viewer_played ? "win1" : "lose1") if current_total == 99
+      cues << (viewer_played ? "lose1" : "win1") if current_total > 99
+      cues << "draw" if action == "play_draw"
+      cues
+    end
+
     def id
       "ninety_nine"
     end

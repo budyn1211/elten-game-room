@@ -1,5 +1,6 @@
+require_relative 'support/host_source'
 require_relative 'support/audio_ball_native_keys'
-host = ENV['ELTEN_HOST_SOURCE'] || File.expand_path('../../elten3', __dir__)
+host = EltenTestHost.root
 require File.join(host, 'src/eapi/program')
 
 # The fixture is the exact keyboard.rb from 2006bfce (also shipped in the
@@ -13,7 +14,7 @@ def keyboard_reload_sources(package = nil)
   require 'zip'
   require 'zstd-ruby'
   require 'stringio'
-  host = ENV['ELTEN_HOST_SOURCE'] || File.expand_path('../../elten3', __dir__)
+  host = EltenTestHost.root
   require File.join(host, 'src/eapi/programsigning')
   found = {}
   Zip::File.open(package) do |zip|
@@ -93,6 +94,7 @@ target.prepend(other)
 depth = target.ancestors.length
 runtime, keyboard, surfaces = keyboard_reload_runtime(current)
 field = surfaces::AudioBallField.new('Upgrade without restarting ELTEN').extend(EltenAPI::UI)
+field.focus
 # This line produced the reported Array#held exception before the fix.
 reload_key_frame(field)
 assert(field.take_input.empty?, 'upgrade replayed a key from the previous application')
@@ -121,6 +123,7 @@ assert(target.ancestors.length == depth, 'upgrade stacked another keyboard obser
   previous_keyboard.define_singleton_method(:capture) { |*| raise 'Retired application observer was called' }
   runtime, keyboard, surfaces = keyboard_reload_runtime(current)
   field = surfaces::AudioBallField.new('Reloaded Audio Ball').extend(EltenAPI::UI)
+  field.focus
   reload_key_frame(field, events: [[0x26, true]], held: [0x26])
   assert(field.take_input.empty?, 'host-suppressed held key leaked after namespace replacement')
   reload_key_frame(field, events: [[0x26, false], [0x26, true], [0x26, false]])

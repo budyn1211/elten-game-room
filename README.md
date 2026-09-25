@@ -10,39 +10,37 @@ Szczegóły pochodzenia i sumę podpisanej paczki zapisano w
 
 ## Gry
 
-- Czwórki
-- Kółko i krzyżyk
-- Szachy
-- Warcaby
-- Reversi
-- Chińczyk
-- Spades
-- Farkle
-- Ninety-Nine
-- Tysiąc
-- Państwa-Miasta
+Obecny rejestr obejmuje 29 gier: 99, Audio Ball, Axel Pong, Biblios,
+Chińczyk, Czwórki, Domino, Farkle, Kot/głowa/ogon (Cat, head, tail),
+Kółko i krzyżyk, Krowa, Makao, Mancala, Mexican Train, Monopoly,
+Państwa-miasta, Poker, Quiz Party, Remik, Reversi, Scrabble, Spades,
+Statki, Szachy, Taboo, Tysiąc, UNO, Warcaby i Yahtzee.
 
 Program zawiera wspólny szkielet stołów, historii, dostępnych plansz i innych
 powierzchni gry, skrótów klawiszowych, reguł, botów, punktacji oraz komunikacji
-przez LiveSessions. Nowa gra powinna wykorzystywać te elementy zamiast budować
-osobny interfejs i własną pętlę zdarzeń.
+przez LiveSessions. Pong i Audio Ball używają dodatkowo wspólnej warstwy
+Communications do zdarzeń w czasie rzeczywistym; trwały wynik pozostaje
+w LiveSessions. Nowa gra powinna wykorzystywać istniejące elementy zamiast
+budować osobny interfejs i transport.
 
 ## Wymagania
 
-- ELTEN 3.0.3 lub nowszy;
+- ELTEN 3.0.4 lub nowszy dla bieżących źródeł;
 - Ruby 4.0 do uruchamiania lokalnych testów;
-- repozytorium ELTEN-a i jego środowisko budowania tylko wtedy, gdy chcesz
-  utworzyć paczkę `.eltsetup`.
+- źródła zgodnej wersji ELTEN-a do testów kontraktów natywnego hosta;
+- środowisko budowania ELTEN-a, jeśli chcesz utworzyć paczkę `.eltsetup`.
 
 Sama aplikacja nie używa zewnętrznego pliku konfiguracyjnego ani prywatnych
 kluczy. Łączy się z zadeklarowaną aplikacją serwerową ELTEN-a.
 
 ## Testy
 
+Zainstaluj narzędzia tłumaczeń (`bundle install --gemfile tools/Gemfile.i18n`).
+Ustaw `ELTEN_HOST_SOURCE` na katalog źródeł ELTEN-a zawierający `src/`.
 W katalogu repozytorium uruchom:
 
 ```console
-ruby tools/run-tests.rb
+ruby tools/run-tests.rb --report test-results.json
 ```
 
 Każdy test jest również samodzielnym skryptem Ruby, więc można uruchomić tylko
@@ -51,6 +49,13 @@ wybrany plik, na przykład:
 ```console
 ruby test/ninety_nine_test.rb
 ```
+
+Runner uruchamia każdy skrypt w osobnym procesie, zbiera wszystkie błędy
+i stosuje limit 180 sekund na skrypt (`--timeout` zmienia limit).
+Brak wymaganych źródeł hosta nie jest zaliczonym testem. `--allow-skip`
+jest wyłącznie jawną zgodą na pomijanie opcjonalnych prób, nie ustawieniem CI.
+Pomocniki w `test/support/` nie powinny wykonywać scenariuszy innych testów.
+Szczegóły zakresu porządków: [MAINTAINABILITY_CLEANUP.md](docs/MAINTAINABILITY_CLEANUP.md).
 
 ## Praca nad kodem
 

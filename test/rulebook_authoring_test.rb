@@ -1,14 +1,4 @@
-require_relative "support/ui"
-require "json"
-
-class Program
-  def self.server_app(**_options); end
-end
-require_relative "../__app"
-
-def assert(condition, message)
-  raise message unless condition
-end
+require_relative 'support/rulebook_authoring'
 
 root = File.expand_path("..", __dir__)
 registry = EltenGameRoom::GAME_REGISTRY

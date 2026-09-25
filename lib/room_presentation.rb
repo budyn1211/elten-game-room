@@ -44,7 +44,7 @@ module RoomPresentation
     end
   end
 
-  def game_users(room:, game:, replay:, players:, owner:, options: {})
+  def game_users(room:, game:, replay:, players:, owner:, options: {}, controllers: {})
     players = players.to_a
     active = replay != nil && !replay.finished?
     # Finished results annotate people still at the table. Departed players

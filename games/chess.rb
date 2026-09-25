@@ -19,6 +19,11 @@ module GameRoomGames
     ROOK_STEPS = [[1, 0], [-1, 0], [0, 1], [0, -1]].freeze
     PROMOTIONS = %w[Q R B N].freeze
 
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      action == "move" ? "play2" : nil
+    end
+
     def id
       "chess"
     end

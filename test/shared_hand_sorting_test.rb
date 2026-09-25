@@ -1,4 +1,4 @@
-require_relative "card_hand_cursor_test"
+require_relative "support/card_hand_cursor"
 require_relative "../games/rummy"
 require_relative "../games/biblios"
 require_relative "../lib/context_help"

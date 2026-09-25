@@ -1,5 +1,7 @@
+require_relative 'match_runner'
+require_relative "learned_strategy"
 require "json"
-require_relative "game_simulation"
+require_relative "../../lib/game_simulation"
 
 module GameRoomTraining
   TrainingReport = Struct.new(:episodes, :wins, :draws, :unfinished, :average_actions, keyword_init: true)

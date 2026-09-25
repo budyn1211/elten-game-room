@@ -183,21 +183,17 @@ module GameSurfaces
         return true
       end
 
-      target = CardHandCursor.navigation_index(
+      target, auto_action = CardHandCursor.playable_navigation(
         @cards.map { |card| card_id(card) },
         @control.index,
-        payload["card_ids"] || payload[:card_ids],
-        payload["direction"] || payload[:direction]
+        payload
       )
       if target == nil
         speak((payload["empty_message"] || payload[:empty_message] || _("You have no playable card.")).to_s)
         return true
       end
 
-      auto_card_id = (payload["auto_card_id"] || payload[:auto_card_id]).to_s
-      auto_action = payload["auto_action"] || payload[:auto_action]
-      if (payload["card_ids"] || payload[:card_ids]).to_a.map(&:to_s).uniq.length == 1 &&
-          card_id(@cards[target]) == auto_card_id && auto_action.respond_to?(:to_h)
+      if auto_action
         shortcut = payload["shortcut"] || payload[:shortcut]
         return Action.from_h(auto_action, source: "shortcut:#{shortcut}")
       end

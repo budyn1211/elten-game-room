@@ -12,6 +12,11 @@ module GameRoomGames
     COLUMNS = 7
     CONNECT = 4
 
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      action == "drop" ? "play2" : nil
+    end
+
     def id
       "four_in_a_row"
     end
@@ -122,61 +127,16 @@ module GameRoomGames
 
     def replay(session, events, repository)
       players = repository.players_for(session)
-      board = Array.new(ROWS) { Array.new(COLUMNS) }
-      accepted = []
-      history = [starting_history(players)]
-      current_player = players[0]
-      winner = nil
-      draw = false
-
-      events.each do |event|
-        break if winner != nil || draw
-
-        actor = repository.actor_of(event, session)
-        column = event["value"].to_i - 1
-        next if event["action"].to_s != "drop"
-        next if current_player == nil || !same_user?(actor, current_player)
-        next if column < 0 || column >= COLUMNS
-
-        row = first_empty_row(board, column)
-        next if row == nil
-
-        marker = player_index(players, actor)
-        next if marker == nil
-
-        board[row][column] = marker
-        accepted << event
-        event_id = repository.event_id(event)
-        field = field_label(column, row)
-        history << HistoryEntry.new(
-          key: "move:#{event_id}",
-          text: describe_move(actor, field),
-          event_id: event_id,
-          actor: actor,
-          kind: :move,
-          field: field
-        )
-
-        if winning_move?(board, row, column, marker)
-          winner = actor
-          history << result_history(event_id: event_id, winner: actor)
-        elsif board_full?(board)
-          draw = true
-          history << result_history(event_id: event_id, draw: true)
-        else
-          current_player = other_player(players, actor)
-        end
-      end
-
-      Replay.new(
-        board: board,
+      position = Replay.new(
+        board: Array.new(ROWS) { Array.new(COLUMNS) },
         players: players,
-        current_player: current_player,
-        winner: winner,
-        draw: draw,
-        accepted_events: accepted,
-        history: history
+        current_player: players[0],
+        winner: nil,
+        draw: false,
+        accepted_events: [],
+        history: [starting_history(players)]
       )
+      apply_events!(position, session, events, repository)
     end
 
     # Alpha-beta appends one hypothetical move at a time. Extend the immutable
@@ -186,62 +146,16 @@ module GameRoomGames
     def incremental_replay(replay, session, events, repository)
       return nil if replay == nil || replay.board == nil
 
-      players = replay.players
-      board = replay.board.map(&:dup)
-      accepted = replay.accepted_events.dup
-      history = replay.history.dup
-      current_player = replay.current_player
-      winner = replay.winner
-      draw = replay.draw == true
-
-      events.each do |event|
-        break if winner != nil || draw
-
-        actor = repository.actor_of(event, session)
-        column = event["value"].to_i - 1
-        next if event["action"].to_s != "drop"
-        next if current_player == nil || !same_user?(actor, current_player)
-        next if column < 0 || column >= COLUMNS
-
-        row = first_empty_row(board, column)
-        next if row == nil
-
-        marker = player_index(players, actor)
-        next if marker == nil
-
-        board[row][column] = marker
-        accepted << event
-        event_id = repository.event_id(event)
-        field = field_label(column, row)
-        history << HistoryEntry.new(
-          key: "move:#{event_id}",
-          text: describe_move(actor, field),
-          event_id: event_id,
-          actor: actor,
-          kind: :move,
-          field: field
-        )
-
-        if winning_move?(board, row, column, marker)
-          winner = actor
-          history << result_history(event_id: event_id, winner: actor)
-        elsif board_full?(board)
-          draw = true
-          history << result_history(event_id: event_id, draw: true)
-        else
-          current_player = other_player(players, actor)
-        end
-      end
-
-      Replay.new(
-        board: board,
-        players: players,
-        current_player: current_player,
-        winner: winner,
-        draw: draw,
-        accepted_events: accepted,
-        history: history
+      position = Replay.new(
+        board: replay.board.map(&:dup),
+        players: replay.players,
+        current_player: replay.current_player,
+        winner: replay.winner,
+        draw: replay.draw == true,
+        accepted_events: replay.accepted_events.dup,
+        history: replay.history.dup
       )
+      apply_events!(position, session, events, repository)
     end
 
     def surface_spec(replay, viewer)
@@ -292,6 +206,52 @@ module GameRoomGames
     end
 
     private
+
+    def apply_events!(replay, session, events, repository)
+      players, board = replay.players, replay.board
+      accepted, history = replay.accepted_events, replay.history
+      current_player, winner, draw = replay.current_player, replay.winner, replay.draw
+      events.each do |event|
+        break if winner != nil || draw
+
+        actor = repository.actor_of(event, session)
+        column = event["value"].to_i - 1
+        next if event["action"].to_s != "drop"
+        next if current_player == nil || !same_user?(actor, current_player)
+        next if column < 0 || column >= COLUMNS
+
+        row = first_empty_row(board, column)
+        next if row == nil
+
+        marker = player_index(players, actor)
+        next if marker == nil
+
+        board[row][column] = marker
+        accepted << event
+        event_id = repository.event_id(event)
+        field = field_label(column, row)
+        history << HistoryEntry.new(
+          key: "move:#{event_id}",
+          text: describe_move(actor, field),
+          event_id: event_id,
+          actor: actor,
+          kind: :move,
+          field: field
+        )
+
+        if winning_move?(board, row, column, marker)
+          winner = actor
+          history << result_history(event_id: event_id, winner: actor)
+        elsif board_full?(board)
+          draw = true
+          history << result_history(event_id: event_id, draw: true)
+        else
+          current_player = other_player(players, actor)
+        end
+      end
+      replay.current_player, replay.winner, replay.draw = current_player, winner, draw
+      replay
+    end
 
     def four_windows
       @four_windows ||= begin

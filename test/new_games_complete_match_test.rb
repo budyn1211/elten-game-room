@@ -1,3 +1,4 @@
+require_relative '../tools/training/match_runner'
 def _(text)
   text
 end

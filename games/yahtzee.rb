@@ -21,6 +21,12 @@ module GameRoomGames
       "two_pairs" => _("Two pairs"), "misery" => _("Misery")
     }.freeze
 
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      return "roll" if action == "roll"
+      return "play" if action == "score"
+    end
+
     def id
       "yahtzee"
     end
@@ -121,7 +127,7 @@ module GameRoomGames
       accepted = []
       history = [starting_history(players)]
       events.each do |event|
-        break if state[:winner] != nil
+        break if state[:winner] != nil || state[:draw]
         actor = repository.actor_of(event, session)
         next if !same_user?(actor, state[:current_player])
 

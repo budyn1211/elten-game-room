@@ -5,12 +5,14 @@ require_relative 'audio'
 require_relative '../realtime/event_channel'
 require_relative '../realtime/timer'
 require_relative '../realtime/task_ui'
+require_relative '../realtime/table_control'
 
 require_relative "../game_room_localization"
 
 module GameRoomAudioBall
   using GameRoomLocalization::Translations
   class Client
+    include GameRoomRealtime::TableControl
     SEND_INTERVAL = 0.04
     POINT_PAUSE = 5.7
     SET_PAUSE = 5.0
@@ -33,12 +35,14 @@ module GameRoomAudioBall
       @owner, @viewer = owner.to_s, viewer.to_s
       @connection_started = @clock.call
       @match = Digest::SHA256.hexdigest("GameRoom:audio_ball:#{table_id}:#{session_id}")[0, 24]
+      @base_match, @members_provider = @match, members
       @channel = @channel_factory.call(program: @program, match: @match, owner: @owner,
         viewer: @viewer, clock: @clock, members: members)
       @channel.enable_events('audio-ball-peer-2', routing: :peers)
     end
 
     def start
+      register_ping_channel
       @audio.load
       true
     end
@@ -55,12 +59,15 @@ module GameRoomAudioBall
       changed = !@replay || @replay.state.values_at(:rally, :server) != replay.state.values_at(:rally, :server)
       @replay, @players = replay, replay.players
       @side = @players.index { |player| player.to_s.casecmp?(viewer.to_s) }
-      @required = @players.reject { |player| GameRoomParticipants.bot?(player) || player.to_s.casecmp?(@viewer) }
+      @side = nil if bot_seat?(viewer)
+      @required = @players.reject { |player| bot_seat?(player) || player.to_s.casecmp?(@viewer) }
+      @channel.enable_events('audio-ball-peer-2', routing: :peers)
       @channel.required_members = (@required + [@owner]).uniq
       reset_rally if changed
       if replay.finished?
         @paused = true
         detach_view
+        unregister_ping_channel
         @channel.close
       end
     end
@@ -89,6 +96,7 @@ module GameRoomAudioBall
       detach_view
       return unless surface.respond_to?(:present) && @replay && !@replay.finished?
       @form, @surface = form, surface
+      @surface.activate_input if @surface.respond_to?(:activate_input) && @surface.input_active?(@form)
       @surface.on_audio_ball_command = method(:local_command) if @surface.respond_to?(:on_audio_ball_command=)
       @timer = GameRoomRealtime::Timer.new(clock: @clock) { frame }
       @form.add_timer(@timer)
@@ -97,6 +105,7 @@ module GameRoomAudioBall
 
     def detach_view
       @timer&.stop
+      @surface.deactivate_input if @surface.respond_to?(:deactivate_input)
       @surface.on_audio_ball_command = nil if @surface.respond_to?(:on_audio_ball_command=)
       @form.delete_timer(@timer) if @form && @timer
       @timer = @surface = @form = nil
@@ -117,6 +126,7 @@ module GameRoomAudioBall
 
     def frame
       return if @closed || !@replay || @replay.finished?
+      return if @control_ready == false
       input_flight = incoming_flight
       tick
       now = @clock.call
@@ -181,12 +191,25 @@ module GameRoomAudioBall
     def close
       return if @closed
       @closed = true
+      unregister_ping_channel
       detach_view
       @channel&.close
       @audio.close
     end
 
     private
+
+    # Control replacement repeats only the unfinished rally. Audio Ball owns
+    # its connection and input state; the table layer knows no physics fields.
+    def reset_table_control
+      @connection_started = @clock.call
+      @epoch = nil
+      @peers, @connections, @deferred = {}, {}, []
+      @sequence = @event_sequence = 0
+      @pending_point = @goal_preview = @replay = nil
+      @paused = true
+      @surface.clear_input if @surface&.respond_to?(:clear_input)
+    end
 
     def presents_point?
       !@audio.respond_to?(:presents_point) || @audio.presents_point
@@ -199,7 +222,7 @@ module GameRoomAudioBall
       @snapshot = @engine&.snapshot
       @observer_synced = false
       @observer_audio_floor = @last_audio_transition = nil
-      bot_sides = host? ? @players.each_index.select { |side| GameRoomParticipants.bot?(@players[side]) } : []
+      bot_sides = host? ? @players.each_index.select { |side| bot_seat?(@players[side]) } : []
       @controlled = ([@side].compact + bot_sides).uniq
       seed = Digest::SHA256.hexdigest("#{@match}:#{@epoch}:#{@replay.state[:rally]}")[0, 12].to_i(16)
       @bots = bot_sides.map do |side|
@@ -271,9 +294,9 @@ module GameRoomAudioBall
         data = packet['d']
         next unless valid_event?(data) && (data['r'] - @replay.state[:rally]).between?(0, 1)
         player = @players[data['side']]
-        author = data['action'] == 'point' || GameRoomParticipants.bot?(player) ? @owner : player.to_s
+        author = data['action'] == 'point' || bot_seat?(player) ? @owner : player.to_s
         next unless author.casecmp?(sender.to_s) && !sender.to_s.casecmp?(@viewer)
-        next if data['action'] == 'warn' && GameRoomParticipants.bot?(player)
+        next if data['action'] == 'warn' && bot_seat?(player)
         next if @deferred.include?(data)
         base_turn = data['r'] == @replay.state[:rally] ? @engine.turn : 0
         if data['turn'] > base_turn + GameRoomRealtime::EventChannel::LIMIT || @deferred.length >= GameRoomRealtime::EventChannel::LIMIT

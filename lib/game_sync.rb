@@ -112,6 +112,7 @@ module GameRoomSync
     end
 
     def failed!(error)
+      raise error unless GameRoomNetworkErrors.expected?(error) || GameRoomNetworkErrors.cancelled?(error)
       delay = GameRoomNetworkErrors.retry_delay(error, normal: @error_backoff, rate_limit: @rate_limit_backoff)
       @recovery_pending = true
       @recovering = false

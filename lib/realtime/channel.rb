@@ -18,7 +18,6 @@ module GameRoomRealtime
       @generation = 0
       @closed = false
       @next_retry = 0.0
-      @invited_at = {}
       @invite_after, @invite_attempts = {}, {}
       @incoming = {} # One newest packet per authenticated member, bounded by roster.
       @pending_invitation = nil
@@ -150,7 +149,6 @@ module GameRoomRealtime
         end
         if missing
           key = missing.downcase
-          @invited_at[key] = now
           attempt = @invite_attempts[key].to_i
           @invite_attempts[key] = [attempt + 1, 3].min
           @invite_after[key] = now + [0.5 * (2 ** attempt), 2.0].min
@@ -220,7 +218,6 @@ module GameRoomRealtime
       @accepting_invitation = @accepted_invitation_key = nil
       @departing = nil
       @last_packet_at = nil
-      @invited_at.clear
       @invite_after.clear
       @invite_attempts.clear
       @next_retry = now + delay
@@ -324,7 +321,6 @@ module GameRoomRealtime
       @last_error = nil
       @epoch = Digest::SHA256.hexdigest(session.id.to_s)[0, 16]
       @incoming.clear
-      @invited_at.clear
       @invite_after.clear
       @invite_attempts.clear
       @last_packet_at = nil

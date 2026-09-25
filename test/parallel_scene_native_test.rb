@@ -1,8 +1,4 @@
-# Actual host Form/EditBox/KeyboardState, with deterministic input peripherals.
-require_relative 'background_help_native_test'
-require_relative '../lib/live_session_store'
-host = File.expand_path(ENV.fetch('ELTEN_HOST_SOURCE', '../../elten3'), __dir__)
-require File.join(host, 'src/eapi/live_sessions')
+require_relative 'support/parallel_scene_native'
 
 endpoint = EltenAPI::LiveSessions::Endpoint.allocate
 endpoint.instance_variable_set(:@mutex, Mutex.new)
@@ -15,27 +11,6 @@ store.instance_variable_set(:@endpoint, endpoint)
 program = Object.new
 program.define_singleton_method(:dispatch_pending_game_room_events) { store.dispatch_pending_events }
 
-module EltenWindow
-  class << self; attr_accessor :test_character; end
-  def self.take_character(_multi)
-    result = test_character.to_s
-    self.test_character = ''
-    result
-  end
-end
-
-class ParallelNativeDriver < BackgroundHelpNativeDriver
-  attr_accessor :characters, :endpoint, :delivered
-  def tick(form)
-    active = form.equal?(root) && form.instance_variable_get(:@wait)
-    super
-    return unless active
-
-    char = characters.shift
-    EltenWindow.test_character = char.to_s
-    endpoint.enqueue_callback(-> { delivered << char }) if char
-  end
-end
 
 $mainthread = $currentthread = Thread.current
 $activecontrols = []

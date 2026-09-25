@@ -1,4 +1,4 @@
-require_relative "game_room_settings_widget_test"
+require_relative "support/settings_widget"
 
 games = %w[uno makao]
 old = { "widget_games" => ["uno"], "widget_known_games" => games, "invitation_notifications" => "contacts" }

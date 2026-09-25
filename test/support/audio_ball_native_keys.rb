@@ -1,5 +1,6 @@
+require_relative 'host_source'
 require_relative 'audio_ball_client'
-host = ENV['ELTEN_HOST_SOURCE'] || File.expand_path('../../../elten3', __dir__)
+host = EltenTestHost.root
 require File.join(host, 'src/eapi/keyboard')
 require File.join(host, 'src/ui/input')
 

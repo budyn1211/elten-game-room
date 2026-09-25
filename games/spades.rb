@@ -11,6 +11,15 @@ module GameRoomGames
   class Spades < Base
     RANKS = %w[2 3 4 5 6 7 8 9 T J Q K A].freeze
     SUITS = %w[C D H S].freeze
+    # Immutable deck metadata; each actual deal receives its own mutable array.
+    DECKS = { 3 => 1, 4 => 0, 5 => 2, 6 => 4 }.to_h do |count, removed_twos|
+      deck = SUITS.product(RANKS).map { |suit, rank| "#{rank}#{suit}".freeze }
+      SUITS.first(removed_twos).each { |suit| deck.delete("2#{suit}") }
+      [count, deck.freeze]
+    end.freeze
+    DECK_SUIT_COUNTS = DECKS.transform_values do |deck|
+      SUITS.to_h { |suit| [suit, deck.count { |card| card[1] == suit }] }.freeze
+    end.freeze
     SUIT_NAMES = {
       "C" => _("clubs"),
       "D" => _("diamonds"),
@@ -178,6 +187,14 @@ module GameRoomGames
       def quicksand?
         @options["quicksand"] == true
       end
+    end
+
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      return "shuffle" if action == "deal"
+      return nil if action != "play"
+
+      event["value"].to_s.end_with?("S") ? ["play", "draw2"] : "play"
     end
 
     def id
@@ -549,6 +566,11 @@ module GameRoomGames
         break if state[:winner] != nil
 
         if apply_replay_event(state, event, session, repository, replay.history, scoring)
+          decision_events = GameRoomParticipantDecisionEvents.for(replay)
+          unless decision_events.equal?(replay.accepted_events)
+            actor = repository.actor_of(event, session)
+            decision_events << event.merge('__replay_actor' => actor, 'actor' => actor)
+          end
           replay.accepted_events << event
         end
       end
@@ -1769,7 +1791,7 @@ module GameRoomGames
     end
 
     def bot_public_play_context(replay)
-      events = replay.accepted_events.to_a
+      events = GameRoomParticipantDecisionEvents.for(replay).to_a
       last_deal = events.rindex { |event| event["action"].to_s == "deal" }
       round_events = last_deal == nil ? [] : events[(last_deal + 1)..]
       plays = round_events.to_a.select { |event| event["action"].to_s == "play" }
@@ -2113,9 +2135,7 @@ module GameRoomGames
       end
       spades = suit_lengths["S"].to_i
       estimate += [spades - 3, 0].max * 0.35
-      suit_totals = SUITS.each_with_object({}) do |suit, result|
-        result[suit] = deck_for(state[:players].length).count { |card| card_suit(card) == suit }
-      end
+      suit_totals = DECK_SUIT_COUNTS.fetch(state[:players].length)
       short_suit_opportunities = SUITS.reject { |suit| suit == "S" }.sum do |suit|
         shortage = case suit_lengths[suit]
         when 0 then 1.0
@@ -2740,14 +2760,11 @@ module GameRoomGames
     end
 
     def deck_for(player_count)
-      deck = SUITS.product(RANKS).map { |suit, rank| "#{rank}#{suit}" }
-      removed_twos = { 3 => 1, 4 => 0, 5 => 2, 6 => 4 }.fetch(player_count)
-      SUITS.first(removed_twos).each { |suit| deck.delete("2#{suit}") }
-      deck
+      DECKS.fetch(player_count).dup
     end
 
     def cards_per_player(player_count)
-      deck_for(player_count).length / player_count
+      DECKS.fetch(player_count).length / player_count
     end
 
     def parse_deal(value)

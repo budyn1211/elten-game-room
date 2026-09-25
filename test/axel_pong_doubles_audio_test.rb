@@ -402,16 +402,14 @@ check.call('doubles point and goal APIs still accept teams for score order and w
   end
 end
 
-check.call('only move-double has a stable extra -3 dB for every listener and local/remote feedback') do
+check.call('only move-double has a stable extra -3 dB for every listener and participant') do
   [0, 0, 1, 1].permutation.to_a.uniq.each do |teams|
     teams.each_index do |viewer|
-      [false, true].each do |local_feedback|
         with_audio do |audio, program|
           state = snapshot(teams)
           state['p'] = [15.0] * 4
           state['fx'] = teams.each_index.map { |source| [source + 1, 'step', source, 15, teams[source] * 20] }
-          audio.play_local_movement(state, viewer: viewer, kind: 'step', position: 15) if local_feedback
-          audio.update(state, viewer: viewer, paused: false, local_movement: local_feedback)
+          audio.update(state, viewer: viewer, paused: false)
           [1.0, 0.6, 1.0].each do |gain|
             program.sound_gain = gain
             3.times { audio.tick }
@@ -426,7 +424,6 @@ check.call('only move-double has a stable extra -3 dB for every listener and loc
             end
           end
         end
-      end
     end
   end
 end

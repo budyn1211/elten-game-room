@@ -1,5 +1,5 @@
 if ARGV.delete("--binary")
-  require_relative "packaged_rules_encoding_test"
+  require_relative "support/binary_rules_load"
   BinaryRulesLoad.load(File.expand_path(__FILE__))
   exit
 end

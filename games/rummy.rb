@@ -1,5 +1,6 @@
 # encoding: UTF-8
 require_relative "card_game"
+require_relative "../lib/game_round_cues"
 require_relative "../lib/game_action_payload"
 require_relative "../lib/rummy_rules"
 require_relative "../lib/game_bots"
@@ -19,6 +20,10 @@ module GameRoomGames
     ].freeze
 
     def id; "rummy"; end
+
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      GameRoomRoundCues.for_event(history, after_replay, viewer, assets: %w[shuffle draw play])
+    end
     def eliminated_from_game?(replay, viewer)
       replay.state.fetch(:eliminated, {}).any? { |player, out| out && same_user?(player, viewer) }
     end

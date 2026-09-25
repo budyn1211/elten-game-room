@@ -27,6 +27,8 @@ module GameRoomPreferences
   def defaults(game_ids)
     games = normalized_game_ids(game_ids)
     {
+      "background_table_speech" => true,
+      "background_turn_sound" => true,
       "announce_lobby_changes" => true,
       "announce_table_created" => true,
       "announce_player_joined" => true,
@@ -80,6 +82,8 @@ module GameRoomPreferences
     result["invitation_notifications"] = normalized_invitation_policy(result["invitation_notifications"])
     %w[widget_contacts_only table_watch_contacts_only].each { |key| result[key] = source[key] == true }
     %w[
+      background_table_speech
+      background_turn_sound
       game_sounds
       room_membership_sounds
       chat_sounds

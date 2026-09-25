@@ -1,7 +1,4 @@
-require_relative "support/log"
-require_relative "../lib/table_watch"
-
-def assert(value, message); raise message unless value; end
+require_relative 'support/table_watch'
 
 server_sample, elapsed, wrong_wall = 1000, 10, 4600
 clock = GameRoomTableWatch::Clock.new(sample: -> { server_sample }, elapsed: -> { elapsed }, fallback: -> { wrong_wall })
@@ -19,29 +16,6 @@ assert(clock.call == wrong_wall, "offline fallback before any host timestamp")
 server_sample = 1320
 assert(clock.call == 1320, "first server timestamp did not replace the startup fallback")
 
-class WatchTable
-  attr_accessor :user
-  attr_reader :rows, :writes
-  def initialize; @rows = []; @writes = []; @user = "Alice"; end
-  def select(where: nil, offset: 0, limit: 1000, **_)
-    rows = where ? @rows.select { |row| where.all? { |key, value| row[key] == value } } : @rows
-    rows.sort_by { |row| row["__id"] }[offset, limit] || []
-  end
-  def insert(values)
-    row = values.merge("__id" => (@rows.map { |item| item["__id"] }.max || 0) + 1, "__insertion_user" => @user)
-    @rows << row; @writes << [:insert, row]; row
-  end
-  def update(id, values)
-    row = @rows.find { |item| item["__id"] == id }
-    raise "foreign write" unless row["__insertion_user"] == @user
-    row.merge!(values); @writes << [:update, id]; row
-  end
-  def delete(id)
-    row = @rows.find { |item| item["__id"] == id }
-    raise "foreign deletion" unless row["__insertion_user"] == @user
-    @rows.delete(row); @writes << [:delete, id]
-  end
-end
 table = WatchTable.new
 repository = GameRoomTableWatch::Preferences.new(table, games: %w[uno rummy])
 assert(repository.load("Alice") == [] && table.writes.empty?, "first read wrote defaults")
@@ -61,7 +35,6 @@ assert(table.rows.count { |row| row["__insertion_user"] == "Mallory" } == 1, "fo
 assert(repository.recipients("rummy", online: %w[ALICE Alice Mallory], sender: "Bob") == ["Alice"], "recipients forged or duplicated")
 assert(repository.recipients("rummy", online: ["Alice"], sender: "alice") == [], "sender notified itself")
 
-WatchNotice = Struct.new(:id, :app_uuid, :type, :sender, :metadata, keyword_init: true)
 now = 1000
 session_id = "12345678-1234-1234-1234-123456789abc"
 meta = { "format" => 1, "game" => "uno", "table_id" => 12, "live_session_id" => session_id,
@@ -91,19 +64,6 @@ assert(receiver.data(bad) == nil, "untrusted target accepted")
 bad.metadata = meta.merge("expires_at" => 999999)
 assert(receiver.data(bad) == nil, "unbounded expiration accepted")
 
-class WatchWorker
-  def closed?; @closed == true; end
-  def busy?; @operation != nil || @result != nil; end
-  def start(&operation); raise "concurrent operation" if busy?; @operation = operation; true; end
-  def finish(error = nil)
-    @result = error ? [nil, error] : [@operation.call, nil]
-    @operation = nil
-  end
-  def take; result = @result; @result = nil; result; end
-  def close; @closed = true; end
-end
-Limited = Class.new(StandardError) { def status; 429; end }
-Uncertain = Class.new(StandardError)
 worker = WatchWorker.new
 sent, online_calls, loads = [], 0, 0
 fake_repository = Object.new

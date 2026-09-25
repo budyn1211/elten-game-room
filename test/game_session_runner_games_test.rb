@@ -4,7 +4,7 @@ class Program
   def self.server_app(**_options); end
 end
 require_relative '../__app'
-require_relative 'game_session_runner_test'
+require_relative 'support/session_runner'
 
 $stdout.sync = true
 tested = []

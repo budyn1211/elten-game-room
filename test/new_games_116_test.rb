@@ -142,7 +142,7 @@ purchase_state[:phase] = :property_decision
 purchase_label = monopoly.send(:action_label, { "action" => "buy" }, purchase_state, "Alice")
 assert(purchase_label == "Buy", "Monopoly purchase action is not concise")
 purchase_history = []
-monopoly.send(:resolve_square, purchase_state, "Alice", nil, 99, purchase_history)
+monopoly.send(:resolve_square, purchase_state, "Alice", 99, purchase_history)
 assert(purchase_history.last.text.include?("pink group"), "Monopoly does not announce the QC property's color before purchase")
 
 manual_state = monopoly.send(:initial_state, players, monopoly.normalize_options("automatic_rent" => false))
@@ -187,11 +187,11 @@ assert(debt_surface.items.length == 1 && debt_surface.items.first.action.name ==
   "Monopoly debt interface exposes decisions other than the agreed Roll entry")
 
 jackpot_state = monopoly.send(:initial_state, players, monopoly.default_options)
-monopoly.send(:transfer_to_bank, jackpot_state, "Alice", 75)
+monopoly.send(:pay_and_describe, jackpot_state, "Alice", monopoly.send(:bank_recipient, jackpot_state), 75, "fine")
 assert(jackpot_state[:cash]["Alice"] == 1_425 && jackpot_state[:jackpot] == 75,
   "Monopoly did not add a bank fine to the Free Parking jackpot")
 jackpot_state[:positions]["Alice"] = 20
-monopoly.send(:resolve_square, jackpot_state, "Alice", 1, 30, [])
+monopoly.send(:resolve_square, jackpot_state, "Alice", 30, [])
 assert(jackpot_state[:cash]["Alice"] == 1_500 && jackpot_state[:jackpot].zero?,
   "Monopoly did not pay and clear the Free Parking jackpot")
 

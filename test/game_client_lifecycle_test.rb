@@ -1,4 +1,4 @@
-require_relative 'room_interface_test'
+require_relative 'support/room_interface'
 require_relative 'support/krowa'
 require_relative '../games/krowa_support/client'
 

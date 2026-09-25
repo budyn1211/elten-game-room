@@ -63,7 +63,11 @@ class NativeRoomHarness
   def view(user); broker.endpoint(user).sessions.find { |view| view.id == table["__live_session_id"] }; end
   def core; broker.cores.fetch(table["__live_session_id"]); end
   def events(user); repositories.fetch(user).snapshot_for(session).events; end
-  def replay(user); game.replay(session, events(user), repositories.fetch(user)); end
+  def replay(user)
+    repository = repositories.fetch(user)
+    snapshot = repository.snapshot_for(session)
+    game.replay(snapshot.session, snapshot.events, repository)
+  end
 
   def write(user, commands, sequence: nil)
     as(user) do

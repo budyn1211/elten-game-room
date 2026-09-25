@@ -1,4 +1,4 @@
-require_relative "game_room_settings_widget_test"
+require_relative 'support/widget_presets'
 
 presets = GameRoomTablePresets
 registry = EltenGameRoom::GAME_REGISTRY
@@ -41,12 +41,6 @@ assert(global.options.empty?, "widget actions leaked to global context")
 
 # Exercise the host's real modifier/first-press helper as well. Only its
 # physical keyboard state is substituted; no running ELTEN is touched.
-host = ENV["ELTEN_HOST_SOURCE"] || File.expand_path("../../work/elten-3.0.1-app-dev", __dir__)
-load File.join(host, "src/ui/input.rb")
-module EltenAPI::KeyboardScheme
-  def self.main_modifier; :control; end
-  def self.key_code(key); key.is_a?(Integer) ? key : nil; end
-end
 widget.singleton_class.send(:remove_method, :main_shortcut_pressed?)
 widget.extend(EltenAPI::UI)
 first = true
@@ -132,7 +126,8 @@ begin
     writes << [slot, value]
   end
   driver = lambda do |form|
-    form.fields.first.index = 3; form.fields.first.trigger(:move)
+    form.fields.first.index = form.fields.first.options.index('Widget') || raise('Missing Widget category')
+    form.fields.first.trigger(:move)
     list = form.fields.find { |field| field.is_a?(GameRoomScreens::TablePresetList) }
     assert(list && !form.hidden_controls.include?(list), "missing inline Widget list")
     assert(list.options.length == 30 && list.options.first.include?("Press Enter to edit.") &&

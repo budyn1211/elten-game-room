@@ -1,4 +1,4 @@
-require_relative 'axel_pong_point_audio_test'
+require_relative 'support/axel_pong_point_audio'
 
 rules = GameRoomGames::AxelPong.new
 mode = rules.option_definitions.find { |option| option.key == 'arcade' }

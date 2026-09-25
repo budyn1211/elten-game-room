@@ -1,4 +1,4 @@
-require_relative "categories_test"
+require_relative "support/categories"
 require_relative "support/hidden_submission_files"
 require "tmpdir"
 

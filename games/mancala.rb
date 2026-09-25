@@ -32,6 +32,12 @@ module GameRoomGames
       OptionChoice.new(value: "kalah", label: _("Kalah (sow into your own store and sow again from it)"))
     ].freeze
 
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      kinds = history.map(&:kind)
+      { sow: "domino_move_tile", capture: "hit1" }.select { |kind, _| kinds.include?(kind) }.values
+    end
+
     def id
       "mancala"
     end

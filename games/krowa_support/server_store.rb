@@ -30,11 +30,16 @@ module GameRoomGames
     def synchronize_daily(date_ids)
       return false unless available?
 
-      dates = Array(date_ids).map { |date| normalized_date(date) }.compact.uniq.last(500)
+      dates = Array(date_ids).map { |date| normalized_date(date) }.compact.uniq
       return true if dates.empty?
 
-      present = daily_table.select(limit: 500).to_a.each_with_object({}) do |row, result|
-        result[row["day_key"].to_i] = true
+      present = {}
+      offset = 0
+      loop do
+        page = daily_table.select(order: [["__id", "asc"]], limit: 500, offset: offset).to_a
+        page.each { |row| present[row["day_key"].to_i] = true }
+        offset += page.length
+        break if page.length < 500
       end
       missing = dates.reject { |date| present.key?(date_key(date)) }
       missing.each_slice(100) do |batch|

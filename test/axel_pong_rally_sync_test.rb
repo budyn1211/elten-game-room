@@ -1,4 +1,4 @@
-require_relative 'axel_pong_client_test'
+require_relative 'support/pong_client'
 
 # LiveSessions may deliver a point before Communications delivers the next
 # rally's snapshot. Exercise this order through the actual attached timer,

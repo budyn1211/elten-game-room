@@ -1,4 +1,4 @@
-require_relative "invitation_fresh_endpoint_test"
+require_relative "support/invitation_fresh_endpoint"
 
 # Mirrors the host's main-window ordering: schedule a NotificationActionScene,
 # mark the notification as read, then create a new program and call its action.

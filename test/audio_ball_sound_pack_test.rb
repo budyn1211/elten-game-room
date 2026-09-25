@@ -1,4 +1,4 @@
-require_relative 'audio_ball_point_audio_test'
+require_relative 'support/audio_ball_point_audio'
 
 module AudioBallPointTest
   class Program
@@ -69,7 +69,7 @@ module AudioBallPointTest
     program.events.clear
     audio.goal(viewer: 0, winner: 0)
     names = program.events.map(&:first)
-    assert(names.first == 'audio_ball_audiodisc_goal' && names.length == 2 && GameRoomPong::Audio::GOAL_VOICES.include?(names.last), 'Audiodisc goal does not replace just the goal effect')
+    assert(names.first == 'audio_ball_audiodisc_goal' && names.length == 2 && GameRoomRealtime::ScoreAnnouncements::GOAL_VOICES.include?(names.last), 'Audiodisc goal does not replace just the goal effect')
     assert(program.sounds['audio_ball_audiodisc_goal'].playing?, 'Audiodisc goal stops immediately')
     audio.point([2, 1], sets: [0, 0], set_finished: false, winner: 0, viewer: 0, finished: false, goal_at: program.now)
     program.audio_preferences['sound_pack'] = 'default'
@@ -78,7 +78,7 @@ module AudioBallPointTest
     [3.0, 3.5, 4.0].each { |at| program.now = at; audio.tick }
     assert(program.events.last(3).map(&:first) == %w[pong_scores pong_number2 pong_number1], 'Switching packs loses the score recording')
     audio.goal(viewer: 0, winner: 1)
-    assert(GameRoomPong::Audio::GOALS.include?(program.events[-2].first), 'Default pack does not restore the original goal effect')
+    assert(GameRoomRealtime::ScoreAnnouncements::GOALS.include?(program.events[-2].first), 'Default pack does not restore the original goal effect')
     program.audio_preferences['sound_pack'] = 'audiodisc'
     audio.refresh_preferences
     assert(program.created == created, 'Switching back duplicates sound handles')

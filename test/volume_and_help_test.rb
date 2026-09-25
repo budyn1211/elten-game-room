@@ -1,45 +1,4 @@
-require_relative "support/ui"
-require_relative "support/log"
-
-class Program
-  def self.server_app(**_options); end
-  def self.app_runtime; nil; end
-end
-module Session
-  def self.name; "Alice"; end
-end
-module EltenLink
-  class Error < StandardError; end
-  class Client; end
-end
-module EltenAPI
-  module LiveSessions
-    class Error < StandardError; end
-    class TimeoutError < Error; end
-    class SessionClosed < Error; end
-    class StackFull < Error; end
-  end
-  module Tasks
-    class Cancelled < StandardError; end
-  end
-  module KeyboardState
-    def self.clear_current_frame; @cleared = true; end
-  end
-end
-
-# Use the real host dispatcher/cache and native action representation.
-require_relative "../../work/elten-3.0.1-app-dev/src/eapi/quickactions"
-EltenAPI::QuickActions.class_variable_set(:@@actions, [
-  EltenAPI::QuickActions::QuickAction.new(:tips, "Help", [], 1),
-  EltenAPI::QuickActions::QuickAction.new(:lastspeech, "Native F2", [], 2),
-  EltenAPI::QuickActions::QuickAction.new(:tips, "Ctrl+F1", [], 13)
-])
-EltenAPI::QuickActions.class_variable_set(:@@hotkey_actions, nil)
-require_relative "../__app"
-
-def assert(value, message)
-  raise message unless value
-end
+require_relative 'support/volume_and_help'
 
 translations = JSON.parse(File.read(File.expand_path("../locale/volume-help-after-223-pl.json", __dir__), encoding: "UTF-8"))
 mo = File.binread(File.expand_path("../locale/PL.mo", __dir__))
@@ -162,7 +121,7 @@ settings_before = Marshal.load(Marshal.dump(state))
 driver = lambda do |current|
   $activecontrols = [current, current.fields.first]
   app.instance_variable_set(:@game_room_volume_group, 0)
-  current.fields[0].index = 2
+  current.fields[0].index = current.fields[0].options.index("Sounds") || raise("Missing Sounds category")
   current.fields[0].trigger(:move)
   sound_fields = GameRoomPreferences::SOUND_GROUPS.map do |group|
     current.fields.find { |control| control.header == GameRoomUI::VOLUME_LABELS.fetch(group) }

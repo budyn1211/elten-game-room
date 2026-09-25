@@ -14,6 +14,16 @@ module GameRoomGames
     SAFE_TRACK_INDICES = ENTRY_INDICES.freeze
     PAWN_MOVE_ACTION = "move_pawn"
 
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      if action == "roll"
+        moved_automatically = history.any? { |entry| entry.kind == :move }
+        return moved_automatically ? ["roll", "play2"] : "roll"
+      end
+
+      ["move", "move_pawn"].include?(action) ? "play2" : nil
+    end
+
     def id
       "ludo"
     end

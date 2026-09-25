@@ -55,7 +55,7 @@ check.call("Monopoly: luxury tax deducts the exact amount on every board and ann
       state[:positions]["Alice"] = tax[:index]
       before = state[:cash]["Alice"]
       history = []
-      monopoly.send(:resolve_square, state, "Alice", nil, 1, history)
+      monopoly.send(:resolve_square, state, "Alice", 1, history)
       assert(tax[:amount].to_i > 0 && state[:cash]["Alice"] == before - tax[:amount], "#{choice.value}: incorrect tax")
       assert(state[:jackpot] == (jackpot ? tax[:amount] : 0), "#{choice.value}: wrong jackpot")
       assert(history.any? { |h| h.text.include?(tax[:amount].to_s) && h.text.include?(tax[:name]) }, "Tax has no payment announcement")

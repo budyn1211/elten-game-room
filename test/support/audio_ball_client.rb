@@ -1,3 +1,5 @@
+require_relative 'sequence_random'
+
 require_relative 'pong_client'
 require_relative '../../games/audio_ball'
 require_relative '../../lib/audio_ball/client' if File.file?(File.expand_path('../../lib/audio_ball/client.rb', __dir__))

@@ -1,4 +1,4 @@
-require_relative "table_notice_presentation_test"
+require_relative "support/table_notice_presentation"
 
 # Controlled local latency, NOT a measurement of the user's two-second report.
 # Mimic the old synchronous receipt write with a 150 ms storage callback.

@@ -1,10 +1,12 @@
 require_relative "game_room_clock"
+require_relative "table_query_snapshot"
 class GameRoomUserRegistry
   TABLE_NAME = "game_room_users".freeze
   PAGE_LIMIT = 1_000
 
   def initialize(server_tables:)
     @server_tables = server_tables
+    @query_snapshot = GameRoomTableQuerySnapshot.new
   end
 
   def register(username:, version:, build_id:, capabilities: [])
@@ -25,10 +27,15 @@ class GameRoomUserRegistry
 
     updated = users_table.update(row_id(existing), changes)
     updated.is_a?(Hash) ? updated : existing.merge(changes)
+  ensure
+    @query_snapshot.invalidate
   end
 
   def registered(users)
-    registered = verified_usernames.each_with_object({}) do |username, result|
+    return [] if users.to_a.empty?
+    rows = @query_snapshot.fetch { verified_usernames.map { |name| { 'username' => name } } }
+    registered = rows.each_with_object({}) do |row, result|
+      username = row.fetch('username')
       result[username.downcase] = true
     end
     users.to_a.select { |user| registered.key?(user.to_s.strip.downcase) }

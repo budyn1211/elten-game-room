@@ -7,6 +7,17 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class Monopoly < CardGame
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      cues = []
+      cues << "roll" if action == "roll"
+      cues << "play2" if %w[buy build sell mortgage unmortgage trade_accept auction_bid].include?(action)
+      event_history = history
+      cues << "hit1" if event_history.any? { |entry| entry.key.to_s.start_with?("group_complete:") }
+      return cues.first if cues.length == 1
+      return cues if !cues.empty?
+    end
+
     def id
       "monopoly"
     end
@@ -199,6 +210,11 @@ module GameRoomGames
       super || (!replay.finished? && same_user?(actor, replay.current_player) && unaffordable_purchase?(replay.state))
     end
 
+    def automatic_actor(replay, viewer, table_owner:)
+      return viewer if !replay.finished? && same_user?(viewer, replay.current_player) && unaffordable_purchase?(replay.state)
+      super
+    end
+
     def automatic_action_due?(replay, actor, context: nil)
       state = replay.state
       return false if replay.finished?
@@ -216,7 +232,7 @@ module GameRoomGames
       { "kind" => "command", "action" => "auction_timeout" }
     end
 
-    def legal_actions(replay, actor, context: nil)
+    def legal_actions(replay, actor, context: nil, include_trade_offers: true)
       state = replay.state
       return [] if replay.finished? || !same_user?(state[:current_player], actor)
       player = player_key(state, actor)
@@ -225,7 +241,7 @@ module GameRoomGames
       when :awaiting_roll
         actions << { "kind" => "command", "action" => "roll" }
         actions.concat(management_actions(state, player))
-        actions.concat(trade_actions(state, player))
+        actions.concat(trade_actions(state, player)) if include_trade_offers
         actions << { "kind" => "command", "action" => "pay_jail" } if state[:jail][player].to_i > 0 && state[:cash][player] >= board_payment(state, 50)
         actions << { "kind" => "command", "action" => "use_jail_card" } if state[:jail_cards][player].to_i > 0 && state[:jail][player].to_i > 0
         actions << { "kind" => "command", "action" => "bankrupt" } if state[:cash][player] < 0
@@ -235,7 +251,7 @@ module GameRoomGames
         actions << { "kind" => "command", "action" => "decline" }
       when :turn_complete
         actions.concat(management_actions(state, player))
-        actions.concat(trade_actions(state, player))
+        actions.concat(trade_actions(state, player)) if include_trade_offers
         actions << { "kind" => "command", "action" => "bankrupt" } if state[:cash][player] < 0
       when :auction
         amount = state[:auction_bid].to_i + auction_increment(state)
@@ -330,7 +346,7 @@ module GameRoomGames
 
     def surface_spec(replay, viewer)
       state = replay.state
-      all_actions = legal_actions(replay, viewer)
+      all_actions = legal_actions(replay, viewer, include_trade_offers: false)
       actions = all_actions.reject { |action| %w[build sell mortgage unmortgage trade_offer pay_jail use_jail_card bankrupt].include?(action["action"]) }
       player = player_key(state, viewer)
       if !replay.finished? && same_user?(state[:current_player], viewer) && player != nil && state[:cash][player].to_i < 0 && [:awaiting_roll, :turn_complete].include?(state[:phase])
@@ -370,7 +386,7 @@ module GameRoomGames
     def custom_game_shortcuts(replay, viewer)
       state = replay.state
       player = player_key(state, viewer)
-      actions = legal_actions(replay, viewer)
+      actions = legal_actions(replay, viewer, include_trade_offers: false)
       shortcuts = [
         announcement_shortcut(key: "i", label: _("read player positions"), message: positions_text(state)),
         announcement_shortcut(key: "c", label: _("read your cash"), message: _("Your cash: %{cash}.") % { cash: state[:cash][player].to_i }),
@@ -625,7 +641,7 @@ module GameRoomGames
         state[:cash][player] += bonus
         history << HistoryEntry.new(key: "lucky:#{id}", text: _("%{player} receives %{amount} for lucky double one.") % { player: participant_name(player), amount: bonus }, event_id: id, actor: player, kind: :game)
       end
-      resolve_square(state, player, nil, id, history)
+      resolve_square(state, player, id, history)
       true
     rescue ArgumentError
       false
@@ -990,7 +1006,7 @@ module GameRoomGames
       state[:positions][player] = destination
     end
 
-    def resolve_square(state, player, card_number, event_id, history)
+    def resolve_square(state, player, event_id, history)
       square = current_square(state, player)
       case square[:type]
       when :property, :railroad, :utility
@@ -1160,7 +1176,7 @@ module GameRoomGames
       }, event_id: event_id, actor: player, kind: :game)
       history.concat(movement_effects)
       if destination
-        resolve_square(state, player, nil, event_id, history)
+        resolve_square(state, player, event_id, history)
         state.delete(:card_rent_multiplier)
         state.delete(:card_utility_rent)
       end
@@ -1170,10 +1186,6 @@ module GameRoomGames
       state[:positions][player] = state[:board_data].fetch(:jail_index)
       state[:jail][player] = 3
       state[:extra_turn] = false
-    end
-
-    def transfer_to_bank(state, player, amount, jackpot: true)
-      pay_money(state, player, jackpot && state[:options]["free_parking_jackpot"] ? :jackpot : :bank, amount)
     end
 
     def bank_recipient(state)
@@ -1583,12 +1595,6 @@ module GameRoomGames
         next if assets.empty?
         _("%{from} to %{target}: %{assets}") % { from: participant_name(from), target: participant_name(target), assets: assets.join(", ") }
       end.join("; ")
-    end
-
-    def trade_value_for_responder(state)
-      offer = state[:trade_offer]
-      return -1 if offer == nil
-      trade_gain(state, offer, offer[:target])
     end
 
     def offer_properties(offer, side)

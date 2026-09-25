@@ -1,4 +1,4 @@
-require_relative 'game_session_runner_test'
+require_relative 'support/session_runner'
 
 [:before, :after].each do |failure|
   h = NativeRoomHarness.new(game: GameRoomGames::TicTacToe.new, users: %w[Alice Bob])
@@ -90,7 +90,7 @@ tick = 0.0
 r.instance_variable_get(:@sync).instance_variable_set(:@clock, -> { tick })
 provider = r.instance_variable_get(:@room_snapshot_provider)
 broken = true
-r.instance_variable_set(:@room_snapshot_provider, -> { raise IOError, 'temporary read failure' if broken; provider.call })
+r.instance_variable_set(:@room_snapshot_provider, -> { raise EltenAPI::LiveSessions::TimeoutError, 'temporary read failure' if broken; provider.call })
 h.as('Alice') { r.step }
 assert(r.instance_variable_get(:@errors).size == 1, 'background failure was not recorded')
 broken, tick = false, 31.0

@@ -9,6 +9,28 @@ module GameRoomInvitationReceipts
   INFLIGHT = {}
   MAX_INFLIGHT = 16
 
+  # The host owns this resource only while the application is registered.
+  # Closing an old runtime must not remove a replacement with the same UUID.
+  class Registration
+    def initialize(program, uuid)
+      @program, @uuid = program, uuid
+    end
+
+    def close
+      program, @program = @program, nil
+      return unless program
+      host = ::NotificationGroups
+      host.instance_variable_get(:@game_room_receipt_registry_lock).synchronize do
+        registry = host.instance_variable_get(:@game_room_receipt_programs)
+        registry.delete(@uuid) if registry[@uuid].equal?(program)
+      end
+      if program.instance_variable_get(:@game_room_receipt_registration).equal?(self)
+        program.remove_instance_variable(:@game_room_receipt_registration)
+      end
+      program.release(self) if program.respond_to?(:release)
+    end
+  end
+
   module_function
 
   def install(program)
@@ -17,35 +39,63 @@ module GameRoomInvitationReceipts
     uuid = program.server_app_uuid.to_s.downcase
     return if uuid.empty?
 
-    registry = NotificationGroups.instance_variable_get(:@game_room_receipt_programs) || {}
-    registry[uuid] = program
-    NotificationGroups.instance_variable_set(:@game_room_receipt_programs, registry)
-    return if NotificationGroups.instance_variable_get(:@game_room_receipt_bridge)
-
-    bridge = Module.new do
-      def build_notification_groups(notifications, **options)
-        registry = NotificationGroups.instance_variable_get(:@game_room_receipt_programs) || {}
-        visible = notifications.reject do |row|
-          program = row.cat.to_s == "app" ? registry[row.app_uuid.to_s.downcase] : nil
-          payload = row.payload.is_a?(Hash) ? row.payload : {}
-          type = (payload["type"] || payload[:type]).to_s
-          hidden = program != nil && %w[game_room.invitation_resolved game_room.invitation_rejected].include?(type)
-          if hidden && row.revoked != true
-            program.receive_invitation_receipt(Programs.app_notification_from(row))
-          end
-          if program != nil && type == "game_room.table_created" && program.respond_to?(:table_notice_visible?)
-            hidden ||= !program.table_notice_visible?(Programs.app_notification_from(row))
-          end
-          if program != nil && type == "game_room.invitation" && program.respond_to?(:contact_notification_allowed?)
-            hidden ||= program.contact_notification_allowed?(Programs.app_notification_from(row)) != true
-          end
-          hidden
-        end
-        super(visible, **options)
+    host = ::NotificationGroups
+    lock = host.instance_variable_get(:@game_room_receipt_registry_lock) || Mutex.new
+    host.instance_variable_set(:@game_room_receipt_registry_lock, lock)
+    lock.synchronize do
+      registry = host.instance_variable_get(:@game_room_receipt_programs) || {}
+      registry[uuid] = program
+      host.instance_variable_set(:@game_room_receipt_programs, registry)
+    end
+    unless program.instance_variable_get(:@game_room_receipt_registration)
+      registration = Registration.new(program, uuid)
+      program.instance_variable_set(:@game_room_receipt_registration, registration)
+      if program.respond_to?(:manage) && (!program.respond_to?(:app_runtime) || program.app_runtime)
+        program.manage(registration)
       end
     end
-    NotificationGroups.prepend(bridge)
-    NotificationGroups.instance_variable_set(:@game_room_receipt_bridge, true)
+    return if host.instance_variable_get(:@game_room_receipt_bridge_version) == 2
+
+    bridge = host.instance_variable_get(:@game_room_receipt_bridge)
+    bridge = nil unless bridge.is_a?(Module) && host.ancestors.include?(bridge)
+    bridge ||= host.ancestors.take_while { |ancestor| !ancestor.equal?(host) }.find do |candidate|
+      next false unless candidate.instance_methods(false).include?(:build_notification_groups)
+      path = candidate.instance_method(:build_notification_groups).source_location&.first.to_s.tr('\\', '/')
+      path.end_with?('/lib/invitation_receipts.rb')
+    end
+    bridge ||= Module.new
+    host.prepend(bridge) unless host.ancestors.include?(bridge)
+    host.instance_variable_set(:@game_room_receipt_bridge, bridge)
+    # Replace legacy lexical bodies as well: merely reusing their module
+    # would still retain the first application namespace.
+    TOPLEVEL_BINDING.eval(<<~'RUBY', __FILE__, __LINE__ + 1)
+      ::NotificationGroups.instance_variable_get(:@game_room_receipt_bridge).module_eval do
+        def build_notification_groups(notifications, **options)
+          host = ::NotificationGroups
+          registry = host.instance_variable_get(:@game_room_receipt_registry_lock).synchronize do
+            host.instance_variable_get(:@game_room_receipt_programs).dup
+          end
+          visible = notifications.reject do |row|
+            program = row.cat.to_s == "app" ? registry[row.app_uuid.to_s.downcase] : nil
+            payload = row.payload.is_a?(Hash) ? row.payload : {}
+            type = (payload["type"] || payload[:type]).to_s
+            hidden = program != nil && %w[game_room.invitation_resolved game_room.invitation_rejected].include?(type)
+            if hidden && row.revoked != true
+              program.receive_invitation_receipt(::Programs.app_notification_from(row))
+            end
+            if program != nil && type == "game_room.table_created" && program.respond_to?(:table_notice_visible?)
+              hidden ||= !program.table_notice_visible?(::Programs.app_notification_from(row))
+            end
+            if program != nil && type == "game_room.invitation" && program.respond_to?(:contact_notification_allowed?)
+              hidden ||= program.contact_notification_allowed?(::Programs.app_notification_from(row)) != true
+            end
+            hidden
+          end
+          super(visible, **options)
+        end
+      end
+    RUBY
+    host.instance_variable_set(:@game_room_receipt_bridge_version, 2)
   end
 
   def enqueue(program, notification)

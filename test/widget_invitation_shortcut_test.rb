@@ -1,4 +1,4 @@
-require_relative 'widget_presets_test'
+require_relative 'support/widget_presets'
 
 active, first, modifiers = true, true, [:control]
 accepted, created, alerts, consumed = [], [], [], 0

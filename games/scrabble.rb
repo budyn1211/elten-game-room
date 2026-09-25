@@ -16,6 +16,14 @@ module GameRoomGames
   class Scrabble < Base
     include PublicHistoryAnnouncements
     Rules = GameRoomScrabbleRules
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      kinds = history.map(&:kind)
+      return "shuffle" if kinds.include?(:deal)
+      return "play" if kinds.include?(:play)
+      return "draw" if kinds.include?(:exchange)
+    end
+
     def id; "scrabble"; end
     def name; _("Scrabble"); end
     def maximum_players; 4; end

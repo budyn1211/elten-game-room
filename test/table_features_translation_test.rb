@@ -16,4 +16,5 @@ sources.each do |english, polish|
   raise "Translation lost placeholders" unless english.scan(/%\{[^}]+\}/).sort == polish.scan(/%\{[^}]+\}/).sort
 end
 raise "Saved games heading not Polish" unless catalog["Saved games"] == "Zapisane gry"
+raise "Transferred master is incorrectly called the table creator" unless catalog["table master"] == "gospodarz stołu"
 puts "Table settings, material counters, saved games and invitations: #{sources.length} Polish translations OK"

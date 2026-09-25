@@ -1,4 +1,4 @@
-require_relative "tysiac_two_player_test"
+require_relative "support/tysiac_two_player"
 require_relative "../lib/saved_games"
 
 class TysiacSaveMemory

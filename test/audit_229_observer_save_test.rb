@@ -1,4 +1,4 @@
-require_relative "saved_games_ui_test"
+require_relative "support/saved_games_ui"
 
 broker = NativeLiveSessionsBroker.new
 app = SaveAppDriver.new(broker)
@@ -22,7 +22,7 @@ env.events.each do |event|
 end
 $game_room_test_user = "Alice"
 assert(app.send(:save_current_game,table,session,game), "observer owner could not save")
-saved = app.send(:saved_games).list.first
+saved = app.send(:saved_games).fetch(app.send(:saved_games).list.first["id"])
 assert(saved["players"] == %w[Bob Carol] && saved["owner"] == "Alice", "owner substituted for player")
 assert(saved["events"].length == 1, "save fixture has no actual move")
 new_table = app.send(:create_saved_game_table,saved)
@@ -39,7 +39,7 @@ replayed = game.replay(snapshot.session,snapshot.events,app.games)
 assert(replayed.board == env.replay.board && replayed.current_player == "Carol", "restore lost board or next player")
 assert(app.room_state(new_table).room.observers.include?("Alice"), "start removed observer role")
 begin
-  SavedGames.new(app,owner: "Bob").validate(saved,game: game)
+  GameRoomSavedGameArchive.new(app,owner: "Bob").validate(saved,game: game)
   raise "foreign archive accepted"
 rescue ArgumentError
 end

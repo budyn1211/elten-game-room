@@ -1,6 +1,7 @@
 require "digest"
 require_relative "base"
 require_relative "../lib/card_deck_history"
+require_relative "../lib/game_random"
 
 require_relative "../lib/game_room_localization"
 
@@ -29,12 +30,7 @@ module GameRoomGames
       seed_text = seed.to_s
       numeric_seed = seed_text.match?(/\A[0-9a-f]+\z/i) ? seed_text.to_i(16) : Digest::SHA256.hexdigest(seed_text).to_i(16)
       random = Random.new(numeric_seed)
-      shuffled = cards.to_a.dup
-      (shuffled.length - 1).downto(1) do |index|
-        other = random.rand(index + 1)
-        shuffled[index], shuffled[other] = shuffled[other], shuffled[index]
-      end
-      shuffled
+      GameRoomRandom.shuffle(cards, random: random)
     end
 
     def card_seed(source)

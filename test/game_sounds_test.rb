@@ -4,6 +4,7 @@ end
 
 require "json"
 require_relative "../lib/game_sounds"
+require_relative "support/sound_models"
 
 def assert(condition, message)
   raise message if !condition
@@ -16,13 +17,11 @@ Replay = Struct.new(:players, :winner, :draw, :state, :history, keyword_init: tr
 end
 History = Struct.new(:event_id, :kind, :key, :actor, :value, keyword_init: true)
 
+# Keep generic result fixtures independent of a complete game state, while
+# action cues use the actual model-owned contract rather than its old ID switch.
 class SoundGame
-  attr_reader :id
-
-  def initialize(id)
-    @id = id
-  end
-
+  def initialize(id); @model = GameRoomSoundModels.game(id); end
+  def event_sound_cues(**data); @model.event_sound_cues(**data); end
   def bot_reward(replay, viewer)
     GameRoomParticipants.same?(replay.winner, viewer) ? 1.0 : -1.0
   end
@@ -93,6 +92,13 @@ assert(cue("spades", { "id" => 2, "action" => "play", "value" => "AS" }, playing
 assert(cue("spades", { "id" => 3, "action" => "play", "value" => "AH" }, playing, playing, repository, viewer) == "play", "ordinary Spades card did not use play")
 
 before_32 = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: { total: 32, eliminated: { viewer => false, "Bob" => false } }, history: [])
+three_five_eight = Replay.new(players: [viewer, "Bob", "Carol"], winner: nil, draw: false, state: { contract: "H" }, history: [])
+assert(cue("three_five_eight", { "id" => 31, "action" => "deal" }, playing, three_five_eight, repository, viewer) == "shuffle", "3-5-8 did not shuffle on a deal")
+assert(cue("three_five_eight", { "id" => 32, "action" => "choose_contract" }, playing, three_five_eight, repository, viewer) == nil, "3-5-8 contract selection bypassed the shared own-turn preference")
+assert(cue("three_five_eight", { "id" => 33, "action" => "play", "value" => "AH" }, playing, three_five_eight, repository, viewer) == %w[play draw2], "3-5-8 trump did not layer its sound")
+assert(cue("three_five_eight", { "id" => 34, "action" => "discard", "value" => "2C" }, playing, three_five_eight, repository, viewer) == "draw", "3-5-8 discard has no sound")
+three_five_eight.history = [History.new(event_id: 35, kind: :round_result, actor: viewer, value: 5)]
+assert(cue("three_five_eight", { "id" => 35, "action" => "play", "value" => "2C" }, playing, three_five_eight, repository, viewer) == %w[play win1], "3-5-8 positive round result has no sound")
 after_34 = Replay.new(players: [viewer, "Bob"], winner: nil, draw: false, state: { total: 34, eliminated: { viewer => false, "Bob" => false } }, history: [])
 assert(cue("ninety_nine", { "id" => 4, "action" => "play", "value" => "05C|normal" }, before_32, after_34, repository, viewer) == ["play", "draw2"], "crossing 33 did not layer draw2 over the card sound")
 

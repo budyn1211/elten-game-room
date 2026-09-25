@@ -48,19 +48,34 @@ module GameRoomGames
     BARREL_DISTANCE = 120
     BARREL_DEALS = 3
 
+    def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
+      action = event["action"].to_s
+      return "shuffle" if action == "deal"
+      return nil if action != "play"
+
+      mode, card = event["value"].to_s.split("|", 2)
+      trump = after_replay&.state.to_h[:trump].to_s
+      cues = ["play"]
+      cues << "draw2" if !trump.empty? && card.to_s.end_with?(trump)
+      if mode == "marriage" && history.any? { |entry| entry.kind == :play }
+        cues << "1000_mariage"
+      end
+      cues
+    end
+
     def id
       "tysiac"
     end
 
     def name
-      _("Tysiac")
+      _("1000 card game")
     end
 
     def rule_sections
       # Generated from docs/rulebooks/tysiac.json; see tools/compile-rulebooks.rb.
       [
         rule_section(:auction, GameRoomRules.translate("Win the auction, then fulfil your promise"),
-          GameRoomRules.translate("Tysiac is played individually, by two or three people. Choose the player count when creating the table; the default is three. The deck has 24 cards: nine, jack, queen, king, ten and ace in every suit. Players bid for the right to take a talon. The winning bidder promises to collect at least the contracted number of points during the deal."),
+          GameRoomRules.translate("The 1000 card game is played individually, by two or three people. Choose the player count when creating the table; the default is three. The deck has 24 cards: nine, jack, queen, king, ten and ace in every suit. Players bid for the right to take a talon. The winning bidder promises to collect at least the contracted number of points during the deal."),
           GameRoomRules.translate("The player after the dealer opens at no less than 100. Later bids rise in steps of five. Passing removes you from this auction, not from the game. You may bid up to 120 plus the values of the marriages you currently hold, with an overall maximum of 400. A marriage is a king and queen of the same suit."),
           GameRoomRules.translate("With three players, each receives seven cards and the three remaining cards form one talon. The auction winner takes those three revealed cards, then gives one card to each opponent in the announced order. Each recipient learns only their own card. Everyone then has eight cards, to be played in eight tricks."),
           GameRoomRules.translate("Once the cards have been given away or set aside, the bidder can raise the final contract within the limit allowed by the marriages still held. Playing the first card accepts the current contract, so a second bid is not compulsory.")),
@@ -178,7 +193,7 @@ module GameRoomGames
 
     def option_definitions
       [
-        OptionDefinition.new(key: "variant", label: _("Tysiac variant"), kind: :choice, default: "three_players", choices: [
+        OptionDefinition.new(key: "variant", label: _("1000 card game variant"), kind: :choice, default: "three_players", choices: [
           OptionChoice.new(value: "three_players", label: _("Three players")),
           OptionChoice.new(value: "two_players", label: _("Two players"))
         ]),
@@ -203,7 +218,7 @@ module GameRoomGames
       return _("The target score must be at least 200 and divisible by 5.") if target < 200 || target % 5 != 0
       required = values["variant"] == "two_players" ? 2 : 3
       if player_count != nil && player_count.to_i != required
-        return _("This Tysiac variant requires exactly %{count} players.") % { count: required }
+        return _("This 1000 card game variant requires exactly %{count} players.") % { count: required }
       end
 
       nil
@@ -552,9 +567,6 @@ module GameRoomGames
       return prompt if prompt != nil
       if replay.state[:phase] == :choosing_talon && same_user?(replay.current_player, viewer)
         return _("Choose a talon.")
-      end
-      if replay.state[:phase] == :auction && same_user?(replay.current_player, viewer)
-        return _("Press Enter to bid.")
       end
 
       super
@@ -1352,10 +1364,6 @@ module GameRoomGames
       hand.include?("K#{suit}") && hand.include?("Q#{suit}")
     end
 
-    def has_marriage?(hand)
-      SUITS.any? { |suit| hand.include?("K#{suit}") && hand.include?("Q#{suit}") }
-    end
-
     def maximum_bid_for_hand(hand)
       marriage_points = SUITS.sum do |suit|
         hand.include?("K#{suit}") && hand.include?("Q#{suit}") ? MARRIAGE_POINTS.fetch(suit) : 0
@@ -1427,10 +1435,6 @@ module GameRoomGames
       )
     end
 
-    def plain_surface_card(card)
-      GameSurfaces::Card.new(id: card, label: card_label(card), value: card)
-    end
-
     def hand_header(state, viewer)
       passing_prompt(state, viewer) || _("Your hand")
     end
@@ -1486,25 +1490,6 @@ module GameRoomGames
             payload: {}
           )
         ]
-      )
-    end
-
-    def auction_question(state, viewer)
-      values = legal_bid_values(state, viewer)
-      GameSurfaces::QuestionSpec.new(
-        id: "auction_bid",
-        prompt: _("Choose a bid or pass"),
-        mode: :single_choice,
-        options: values.map do |value|
-          GameSurfaces::QuestionOption.new(
-            id: value.to_s,
-            label: value.to_s == "pass" ? _("Pass") : value.to_s,
-            value: value
-          )
-        end,
-        value: values.first,
-        required: true,
-        submit_on_select: true
       )
     end
 

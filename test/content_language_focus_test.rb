@@ -1,4 +1,4 @@
-require_relative "game_option_form_test"
+require_relative "support/game_option_form"
 
 # Actual games, same controls, multiple changes without a second Form#wait.
 [GameRoomGames::QuizParty.new, GameRoomGames::Taboo.new].each do |game|
