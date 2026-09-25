@@ -1,14 +1,10 @@
 require_relative 'support/parallel_scene_native'
+require_relative 'support/native_live_endpoint'
 
-endpoint = EltenAPI::LiveSessions::Endpoint.allocate
-endpoint.instance_variable_set(:@mutex, Mutex.new)
-endpoint.instance_variable_set(:@closed, false)
-endpoint.instance_variable_set(:@callback_queue, SizedQueue.new(1000))
-endpoint.instance_variable_set(:@callback_bytes, 0)
-endpoint.define_singleton_method(:protocol_tick) { raise 'Unexpected network work in UI' }
+program = Object.new
+endpoint = NativeLiveEndpointFixture.build(context: program)
 store = GameRoomLiveSessionStore.new(nil, endpoint_provider: -> { raise 'Unexpected lazy connection' })
 store.instance_variable_set(:@endpoint, endpoint)
-program = Object.new
 program.define_singleton_method(:dispatch_pending_game_room_events) { store.dispatch_pending_events }
 
 

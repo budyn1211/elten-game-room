@@ -321,4 +321,21 @@ polish_238, english_238 = document_238.split('## English', 2)
   assert(actual == expected.take(7) && section.strip.end_with?(expected.last), 'build 238 approved text or arcade note changed')
 end
 
-puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, old notes preserved and bilingual build 238 notes"
+entry_239 = entries.find { |entry| entry.build == 239 }
+assert(entry_239.version == '2.0.4' && entry_239.changes.length == 14 && entry_239.changes.uniq.length == 14,
+  'build 239 must contain the approved changes and minimum ELTEN version')
+assert(entry_239.changes.first == 'This version requires ELTEN 3.0.4 or later.', 'minimum ELTEN version missing')
+assert(entry_239.changes.all? { |text| !catalog[text].to_s.empty? }, 'build 239 has an untranslated change')
+assert(GameRoomChangelog.pending_entries(238, 239).map(&:build) == [239], 'build 239 repeats older changes')
+assert(GameRoomChangelog.pending_entries(nil, 239).map(&:build) == [239], 'first build 239 launch repeats history')
+assert(GameRoomChangelog.pending_entries(239, 239).empty?, 'build 239 reopens after being read')
+assert(GameRoomChangelog.list_items([entry_239]).first == 'Version 2.0.4, build 239', 'build 239 heading differs')
+document_239 = File.read(File.expand_path('../docs/CHANGELOG_2_0_4.md', __dir__), encoding: 'UTF-8')
+assert(document_239.start_with?('# Game Room 2.0.4 — build 239'), 'build 239 document heading differs')
+polish_239, english_239 = document_239.split('## English', 2)
+[polish_239, english_239].zip([entry_239.changes.map { |text| catalog.fetch(text) }, entry_239.changes]).each do |section, expected|
+  actual = section.lines.grep(/^- /).map { |line| line.delete_prefix('- ').strip }
+  assert(actual == expected, 'build 239 approved text differs between the document and runtime')
+end
+
+puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, old notes preserved and bilingual build 239 notes"

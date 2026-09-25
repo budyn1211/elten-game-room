@@ -45,6 +45,29 @@ def start_app(primary, known: [primary], catalogs: {})
   GameRoomLanguageRuntime::Runtime.new(settings: settings, catalogs: catalogs).start
 end
 
+test("host protection still detects direct native dictionary changes") do
+  install_host(host_source, "pl-PL")
+  dictionary = EltenAPI::Dictionary
+  current_catalogs = dictionary.const_defined?(:Catalogs, false)
+  entries = dictionary.const_get(current_catalogs ? :Catalogs : :Translations)
+  mutex = current_catalogs ? dictionary.const_get(:CatalogMutex) : Mutex.new
+  saved = mutex.synchronize { entries.dup }
+  before = GameRoomLanguageRuntime.host_snapshot
+  detected = nil
+  begin
+    begin
+      GameRoomLanguageRuntime.protect_host { mutex.synchronize { entries.clear } }
+    rescue RuntimeError => error
+      detected = error.message
+    end
+    assert_equal("Game Room modified the host dictionary, language or translation methods", detected,
+      "Host protection ignored a direct dictionary mutation")
+  ensure
+    mutex.synchronize { entries.replace(saved) }
+  end
+  assert_equal(before, GameRoomLanguageRuntime.host_snapshot, "Guard regression did not restore the host dictionary")
+end
+
 def verify_real_ui(runtime, language)
   ns = runtime.namespace
   app = ns.const_get(:EltenGameRoom, false)

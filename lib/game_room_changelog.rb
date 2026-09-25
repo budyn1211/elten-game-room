@@ -265,6 +265,26 @@ module GameRoomChangelog
         "Added missing Polish messages, including the notice that Daily Krowa requires a private table.",
         "Axel Pong and Audio Ball still pause when you switch to another ELTEN window: their controls require the game field to be active. The background-play changes apply to the other games."
       ].freeze
+    ).freeze,
+    Entry.new(
+      version: "2.0.4",
+      build: 239,
+      changes: [
+        "This version requires ELTEN 3.0.4 or later.",
+        "Added 3-5-8 by Guliwer777: a card game for three players, with trick-taking, contract selection and card exchanges between deals. You can also play against bots.",
+        "Added Czech and Spanish interface translations by balteam. Choose the language in Settings > General. These translations do not include game rules. Tysiac is now called 1000 card game in English.",
+        "The table master can transfer ownership to another person with Ctrl+M. Leaving no longer automatically closes the whole table: another participant takes over, including control of the bots.",
+        "Participants can be replaced during a game. Select a player or bot in the Users list and press Ctrl+Shift+R. You can give their seat to a present observer or replace a person with a new bot if the game supports bots. The hand, score and team position are preserved, and the replaced person can keep watching.",
+        "In games that support bots, a player who leaves is automatically replaced by a bot. They return as an observer, and the table master can give them a seat again.",
+        "Saved games are stored on your account, not only on the computer where you saved them. You can resume them after signing in on another device.",
+        "In Settings > General, choose whether game announcements and the sound for your turn are heard outside the table window. The same settings apply in other ELTEN windows and when you switch to another program.",
+        "Table lists and the widget show more accurate participant counts and whether a table is waiting for players or a game is already in progress.",
+        "Fixed creating trade offers in Monopoly. The game should no longer get stuck after announcing that a player is preparing an offer.",
+        "Improved rejoining tables and updating participants, hands and turns after replacing a player or changing the table master.",
+        "Fixed the card-correction and turn-replay dialogs in Taboo. In Krowa, deleted words no longer reappear after drawing another word, and Daily Krowa synchronisation now includes longer histories.",
+        "Lack of access to server tables no longer blocks the entire Settings window. Settings that do not need that access remain available.",
+        "Reduced unnecessary calculations when updating games and planning bot moves, and limited the retention of unneeded data from tables you have left."
+      ].freeze
     ).freeze
   ].freeze
 

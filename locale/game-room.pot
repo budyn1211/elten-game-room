@@ -234,7 +234,7 @@ msgstr ""
 msgid "%{deck}; score limit %{score}; draw responses: %{responses}; optional draw limit: %{draws}; thinking time: %{time}; bot delay: %{delay} s"
 msgstr ""
 
-#: games/three_five_eight.rb:134
+#: games/three_five_eight.rb:146
 msgid "%{exchange}; 18 deals"
 msgstr ""
 
@@ -305,15 +305,15 @@ msgstr ""
 msgid "%{game}; %{table}; invited by %{sender}; %{count}/%{maximum}"
 msgstr ""
 
-#: games/three_five_eight.rb:542
+#: games/three_five_eight.rb:582
 msgid "%{giver} completed an exchange with %{target}."
 msgstr ""
 
-#: games/three_five_eight.rb:520
+#: games/three_five_eight.rb:560
 msgid "%{giver} exchanged one card with %{target}."
 msgstr ""
 
-#: games/three_five_eight.rb:511
+#: games/three_five_eight.rb:551
 msgid "%{giver} gave a trump card to %{target}; %{target} chooses the return card."
 msgstr ""
 
@@ -626,7 +626,7 @@ msgstr ""
 msgid "%{player} chose %{colour}."
 msgstr ""
 
-#: games/three_five_eight.rb:483
+#: games/three_five_eight.rb:523
 msgid "%{player} chose %{contract}."
 msgstr ""
 
@@ -718,7 +718,7 @@ msgstr ""
 msgid "%{player} did not serve in time. The opponent receives a point."
 msgstr ""
 
-#: games/three_five_eight.rb:570
+#: games/three_five_eight.rb:610
 msgid "%{player} discarded a card to the kitty (%{count} of 4)."
 msgstr ""
 
@@ -807,7 +807,7 @@ msgid_plural "%{player} faces a penalty of %{count} waiting turns."
 msgstr[0] ""
 msgstr[1] ""
 
-#: games/three_five_eight.rb:553
+#: games/three_five_eight.rb:593
 msgid "%{player} finished exchanging cards."
 msgstr ""
 
@@ -1107,7 +1107,7 @@ msgstr ""
 msgid "%{player} played %{cards}."
 msgstr ""
 
-#: games/spades.rb:2476 games/three_five_eight.rb:591 games/tysiac.rb:869 games/uno.rb:755
+#: games/spades.rb:2476 games/three_five_eight.rb:631 games/tysiac.rb:869 games/uno.rb:755
 msgid "%{player} played %{card}."
 msgstr ""
 
@@ -1559,7 +1559,7 @@ msgstr ""
 msgid "%{player} won the trick for %{points} card points."
 msgstr ""
 
-#: games/spades.rb:2491 games/three_five_eight.rb:598
+#: games/spades.rb:2491 games/three_five_eight.rb:638
 msgid "%{player} won the trick."
 msgstr ""
 
@@ -1684,7 +1684,7 @@ msgstr ""
 msgid "%{player}: %{cards} points for opponents' cards and %{bonus} bonus points."
 msgstr ""
 
-#: games/base.rb:857 games/spades.rb:2626 games/three_five_eight.rb:825 games/tysiac.rb:1524
+#: games/base.rb:857 games/spades.rb:2626 games/three_five_eight.rb:999 games/tysiac.rb:1524
 msgid "%{player}: %{card}"
 msgstr ""
 
@@ -1737,7 +1737,7 @@ msgstr ""
 msgid "%{player}: %{result}"
 msgstr ""
 
-#: games/biblios.rb:1308 games/cat_head_tail.rb:394 games/farkle.rb:695 games/three_five_eight.rb:830 games/tysiac.rb:1535 games/uno.rb:1536 games/yahtzee.rb:525
+#: games/biblios.rb:1308 games/cat_head_tail.rb:394 games/farkle.rb:695 games/three_five_eight.rb:1004 games/tysiac.rb:1535 games/uno.rb:1536 games/yahtzee.rb:525
 msgid "%{player}: %{score}"
 msgstr ""
 
@@ -1767,7 +1767,7 @@ msgstr ""
 msgid "%{player}: %{tricks}/%{bid}"
 msgstr ""
 
-#: games/three_five_eight.rb:836
+#: games/three_five_eight.rb:1010
 msgid "%{player}: %{tricks}/%{target}"
 msgstr ""
 
@@ -1826,7 +1826,7 @@ msgstr ""
 msgid "%{player}: third zero."
 msgstr ""
 
-#: games/three_five_eight.rb:624
+#: games/three_five_eight.rb:664
 msgid "%{player}: tricks won %{tricks}, target %{target}, points this deal %{points}, total score %{score}."
 msgstr ""
 
@@ -1874,7 +1874,7 @@ msgstr ""
 msgid "%{property}; group ownership %{owned} of %{total}."
 msgstr ""
 
-#: games/card_game.rb:61 games/makao.rb:921 games/makao.rb:928 games/ninety_nine.rb:1044 games/poker.rb:1293 games/spades.rb:2822 games/three_five_eight.rb:919 games/tysiac.rb:1626
+#: games/card_game.rb:61 games/makao.rb:921 games/makao.rb:928 games/ninety_nine.rb:1044 games/poker.rb:1293 games/spades.rb:2822 games/three_five_eight.rb:1093 games/tysiac.rb:1626
 msgid "%{rank} of %{suit}"
 msgstr ""
 
@@ -1941,7 +1941,7 @@ msgstr ""
 msgid "%{status}; %{name}; host: %{owner}; users: %{users}; %{count}/%{maximum}"
 msgstr ""
 
-#: games/three_five_eight.rb:850
+#: games/three_five_eight.rb:1024
 msgid "%{suit} as trump"
 msgstr ""
 
@@ -2062,7 +2062,7 @@ msgstr ""
 msgid "%{variant}; 3 to 9 letters"
 msgstr ""
 
-#: games/spades.rb:2539 games/spades.rb:710 games/three_five_eight.rb:391
+#: games/spades.rb:2539 games/spades.rb:710 games/three_five_eight.rb:431
 msgid "%{winner} won the game."
 msgstr ""
 
@@ -2117,7 +2117,7 @@ msgstr ""
 msgid "1 to 6: select one kept die with that value for rerolling. Repeating a number selects further dice of that value, not a position on the list."
 msgstr ""
 
-#: games/card_game.rb:54 games/three_five_eight.rb:24
+#: games/card_game.rb:54 games/three_five_eight.rb:35
 msgid "10"
 msgstr ""
 
@@ -2195,11 +2195,11 @@ msgstr ""
 msgid "3, 4, 5 and 6 add that many points to the current turn total. These points are not safe until you bank them."
 msgstr ""
 
-#: games/three_five_eight.rb:61
+#: games/three_five_eight.rb:73
 msgid "3-5-8"
 msgstr ""
 
-#: games/three_five_eight.rb:68
+#: games/three_five_eight.rb:80
 msgid "3-5-8 is an individual game for exactly three players, using all 52 cards. Each player receives 16 cards and four cards form the kitty. The player to the dealer's left chooses the contract after seeing their first six cards, then receives the rest of their hand."
 msgstr ""
 
@@ -2805,6 +2805,10 @@ msgstr ""
 msgid "Added %{bot}."
 msgstr ""
 
+#: lib/game_room_changelog.rb:274
+msgid "Added 3-5-8 by Guliwer777: a card game for three players, with trick-taking, contract selection and card exchanges between deals. You can also play against bots."
+msgstr ""
+
 #: lib/game_room_changelog.rb:239
 msgid "Added Audio Ball by budyn1211, known on ELTEN as balteam: an audio game for two players, against another person or a bot. Recognize three shot sounds, choose the matching defence and prepare your return. Sets are played to seven points with a two-point lead; choose one, two or three sets to win."
 msgstr ""
@@ -2829,6 +2833,10 @@ msgstr ""
 
 #: lib/game_room_changelog.rb:202
 msgid "Added Cat, head, tail by TD Programs: a dice game for 2–8 players. Roll an eight-sided die and decide when to bank your points. Includes bots and Polish and English rules."
+msgstr ""
+
+#: lib/game_room_changelog.rb:275
+msgid "Added Czech and Spanish interface translations by balteam. Choose the language in Settings > General. These translations do not include game rules. Tysiac is now called 1000 card game in English."
 msgstr ""
 
 #: lib/game_room_changelog.rb:147
@@ -2908,7 +2916,7 @@ msgstr ""
 msgid "After a word ends, the solution is revealed. The Word definition button opens its SJP description; a missing description also remains readable."
 msgstr ""
 
-#: games/three_five_eight.rb:70
+#: games/three_five_eight.rb:82
 msgid "After any exchanges, the chooser reveals the four-card kitty, adds it to their hand and discards four cards face down. The chooser leads the first trick. The winner of every trick leads the next one."
 msgstr ""
 
@@ -2971,7 +2979,7 @@ msgstr ""
 msgid "After selecting a game to create a table, focus starts on the opening instructions again. Tab then moves to Private table and the game settings."
 msgstr ""
 
-#: games/three_five_eight.rb:81
+#: games/three_five_eight.rb:93
 msgid "After the eighteenth deal, the player with the highest total score wins. Equal highest totals produce a shared draw."
 msgstr ""
 
@@ -3352,7 +3360,7 @@ msgstr ""
 msgid "Arrows choose a tile; Enter opens the train list if that tile has any legal destination. The list includes every train, even closed ones, so you can make a conscious choice. Enter on an unavailable destination explains a closed train, a mismatch or the required double and its owner. If the tile cannot go anywhere, the game says so without opening the list. Escape returns to the same tile."
 msgstr ""
 
-#: games/three_five_eight.rb:83
+#: games/three_five_eight.rb:95
 msgid "Arrows: browse cards or available commands."
 msgstr ""
 
@@ -4176,7 +4184,7 @@ msgstr ""
 msgid "C: read the top card."
 msgstr ""
 
-#: games/spades.rb:234 games/three_five_eight.rb:86 games/tysiac.rb:108
+#: games/spades.rb:234 games/three_five_eight.rb:98 games/tysiac.rb:108
 msgid "C: read the trick cards."
 msgstr ""
 
@@ -4277,11 +4285,11 @@ msgstr ""
 msgid "Card effects and token penalties remain the same in both bot modes."
 msgstr ""
 
-#: games/three_five_eight.rb:116
+#: games/three_five_eight.rb:128
 msgid "Card exchange between players"
 msgstr ""
 
-#: games/three_five_eight.rb:76
+#: games/three_five_eight.rb:88
 msgid "Card exchange is available only in a trump contract. A player who scored above zero in the previous deal may exchange up to that many cards with players who scored below zero. A player with the higher target in the current deal exchanges first. You may stop before using the whole allowance."
 msgstr ""
 
@@ -4339,11 +4347,11 @@ msgstr ""
 msgid "Cards on the table"
 msgstr ""
 
-#: games/spades.rb:2631 games/three_five_eight.rb:825
+#: games/spades.rb:2631 games/three_five_eight.rb:999
 msgid "Cards on the table: %{cards}."
 msgstr ""
 
-#: games/three_five_eight.rb:72
+#: games/three_five_eight.rb:84
 msgid "Cards rank from two, the lowest, to ace, the highest. You must follow the led suit when you can, but you do not have to beat the currently winning card."
 msgstr ""
 
@@ -5145,7 +5153,7 @@ msgstr ""
 msgid "Continue without drawing"
 msgstr ""
 
-#: games/three_five_eight.rb:843
+#: games/three_five_eight.rb:1017
 msgid "Contract: %{contract}."
 msgstr ""
 
@@ -5282,7 +5290,7 @@ msgstr ""
 msgid "Ctrl"
 msgstr ""
 
-#: games/spades.rb:235 games/three_five_eight.rb:87 games/tysiac.rb:109
+#: games/spades.rb:235 games/three_five_eight.rb:99 games/tysiac.rb:109
 msgid "Ctrl+C: browse the trick cards."
 msgstr ""
 
@@ -5613,11 +5621,11 @@ msgstr ""
 msgid "Date"
 msgstr ""
 
-#: games/three_five_eight.rb:460
+#: games/three_five_eight.rb:500
 msgid "Deal %{round} of 18. %{dealer} deals; %{chooser} chooses the contract from the first six cards."
 msgstr ""
 
-#: games/three_five_eight.rb:838
+#: games/three_five_eight.rb:1012
 msgid "Deal %{round} of 18. %{details}."
 msgstr ""
 
@@ -6178,7 +6186,7 @@ msgstr ""
 msgid "Edit this meld"
 msgstr ""
 
-#: games/three_five_eight.rb:67
+#: games/three_five_eight.rb:79
 msgid "Eighteen deals and six contracts"
 msgstr ""
 
@@ -6356,7 +6364,7 @@ msgstr ""
 msgid "Enter your bid. Allowed values: %{values}."
 msgstr ""
 
-#: games/three_five_eight.rb:84
+#: games/three_five_eight.rb:96
 msgid "Enter: choose a contract, exchange or return a card, discard to the kitty, or play the selected card."
 msgstr ""
 
@@ -6580,11 +6588,11 @@ msgstr ""
 msgid "Exchange one to seven tiles only when at least eight remain in the bag. Returned tiles go into the bag before shuffling and drawing replacements, so the same tile may return. Exchanging or passing ends the turn. Neither action commits a draft."
 msgstr ""
 
-#: games/three_five_eight.rb:334
+#: games/three_five_eight.rb:374
 msgid "Exchange with %{player}"
 msgstr ""
 
-#: games/three_five_eight.rb:74
+#: games/three_five_eight.rb:86
 msgid "Exchanging cards after the first deal"
 msgstr ""
 
@@ -6632,7 +6640,7 @@ msgstr ""
 msgid "F: read how many squares of your fleet remain afloat."
 msgstr ""
 
-#: games/three_five_eight.rb:88
+#: games/three_five_eight.rb:100
 msgid "F: read the current contract and trump suit."
 msgstr ""
 
@@ -6758,7 +6766,7 @@ msgstr ""
 msgid "Finish answering"
 msgstr ""
 
-#: games/three_five_eight.rb:797
+#: games/three_five_eight.rb:971
 msgid "Finish exchanging"
 msgstr ""
 
@@ -6867,6 +6875,10 @@ msgstr ""
 msgid "Fixed an unintended serve in Axel Pong after using chat. Keys used outside the game field no longer trigger a serve."
 msgstr ""
 
+#: lib/game_room_changelog.rb:282
+msgid "Fixed creating trade offers in Monopoly. The game should no longer get stuck after announcing that a player is preparing an offer."
+msgstr ""
+
 #: games/poker.rb:19
 msgid "Fixed limit"
 msgstr ""
@@ -6877,6 +6889,10 @@ msgstr ""
 
 #: lib/game_room_changelog.rb:112
 msgid "Fixed text encoding in game settings, including a Reversi checkbox crash when Game Room and ELTEN use different interface languages."
+msgstr ""
+
+#: lib/game_room_changelog.rb:284
+msgid "Fixed the card-correction and turn-replay dialogs in Taboo. In Krowa, deleted words no longer reappear after drawing another word, and Daily Krowa synchronisation now includes longer histories."
 msgstr ""
 
 #: lib/game_room_changelog.rb:146
@@ -6914,7 +6930,7 @@ msgstr ""
 msgid "Follow the ball by sound"
 msgstr ""
 
-#: games/three_five_eight.rb:71
+#: games/three_five_eight.rb:83
 msgid "Following suit"
 msgstr ""
 
@@ -6937,7 +6953,7 @@ msgstr ""
 msgid "For a category or Church card, bid an amount of Gold and pay with Gold cards. There is no change. If you bid 4 but pay with two Gold cards worth 3 each, you spend 6. For a Gold card, bid a number of cards instead: a bid of 2 means giving up two hand cards, which may be of any type. Choose the payment carefully, because useful library cards can also be spent this way."
 msgstr ""
 
-#: games/three_five_eight.rb:77
+#: games/three_five_eight.rb:89
 msgid "For a non-trump card, the recipient automatically returns their highest card of the same suit; if the received card is their only card of that suit, it simply returns. For a trump card, the recipient may instead return any non-trump card, or their highest trump. Exchanges are completed before the chooser takes the kitty."
 msgstr ""
 
@@ -7178,7 +7194,7 @@ msgstr ""
 msgid "Game invitation declined"
 msgstr ""
 
-#: games/axel_pong.rb:284 games/battleship.rb:67 games/biblios.rb:73 games/cat_head_tail.rb:38 games/categories.rb:103 games/checkers.rb:122 games/chess.rb:64 games/domino.rb:161 games/farkle.rb:54 games/four_in_a_row.rb:36 games/ludo.rb:80 games/makao.rb:92 games/mancala.rb:76 games/mexican_train.rb:124 games/monopoly.rb:105 games/ninety_nine.rb:94 games/poker.rb:105 games/quiz_party.rb:92 games/reversi.rb:56 games/rummy_ui.rb:145 games/scrabble_ui.rb:63 games/spades.rb:230 games/taboo_ui.rb:93 games/three_five_eight.rb:82 games/tic_tac_toe.rb:35 games/tysiac.rb:102 games/uno.rb:120 games/yahtzee.rb:74
+#: games/axel_pong.rb:284 games/battleship.rb:67 games/biblios.rb:73 games/cat_head_tail.rb:38 games/categories.rb:103 games/checkers.rb:122 games/chess.rb:64 games/domino.rb:161 games/farkle.rb:54 games/four_in_a_row.rb:36 games/ludo.rb:80 games/makao.rb:92 games/mancala.rb:76 games/mexican_train.rb:124 games/monopoly.rb:105 games/ninety_nine.rb:94 games/poker.rb:105 games/quiz_party.rb:92 games/reversi.rb:56 games/rummy_ui.rb:145 games/scrabble_ui.rb:63 games/spades.rb:230 games/taboo_ui.rb:93 games/three_five_eight.rb:94 games/tic_tac_toe.rb:35 games/tysiac.rb:102 games/uno.rb:120 games/yahtzee.rb:74
 msgid "Game keyboard shortcuts"
 msgstr ""
 
@@ -7335,7 +7351,7 @@ msgstr ""
 msgid "H: read who is still in and who has folded."
 msgstr ""
 
-#: games/ninety_nine.rb:98 games/three_five_eight.rb:85 games/tysiac.rb:107
+#: games/ninety_nine.rb:98 games/three_five_eight.rb:97 games/tysiac.rb:107
 msgid "H: read your hand."
 msgstr ""
 
@@ -7506,7 +7522,7 @@ msgstr ""
 msgid "If you cannot follow in a trump contract, you must play a trump. If a trump is already winning and you can overtrump it, you must. Only a player with neither the led suit nor a trump may discard another suit. No-trump and misere deals have no trump suit."
 msgstr ""
 
-#: games/three_five_eight.rb:73
+#: games/three_five_eight.rb:85
 msgid "If you cannot follow, you may play any card. You do not have to play a trump or overtrump. No-trump and misere deals have no trump suit."
 msgstr ""
 
@@ -7549,6 +7565,10 @@ msgstr ""
 
 #: lib/game_room_changelog.rb:230
 msgid "Improved communication in Axel Pong matches with bots, in both Singles and Doubles. Adding a bot no longer routes human serves and returns through the table owner's computer."
+msgstr ""
+
+#: lib/game_room_changelog.rb:283
+msgid "Improved rejoining tables and updating participants, hands and turns after replacing a player or changing the table master."
 msgstr ""
 
 #: lib/game_room_changelog.rb:135
@@ -7627,6 +7647,10 @@ msgstr ""
 msgid "In Random word, the Draw another word button lets you replace the current word without creating another table. You can use it before the first attempt or later, after submitted attempts have been checked. The previous solution is revealed and the attempts reset; this is not a win and gives no gallery or leaderboard result. Only the player can use it, not observers. The Race host has a similar button that resets every player's attempts and time. Neither Daily Krowa nor Word Tower allows rerolling."
 msgstr ""
 
+#: lib/game_room_changelog.rb:280
+msgid "In Settings > General, choose whether game announcements and the sound for your turn are heard outside the table window. The same settings apply in other ELTEN windows and when you switch to another program."
+msgstr ""
+
 #: games/axel_pong.rb:256
 msgid "In Single, the first server is chosen at the start of a human match; against a bot, the human starts. Service changes after every two completed points. After a point there is a three-second break for the goal recording, followed by the score and a further 2.7-second serve delay. You can reposition your paddle during this pause, but serving requires a new press after it ends."
 msgstr ""
@@ -7665,7 +7689,7 @@ msgstr ""
 msgid "In an auction the list offers Pass and a range of bids; a bid you cannot cover is marked, because you may bid more than you hold and accept the penalty. R bids any other amount. To pay, use Shift+Enter to add each card to the packet and Enter to send it, or choose Do not pay from the same list."
 msgstr ""
 
-#: games/three_five_eight.rb:79
+#: games/three_five_eight.rb:91
 msgid "In an ordinary deal the dealer's target is 3 tricks, the player to the dealer's right needs 5, and the chooser to the dealer's left needs 8. Your score for the deal is tricks won minus your target. The three changes therefore always total zero."
 msgstr ""
 
@@ -7685,6 +7709,10 @@ msgstr ""
 
 #: games/rummy_ui.rb:136
 msgid "In either scoring mode, the score limit can be any whole number from 1 to 100000. Changing it alters when the match ends, not the values of cards or penalties."
+msgstr ""
+
+#: lib/game_room_changelog.rb:278
+msgid "In games that support bots, a player who leaves is automatically replaced by a bot. They return as an observer, and the table master can give them a seat again."
 msgstr ""
 
 msgid "In normal mode you score cards you place on the table. Taking a card subtracts its old table value from your score; laying it down again adds its new value. Replacing a joker with an equal natural card gives no artificial extra points. The round winner also receives the value of all opponents' remaining cards."
@@ -8104,6 +8132,10 @@ msgid "L: read your library."
 msgstr ""
 
 msgid "L: your library. Ctrl+L: browse it by category. C: Scriptorium. Shift+C: standings based on openly taken cards, not hidden hands. G: your Gold. P: public space. B: auction. T: turn. S: final scores when the game ends."
+msgstr ""
+
+#: lib/game_room_changelog.rb:285
+msgid "Lack of access to server tables no longer blocks the entire Settings window. Settings that do not need that access remain available."
 msgstr ""
 
 msgid "Landing on an opponent outside a safe starting field sends that pawn back to its base. All four entry fields are safe. With blockades enabled, two opposing pawns on one track field prevent passage or landing while moving along the track. Your own pair does not block your other pawns; entry from the base is handled separately."
@@ -8627,7 +8659,7 @@ msgstr ""
 msgid "Minimum score to enter the game"
 msgstr ""
 
-#: games/three_five_eight.rb:80
+#: games/three_five_eight.rb:92
 msgid "Misere reverses the targets: the dealer may take at most 8 tricks, the player to the dealer's right at most 5, and the chooser at most 3. Your score is the limit minus tricks won, so avoiding tricks earns points and exceeding the limit loses points."
 msgstr ""
 
@@ -8981,7 +9013,7 @@ msgstr ""
 msgid "No complete five-card combination yet."
 msgstr ""
 
-#: games/three_five_eight.rb:842
+#: games/three_five_eight.rb:1016
 msgid "No contract has been chosen yet."
 msgstr ""
 
@@ -9577,6 +9609,10 @@ msgstr ""
 
 #: games/krowa_support/leaderboards.rb:171
 msgid "Participants"
+msgstr ""
+
+#: lib/game_room_changelog.rb:277
+msgid "Participants can be replaced during a game. Select a player or bot in the Users list and press Ctrl+Shift+R. You can give their seat to a present observer or replace a person with a new bot if the game supports bots. The hand, score and team position are preserved, and the replaced person can keep watching."
 msgstr ""
 
 #: games/biblios.rb:1112 games/tysiac.rb:1394 games/tysiac.rb:1501
@@ -10417,6 +10453,10 @@ msgstr ""
 msgid "Reduced interface stalls when receiving new-table notifications for subscribed games. Existing filters, volume settings and removal of outdated notifications are preserved."
 msgstr ""
 
+#: lib/game_room_changelog.rb:286
+msgid "Reduced unnecessary calculations when updating games and planning bot moves, and limited the retention of unneeded data from tables you have left."
+msgstr ""
+
 #: games/monopoly.rb:92
 msgid "Regional board details"
 msgstr ""
@@ -10957,7 +10997,7 @@ msgstr ""
 msgid "S: read scores and bags."
 msgstr ""
 
-#: games/axel_pong.rb:290 games/domino.rb:172 games/farkle.rb:59 games/makao.rb:107 games/mexican_train.rb:134 games/quiz_party.rb:98 games/rummy_ui.rb:162 games/scrabble_ui.rb:77 games/three_five_eight.rb:90 games/tysiac.rb:114 games/uno.rb:134 games/yahtzee.rb:82
+#: games/axel_pong.rb:290 games/domino.rb:172 games/farkle.rb:59 games/makao.rb:107 games/mexican_train.rb:134 games/quiz_party.rb:98 games/rummy_ui.rb:162 games/scrabble_ui.rb:77 games/three_five_eight.rb:102 games/tysiac.rb:114 games/uno.rb:134 games/yahtzee.rb:82
 msgid "S: read scores."
 msgstr ""
 
@@ -11026,6 +11066,10 @@ msgstr ""
 
 #: __app.rb:221 __app.rb:873
 msgid "Saved games"
+msgstr ""
+
+#: lib/game_room_changelog.rb:279
+msgid "Saved games are stored on your account, not only on the computer where you saved them. You can resume them after signing in on another device."
 msgstr ""
 
 #: games/krowa_support/client.rb:275
@@ -11367,7 +11411,7 @@ msgstr ""
 msgid "Shift+C: read standings based on publicly taken cards."
 msgstr ""
 
-#: games/makao.rb:109 games/ninety_nine.rb:104 games/rummy_ui.rb:164 games/spades.rb:243 games/three_five_eight.rb:94 games/tysiac.rb:116 games/uno.rb:136
+#: games/makao.rb:109 games/ninety_nine.rb:104 games/rummy_ui.rb:164 games/spades.rb:243 games/three_five_eight.rb:106 games/tysiac.rb:116 games/uno.rb:136
 msgid "Shift+C: sort by suit or colour; press again to reverse the order."
 msgstr ""
 
@@ -11450,7 +11494,7 @@ msgstr ""
 msgid "Shift+H: sell buildings."
 msgstr ""
 
-#: games/makao.rb:110 games/ninety_nine.rb:105 games/rummy_ui.rb:165 games/spades.rb:244 games/three_five_eight.rb:95 games/tysiac.rb:117 games/uno.rb:137
+#: games/makao.rb:110 games/ninety_nine.rb:105 games/rummy_ui.rb:165 games/spades.rb:244 games/three_five_eight.rb:107 games/tysiac.rb:117 games/uno.rb:137
 msgid "Shift+H: sort by rank or value; press again to reverse the order."
 msgstr ""
 
@@ -11470,7 +11514,7 @@ msgstr ""
 msgid "Shift+M: during exchange, restore the order in which cards were received."
 msgstr ""
 
-#: games/makao.rb:111 games/ninety_nine.rb:106 games/rummy_ui.rb:166 games/spades.rb:245 games/three_five_eight.rb:96 games/tysiac.rb:118 games/uno.rb:138
+#: games/makao.rb:111 games/ninety_nine.rb:106 games/rummy_ui.rb:166 games/spades.rb:245 games/three_five_eight.rb:108 games/tysiac.rb:118 games/uno.rb:138
 msgid "Shift+M: restore the order in which cards were received."
 msgstr ""
 
@@ -11564,7 +11608,7 @@ msgstr ""
 msgid "Shift+Z: previous legal card; only move the cursor if a value choice is needed."
 msgstr ""
 
-#: games/spades.rb:241 games/three_five_eight.rb:93
+#: games/spades.rb:241 games/three_five_eight.rb:105
 msgid "Shift+Z: previous legal card; play it automatically if it is the only unambiguous option."
 msgstr ""
 
@@ -12049,7 +12093,7 @@ msgstr ""
 msgid "T: read whose turn it is and any double that must be covered."
 msgstr ""
 
-#: games/battleship.rb:77 games/biblios.rb:89 games/checkers.rb:132 games/chess.rb:72 games/domino.rb:173 games/farkle.rb:60 games/four_in_a_row.rb:39 games/ludo.rb:92 games/makao.rb:108 games/mancala.rb:83 games/ninety_nine.rb:103 games/poker.rb:124 games/reversi.rb:61 games/rummy_ui.rb:163 games/scrabble_ui.rb:78 games/spades.rb:242 games/three_five_eight.rb:91 games/tic_tac_toe.rb:38 games/tysiac.rb:115 games/uno.rb:135 games/yahtzee.rb:83
+#: games/battleship.rb:77 games/biblios.rb:89 games/checkers.rb:132 games/chess.rb:72 games/domino.rb:173 games/farkle.rb:60 games/four_in_a_row.rb:39 games/ludo.rb:92 games/makao.rb:108 games/mancala.rb:83 games/ninety_nine.rb:103 games/poker.rb:124 games/reversi.rb:61 games/rummy_ui.rb:163 games/scrabble_ui.rb:78 games/spades.rb:242 games/three_five_eight.rb:103 games/tic_tac_toe.rb:38 games/tysiac.rb:115 games/uno.rb:135 games/yahtzee.rb:83
 msgid "T: read whose turn it is."
 msgstr ""
 
@@ -12082,6 +12126,10 @@ msgstr ""
 
 #: games/categories.rb:104
 msgid "Tab: next answer field, submission control or review group."
+msgstr ""
+
+#: lib/game_room_changelog.rb:281
+msgid "Table lists and the widget show more accurate participant counts and whether a table is waiting for players or a game is already in progress."
 msgstr ""
 
 #: games/categories.rb:124
@@ -12181,7 +12229,7 @@ msgstr ""
 msgid "Target score is 100 by default, from 10 to 1000. With rotating judging, reaching it finishes the current complete judge cycle so everyone has judged equally often. With the permanent judge, the completed scoring round can end the game. The highest eligible total wins; merely reaching the target first does not end an unfinished cycle."
 msgstr ""
 
-#: games/three_five_eight.rb:78
+#: games/three_five_eight.rb:90
 msgid "Targets and scoring"
 msgstr ""
 
@@ -12777,7 +12825,7 @@ msgstr ""
 msgid "The game deals five cards by default. In the joker profile it uses two jokers, and the first table card cannot be a two, three, four, ace, attacking king or joker."
 msgstr ""
 
-#: games/three_five_eight.rb:393
+#: games/three_five_eight.rb:433
 msgid "The game ended in a draw between %{players}."
 msgstr ""
 
@@ -12901,7 +12949,7 @@ msgstr ""
 msgid "The king moves one field in any direction. The queen moves any distance along a row, column or diagonal. A rook moves along rows and columns; a bishop along diagonals. These pieces cannot jump over occupied fields. A knight jumps in an L: two fields along one axis and one along the other, regardless of intervening pieces."
 msgstr ""
 
-#: games/three_five_eight.rb:701
+#: games/three_five_eight.rb:741
 msgid "The kitty is %{cards}."
 msgstr ""
 
@@ -13305,6 +13353,10 @@ msgstr ""
 msgid "The table master can change another person's player or observer role from the Users list context menu. During a match, this changes only who will play in the next game."
 msgstr ""
 
+#: lib/game_room_changelog.rb:276
+msgid "The table master can transfer ownership to another person with Ctrl+M. Leaving no longer automatically closes the whole table: another participant takes over, including control of the bots."
+msgstr ""
+
 #: games/taboo.rb:243
 msgid "The table master cancels this turn's points and repeats it with new cards because of a technical problem."
 msgstr ""
@@ -13330,7 +13382,7 @@ msgstr ""
 msgid "The table master may judge every round, or the judge may rotate in table order. A judge does not answer and receives no points in the round they judge."
 msgstr ""
 
-#: games/three_five_eight.rb:75
+#: games/three_five_eight.rb:87
 msgid "The table owner can disable card exchange in the game options. When it is disabled, every deal goes directly from contract selection to taking the kitty."
 msgstr ""
 
@@ -13456,7 +13508,7 @@ msgstr ""
 msgid "There are no available moves from %{field}."
 msgstr ""
 
-#: games/spades.rb:2622 games/three_five_eight.rb:824
+#: games/spades.rb:2622 games/three_five_eight.rb:998
 msgid "There are no cards on the table."
 msgstr ""
 
@@ -13506,7 +13558,7 @@ msgstr ""
 msgid "There are not enough cards to deal this many cards to every player."
 msgstr ""
 
-#: games/three_five_eight.rb:69
+#: games/three_five_eight.rb:81
 msgid "There are six contracts: hearts, spades, diamonds and clubs as trump, no trump, and misere. During the game every player must choose each contract exactly once. The dealer moves one seat after every deal, so the complete game has 18 deals."
 msgstr ""
 
@@ -13720,11 +13772,11 @@ msgstr ""
 msgid "This card does not satisfy the requested rank."
 msgstr ""
 
-#: games/three_five_eight.rb:371
+#: games/three_five_eight.rb:411
 msgid "This card exchange is not available."
 msgstr ""
 
-#: games/makao.rb:490 games/ninety_nine.rb:420 games/spades.rb:691 games/three_five_eight.rb:372 games/tysiac.rb:514
+#: games/makao.rb:490 games/ninety_nine.rb:420 games/spades.rb:691 games/three_five_eight.rb:412 games/tysiac.rb:514
 msgid "This card is not in your hand."
 msgstr ""
 
@@ -13736,7 +13788,7 @@ msgstr ""
 msgid "This column is full."
 msgstr ""
 
-#: games/three_five_eight.rb:370
+#: games/three_five_eight.rb:410
 msgid "This contract is not available to you."
 msgstr ""
 
@@ -13897,6 +13949,10 @@ msgid "This variant requires %{minimum} to %{maximum} players."
 msgstr ""
 
 msgid "This version has no rule variants. A table may contain two human players, one human and one computer, or two computers."
+msgstr ""
+
+#: lib/game_room_changelog.rb:273
+msgid "This version requires ELTEN 3.0.4 or later."
 msgstr ""
 
 msgid "This version uses classic chess without optional variants."
@@ -14607,7 +14663,7 @@ msgstr ""
 msgid "V: read the round summary."
 msgstr ""
 
-#: games/three_five_eight.rb:89
+#: games/three_five_eight.rb:101
 msgid "V: read tricks, targets and the current deal."
 msgstr ""
 
@@ -15469,7 +15525,7 @@ msgstr ""
 msgid "You must follow suit or play a trump when required."
 msgstr ""
 
-#: games/three_five_eight.rb:373
+#: games/three_five_eight.rb:413
 msgid "You must follow suit when you have a card of the led suit."
 msgstr ""
 
@@ -15618,11 +15674,11 @@ msgstr ""
 msgid "Your first roll uses all five dice. You may then reroll any of them, at most twice more. Dice you do not select are kept. After each roll the values are sorted from lowest to highest and all dice begin as kept, so select the ones you want to change. You may stop after the first or second roll; using three rolls is a choice, not a requirement."
 msgstr ""
 
-#: games/three_five_eight.rb:807
+#: games/three_five_eight.rb:981
 msgid "Your first six cards"
 msgstr ""
 
-#: games/three_five_eight.rb:807
+#: games/three_five_eight.rb:981
 msgid "Your first six cards; waiting for the contract"
 msgstr ""
 
@@ -15642,27 +15698,27 @@ msgstr ""
 msgid "Your game is over. Waiting for the other players."
 msgstr ""
 
-#: games/card_game.rb:75 games/makao.rb:399 games/ninety_nine.rb:381 games/rummy_ui.rb:60 games/spades.rb:2560 games/three_five_eight.rb:809 games/three_five_eight.rb:811 games/three_five_eight.rb:813 games/tysiac.rb:1439 games/uno.rb:458
+#: games/card_game.rb:75 games/makao.rb:399 games/ninety_nine.rb:381 games/rummy_ui.rb:60 games/spades.rb:2560 games/three_five_eight.rb:983 games/three_five_eight.rb:985 games/three_five_eight.rb:987 games/tysiac.rb:1439 games/uno.rb:458
 msgid "Your hand"
 msgstr ""
 
-#: games/card_game.rb:92 games/makao.rb:401 games/ninety_nine.rb:384 games/rummy_ui.rb:61 games/spades.rb:2563 games/three_five_eight.rb:356 games/tile_game.rb:136 games/tysiac.rb:458 games/uno.rb:459 lib/game_surfaces/packet_cards.rb:53
+#: games/card_game.rb:92 games/makao.rb:401 games/ninety_nine.rb:384 games/rummy_ui.rb:61 games/spades.rb:2563 games/three_five_eight.rb:396 games/tile_game.rb:136 games/tysiac.rb:458 games/uno.rb:459 lib/game_surfaces/packet_cards.rb:53
 msgid "Your hand is empty"
 msgstr ""
 
-#: games/makao.rb:977 games/ninety_nine.rb:903 games/spades.rb:2636 games/three_five_eight.rb:819 games/tysiac.rb:1517
+#: games/makao.rb:977 games/ninety_nine.rb:903 games/spades.rb:2636 games/three_five_eight.rb:993 games/tysiac.rb:1517
 msgid "Your hand is empty."
 msgstr ""
 
-#: games/ninety_nine.rb:905 games/spades.rb:2638 games/three_five_eight.rb:820 games/tysiac.rb:1518
+#: games/ninety_nine.rb:905 games/spades.rb:2638 games/three_five_eight.rb:994 games/tysiac.rb:1518
 msgid "Your hand: %{cards}."
 msgstr ""
 
-#: games/three_five_eight.rb:811
+#: games/three_five_eight.rb:985
 msgid "Your hand; choose a return card"
 msgstr ""
 
-#: games/three_five_eight.rb:809
+#: games/three_five_eight.rb:983
 msgid "Your hand; discard %{remaining} cards"
 msgstr ""
 
@@ -15830,7 +15886,7 @@ msgstr ""
 msgid "Z: next legal card; only move the cursor if a value choice is needed."
 msgstr ""
 
-#: games/spades.rb:240 games/three_five_eight.rb:92
+#: games/spades.rb:240 games/three_five_eight.rb:104
 msgid "Z: next legal card; play it automatically if it is the only unambiguous option."
 msgstr ""
 
@@ -15905,7 +15961,7 @@ msgstr ""
 msgid "accept the trade"
 msgstr ""
 
-#: games/card_game.rb:55 games/makao.rb:27 games/ninety_nine.rb:36 games/poker.rb:34 games/spades.rb:42 games/three_five_eight.rb:25 games/tysiac.rb:28
+#: games/card_game.rb:55 games/makao.rb:27 games/ninety_nine.rb:36 games/poker.rb:34 games/spades.rb:42 games/three_five_eight.rb:36 games/tysiac.rb:28
 msgid "ace"
 msgstr ""
 
@@ -16087,11 +16143,11 @@ msgstr ""
 msgid "card counts"
 msgstr ""
 
-#: games/three_five_eight.rb:133
+#: games/three_five_eight.rb:145
 msgid "card exchange disabled"
 msgstr ""
 
-#: games/three_five_eight.rb:133
+#: games/three_five_eight.rb:145
 msgid "card exchange enabled"
 msgstr ""
 
@@ -16162,7 +16218,7 @@ msgstr ""
 msgid "closed"
 msgstr ""
 
-#: games/card_game.rb:58 games/makao.rb:26 games/ninety_nine.rb:18 games/poker.rb:33 games/spades.rb:24 games/three_five_eight.rb:20 games/tysiac.rb:17
+#: games/card_game.rb:58 games/makao.rb:26 games/ninety_nine.rb:18 games/poker.rb:33 games/spades.rb:24 games/three_five_eight.rb:31 games/tysiac.rb:17
 msgid "clubs"
 msgstr ""
 
@@ -16216,7 +16272,7 @@ msgstr ""
 msgid "declare or catch UNO"
 msgstr ""
 
-#: games/card_game.rb:58 games/makao.rb:26 games/ninety_nine.rb:19 games/poker.rb:33 games/spades.rb:25 games/three_five_eight.rb:20 games/tysiac.rb:18
+#: games/card_game.rb:58 games/makao.rb:26 games/ninety_nine.rb:19 games/poker.rb:33 games/spades.rb:25 games/three_five_eight.rb:31 games/tysiac.rb:18
 msgid "diamonds"
 msgstr ""
 
@@ -16415,7 +16471,7 @@ msgstr ""
 msgid "hard category pool"
 msgstr ""
 
-#: games/card_game.rb:59 games/makao.rb:26 games/ninety_nine.rb:20 games/poker.rb:33 games/spades.rb:26 games/three_five_eight.rb:21 games/tysiac.rb:19
+#: games/card_game.rb:59 games/makao.rb:26 games/ninety_nine.rb:20 games/poker.rb:33 games/spades.rb:26 games/three_five_eight.rb:32 games/tysiac.rb:19
 msgid "hearts"
 msgstr ""
 
@@ -16477,7 +16533,7 @@ msgstr ""
 msgid "individual play"
 msgstr ""
 
-#: games/card_game.rb:54 games/makao.rb:27 games/ninety_nine.rb:33 games/poker.rb:34 games/spades.rb:39 games/three_five_eight.rb:24 games/tysiac.rb:24
+#: games/card_game.rb:54 games/makao.rb:27 games/ninety_nine.rb:33 games/poker.rb:34 games/spades.rb:39 games/three_five_eight.rb:35 games/tysiac.rb:24
 msgid "jack"
 msgstr ""
 
@@ -16510,7 +16566,7 @@ msgstr ""
 msgid "kept"
 msgstr ""
 
-#: games/card_game.rb:55 games/chess.rb:298 games/chess.rb:902 games/makao.rb:27 games/ninety_nine.rb:35 games/poker.rb:34 games/spades.rb:41 games/three_five_eight.rb:25 games/tysiac.rb:26
+#: games/card_game.rb:55 games/chess.rb:298 games/chess.rb:902 games/makao.rb:27 games/ninety_nine.rb:35 games/poker.rb:34 games/spades.rb:41 games/three_five_eight.rb:36 games/tysiac.rb:26
 msgid "king"
 msgstr ""
 
@@ -16581,7 +16637,7 @@ msgstr ""
 msgid "metro central"
 msgstr ""
 
-#: games/three_five_eight.rb:849
+#: games/three_five_eight.rb:1023
 msgid "misere; take as few tricks as possible"
 msgstr ""
 
@@ -16635,7 +16691,7 @@ msgstr ""
 msgid "no time limit"
 msgstr ""
 
-#: games/three_five_eight.rb:848
+#: games/three_five_eight.rb:1022
 msgid "no trump"
 msgstr ""
 
@@ -16805,7 +16861,7 @@ msgstr ""
 msgid "purple group"
 msgstr ""
 
-#: games/card_game.rb:54 games/chess.rb:299 games/chess.rb:901 games/makao.rb:27 games/ninety_nine.rb:34 games/poker.rb:34 games/spades.rb:40 games/three_five_eight.rb:24 games/tysiac.rb:25
+#: games/card_game.rb:54 games/chess.rb:299 games/chess.rb:901 games/makao.rb:27 games/ninety_nine.rb:34 games/poker.rb:34 games/spades.rb:40 games/three_five_eight.rb:35 games/tysiac.rb:25
 msgid "queen"
 msgstr ""
 
@@ -16905,7 +16961,7 @@ msgstr ""
 msgid "read the current colour"
 msgstr ""
 
-#: games/three_five_eight.rb:414
+#: games/three_five_eight.rb:454
 msgid "read the current contract and trump suit"
 msgstr ""
 
@@ -17248,7 +17304,7 @@ msgstr ""
 msgid "sort cards by value"
 msgstr ""
 
-#: games/card_game.rb:59 games/makao.rb:26 games/ninety_nine.rb:21 games/poker.rb:33 games/spades.rb:27 games/three_five_eight.rb:21 games/tysiac.rb:20
+#: games/card_game.rb:59 games/makao.rb:26 games/ninety_nine.rb:21 games/poker.rb:33 games/spades.rb:27 games/three_five_eight.rb:32 games/tysiac.rb:20
 msgid "spades"
 msgstr ""
 

@@ -87,10 +87,19 @@ module GameRoomLanguageRuntime
 
   def self.host_snapshot
     dictionary = EltenAPI::Dictionary
-    names = [:DictCache, :Docs, :Params, :Sources, :Translations, :Languages]
+    state = if dictionary.const_defined?(:Catalogs, false)
+      # RC2 replaces the old parallel arrays/cache with immutable catalogs.
+      # Read its private registry only in this fixture, under the native lock.
+      dictionary.const_get(:CatalogMutex).synchronize do
+        Marshal.dump([:Catalogs, :Docs, :Languages].map { |name| dictionary.const_get(name) })
+      end
+    else
+      names = [:DictCache, :Docs, :Params, :Sources, :Translations, :Languages]
+      Marshal.dump(names.map { |name| dictionary.const_get(name) })
+    end
     {
       language: Configuration.language,
-      dictionary: Marshal.dump(names.map { |name| dictionary.const_get(name) }),
+      dictionary: state,
       methods: [:_, :n_, :p_, :np_].map { |name| Object.instance_method(name) },
       ancestors: [Object, Module, Class].map(&:ancestors)
     }

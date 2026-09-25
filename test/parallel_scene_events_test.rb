@@ -1,6 +1,7 @@
 require_relative 'support/host_source'
 require_relative 'support/ui'
 require_relative 'support/log'
+require_relative 'support/native_live_endpoint'
 
 class Program
   def self.server_app(**_options); end
@@ -19,25 +20,10 @@ module EltenAPI
   end
 end
 
-# The actual host queue/dispatch implementation, without a network endpoint or
-# profile. Protocol/network work is deliberately forbidden by this fixture.
-host = EltenTestHost.root
-require File.join(host, 'src/eapi/live_sessions')
 require_relative '../__app'
 
 def assert(value, message)
   raise message unless value
-end
-
-def queued_endpoint
-  endpoint = EltenAPI::LiveSessions::Endpoint.allocate
-  endpoint.instance_variable_set(:@mutex, Mutex.new)
-  endpoint.instance_variable_set(:@closed, false)
-  endpoint.instance_variable_set(:@callback_queue, SizedQueue.new(1000))
-  endpoint.instance_variable_set(:@callback_bytes, 0)
-  endpoint.define_singleton_method(:protocol_tick) { raise 'UI performed protocol/network work' }
-  endpoint.define_singleton_method(:tick) { raise 'UI ticked the whole endpoint' }
-  endpoint
 end
 
 class Form
@@ -70,8 +56,9 @@ app.define_singleton_method(:live_sessions) { raise 'UI lazily created an endpoi
 transport = GameRoomTransport.new(app)
 app.instance_variable_set(:@transport, transport)
 store = transport.instance_variable_get(:@live_store)
-endpoint = queued_endpoint
-other_endpoint = queued_endpoint
+endpoint = NativeLiveEndpointFixture.build(context: app)
+other_app = EltenGameRoom.new
+other_endpoint = NativeLiveEndpointFixture.build(context: other_app)
 store.instance_variable_set(:@endpoint, endpoint)
 chat = EditBox.new('Chat', text: 'Do not lose this draft')
 chat.index, chat.check = 7, 7
@@ -162,6 +149,9 @@ assert(order.last(2) == [:native_end, :after_native], 'Native dispatcher did not
 
 # Use the real application -> transport -> store -> callback -> synchronizer
 # route, including room/start/closure wake-ups rather than just ordinary moves.
+# A visible room owns a subscription; without it retention correctly drops
+# these synthetic signals because no room/session exists in this fixture.
+room_feed = transport.subscribe_game_session(23)
 endpoint.enqueue_callback(-> { store.send(:emit_change, 23, :game_started, 47) })
 endpoint.enqueue_callback(-> { store.send(:emit_change, 23, :game, 47) })
 endpoint.enqueue_callback(-> { store.send(:emit_change, 23, :table, nil) })
@@ -182,6 +172,7 @@ on_parallel_ui do
   form.wait
 end
 assert(transport.instance_variable_get(:@pending_recoveries)[23] == :closed, 'Closure was not delivered')
+room_feed.close
 
 # A burst is bounded, then drains in order; native dispatch afterwards must
 # have nothing left to replay. All entries use the real host event queue.
@@ -213,4 +204,38 @@ form.close_game_room_background_help(help, restore_focus: false)
 endpoint.dispatch_events
 assert(burst == (0...100).to_a, 'Closing help lost queued events')
 
-puts 'Parallel-scene events passed: real host queue, scoped active UI, no network work, bounded ordered delivery, chat and help'
+# RC2's native dispatcher owns only endpoints whose client context is the
+# active scene object, not all instances of the same application. Exercise it
+# separately: the fallback tests above must still fail if Form stops draining.
+assert(EltenAPI::LiveSessions.respond_to?(:dispatch_scene_events, true),
+  'This native scene-delivery regression requires an ELTEN RC2-compatible host')
+native_received = []
+40.times { |id| endpoint.enqueue_callback(-> { native_received << id }) }
+on_parallel_ui do
+  Thread.current.thread_variable_set(:elten_scene, app)
+  EltenAPI::LiveSessions.send(:dispatch_scene_events, app)
+  assert(native_received.length.between?(1, 32), 'Native scene delivery exceeded its callback budget')
+  10.times { EltenAPI::LiveSessions.send(:dispatch_scene_events, app) }
+  assert(native_received == (0...40).to_a, 'Native scene delivery lost, duplicated or reordered callbacks')
+  assert(other_endpoint.instance_variable_get(:@callback_queue).length == 1,
+    'Native scene delivery consumed another instance of the same application')
+
+  endpoint.enqueue_callback(-> { native_received << :while_covered })
+  overlay = Object.new
+  Thread.current.thread_variable_set(:elten_scene, overlay)
+  EltenAPI::LiveSessions.send(:dispatch_scene_events, overlay)
+  EltenAPI::LiveSessions.send(:dispatch_scene_events, app)
+  assert(native_received.last == 39, 'Native dispatcher delivered a covered or mismatched scene')
+  assert(store.dispatch_pending_events == 1 && native_received.last == :while_covered,
+    'The covered-game callback was not available to its existing background drain')
+
+  Thread.current.thread_variable_set(:elten_scene, app)
+  EltenAPI::LiveSessions.send(:dispatch_scene_events, app)
+  Thread.current[:event_test_driver] = ->(current) { current.update }
+  form.wait
+  assert(native_received == (0...40).to_a + [:while_covered], 'Returning to the game repeated callbacks')
+end
+assert(form.index == 1 && chat.text == 'Do not lose this draft' && chat.index == 7 && chat.check == 7,
+  'Native scene delivery changed the chat, selection or focus')
+
+puts 'Parallel-scene events passed: native endpoint constructor, fallback and RC2 scene delivery, covered drain, bounded ordered callbacks, chat and help'
