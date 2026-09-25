@@ -167,7 +167,7 @@ class TranslationExtractorTest < Minitest::Test
     records = GameRoomTranslationExtractor.extract(ROOT, warnings: [])
     index = records.to_h { |record| [[record[:msgctxt], record[:msgid]], record] }
     books = Dir.glob(File.join(ROOT, "docs/rulebooks/*.json"))
-    assert_equal 30, books.size
+    assert_equal 31, books.size
     books.each do |file|
       book = JSON.parse(File.read(file, encoding: "UTF-8"))
       book.fetch("sections").each do |section|

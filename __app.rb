@@ -22,7 +22,7 @@
   },
   "required_assets": {
     "sounds": [
-      "connect", "disconnect", "chatmsg", "notice", "table_notice", "buzzer", "buzzer2", "ding", "shuffle", "draw", "draw2",
+      "connect", "disconnect", "chatmsg", "notice", "table_notice", "buzzer", "buzzer2", "war_open", "ding", "shuffle", "draw", "draw2",
       "farkle", "cht-roll-dice", "cht-bank", "cht-lost-points", "cht-cat-minus-8", "cht-cat-plus-8",
       "hit1", "hit_ship1", "hit_ship2", "rocket_launch1", "rocket_launch2", "rocket_launch3", "rocket_miss",
       "interception", "lose1", "lose3", "play", "play2", "replay",
@@ -169,6 +169,7 @@ require_relative "games/mancala"
 require_relative "games/krowa"
 require_relative "games/axel_pong"
 require_relative "games/audio_ball"
+require_relative "games/war"
 require_relative "games/krowa_support/server_schema"
 require_relative "games/registry"
 
@@ -254,7 +255,8 @@ class EltenGameRoom < Program
     GameRoomGames::Mancala,
     GameRoomGames::Krowa,
     GameRoomGames::AxelPong,
-    GameRoomGames::AudioBall
+    GameRoomGames::AudioBall,
+    GameRoomGames::War
   ])
 
   DEFAULT_SETTINGS = GameRoomPreferences.defaults(GAME_REGISTRY.ids).freeze
