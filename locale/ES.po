@@ -200,6 +200,12 @@ msgstr "Respuestas correctas: %{count}."
 msgid "%{count} answered incorrectly."
 msgstr "Respuestas incorrectas: %{count}."
 
+#: games/scientific_war.rb:851
+msgid "%{count} card from a war is waiting on the table."
+msgid_plural "%{count} cards from wars are waiting on the table."
+msgstr[0] ""
+msgstr[1] ""
+
 #: games/war.rb:422
 msgid "%{count} card left from the previous war"
 msgid_plural "%{count} cards left from the previous war"
@@ -308,7 +314,7 @@ msgstr "Reglas de %{game}"
 msgid "%{game}, %{owner}"
 msgstr "%{game}, %{owner}"
 
-#: __app.rb:2148
+#: __app.rb:2150
 msgid "%{game}, %{table}"
 msgstr ""
 
@@ -316,11 +322,11 @@ msgstr ""
 msgid "%{game}: %{section}"
 msgstr "%{game}: %{section}"
 
-#: __app.rb:872
+#: __app.rb:874
 msgid "%{game}; %{date}; %{players}"
 msgstr "%{game}; %{date}; %{players}"
 
-#: __app.rb:1793
+#: __app.rb:1795
 msgid "%{game}; %{table}; invited by %{sender}; %{count}/%{maximum}"
 msgstr "%{game}; %{table}; invitación de %{sender}; %{count}/%{maximum}"
 
@@ -336,7 +342,7 @@ msgstr ""
 msgid "%{giver} gave a trump card to %{target}; %{target} chooses the return card."
 msgstr ""
 
-#: __app.rb:2946
+#: __app.rb:2948
 msgid "%{group}, %{volume}%%"
 msgstr "%{group}, %{volume}%%"
 
@@ -433,7 +439,7 @@ msgstr "%{owner} ha reclamado el alquiler. %{player} ha pagado %{rent}."
 msgid "%{owner} waived the rent from %{player}."
 msgstr "%{owner} ha renunciado a cobrar el alquiler a %{player}."
 
-#: __app.rb:2427
+#: __app.rb:2429
 msgid "%{owner}, %{count}/%{maximum}, %{status}"
 msgstr ""
 
@@ -864,7 +870,11 @@ msgid_plural "%{player} has %{count} cards."
 msgstr[0] "%{player} tiene %{count} carta."
 msgstr[1] "%{player} tiene %{count} cartas."
 
-#: games/war.rb:351
+#: games/scientific_war.rb:455
+msgid "%{player} has chosen a card."
+msgstr ""
+
+#: games/scientific_war.rb:619 games/war.rb:351
 msgid "%{player} has no cards left and is out of the game."
 msgstr ""
 
@@ -904,6 +914,10 @@ msgstr "%{player} está eligiendo la categoría de la ronda %{round}."
 msgid "%{player} is eliminated."
 msgstr "%{player} queda fuera de la partida."
 
+#: games/scientific_war.rb:344 games/scientific_war.rb:356 games/scientific_war.rb:812
+msgid "%{player} is looking at the chosen cards."
+msgstr ""
+
 #: games/tysiac.rb:976
 msgid "%{player} is now on the barrel."
 msgstr "%{player} está ahora en el barril."
@@ -927,6 +941,14 @@ msgstr "%{player} está evaluando las respuestas."
 #: games/categories.rb:291
 msgid "%{player} is the judge."
 msgstr "%{player} hace de juez."
+
+#: games/scientific_war.rb:807
+msgid "%{player} is the spy and chooses last."
+msgstr ""
+
+#: games/scientific_war.rb:854
+msgid "%{player} is the spy in this trick."
+msgstr ""
 
 #: lib/table_activity_repository.rb:178
 msgid "%{player} joined %{owner}'s table for %{game}."
@@ -1144,6 +1166,18 @@ msgstr "%{player} ha jugado %{card}. Pila: %{total}."
 
 msgid "%{player} played %{card}. The pile total is %{total}."
 msgstr "%{player} ha jugado %{card}. La suma de la pila es %{total}."
+
+#: games/scientific_war.rb:580
+msgid "%{player} played a queen and will see the other players' cards in the next trick before choosing."
+msgstr ""
+
+#: games/scientific_war.rb:593
+msgid "%{player} played a three and may check the hand sizes in the next trick."
+msgstr ""
+
+#: games/scientific_war.rb:598
+msgid "%{player} played an eight and may swap their hand with their pile in the next trick."
+msgstr ""
 
 #: games/war.rb:289
 msgid "%{player} plays %{card}."
@@ -1562,6 +1596,12 @@ msgstr "%{player} gana el bote de %{amount}."
 msgid "%{player} wins the round."
 msgstr "%{player} gana la ronda."
 
+#: games/scientific_war.rb:533
+msgid "%{player} wins the trick and takes %{count} card."
+msgid_plural "%{player} wins the trick and takes %{count} cards."
+msgstr[0] ""
+msgstr[1] ""
+
 #: games/war.rb:460
 msgid "%{player} wins the war and takes %{count} card."
 msgid_plural "%{player} wins the war and takes %{count} cards."
@@ -1733,7 +1773,7 @@ msgstr "%{player}: %{bid}"
 msgid "%{player}: %{cards} points for opponents' cards and %{bonus} bonus points."
 msgstr "%{player}: %{cards} puntos por las cartas de los rivales y %{bonus} puntos de bonificación."
 
-#: games/base.rb:862 games/spades.rb:2626 games/three_five_eight.rb:999 games/tysiac.rb:1524 games/war.rb:419 games/war.rb:478
+#: games/base.rb:862 games/scientific_war.rb:876 games/spades.rb:2626 games/three_five_eight.rb:999 games/tysiac.rb:1524 games/war.rb:419 games/war.rb:478
 msgid "%{player}: %{card}"
 msgstr "%{player}: %{card}"
 
@@ -1747,7 +1787,7 @@ msgstr "%{player}: %{chips}"
 msgid "%{player}: %{count}"
 msgstr "%{player}: %{count}"
 
-#: games/war.rb:484
+#: games/scientific_war.rb:834 games/scientific_war.rb:870 games/war.rb:484
 msgid "%{player}: %{count} card"
 msgid_plural "%{player}: %{count} cards"
 msgstr[0] ""
@@ -1853,6 +1893,10 @@ msgstr "%{player}: palabras no válidas: %{words}. Penalización: %{points}."
 msgid "%{player}: not guessed, %{attempts} attempts"
 msgstr "%{player}: palabra sin adivinar, %{attempts} intentos"
 
+#: games/scientific_war.rb:868
+msgid "%{player}: out"
+msgstr ""
+
 #: games/tysiac.rb:1672
 msgid "%{player}: second surrender."
 msgstr "%{player}: segunda rendición."
@@ -1957,11 +2001,11 @@ msgstr "Quedan %{seconds} segundos"
 msgid "%{seconds} seconds remaining."
 msgstr "Quedan %{seconds} segundos."
 
-#: __app.rb:344
+#: __app.rb:346
 msgid "%{sender} invites you to %{table} (%{game})."
 msgstr "%{sender} te invita a la mesa %{table} (%{game})."
 
-#: __app.rb:344
+#: __app.rb:346
 msgid "%{sender} invites you to resume %{table} (%{game})."
 msgstr "%{sender} te invita a reanudar la partida en la mesa %{table} (%{game})."
 
@@ -1996,7 +2040,7 @@ msgstr "%{status}; %{name}; anfitrión: %{owner}; usuarios: %{users}; %{count}/%
 msgid "%{suit} as trump"
 msgstr ""
 
-#: __app.rb:2152
+#: __app.rb:2154
 msgid "%{table}, unavailable"
 msgstr "%{table}, no disponible"
 
@@ -2061,7 +2105,7 @@ msgstr "%{user} ha rechazado la invitación de %{player}."
 msgid "%{user} declined your invitation to %{table}."
 msgstr "%{user} ha rechazado tu invitación a %{table}."
 
-#: __app.rb:2997
+#: __app.rb:2999
 msgid "%{user}'s table"
 msgstr "Mesa de %{user}"
 
@@ -2502,7 +2546,7 @@ msgstr ""
 msgid "A full column cannot be selected. After a valid move, the turn passes to the other player."
 msgstr ""
 
-#: __app.rb:2524 __app.rb:2566
+#: __app.rb:2526 __app.rb:2568
 msgid "A game has already started. Opening the current game."
 msgstr "Ya ha comenzado una partida. Abriendo la partida actual."
 
@@ -2787,11 +2831,11 @@ msgstr "A: prepárate para sacar o para golpear tras defender."
 msgid "About this adaptation"
 msgstr ""
 
-#: __app.rb:1573 __app.rb:1773 __app.rb:2620
+#: __app.rb:1575 __app.rb:1775 __app.rb:2622
 msgid "Accept"
 msgstr "Aceptar"
 
-#: __app.rb:1956 lib/game_room_screens.rb:119 lib/game_room_widget.rb:137 lib/game_room_widget.rb:143
+#: __app.rb:1958 lib/game_room_screens.rb:119 lib/game_room_widget.rb:137 lib/game_room_widget.rb:143
 msgid "Accept invitation"
 msgstr "Aceptar invitación"
 
@@ -2808,7 +2852,7 @@ msgstr[1] "Aceptar la espera de %{count} turnos"
 msgid "Accept waiting for %{count} turns"
 msgstr "Aceptar la espera de %{count} turnos"
 
-#: __app.rb:1841 __app.rb:1862
+#: __app.rb:1843 __app.rb:1864
 msgid "Accepting invitation"
 msgstr "Aceptando la invitación"
 
@@ -2861,7 +2905,7 @@ msgstr "Sumar 11"
 msgid "Add a computer"
 msgstr "Añadir un ordenador"
 
-#: __app.rb:1569
+#: __app.rb:1571
 msgid "Add a new computer in this place"
 msgstr ""
 
@@ -2926,7 +2970,7 @@ msgstr "Se han añadido mensajes que faltaban en polaco, incluido el aviso de qu
 msgid "Added sounds for banking points in Farkle, reaching exactly 33 or 66 in 99, and declaring a marriage in Tysiac."
 msgstr "Se han añadido sonidos al guardar puntos en Farkle, alcanzar exactamente 33 o 66 en 99 y realizar un anuncio en Mil."
 
-#: __app.rb:1479
+#: __app.rb:1481
 msgid "Adding computer"
 msgstr "Añadiendo un ordenador"
 
@@ -3184,11 +3228,15 @@ msgstr ""
 msgid "Alphabetical rack order."
 msgstr "Atril en orden alfabético."
 
+#: games/scientific_war.rb:805
+msgid "Already chosen: %{players}."
+msgstr ""
+
 #: lib/game_room_changelog.rb:75 lib/game_room_changelog.rb:97
 msgid "Also added Biblios by dawidpieper (Pajper): a card game of building a library and bidding at auctions, for two to four players, with bots and Polish translation."
 msgstr "También se ha añadido Biblios, de dawidpieper (Pajper): un juego de cartas en el que construyes una biblioteca y pujas en subastas, para entre dos y cuatro jugadores, con bots y traducción al polaco."
 
-#: __app.rb:679 lib/game_shortcut_bindings.rb:60
+#: __app.rb:681 lib/game_shortcut_bindings.rb:60
 msgid "Alt"
 msgstr "Alt"
 
@@ -3221,7 +3269,7 @@ msgstr ""
 msgid "An exact roll is required to reach the finish: on by default. A roll going past the finish cannot move that pawn. When disabled, an excessive roll also brings it to the finish. Three consecutive sixes lose the turn: on by default; the third six ends the turn without moving a pawn for that roll, but does not undo previous moves."
 msgstr ""
 
-#: __app.rb:1645
+#: __app.rb:1647
 msgid "An invitation to this table is already pending for this user."
 msgstr "Este usuario ya tiene una invitación pendiente para esta mesa."
 
@@ -3760,7 +3808,7 @@ msgstr "B: leer la subasta actual."
 msgid "B: respond to the buzzer."
 msgstr "B: responde al pulsador."
 
-#: __app.rb:1002 __app.rb:1046 __app.rb:1159 __app.rb:1658 __app.rb:1774 __app.rb:1959 __app.rb:905 games/krowa_support/leaderboards.rb:37 lib/game_room_screens.rb:497 lib/game_room_screens.rb:518 lib/game_screen.rb:1295 lib/game_screen.rb:375
+#: __app.rb:1004 __app.rb:1048 __app.rb:1161 __app.rb:1660 __app.rb:1776 __app.rb:1961 __app.rb:907 games/krowa_support/leaderboards.rb:37 lib/game_room_screens.rb:497 lib/game_room_screens.rb:518 lib/game_screen.rb:1295 lib/game_screen.rb:375
 msgid "Back"
 msgstr "Volver"
 
@@ -4299,6 +4347,10 @@ msgstr "C: carta de la mesa y declaración. G: penalización pendiente. D: tu ma
 msgid "C: top card. V: current colour. E: each player's card count. G: pending penalty. S: scores. T: whose turn it is."
 msgstr "C: carta superior. V: color actual. E: número de cartas de cada jugador. G: penalización pendiente. S: puntuaciones. T: de quién es el turno."
 
+#: games/scientific_war.rb:65
+msgid "C: use your card power: read the chosen cards as the spy, read the hand sizes after a three, or swap your hand with your pile after an eight."
+msgstr ""
+
 #: games/poker.rb:1197
 msgid "Call %{amount}"
 msgstr "Igualar con %{amount}"
@@ -4307,7 +4359,7 @@ msgstr "Igualar con %{amount}"
 msgid "Calm (short search)"
 msgstr "Tranquilo (búsqueda breve)"
 
-#: __app.rb:1574 __app.rb:2621 __app.rb:2679 games/krowa_support/client.rb:184 games/krowa_support/leaderboards.rb:123 games/rummy_ui.rb:26 lib/audio_ball/settings.rb:24 lib/axel_pong/settings.rb:38 lib/game_option_editor.rb:87 lib/game_room_screens.rb:231 lib/game_screen.rb:1205 lib/game_screen.rb:1249 lib/game_surfaces/word_board.rb:182
+#: __app.rb:1576 __app.rb:2623 __app.rb:2681 games/krowa_support/client.rb:184 games/krowa_support/leaderboards.rb:123 games/rummy_ui.rb:26 lib/audio_ball/settings.rb:24 lib/axel_pong/settings.rb:38 lib/game_option_editor.rb:87 lib/game_room_screens.rb:231 lib/game_screen.rb:1205 lib/game_screen.rb:1249 lib/game_surfaces/word_board.rb:182
 msgid "Cancel"
 msgstr "Cancelar"
 
@@ -4390,6 +4442,18 @@ msgstr "Cambio de cartas."
 msgid "Card hands support Shift+C to sort by suit or colour, Shift+H by rank, and Shift+M by receipt order. Pressing C or H with Shift again reverses that sorting direction. This covers UNO, Makao, Rummy, Spades, Tysiac, 99 and Poker's exchange hand, preserving each game's default order, the selected card and card packages."
 msgstr "Las manos de cartas se pueden ordenar con Shift+C por palo o color, con Shift+H por valor y con Shift+M por orden de recepción. Al volver a pulsar C o H con Shift, se invierte el sentido de esa ordenación. Esto se aplica a UNO, Makao, Rummy, Picas, Mil, 99 y a la mano de intercambio del póquer, y conserva el orden predeterminado de cada juego, la carta seleccionada y los grupos de cartas."
 
+#: games/scientific_war.rb:849
+msgid "Card order: normal; ace is the strongest card and two the weakest."
+msgstr ""
+
+#: games/scientific_war.rb:848
+msgid "Card order: reversed; two is the strongest card and ace the weakest."
+msgstr ""
+
+#: games/scientific_war.rb:51
+msgid "Card powers"
+msgstr ""
+
 #: games/uno.rb:521
 msgid "Card sorting disabled."
 msgstr "Ordenación de cartas desactivada."
@@ -4431,6 +4495,10 @@ msgstr ""
 #: games/tysiac.rb:200
 msgid "Cards in each talon"
 msgstr "Cartas en cada reserva"
+
+#: games/scientific_war.rb:837
+msgid "Cards in hand: %{counts}."
+msgstr ""
 
 #: games/base.rb:871
 msgid "Cards on the table"
@@ -4483,6 +4551,10 @@ msgid "Cards were dealt: %{count} card each."
 msgid_plural "Cards were dealt: %{count} cards each."
 msgstr[0] ""
 msgstr[1] ""
+
+#: games/scientific_war.rb:510
+msgid "Cards: %{cards}."
+msgstr ""
 
 msgid "Cash: %{cash}."
 msgstr "Efectivo: %{cash}."
@@ -4583,7 +4655,7 @@ msgstr ""
 msgid "Change settings for the next game"
 msgstr "Cambiar los ajustes de la siguiente partida"
 
-#: __app.rb:2618 lib/game_room_screens.rb:19
+#: __app.rb:2620 lib/game_room_screens.rb:19
 msgid "Change team"
 msgstr "Cambiar de equipo"
 
@@ -4664,38 +4736,38 @@ msgstr "Comprobando las actualizaciones de la partida"
 msgid "Checking game availability"
 msgstr "Comprobando la disponibilidad del juego"
 
-#: __app.rb:819
+#: __app.rb:821
 msgid "Checking game before saving"
 msgstr "Comprobando la partida antes de guardarla"
 
-#: __app.rb:1808
+#: __app.rb:1810
 msgid "Checking invitation"
 msgstr "Comprobando la invitación"
 
-#: __app.rb:471
+#: __app.rb:473
 msgid "Checking server table access"
 msgstr "Comprobando el acceso a las tablas del servidor"
 
-#: __app.rb:2310
+#: __app.rb:2312
 msgid "Checking table"
 msgstr "Comprobando la mesa"
 
 msgid "Checking the current game"
 msgstr "Comprobando la partida actual"
 
-#: __app.rb:921
+#: __app.rb:923
 msgid "Checking the current table"
 msgstr "Comprobando la mesa actual"
 
-#: __app.rb:2514
+#: __app.rb:2516
 msgid "Checking the table before starting"
 msgstr "Comprobando la mesa antes de empezar"
 
-#: __app.rb:1468 __app.rb:2560
+#: __app.rb:1470 __app.rb:2562
 msgid "Checking the table members"
 msgstr "Comprobando los participantes de la mesa"
 
-#: __app.rb:384
+#: __app.rb:386
 msgid "Checking your current table"
 msgstr "Comprobando tu mesa actual"
 
@@ -4770,6 +4842,12 @@ msgstr "Elige una carta para dar a %{player}."
 msgid "Choose a card to set aside. Remaining: %{count}."
 msgstr "Elige una carta para apartarla. Restantes: %{count}."
 
+#: games/scientific_war.rb:327
+msgid "Choose a card. You have %{count} card in hand."
+msgid_plural "Choose a card. You have %{count} cards in hand."
+msgstr[0] ""
+msgstr[1] ""
+
 #: games/base.rb:939
 msgid "Choose a category."
 msgstr "Elige una categoría."
@@ -4785,7 +4863,7 @@ msgstr "Elige un color."
 msgid "Choose a column and press Enter. Your piece falls to the lowest empty field in that column, regardless of which row you were inspecting."
 msgstr ""
 
-#: __app.rb:2230
+#: __app.rb:2232
 msgid "Choose a game for the preset"
 msgstr "Elige un juego para la configuración predefinida"
 
@@ -4796,7 +4874,7 @@ msgstr ""
 msgid "Choose a player for the trade"
 msgstr "Elige un jugador para el intercambio"
 
-#: __app.rb:1532
+#: __app.rb:1534
 msgid "Choose a player in the current game."
 msgstr ""
 
@@ -4855,7 +4933,7 @@ msgstr "Elige una reserva"
 msgid "Choose a talon."
 msgstr "Elige una reserva."
 
-#: __app.rb:2674
+#: __app.rb:2676
 msgid "Choose a team"
 msgstr "Elige un equipo"
 
@@ -4956,7 +5034,7 @@ msgstr "Elige una de tus piezas y pulsa Enter; después, elige una casilla de de
 msgid "Choose teams"
 msgstr "Elegir equipos"
 
-#: __app.rb:2619
+#: __app.rb:2621
 msgid "Choose teams randomly"
 msgstr "Elegir equipos al azar"
 
@@ -4998,7 +5076,7 @@ msgstr "Elige el valor declarado"
 msgid "Choose the final contract"
 msgstr "Elige el contrato final"
 
-#: __app.rb:1528
+#: __app.rb:1530
 msgid "Choose the new table master"
 msgstr ""
 
@@ -5009,7 +5087,7 @@ msgstr "Elige la otra posición del atril."
 msgid "Choose the promotion piece"
 msgstr "Elige la pieza de promoción"
 
-#: __app.rb:1546
+#: __app.rb:1548
 msgid "Choose the replacement"
 msgstr ""
 
@@ -5038,6 +5116,10 @@ msgstr ""
 msgid "Choosing and finding pawns"
 msgstr "Elegir y localizar fichas"
 
+#: games/scientific_war.rb:45
+msgid "Choosing and revealing"
+msgstr ""
+
 #: games/poker.rb:96
 msgid "Choosing the betting limits"
 msgstr ""
@@ -5051,6 +5133,10 @@ msgstr "Elegir fichas y trenes"
 
 #: games/audio_ball.rb:198
 msgid "Choosing your listening side"
+msgstr ""
+
+#: games/scientific_war.rb:820
+msgid "Chosen cards: %{cards}."
 msgstr ""
 
 msgid "Church cards"
@@ -5104,11 +5190,11 @@ msgstr "Cerrar ahora el plazo de respuesta"
 msgid "Close the table for everyone"
 msgstr ""
 
-#: __app.rb:1514
+#: __app.rb:1516
 msgid "Close the table for everyone?"
 msgstr ""
 
-#: __app.rb:1515
+#: __app.rb:1517
 msgid "Closing table"
 msgstr ""
 
@@ -5237,7 +5323,7 @@ msgstr "Conecta la palabra con las letras que ya hay en el tablero."
 msgid "Connecting the match."
 msgstr "Conectando la partida."
 
-#: __app.rb:2183 __app.rb:401
+#: __app.rb:2185 __app.rb:403
 msgid "Connecting to Elten"
 msgstr "Conectando con Elten"
 
@@ -5346,11 +5432,11 @@ msgstr "País"
 msgid "Cover %{double} on %{train}."
 msgstr "Cubre %{double} en %{train}."
 
-#: __app.rb:218 __app.rb:773 lib/game_room_widget.rb:127
+#: __app.rb:219 __app.rb:775 lib/game_room_widget.rb:127
 msgid "Create a new table"
 msgstr "Crear una nueva mesa"
 
-#: __app.rb:1489
+#: __app.rb:1491
 msgid "Create a new table to add named computers."
 msgstr "Crea una nueva mesa para añadir ordenadores con nombre."
 
@@ -5365,7 +5451,7 @@ msgstr "Crea una mesa o únete a una antes de invitar a alguien."
 msgid "Create table"
 msgstr "Crear mesa"
 
-#: __app.rb:788
+#: __app.rb:790
 msgid "Creating table"
 msgstr "Creando la mesa"
 
@@ -5377,7 +5463,7 @@ msgstr "Público desactivado."
 msgid "Crowd on."
 msgstr "Público activado."
 
-#: __app.rb:678 lib/game_shortcut_bindings.rb:59
+#: __app.rb:680 lib/game_shortcut_bindings.rb:59
 msgid "Ctrl"
 msgstr "Ctrl"
 
@@ -5701,7 +5787,7 @@ msgstr ""
 msgid "Daily Krowa is private: nobody can join or observe it. That would make guessing it later far too easy!"
 msgstr ""
 
-#: __app.rb:2863
+#: __app.rb:2865
 msgid "Daily Krowa requires a private table. Create a new private table for this variant."
 msgstr "Krowa diaria requiere una mesa privada. Crea una nueva mesa privada para esta variante."
 
@@ -5760,11 +5846,11 @@ msgstr ""
 msgid "Delete removes the draft tile under the cursor; Backspace undoes the last placement; Z cancels the draft; F submits. G exchanges tiles; P passes. C reads the rack; I cycles free, alphabetic and vowel-first rack order; Y previews words and points; L lists played words; E reads tile counts; S reads scores; T reads whose turn it is. Writing advances past committed letters. Sorting requires cancelling the draft. These shortcuts do not act in chat."
 msgstr "Supr elimina la ficha del borrador situada bajo el cursor; Retroceso deshace la última colocación; Z cancela el borrador; F confirma. G cambia fichas; P pasa. C lee el atril; I alterna entre el orden libre, el alfabético y el de vocales primero; Y muestra una vista previa de las palabras y los puntos; L enumera las palabras jugadas; E lee las cantidades de fichas; S lee las puntuaciones; T lee de quién es el turno. Al escribir, se saltan las letras ya confirmadas. Para ordenar, hay que cancelar el borrador. Estos atajos no actúan en el chat."
 
-#: __app.rb:878
+#: __app.rb:880
 msgid "Delete saved game"
 msgstr "Eliminar partida guardada"
 
-#: __app.rb:895
+#: __app.rb:897
 msgid "Delete this saved game?"
 msgstr "¿Eliminar esta partida guardada?"
 
@@ -5772,7 +5858,7 @@ msgstr "¿Eliminar esta partida guardada?"
 msgid "Delete: discard the current card immediately."
 msgstr "Supr: descarta la carta actual inmediatamente."
 
-#: __app.rb:895
+#: __app.rb:897
 msgid "Deleting saved game"
 msgstr ""
 
@@ -5799,7 +5885,7 @@ msgstr "Turnos de descripción por persona"
 msgid "Develop a group evenly"
 msgstr ""
 
-#: __app.rb:483
+#: __app.rb:485
 msgid "Development mode without server table access. Global lobby history and sending invitations are unavailable."
 msgstr "Modo de desarrollo sin acceso a las tablas del servidor. El historial global de la sala de espera y el envío de invitaciones no están disponibles."
 
@@ -5904,11 +5990,11 @@ msgstr "No usar la carta"
 msgid "Do not use the target, a forbidden word, a grammatical form of either or a meaningful part of it. Nor may you spell it, translate it, give initials or abbreviations, point, imitate its sound or say what it rhymes with. This is not a ban on every unrelated word that happens to share some letters. Judge the meaning of the clue, not an accidental sequence of characters."
 msgstr ""
 
-#: __app.rb:534
+#: __app.rb:536
 msgid "Do you want to exit ELTEN Game Room?"
 msgstr "¿Quieres salir de ELTEN Game Room?"
 
-#: __app.rb:1434
+#: __app.rb:1436
 msgid "Do you want to leave the table?"
 msgstr "¿Quieres salir de la mesa?"
 
@@ -5916,7 +6002,7 @@ msgstr "¿Quieres salir de la mesa?"
 msgid "Do you want to leave the table? The table will be closed for everyone."
 msgstr "¿Quieres salir de la mesa? La mesa se cerrará para todos."
 
-#: __app.rb:1857
+#: __app.rb:1859
 msgid "Do you want to leave your current table and join the invited table?"
 msgstr "¿Quieres salir de tu mesa actual y unirte a la mesa a la que te han invitado?"
 
@@ -6184,6 +6270,10 @@ msgstr "E: lee cuántas cartas tiene cada jugador."
 msgid "E: read hand sizes and the boneyard count."
 msgstr "E: leer el número de fichas de cada mano y del pozo."
 
+#: games/scientific_war.rb:66
+msgid "E: read how many cards each player owns."
+msgstr ""
+
 #: games/chess.rb:68
 msgid "E: read pieces attacking the inspected square."
 msgstr "E: lee las piezas que atacan la casilla que estás consultando."
@@ -6285,6 +6375,10 @@ msgstr "Ecolocalización: tonos."
 msgid "Edit this meld"
 msgstr "Editar esta combinación"
 
+#: games/scientific_war.rb:55
+msgid "Eight: in the next trick, before choosing a card, the player who played an eight may swap their hand with their pile."
+msgstr ""
+
 #: games/three_five_eight.rb:79
 msgid "Eighteen deals and six contracts"
 msgstr ""
@@ -6329,11 +6423,11 @@ msgstr ""
 msgid "En passant is available only immediately after an opposing pawn advances two fields and finishes beside your pawn. Move your pawn diagonally to the field that opposing pawn passed; that pawn is captured even though the destination was empty."
 msgstr ""
 
-#: __app.rb:1499
+#: __app.rb:1501
 msgid "Enabling observer mode"
 msgstr "Activando el modo espectador"
 
-#: __app.rb:1499
+#: __app.rb:1501
 msgid "Enabling player mode"
 msgstr "Activando el modo jugador"
 
@@ -6343,11 +6437,11 @@ msgstr ""
 msgid "End each turn by choosing one unused category. The list shows the points you would receive, including zero when the dice do not satisfy that category. Once used, a category cannot be changed or used again in that match. After everyone fills the sheet, the highest total wins, or the selected next match starts. Tied highest totals share the result."
 msgstr ""
 
-#: games/war.rb:42
+#: games/scientific_war.rb:58 games/war.rb:42
 msgid "End of the game"
 msgstr ""
 
-#: __app.rb:2890
+#: __app.rb:2892
 msgid "End the current game for everyone? The table and chat will stay open, and no winner will be recorded."
 msgstr "¿Terminar la partida actual para todos? La mesa y el chat seguirán abiertos y no se registrará ningún ganador."
 
@@ -6377,7 +6471,7 @@ msgstr "Terminar turno"
 msgid "Ending"
 msgstr "Final"
 
-#: __app.rb:2897
+#: __app.rb:2899
 msgid "Ending game"
 msgstr "Terminando la partida"
 
@@ -6538,7 +6632,7 @@ msgstr "Enter: juega la carta o confirma el color o el jugador solicitado."
 msgid "Enter: play the current card or prepared packet; choose a declaration if needed."
 msgstr "Enter: juega la carta actual o el grupo de cartas preparado; elige una declaración si es necesario."
 
-#: games/spades.rb:232
+#: games/scientific_war.rb:62 games/spades.rb:232
 msgid "Enter: play the selected card."
 msgstr "Enter: jugar la carta seleccionada."
 
@@ -6683,6 +6777,14 @@ msgstr ""
 
 #: games/quiz_party.rb:80
 msgid "Everyone answers the same question"
+msgstr ""
+
+#: games/scientific_war.rb:473
+msgid "Everyone else has chosen. %{player} is looking at their cards."
+msgstr ""
+
+#: games/scientific_war.rb:342 games/scientific_war.rb:810
+msgid "Everyone has chosen. The cards are being revealed."
 msgstr ""
 
 msgid "Everyone sees the assessments and whose answers are being judged. The judge confirms all assessments and finishes review. Round totals are then added and the next round begins, unless the conditions for finishing the match have been met."
@@ -7215,7 +7317,7 @@ msgstr "G: leer tu mejor combinación actual."
 msgid "Game"
 msgstr "Juego"
 
-#: __app.rb:282
+#: __app.rb:284
 msgid "Game Room"
 msgstr "Game Room"
 
@@ -7282,14 +7384,14 @@ msgstr "Conjunto de contenido del juego"
 msgid "Game history"
 msgstr "Historial de la partida"
 
-#: __app.rb:343
+#: __app.rb:345
 msgid "Game invitation"
 msgstr "Invitación a una partida"
 
 msgid "Game invitation declined"
 msgstr "Invitación a la partida rechazada"
 
-#: games/axel_pong.rb:284 games/battleship.rb:67 games/biblios.rb:73 games/cat_head_tail.rb:38 games/categories.rb:103 games/checkers.rb:122 games/chess.rb:64 games/domino.rb:161 games/farkle.rb:54 games/four_in_a_row.rb:36 games/ludo.rb:80 games/makao.rb:92 games/mancala.rb:76 games/mexican_train.rb:124 games/monopoly.rb:105 games/ninety_nine.rb:94 games/poker.rb:105 games/quiz_party.rb:92 games/reversi.rb:56 games/rummy_ui.rb:145 games/scrabble_ui.rb:63 games/spades.rb:230 games/taboo_ui.rb:93 games/three_five_eight.rb:94 games/tic_tac_toe.rb:35 games/tysiac.rb:102 games/uno.rb:120 games/war.rb:45 games/yahtzee.rb:74
+#: games/axel_pong.rb:284 games/battleship.rb:67 games/biblios.rb:73 games/cat_head_tail.rb:38 games/categories.rb:103 games/checkers.rb:122 games/chess.rb:64 games/domino.rb:161 games/farkle.rb:54 games/four_in_a_row.rb:36 games/ludo.rb:80 games/makao.rb:92 games/mancala.rb:76 games/mexican_train.rb:124 games/monopoly.rb:105 games/ninety_nine.rb:94 games/poker.rb:105 games/quiz_party.rb:92 games/reversi.rb:56 games/rummy_ui.rb:145 games/scientific_war.rb:61 games/scrabble_ui.rb:63 games/spades.rb:230 games/taboo_ui.rb:93 games/three_five_eight.rb:94 games/tic_tac_toe.rb:35 games/tysiac.rb:102 games/uno.rb:120 games/war.rb:45 games/yahtzee.rb:74
 msgid "Game keyboard shortcuts"
 msgstr "Atajos de teclado del juego"
 
@@ -7309,7 +7411,7 @@ msgstr "Partida terminada."
 msgid "Game over. The word was not guessed."
 msgstr "Partida terminada. No se ha adivinado la palabra."
 
-#: __app.rb:220 __app.rb:756 lib/game_rules.rb:96 lib/participant_menu.rb:22
+#: __app.rb:221 __app.rb:758 lib/game_rules.rb:96 lib/participant_menu.rb:22
 msgid "Game rules"
 msgstr "Reglas del juego"
 
@@ -7603,11 +7705,19 @@ msgstr ""
 msgid "If the leaders are tied after that round, another complete round is played until a single player leads."
 msgstr ""
 
+#: games/scientific_war.rb:57
+msgid "If the trick would end in a war, the joker prevents it and the player who played it wins the trick. If there would be no war, the joker causes one: nobody takes the trick and the cards stay on the table. If two or more jokers are played in the same trick, none of them has any effect."
+msgstr ""
+
 msgid "If two or more players are tied, the player with the most Gold wins. If there is still a tie, the higher total in the Monk category decides, then the tie-breaking letter, then the next category on the Scriptorium."
 msgstr ""
 
 #: games/war.rb:38
 msgid "If two or more players share the highest card, a war starts between them. Each of them places one hidden card and then plays the next card face up. The highest of the new cards takes everything from the table, including the hidden cards and the cards of players who did not take part in the war. If the new cards are equal again, the war continues in the same way. When a war is won, the winner hears every hidden card taken, first the opponents' and then their own, and then the other cards from the table."
+msgstr ""
+
+#: games/scientific_war.rb:50
+msgid "If two or more strongest cards are equal, there is a war and nobody takes the trick. The cards stay on the table, and whoever wins the next trick takes them as well. If there are several wars in a row, more and more cards wait on the table."
 msgstr ""
 
 msgid "If you are in debt, the main field still contains only Roll the dice. Trying it reports the missing amount; use the existing property and trade shortcuts, then try again."
@@ -7798,6 +7908,10 @@ msgstr "En los juegos de cartas, Z y Shift+Z pasan a la siguiente o a la anterio
 msgid "In draw poker, choose cards with the Arrow keys. Shift+Enter adds or removes cards from the exchange packet, then Enter exchanges it, also including the current card if not already selected. The Keep all cards action completes the exchange phase without discarding anything."
 msgstr "En el póquer con descarte, elige cartas con las flechas. Shift+Enter añade o quita cartas del grupo de cambio y Enter cambia ese grupo, incluyendo también la carta actual si aún no está seleccionada. La acción Conservar todas las cartas termina la fase de cambio sin descartar ninguna."
 
+#: games/scientific_war.rb:46
+msgid "In each trick everyone chooses a card at the same time. Nobody can see your card until everyone has chosen; then all the cards are turned face up together. Do not leave the table before your card is revealed, because the trick waits for it."
+msgstr ""
+
 #: games/rummy_ui.rb:136
 msgid "In either scoring mode, the score limit can be any whole number from 1 to 100000. Changing it alters when the match ends, not the values of cards or penalties."
 msgstr ""
@@ -7875,7 +7989,7 @@ msgstr ""
 msgid "Indonesian board"
 msgstr "Tablero indonesio"
 
-#: __app.rb:878
+#: __app.rb:880
 msgid "Information"
 msgstr "Información"
 
@@ -7921,7 +8035,7 @@ msgstr ""
 msgid "Invention"
 msgstr "Invento"
 
-#: __app.rb:1957
+#: __app.rb:1959
 msgid "Invitation"
 msgstr "Invitación"
 
@@ -7935,7 +8049,7 @@ msgstr "Invitación rechazada."
 msgid "Invitation sent."
 msgstr "Invitación enviada."
 
-#: __app.rb:1769 __app.rb:221
+#: __app.rb:1771 __app.rb:222
 msgid "Invitations"
 msgstr "Invitaciones"
 
@@ -7943,7 +8057,7 @@ msgstr "Invitaciones"
 msgid "Invitations can now be accepted from notifications after reopening Game Room. Joining a table clears its invitations; a temporary network error does not invalidate an invitation."
 msgstr "Ahora se pueden aceptar invitaciones desde las notificaciones después de volver a abrir Game Room. Unirse a una mesa elimina sus invitaciones; un error temporal de red no invalida una invitación."
 
-#: __app.rb:1657
+#: __app.rb:1659
 msgid "Invite"
 msgstr "Invitar"
 
@@ -7951,11 +8065,11 @@ msgstr "Invitar"
 msgid "Invite an online Elten user"
 msgstr "Invitar a un usuario de Elten conectado"
 
-#: __app.rb:1622
+#: __app.rb:1624
 msgid "Invite an online user"
 msgstr "Invitar a un usuario conectado"
 
-#: __app.rb:1622
+#: __app.rb:1624
 msgid "Invite from contacts"
 msgstr "Invitar desde los contactos"
 
@@ -7981,6 +8095,10 @@ msgid ""
 "8 is tail (the cat's tail), which randomly adds or subtracts 8 points.\n"
 "The target score is selected when creating the table; the default is 100.\n"
 "After the last player's turn in the round ends, the highest score wins. If several players have the same highest score, the game ends in a draw."
+msgstr ""
+
+#: games/scientific_war.rb:43
+msgid "It is based on War, but you choose which card to play, so bluff and strategy matter. There is no random deal. Every player gets all thirteen cards of one suit, from two to ace, plus one joker, so everyone starts with the same cards. Two players play with hearts and spades. With more than four players a second deck is added, so some suits appear twice."
 msgstr ""
 
 #: games/poker.rb:459
@@ -8014,6 +8132,10 @@ msgstr "La jota pide un valor del 5 al 10"
 msgid "Jack requests a rank lets the player using a jack request a value from five to ten. The next player must meet that request rather than merely follow suit. With the option off, jacks are ordinary matching cards. Queen is universal separately lets a queen start an ordinary move on any table card, but it does not defend a pending penalty."
 msgstr ""
 
+#: games/scientific_war.rb:52
+msgid "Jack, revolution: a jack reverses the card order at once, already in the trick in which it is played. The two becomes the strongest card and the ace the weakest. The next jack restores the usual order. Two jacks in the same trick cancel each other out."
+msgstr ""
+
 #: games/poker.rb:160
 msgid "Jacks or better is required to open draw poker"
 msgstr "Exigir una pareja de jotas o una combinación superior para abrir en el póquer con descarte"
@@ -8040,17 +8162,21 @@ msgstr ""
 msgid "Jail can be reached by a field, a card or three doubles. Before rolling you may pay the exit fee or use a held jail card. Otherwise try for doubles, for up to three turns. Successful doubles release you and move the pawn but give no extra roll. After the third failed attempt you pay and move by that roll. Merely visiting the jail field is not imprisonment."
 msgstr ""
 
-#: __app.rb:1045
+#: __app.rb:1047
 msgid "Join"
 msgstr "Unirse"
 
-#: __app.rb:219 __app.rb:997
+#: __app.rb:220 __app.rb:999
 msgid "Join a table"
 msgstr "Unirse a una mesa"
 
-#: __app.rb:1102
+#: __app.rb:1104
 msgid "Joining table"
 msgstr "Uniéndose a la mesa"
+
+#: games/scientific_war.rb:56
+msgid "Joker"
+msgstr ""
 
 msgid "Judge"
 msgstr "Juez"
@@ -8286,18 +8412,18 @@ msgstr "Añadir cartas a %{meld}"
 msgid "Leaderboard: %{word}"
 msgstr "Clasificación: %{word}"
 
-#: __app.rb:223 __app.rb:656
+#: __app.rb:224 __app.rb:658
 msgid "Leaderboards"
 msgstr "Clasificaciones"
 
 msgid "Leaderboards will become available after the first playable game is added."
 msgstr "Las clasificaciones estarán disponibles cuando se añada el primer juego al que se pueda jugar."
 
-#: __app.rb:1303 lib/game_layout.rb:170 lib/game_screen.rb:499 lib/participant_menu.rb:31
+#: __app.rb:1305 lib/game_layout.rb:170 lib/game_screen.rb:499 lib/participant_menu.rb:31
 msgid "Leave"
 msgstr "Salir"
 
-#: __app.rb:1454
+#: __app.rb:1456
 msgid "Leaving table"
 msgstr "Saliendo de la mesa"
 
@@ -8385,11 +8511,11 @@ msgstr "Estación de Liverpool Street"
 msgid "Ljubljana Railway Station"
 msgstr "Estación de tren de Ljubljana"
 
-#: __app.rb:550 __app.rb:601
+#: __app.rb:552 __app.rb:603
 msgid "Loading Game Room history"
 msgstr "Cargando el historial de Game Room"
 
-#: __app.rb:2095 lib/game_room_widget.rb:102 lib/game_room_widget.rb:107 lib/game_room_widget.rb:44
+#: __app.rb:2097 lib/game_room_widget.rb:102 lib/game_room_widget.rb:107 lib/game_room_widget.rb:44
 msgid "Loading Game Room tables"
 msgstr "Cargando las mesas de Game Room"
 
@@ -8401,38 +8527,38 @@ msgstr "Cargando la clasificación de Torre de palabras"
 msgid "Loading Word Tower rounds"
 msgstr "Cargando las rondas de Torre de palabras"
 
-#: __app.rb:983
+#: __app.rb:985
 msgid "Loading available tables"
 msgstr "Cargando las mesas disponibles"
 
-#: __app.rb:2120
+#: __app.rb:2122
 msgid "Loading contacts"
 msgstr "Cargando los contactos"
 
-#: __app.rb:1748
+#: __app.rb:1750
 msgid "Loading invitations"
 msgstr "Cargando las invitaciones"
 
-#: __app.rb:2261
+#: __app.rb:2263
 msgid "Loading notification settings"
 msgstr "Cargando los ajustes de notificaciones"
 
-#: __app.rb:881 __app.rb:889 __app.rb:956
+#: __app.rb:883 __app.rb:891 __app.rb:958
 msgid "Loading saved game"
 msgstr ""
 
-#: __app.rb:865
+#: __app.rb:867
 msgid "Loading saved games"
 msgstr ""
 
 msgid "Loading server time"
 msgstr "Obteniendo la hora del servidor"
 
-#: __app.rb:1028
+#: __app.rb:1030
 msgid "Loading tables"
 msgstr "Cargando las mesas"
 
-#: __app.rb:1590
+#: __app.rb:1592
 msgid "Loading users"
 msgstr "Cargando los usuarios"
 
@@ -8450,7 +8576,7 @@ msgstr "Mensajes de la sala de espera"
 msgid "Local market"
 msgstr "Mercado local"
 
-#: __app.rb:2297
+#: __app.rb:2299
 msgid "Local settings saved. New-table notification subscriptions could not be saved."
 msgstr ""
 
@@ -8933,7 +9059,7 @@ msgstr "Nunca"
 msgid "New games are selected in the widget by default, while saved manual deselections are remembered. Older settings also enable Rummy, Domino, Mexican Train, Scrabble, Taboo and Biblios once."
 msgstr "Los juegos nuevos se seleccionan de forma predeterminada en el widget, y se recuerda si los has desmarcado manualmente y guardado ese cambio. En los ajustes antiguos también se activan una sola vez Rummy, Dominó, Tren mexicano, Scrabble, Tabú y Biblios."
 
-#: __app.rb:332 __app.rb:338
+#: __app.rb:334 __app.rb:340
 msgid "New table"
 msgstr "Nueva mesa"
 
@@ -9132,7 +9258,7 @@ msgstr ""
 msgid "No discard pile"
 msgstr "Sin pila de descartes"
 
-#: __app.rb:1268 __app.rb:1269
+#: __app.rb:1270 __app.rb:1271
 msgid "No games have been played yet"
 msgstr "Todavía no se ha jugado ninguna partida"
 
@@ -9278,12 +9404,16 @@ msgstr "No se ha efectuado ningún disparo."
 msgid "No suit has been led."
 msgstr "Todavía no hay palo de salida."
 
-#: __app.rb:2201
+#: __app.rb:2203
 msgid "No table preset is assigned to this shortcut."
 msgstr "No hay ninguna configuración predefinida de mesa asignada a este atajo."
 
 msgid "No time limit"
 msgstr "Sin límite de tiempo"
+
+#: games/scientific_war.rb:382
+msgid "No trick has been decided yet."
+msgstr ""
 
 #: games/scrabble_ui.rb:38
 msgid "No words have been played."
@@ -9302,6 +9432,10 @@ msgstr[1] ""
 #: games/krowa_support/presentation.rb:166
 msgid "Nobody guessed the word."
 msgstr "Nadie ha adivinado la palabra."
+
+#: games/scientific_war.rb:805
+msgid "Nobody has chosen a card yet."
+msgstr ""
 
 #: games/axel_pong.rb:32
 msgid "Normal"
@@ -9536,11 +9670,11 @@ msgstr ""
 msgid "Only the host can do this."
 msgstr "Solo el anfitrión de la mesa puede hacer esto."
 
-#: __app.rb:2520
+#: __app.rb:2522
 msgid "Only the table master may start a game."
 msgstr "Solo el anfitrión de la mesa puede iniciar una partida."
 
-#: __app.rb:1001 __app.rb:904 games/krowa_support/leaderboards.rb:199 games/krowa_support/leaderboards.rb:36 lib/game_room_screens.rb:496 lib/game_room_screens.rb:93
+#: __app.rb:1003 __app.rb:906 games/krowa_support/leaderboards.rb:199 games/krowa_support/leaderboards.rb:36 lib/game_room_screens.rb:496 lib/game_room_screens.rb:93
 msgid "Open"
 msgstr "Abrir"
 
@@ -9555,7 +9689,7 @@ msgstr "Abrir la ayuda con F1 o las reglas con Ctrl+F1 ya no detiene la partida.
 msgid "Opening the betting requires a pair of jacks or better."
 msgstr "Para abrir las apuestas se necesita una pareja de jotas o una combinación superior."
 
-#: __app.rb:2563
+#: __app.rb:2565
 msgid "Opening the current game"
 msgstr "Abriendo la partida actual"
 
@@ -10153,7 +10287,7 @@ msgstr "Preparar y jugar un grupo de cartas"
 msgid "Preparing round %{round}."
 msgstr "Preparando la ronda %{round}."
 
-#: __app.rb:931
+#: __app.rb:933
 msgid "Preparing saved game"
 msgstr "Preparando la partida guardada"
 
@@ -10399,6 +10533,10 @@ msgstr "La reina es universal"
 msgid "Queen is universal allows a queen to start a normal move regardless of the table card. A queen does not defend against a pending penalty. Use two jokers adds two cards which can represent any ordinary or special card; choose the represented card when playing. A joker defending a penalty must represent a card that can actually defend it, not an arbitrary card. Representing an ace or king uses its enabled special effect."
 msgstr ""
 
+#: games/scientific_war.rb:53
+msgid "Queen, spy: in the next trick, the player who played a queen chooses last and first hears the cards the others have chosen. If two or more queens are played in the same trick, they cancel each other out."
+msgstr ""
+
 msgid "Quick table creation"
 msgstr "Creación rápida de mesas"
 
@@ -10450,6 +10588,10 @@ msgstr "R: introducir tu puja."
 #: games/poker.rb:108
 msgid "R: enter your raise above the call."
 msgstr "R: introducir tu subida por encima de la cantidad necesaria para igualar."
+
+#: games/scientific_war.rb:68
+msgid "R: read the current rules."
+msgstr ""
 
 #: games/taboo_ui.rb:99
 msgid "R: read the remaining time."
@@ -10520,7 +10662,7 @@ msgstr ""
 msgid "Read table messages outside the table window"
 msgstr ""
 
-#: __app.rb:1064 __app.rb:1069 lib/participant_menu.rb:23
+#: __app.rb:1066 __app.rb:1071 lib/participant_menu.rb:23
 msgid "Read the table variant and settings"
 msgstr "Leer la variante y los ajustes de la mesa"
 
@@ -10566,11 +10708,11 @@ msgstr ""
 msgid "Regional boards have their own figures"
 msgstr ""
 
-#: __app.rb:1773
+#: __app.rb:1775
 msgid "Reject"
 msgstr "Rechazar"
 
-#: __app.rb:1956 lib/game_room_screens.rb:120
+#: __app.rb:1958 lib/game_room_screens.rb:120
 msgid "Reject invitation"
 msgstr "Rechazar invitación"
 
@@ -10578,7 +10720,7 @@ msgstr "Rechazar invitación"
 msgid "Reject the proposed trade"
 msgstr "Rechazar el intercambio propuesto"
 
-#: __app.rb:1927
+#: __app.rb:1929
 msgid "Rejecting invitation"
 msgstr "Rechazando la invitación"
 
@@ -10624,7 +10766,7 @@ msgstr "Se ha eliminado el retardo adicional de tres segundos al inicio de las p
 msgid "Removed words: %{words}."
 msgstr "Palabras eliminadas: %{words}."
 
-#: __app.rb:1479
+#: __app.rb:1481
 msgid "Removing computer"
 msgstr "Eliminando un ordenador"
 
@@ -10673,7 +10815,7 @@ msgstr "Valor solicitado: %{rank}"
 msgid "Reshuffling an exhausted deck during a deal now has a short announcement and its own sound in UNO, Makao, 99, Rummy and draw Poker."
 msgstr "Volver a barajar un mazo agotado durante un reparto tiene ahora un breve anuncio y un sonido propio en UNO, Makao, 99, Rummy y el póquer con descarte."
 
-#: __app.rb:2298
+#: __app.rb:2300
 msgid "Restart ELTEN to apply the interface language preferences."
 msgstr ""
 
@@ -10693,11 +10835,11 @@ msgstr "Resultado publicado."
 msgid "Results"
 msgstr "Resultados"
 
-#: __app.rb:1284 __app.rb:878
+#: __app.rb:1286 __app.rb:880
 msgid "Resume game"
 msgstr "Reanudar partida"
 
-#: __app.rb:969
+#: __app.rb:971
 msgid "Resuming game"
 msgstr "Reanudando la partida"
 
@@ -10745,6 +10887,14 @@ msgstr "Revisar la partida terminada"
 #: games/taboo_ui.rb:61
 msgid "Review this turn. The table master must approve it."
 msgstr "Revisa este turno. El anfitrión de la mesa debe aprobarlo."
+
+#: games/scientific_war.rb:515
+msgid "Revolution! The order is reversed: two is now the strongest card and ace the weakest."
+msgstr ""
+
+#: games/scientific_war.rb:516
+msgid "Revolution! The usual order is back: ace is the strongest card again."
+msgstr ""
 
 #: lib/game_room_changelog.rb:119
 msgid "Rewritten the rules of all 23 games in Polish and English, with clearer explanations, examples and descriptions of the variants and settings available in Game Room."
@@ -10986,7 +11136,7 @@ msgstr "Infracción de las reglas"
 msgid "Rules"
 msgstr "Reglas"
 
-#: __app.rb:764
+#: __app.rb:766
 msgid "Rules for this game are not available in this version of ELTEN Game Room."
 msgstr "Las reglas de este juego no están disponibles en esta versión de ELTEN Game Room."
 
@@ -11128,7 +11278,7 @@ msgstr "Guarda Rummy al principio de un turno, antes de robar o manipular cartas
 msgid "Save Taboo between turns, after the table master approves the review."
 msgstr "Guarda Tabú entre turnos, después de que el anfitrión de la mesa apruebe la revisión."
 
-#: __app.rb:2840
+#: __app.rb:2842
 msgid "Save changes"
 msgstr "Guardar cambios"
 
@@ -11141,7 +11291,7 @@ msgstr "Guardar conserva el lado de escucha seleccionado para futuras partidas; 
 msgid "Save keeps the selected side for future matches; Cancel preserves the previous setting. A match continues while the settings window is open. Close it to return to the playfield controls."
 msgstr "Guardar conserva el lado seleccionado para futuras partidas; Cancelar mantiene el ajuste anterior. La partida continúa mientras la ventana de ajustes está abierta. Ciérrala para volver a los controles del campo de juego."
 
-#: __app.rb:2237
+#: __app.rb:2239
 msgid "Save preset"
 msgstr "Guardar configuración predefinida"
 
@@ -11149,11 +11299,15 @@ msgstr "Guardar configuración predefinida"
 msgid "Save the game and close the table"
 msgstr "Guardar la partida y cerrar la mesa"
 
-#: __app.rb:826
+#: games/scientific_war.rb:100
+msgid "Save the game at the beginning of a trick, before any person has chosen a card."
+msgstr ""
+
+#: __app.rb:828
 msgid "Save this game and close the table for everyone?"
 msgstr "¿Guardar esta partida y cerrar la mesa para todos?"
 
-#: __app.rb:222 __app.rb:875
+#: __app.rb:223 __app.rb:877
 msgid "Saved games"
 msgstr "Partidas guardadas"
 
@@ -11161,7 +11315,7 @@ msgstr "Partidas guardadas"
 msgid "Saving Daily Krowa"
 msgstr "Guardando Krowa diaria"
 
-#: __app.rb:828
+#: __app.rb:830
 msgid "Saving game"
 msgstr "Guardando la partida"
 
@@ -11173,15 +11327,15 @@ msgstr "Solo se puede guardar en Carrera y Torre de palabras."
 msgid "Saving is not supported for this game."
 msgstr "Este juego no permite guardar partidas."
 
-#: __app.rb:2278
+#: __app.rb:2280
 msgid "Saving notification settings"
 msgstr "Guardando los ajustes de notificaciones"
 
-#: __app.rb:2869
+#: __app.rb:2871
 msgid "Saving table settings"
 msgstr "Guardando los ajustes de la mesa"
 
-#: __app.rb:2715
+#: __app.rb:2717
 msgid "Saving teams"
 msgstr "Guardando equipos"
 
@@ -11191,6 +11345,14 @@ msgstr ""
 
 msgid "Schiphol airport"
 msgstr "Aeropuerto Schiphol"
+
+#: games/scientific_war.rb:36
+msgid "Scientific War"
+msgstr ""
+
+#: games/scientific_war.rb:42
+msgid "Scientific War is a card game for two to eight players."
+msgstr ""
 
 #: lib/game_room_changelog.rb:140
 msgid "Score announcements under S are ordered from highest to lowest, with eliminated players or teams last. Their actual scores are preserved."
@@ -11298,7 +11460,7 @@ msgstr "Segunda reserva"
 msgid "Seeds in each pit"
 msgstr "Semillas en cada hoyo"
 
-#: __app.rb:1158 __app.rb:1958 __app.rb:2678 lib/game_screen.rb:1204 lib/game_surfaces/word_board.rb:182
+#: __app.rb:1160 __app.rb:1960 __app.rb:2680 lib/game_screen.rb:1204 lib/game_surfaces/word_board.rb:182
 msgid "Select"
 msgstr "Seleccionar"
 
@@ -11384,19 +11546,19 @@ msgstr "El envío y el rechazo de invitaciones se registran en el historial de l
 msgid "Sending assessment"
 msgstr "Enviando evaluación"
 
-#: __app.rb:1401 lib/game_screen.rb:1650
+#: __app.rb:1403 lib/game_screen.rb:1650
 msgid "Sending chat message"
 msgstr "Enviando el mensaje del chat"
 
-#: __app.rb:1626 __app.rb:945
+#: __app.rb:1628 __app.rb:947
 msgid "Sending invitation"
 msgstr "Enviando la invitación"
 
-#: __app.rb:495
+#: __app.rb:497
 msgid "Sending invitations is unavailable because server table access could not be confirmed."
 msgstr "El envío de invitaciones no está disponible porque no se ha podido confirmar el acceso a las tablas del servidor."
 
-#: __app.rb:493
+#: __app.rb:495
 msgid "Sending invitations is unavailable in development mode without server table access."
 msgstr "El envío de invitaciones no está disponible en el modo de desarrollo sin acceso a las tablas del servidor."
 
@@ -11410,7 +11572,7 @@ msgstr "El ping del servidor no está disponible."
 msgid "Server ping: %{milliseconds} ms."
 msgstr "Ping del servidor: %{milliseconds} ms."
 
-#: __app.rb:485
+#: __app.rb:487
 msgid "Server table access could not be checked. Global lobby history and sending invitations are unavailable until you reopen Game Room."
 msgstr "No se ha podido comprobar el acceso a las tablas del servidor. El historial global de la sala de espera y el envío de invitaciones no estarán disponibles hasta que vuelvas a abrir Game Room."
 
@@ -11440,15 +11602,15 @@ msgstr "Sets necesarios para ganar"
 msgid "Sets: %{own} to %{opponent}."
 msgstr "Sets: %{own} a %{opponent}."
 
-#: __app.rb:224 lib/game_room_screens.rb:176
+#: __app.rb:225 lib/game_room_screens.rb:176
 msgid "Settings"
 msgstr "Ajustes"
 
-#: __app.rb:2303
+#: __app.rb:2305
 msgid "Settings saved."
 msgstr "Ajustes guardados."
 
-#: __app.rb:2301
+#: __app.rb:2303
 msgid "Settings saved. Restart ELTEN to apply the interface language preferences."
 msgstr "Ajustes guardados. Reinicia ELTEN para aplicar las preferencias de idioma de la interfaz."
 
@@ -11477,7 +11639,7 @@ msgstr "Victoria compartida: %{players}."
 msgid "Sharp (searches deeply and answers more slowly)"
 msgstr "Perspicaz (busca en profundidad y responde más despacio)"
 
-#: __app.rb:680 lib/game_shortcut_bindings.rb:61
+#: __app.rb:682 lib/game_shortcut_bindings.rb:61
 msgid "Shift"
 msgstr "Shift"
 
@@ -11672,6 +11834,10 @@ msgstr "Shift+V: explora las propiedades de otros jugadores."
 #: games/yahtzee.rb:81
 msgid "Shift+V: open an opponent's score sheet."
 msgstr "Shift+V: abre la hoja de puntuaciones de un rival."
+
+#: games/scientific_war.rb:64
+msgid "Shift+Z: move to the previous card in your hand; if it is your only card, play it."
+msgstr ""
 
 #: games/biblios.rb:88
 msgid "Shift+Z: previous card usable for payment, without selecting or paying."
@@ -11874,7 +12040,7 @@ msgstr "Estación del Sur"
 msgid "South-east Asia board"
 msgstr "Tablero del Sudeste Asiático"
 
-#: __app.rb:681 lib/game_shortcut_bindings.rb:57
+#: __app.rb:683 lib/game_shortcut_bindings.rb:57
 msgid "Space"
 msgstr "Espacio"
 
@@ -11989,7 +12155,7 @@ msgstr "Fichas iniciales"
 msgid "Starting chips must be from 100 to 100000."
 msgstr "El número de fichas iniciales debe estar entre 100 y 100000."
 
-#: __app.rb:2586
+#: __app.rb:2588
 msgid "Starting game"
 msgstr "Iniciando la partida"
 
@@ -12033,6 +12199,10 @@ msgstr "Estación Trastevere"
 #: games/mancala.rb:25
 msgid "Steady (looks a few moves ahead)"
 msgstr "Equilibrado (anticipa varios movimientos)"
+
+#: games/scientific_war.rb:806
+msgid "Still choosing: %{players}."
+msgstr ""
 
 #: games/mancala.rb:561
 msgid "Stores: %{values}."
@@ -12142,6 +12312,12 @@ msgstr ""
 msgid "Suvarnabhumi International Airport"
 msgstr "Aeropuerto Internacional de Suvarnabhumi"
 
+#: games/scientific_war.rb:333
+msgid "Swap your hand with your pile of %{count} card"
+msgid_plural "Swap your hand with your pile of %{count} cards"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "T reads the turn, H your hand, C the pile total and S everyone's remaining tokens. The automatic replacement draw needs no extra key."
 msgstr "T lee el turno, H tu mano, C la suma de la pila y S las fichas que le quedan a cada jugador. El robo automático de la carta de sustitución no requiere pulsar ninguna tecla adicional."
 
@@ -12177,6 +12353,10 @@ msgstr "T: leer quién saca y el estado de la conexión."
 #: games/monopoly.rb:110
 msgid "T: read the turn and phase."
 msgstr "T: lee el turno y la fase."
+
+#: games/scientific_war.rb:67
+msgid "T: read who has already chosen a card."
+msgstr ""
 
 #: games/mexican_train.rb:133
 msgid "T: read whose turn it is and any double that must be covered."
@@ -12330,7 +12510,7 @@ msgstr "Equipo %{number}: %{score}"
 msgid "Team %{players}"
 msgstr "Equipo %{players}"
 
-#: __app.rb:2673
+#: __app.rb:2675
 msgid "Team %{team}"
 msgstr "Equipo %{team}"
 
@@ -12697,7 +12877,7 @@ msgstr ""
 msgid "The court is 25 steps long. By default, you hear your end on the right and the opponent's end on the left. An incoming ball travels from left to right; your shot travels from right to left. Headphones make it easier to follow the ball. You can reverse this listening perspective in your personal settings."
 msgstr ""
 
-#: games/battleship.rb:39 games/categories.rb:60 games/krowa.rb:36 games/quiz_party.rb:41
+#: games/battleship.rb:39 games/categories.rb:60 games/krowa.rb:36 games/quiz_party.rb:41 games/scientific_war.rb:91
 msgid "The current game contains private data that cannot be transferred at this stage."
 msgstr ""
 
@@ -12904,7 +13084,7 @@ msgstr ""
 msgid "The game announces when someone goes onto the barrel and records it in the history. S reads scores and marks the players currently on the barrel. Shift+S also tells you how many barrel chances they have left."
 msgstr ""
 
-#: __app.rb:2577
+#: __app.rb:2579
 msgid "The game cannot start until these players join the real-time session: %{players}."
 msgstr "La partida no puede empezar hasta que estos jugadores se unan a la sesión en tiempo real: %{players}."
 
@@ -12915,7 +13095,7 @@ msgstr "La partida ha cambiado antes de que se aceptara tu acción. Vuelve a ele
 msgid "The game could not be opened. Please try again."
 msgstr "No se ha podido abrir la partida. Inténtalo de nuevo."
 
-#: __app.rb:859
+#: __app.rb:861
 msgid "The game could not be saved. The table was not closed by this operation."
 msgstr "No se ha podido guardar la partida. Esta operación no ha cerrado la mesa."
 
@@ -12956,7 +13136,7 @@ msgstr ""
 msgid "The game has already ended."
 msgstr "La partida ya ha terminado."
 
-#: __app.rb:855
+#: __app.rb:857
 msgid "The game has been saved."
 msgstr "La partida se ha guardado."
 
@@ -12967,7 +13147,7 @@ msgstr "La partida ha terminado. Puedes seguir examinando el tablero."
 msgid "The game includes the agreed international board list and a Polish board. Every board uses the same rules engine and differs only in names and presentation."
 msgstr ""
 
-#: games/base.rb:1365 games/ludo.rb:284 games/ninety_nine.rb:944
+#: games/base.rb:1365 games/ludo.rb:284 games/ninety_nine.rb:944 games/scientific_war.rb:814
 msgid "The game is finished."
 msgstr "La partida está terminada."
 
@@ -13033,6 +13213,26 @@ msgstr ""
 msgid "The invalid-word setting offers six policies: correct or end the turn, each with no penalty, minus 5 or minus 10 points. The default is correction without penalty. One submitted attempt incurs at most one penalty, regardless of the number of invalid words. Invalid words return all draft tiles to the rack and do not consume bonuses. Geometry errors have no penalty. Preview calculates points but never checks the dictionary."
 msgstr ""
 
+#: games/scientific_war.rb:520
+msgid "The jacks cancel each other out; the card order does not change."
+msgstr ""
+
+#: games/scientific_war.rb:536
+msgid "The joker cancels the war: %{player} wins the trick and takes %{count} card."
+msgid_plural "The joker cancels the war: %{player} wins the trick and takes %{count} cards."
+msgstr[0] ""
+msgstr[1] ""
+
+#: games/scientific_war.rb:540
+msgid "The joker forces a war. %{count} card stays on the table for the next trick."
+msgid_plural "The joker forces a war. %{count} cards stay on the table for the next trick."
+msgstr[0] ""
+msgstr[1] ""
+
+#: games/scientific_war.rb:526
+msgid "The jokers cancel each other out."
+msgstr ""
+
 #: games/categories.rb:366 games/categories.rb:387
 msgid "The judge finished reviewing the answers."
 msgstr "El juez ha terminado de evaluar las respuestas."
@@ -13056,6 +13256,10 @@ msgstr ""
 
 #: games/chess.rb:55
 msgid "The knight moves in an L: two squares along a row or column, then one square sideways. It can jump over pieces in between. The king normally moves one square in any direction, but never onto a square attacked by the opponent. Two kings therefore cannot stand next to each other."
+msgstr ""
+
+#: games/scientific_war.rb:59
+msgid "The last player who still has cards wins. The table has a trick limit from 20 to 100, 50 by default. When it is reached, the player with the most cards wins; if several players have the same highest number, the game is a draw. A very long game with many players may end a little earlier in the same way, because a table can store only a limited number of moves."
 msgstr ""
 
 #: games/battleship.rb:661
@@ -13140,7 +13344,7 @@ msgstr ""
 msgid "The number of starting tokens must be greater than zero."
 msgstr "El número de fichas iniciales debe ser mayor que cero."
 
-#: __app.rb:1643 __app.rb:2358 lib/game_room_widget.rb:157 lib/game_screen.rb:2219
+#: __app.rb:1645 __app.rb:2360 lib/game_room_widget.rb:157 lib/game_screen.rb:2219
 msgid "The operation could not be completed. Please try again."
 msgstr "No se ha podido completar la operación. Inténtalo de nuevo."
 
@@ -13200,6 +13404,10 @@ msgstr ""
 msgid "The player with more discs wins. Equal totals are a draw."
 msgstr ""
 
+#: games/scientific_war.rb:47
+msgid "The player with the strongest card wins the trick and puts all its cards on their pile. Normally the ace is the strongest card and the two the weakest. Suits do not matter."
+msgstr ""
+
 msgid "The players then add the numbers on their dice, and the player with the most Victory Points wins. The numbers on the cards are not Victory Points; they only determine who wins each category."
 msgstr ""
 
@@ -13224,6 +13432,10 @@ msgstr "La zona común está vacía"
 msgid "The public space is empty."
 msgstr "La zona común está vacía."
 
+#: games/scientific_war.rb:585
+msgid "The queens cancel each other out."
+msgstr ""
+
 #: games/poker.rb:175
 msgid "The raise cap must be from 1 to 10."
 msgstr "El límite de subidas debe estar entre 1 y 10."
@@ -13232,7 +13444,7 @@ msgstr "El límite de subidas debe estar entre 1 y 10."
 msgid "The raise limit for this betting round has been reached."
 msgstr "Se ha alcanzado el límite de subidas de esta ronda de apuestas."
 
-#: __app.rb:1076 __app.rb:1852 __app.rb:1902 __app.rb:2161
+#: __app.rb:1078 __app.rb:1854 __app.rb:1904 __app.rb:2163
 msgid "The real-time connection to this table could not be established. Please try again."
 msgstr "No se ha podido establecer la conexión en tiempo real con esta mesa. Inténtalo de nuevo."
 
@@ -13251,11 +13463,11 @@ msgstr "Se ha cancelado la ronda. No se ha avanzado en el orden de los jueces."
 msgid "The round winner gets zero points. Others add the points of cards left in their hands: number cards their value, coloured action cards 20, and wild cards 50. Eliminate a player at this score defaults to 500 (50–5000). Reaching or exceeding it eliminates that player; the remaining players start another round. The last remaining player wins the whole game."
 msgstr ""
 
-#: __app.rb:958
+#: __app.rb:960
 msgid "The saved game is no longer available."
 msgstr ""
 
-#: __app.rb:899
+#: __app.rb:901
 msgid "The saved game storage is damaged or incompatible."
 msgstr "El almacenamiento de partidas guardadas está dañado o es incompatible."
 
@@ -13366,7 +13578,7 @@ msgstr "El diccionario de palabras seleccionado no está disponible o está dañ
 msgid "The server already has the same or a better result."
 msgstr "El servidor ya tiene el mismo resultado o uno mejor."
 
-#: __app.rb:2452
+#: __app.rb:2454
 msgid "The settings of this table are not available."
 msgstr "Los ajustes de esta mesa no están disponibles."
 
@@ -13391,7 +13603,7 @@ msgstr "El barco no cabe ahí."
 msgid "The shortcut could not be saved. Please try again."
 msgstr "No se ha podido guardar el atajo. Inténtalo de nuevo."
 
-#: __app.rb:2949
+#: __app.rb:2951
 msgid "The sound volume could not be saved."
 msgstr "No se ha podido guardar el volumen de los sonidos."
 
@@ -13409,7 +13621,7 @@ msgstr "La mesa y la puntuación utilizan la sesión habitual de Game Room. Los 
 msgid "The table and score use Game Room's normal session; movement uses Communications. During a human match, each player calculates their own flight and return locally. Lost or delayed paddle-position updates alone do not stop the ball. Serves, returns and misses travel separately in order. An actual connection failure pauses the rally; a replacement connection restarts the unfinished point with the confirmed score unchanged. Observers may listen but cannot control a paddle. Unfinished matches cannot currently be saved."
 msgstr ""
 
-#: __app.rb:2719 __app.rb:2854 __app.rb:2873
+#: __app.rb:2721 __app.rb:2856 __app.rb:2875
 msgid "The table changed while you were editing. Open its settings again."
 msgstr "La mesa ha cambiado mientras la editabas. Vuelve a abrir sus ajustes."
 
@@ -13446,7 +13658,7 @@ msgstr ""
 msgid "The table is empty."
 msgstr "La mesa está vacía."
 
-#: __app.rb:947
+#: __app.rb:949
 msgid "The table is waiting for the original players. Start the game when everyone has joined."
 msgstr "La mesa está esperando a los jugadores originales. Inicia la partida cuando se hayan unido todos."
 
@@ -13536,6 +13748,14 @@ msgstr "Se ha alcanzado la puntuación objetivo. Ha empezado el último ciclo de
 msgid "The tiles have been dealt."
 msgstr "Se han repartido las fichas."
 
+#: games/scientific_war.rb:169
+msgid "The trick limit must be from 20 to 100."
+msgstr ""
+
+#: games/scientific_war.rb:429
+msgid "The trick limit was reached."
+msgstr ""
+
 #: lib/game_surfaces/taboo_surface.rb:49
 msgid "The turn clock is not running."
 msgstr "El reloj del turno no está en marcha."
@@ -13557,7 +13777,7 @@ msgstr ""
 msgid "The upper-section bonus adds 35 points if the six upper rows total at least 63. It is enabled by default. You do not need three of each value separately: a strong result in Sixes can compensate for a weak result in Ones. Switching the bonus off leaves the rows themselves unchanged."
 msgstr ""
 
-#: __app.rb:2571 __app.rb:2707
+#: __app.rb:2573 __app.rb:2709
 msgid "The users at the table changed while teams were being selected. Please start again."
 msgstr "Los usuarios de la mesa han cambiado durante la selección de equipos. Vuelve a empezar."
 
@@ -13627,19 +13847,19 @@ msgstr "No hay combinaciones en la mesa."
 msgid "There are no non-empty answers to review"
 msgstr "No hay respuestas con contenido para evaluar"
 
-#: __app.rb:1615
+#: __app.rb:1617
 msgid "There are no online contacts available to invite."
 msgstr "No hay contactos conectados a los que puedas invitar."
 
-#: __app.rb:1615
+#: __app.rb:1617
 msgid "There are no online users available to invite."
 msgstr "No hay usuarios conectados a los que puedas invitar."
 
-#: __app.rb:1033
+#: __app.rb:1035
 msgid "There are no open tables for this game."
 msgstr "No hay mesas abiertas para este juego."
 
-#: __app.rb:988
+#: __app.rb:990
 msgid "There are no open tables."
 msgstr "No hay mesas abiertas."
 
@@ -13647,7 +13867,7 @@ msgstr "No hay mesas abiertas."
 msgid "There are no optional board sizes or alternative placement rules in this game. Either player can be a bot."
 msgstr ""
 
-#: __app.rb:1722
+#: __app.rb:1724
 msgid "There are no pending invitations."
 msgstr "No hay invitaciones pendientes."
 
@@ -13715,7 +13935,7 @@ msgstr ""
 msgid "There is no trump suit."
 msgstr "No hay palo de triunfo."
 
-#: __app.rb:1543
+#: __app.rb:1545
 msgid "There is nobody available to replace this player."
 msgstr ""
 
@@ -13908,15 +14128,15 @@ msgstr ""
 msgid "This game has already finished."
 msgstr "Esta partida ya ha terminado."
 
-#: __app.rb:2536 __app.rb:2780 __app.rb:2970
+#: __app.rb:2538 __app.rb:2782 __app.rb:2972
 msgid "This game is not supported by this version of ELTEN Game Room."
 msgstr "Esta versión de ELTEN Game Room no admite este juego."
 
-#: __app.rb:2975
+#: __app.rb:2977
 msgid "This game requires exactly %{required} players. There are currently %{current} users at the table."
 msgstr "Este juego requiere exactamente %{required} jugadores. Actualmente hay %{current} usuarios en la mesa."
 
-#: __app.rb:2980
+#: __app.rb:2982
 msgid "This game requires from %{minimum} to %{maximum} players. There are currently %{current} users at the table."
 msgstr "Este juego requiere entre %{minimum} y %{maximum} jugadores. Actualmente hay %{current} usuarios en la mesa."
 
@@ -13926,11 +14146,11 @@ msgstr ""
 msgid "This implementation keeps the contributed 87-card deck: 45 category cards, 18 Gold cards and 24 Church cards. Before play, the game removes two Gold cards of each value and 21 random cards for two players, one Gold card of each value and 12 random cards for three, or seven random cards for four. You do not know the random removals, so not every card is guaranteed to appear."
 msgstr ""
 
-#: __app.rb:1805 __app.rb:1825 __app.rb:409
+#: __app.rb:1807 __app.rb:1827 __app.rb:411
 msgid "This invitation has expired."
 msgstr "Esta invitación ha caducado."
 
-#: __app.rb:1734 __app.rb:1830 __app.rb:1947
+#: __app.rb:1736 __app.rb:1832 __app.rb:1949
 msgid "This invitation is no longer available."
 msgstr "Esta invitación ya no está disponible."
 
@@ -13958,7 +14178,7 @@ msgstr "Este movimiento dejaría a tu rey en jaque."
 msgid "This noun is not in the dictionary."
 msgstr "Este sustantivo no está en el diccionario."
 
-#: __app.rb:1550
+#: __app.rb:1552
 msgid "This participant cannot replace the selected player."
 msgstr ""
 
@@ -13966,15 +14186,15 @@ msgstr ""
 msgid "This pawn cannot move after the current roll."
 msgstr "Esta ficha no puede moverse con la tirada actual."
 
-#: __app.rb:1536
+#: __app.rb:1538
 msgid "This player is no longer at the table."
 msgstr ""
 
-#: __app.rb:2206
+#: __app.rb:2208
 msgid "This preset needs updating. Check its game and options before creating a table."
 msgstr "Esta configuración predefinida necesita actualizarse. Comprueba el juego y sus opciones antes de crear una mesa."
 
-#: __app.rb:951 __app.rb:976
+#: __app.rb:953 __app.rb:978
 msgid "This saved game is not compatible with this version or is damaged."
 msgstr "Esta partida guardada no es compatible con esta versión o está dañada."
 
@@ -13994,15 +14214,15 @@ msgstr "Este sonido está silenciado en los ajustes de Game Room."
 msgid "This square has no deed."
 msgstr "Esta casilla no tiene título de propiedad."
 
-#: __app.rb:2322 __app.rb:339
+#: __app.rb:2324 __app.rb:341
 msgid "This table announcement has expired or is no longer available."
 msgstr "Este anuncio de mesa ha caducado o ya no está disponible."
 
-#: __app.rb:1090 __app.rb:1487 __app.rb:1836 __app.rb:1906 __app.rb:1915 __app.rb:2173
+#: __app.rb:1092 __app.rb:1489 __app.rb:1838 __app.rb:1908 __app.rb:1917 __app.rb:2175
 msgid "This table is full."
 msgstr "Esta mesa está llena."
 
-#: __app.rb:1093 __app.rb:1488 __app.rb:1649 __app.rb:1830 __app.rb:1906 __app.rb:1918 __app.rb:2175 __app.rb:2335 __app.rb:420 lib/game_table_background.rb:116
+#: __app.rb:1095 __app.rb:1490 __app.rb:1651 __app.rb:1832 __app.rb:1908 __app.rb:1920 __app.rb:2177 __app.rb:2337 __app.rb:422 lib/game_table_background.rb:116
 msgid "This table is no longer available."
 msgstr "Esta mesa ya no está disponible."
 
@@ -14026,7 +14246,7 @@ msgstr "Esta ficha no encaja."
 msgid "This trade is no longer valid. Check the player, properties and available cash."
 msgstr "Este intercambio ya no es válido. Comprueba el jugador, las propiedades y el efectivo disponible."
 
-#: __app.rb:1647
+#: __app.rb:1649
 msgid "This user is already at the table."
 msgstr "Este usuario ya está en la mesa."
 
@@ -14114,6 +14334,10 @@ msgstr ""
 msgid "Three-second preparation."
 msgstr "Tres segundos de preparación."
 
+#: games/scientific_war.rb:54
+msgid "Three: in the next trick, the player who played a three can check how many cards each opponent has in hand. At any time, anyone can check how many cards each player has in total, in hand and on the pile."
+msgstr ""
+
 #: games/yahtzee.rb:15
 msgid "Threes"
 msgstr "Treses"
@@ -14191,7 +14415,7 @@ msgstr ""
 msgid "To place a ship, press Enter at one end, move to the other end and press Enter again. For a one-square ship, choose the same square twice. For example, A1 followed by A4 places a four-square ship vertically. You can place ships of any available length in any order; the program tells you which lengths remain."
 msgstr ""
 
-#: __app.rb:2528
+#: __app.rb:2530
 msgid "To use the new game rules, create a table in Game Room 2.0. All players need version 2.0 or later."
 msgstr "Para utilizar las nuevas reglas, crea una mesa en Game Room 2.0. Todos los jugadores necesitan la versión 2.0 o posterior."
 
@@ -14270,6 +14494,18 @@ msgstr ""
 #: lib/game_room_changelog.rb:248
 msgid "Translation support by balteam (budyn1211): each language now has one editable PO file for interface text, game rules and the changelog, making it easier to add and maintain translations without changing game logic."
 msgstr "balteam (budyn1211) ha mejorado el sistema de traducción: cada idioma dispone ahora de un único archivo PO editable para el texto de la interfaz, las reglas de los juegos y el historial de cambios. Así resulta más fácil añadir y mantener traducciones sin modificar la lógica de los juegos."
+
+#: games/scientific_war.rb:634 games/scientific_war.rb:804
+msgid "Trick %{number}."
+msgstr ""
+
+#: games/scientific_war.rb:163
+msgid "Trick limit"
+msgstr ""
+
+#: games/scientific_war.rb:162
+msgid "Trick limit (20 to 100)"
+msgstr ""
 
 msgid "Tricks and marriages"
 msgstr ""
@@ -14433,7 +14669,7 @@ msgstr "Los doses y los treses pueden responderse entre sí"
 msgid "Twos, threes, fours and kings"
 msgstr ""
 
-#: __app.rb:1327 lib/game_screen.rb:689
+#: __app.rb:1329 lib/game_screen.rb:689
 msgid "Type a chat message first."
 msgstr "Escribe primero un mensaje en el chat."
 
@@ -14599,7 +14835,7 @@ msgstr "Se han actualizado las reglas de Krowa, con descripciones de sus modos y
 msgid "Updating game"
 msgstr "Actualizando la partida"
 
-#: __app.rb:1240 __app.rb:1428 __app.rb:1437 __app.rb:1448 __app.rb:1511 __app.rb:1555 __app.rb:2694 __app.rb:2703 __app.rb:2837 __app.rb:2850 __app.rb:2891 lib/game_screen.rb:234 lib/game_screen.rb:899
+#: __app.rb:1242 __app.rb:1430 __app.rb:1439 __app.rb:1450 __app.rb:1513 __app.rb:1557 __app.rb:2696 __app.rb:2705 __app.rb:2839 __app.rb:2852 __app.rb:2893 lib/game_screen.rb:234 lib/game_screen.rb:899
 msgid "Updating table"
 msgstr "Actualizando la mesa"
 
@@ -14691,7 +14927,7 @@ msgstr "Usuarios en la mesa (%{count})"
 msgid "Users at the table. %{name}; %{game}; host: %{owner}; %{count}/%{maximum}"
 msgstr "Usuarios en la mesa. %{name}; %{game}; anfitrión de la mesa: %{owner}; %{count}/%{maximum}"
 
-#: __app.rb:2436
+#: __app.rb:2438
 msgid "Users at the table. %{status}; %{name}; %{game}; host: %{owner}; %{count}/%{maximum}"
 msgstr "Usuarios de la mesa. %{status}; %{name}; %{game}; anfitrión: %{owner}; %{count}/%{maximum}"
 
@@ -14754,6 +14990,10 @@ msgstr "V: lee el color actual."
 
 #: games/war.rb:50
 msgid "V: read the result of the last battle."
+msgstr ""
+
+#: games/scientific_war.rb:69
+msgid "V: read the result of the last trick."
 msgstr ""
 
 #: games/quiz_party.rb:97
@@ -14943,11 +15183,11 @@ msgstr "Esperando a que se guarde el punto."
 msgid "Waiting for the private solution."
 msgstr "Esperando la solución por vía privada."
 
-#: __app.rb:966
+#: __app.rb:968
 msgid "Waiting for these players: %{players}."
 msgstr "Esperando a estos jugadores: %{players}."
 
-#: games/war.rb:28
+#: games/scientific_war.rb:49 games/war.rb:28
 msgid "War"
 msgstr ""
 
@@ -14962,6 +15202,12 @@ msgstr ""
 #: games/war.rb:35
 msgid "War is a card game for two to eight players. The whole deck is dealt out, and every player keeps their cards in a face-down pile. Players do not choose cards: in each battle, everyone plays the top card of their own pile, one after another."
 msgstr ""
+
+#: games/scientific_war.rb:543
+msgid "War! %{count} card stays on the table for the next trick."
+msgid_plural "War! %{count} cards stay on the table for the next trick."
+msgstr[0] ""
+msgstr[1] ""
 
 #: games/war.rb:164
 msgid "War. Play your cards"
@@ -15020,7 +15266,7 @@ msgstr ""
 msgid "What your card will do"
 msgstr ""
 
-#: __app.rb:225 lib/game_room_screens.rb:61
+#: __app.rb:226 lib/game_room_screens.rb:61
 msgid "What's new"
 msgstr "Novedades"
 
@@ -15137,6 +15383,10 @@ msgstr ""
 
 #: games/yahtzee.rb:60
 msgid "When you stop rolling, choose a category from the scoring list. The list tells you how many points the current dice would give there. A category whose requirement you did not meet is usually worth zero, but you may still sacrifice it to save a more useful row for later."
+msgstr ""
+
+#: games/scientific_war.rb:48
+msgid "When your hand is empty after a trick, you pick up your pile and it becomes your new hand. If your pile is empty too, you are out of the game."
 msgstr ""
 
 #: games/tysiac.rb:96
@@ -15341,15 +15591,15 @@ msgstr "Has respondido correctamente."
 msgid "You answered incorrectly."
 msgstr "Has respondido incorrectamente."
 
-#: __app.rb:801
+#: __app.rb:803
 msgid "You are already at a table."
 msgstr "Ya estás en una mesa."
 
-#: __app.rb:1086 __app.rb:1921 __app.rb:2170 __app.rb:928
+#: __app.rb:1088 __app.rb:1923 __app.rb:2172 __app.rb:930
 msgid "You are already at another table."
 msgstr "Ya estás en otra mesa."
 
-#: __app.rb:1850
+#: __app.rb:1852
 msgid "You are already at this table."
 msgstr "Ya estás en esta mesa."
 
@@ -15377,6 +15627,10 @@ msgstr "Estás observando la partida."
 msgid "You are observing. The card is hidden."
 msgstr "Estás como espectador. La carta está oculta."
 
+#: games/scientific_war.rb:321
+msgid "You are out of the game."
+msgstr ""
+
 #: games/base.rb:932
 msgid "You are reviewing the answers."
 msgstr "Estás evaluando las respuestas."
@@ -15384,6 +15638,22 @@ msgstr "Estás evaluando las respuestas."
 #: games/categories.rb:722
 msgid "You are the judge. Wait until all players finish answering."
 msgstr "Haces de juez. Espera a que todos los jugadores terminen de responder."
+
+#: games/scientific_war.rb:790
+msgid "You are the spy and will choose after the others."
+msgstr ""
+
+#: games/scientific_war.rb:346
+msgid "You are the spy. %{cards} Choose your card."
+msgstr ""
+
+#: games/scientific_war.rb:354
+msgid "You are the spy. Press C to read the chosen cards, then choose yours."
+msgstr ""
+
+#: games/scientific_war.rb:830
+msgid "You are the spy. You will see the chosen cards when everyone else has chosen."
+msgstr ""
 
 msgid "You can also enter a move such as /a1 in the chat field. The slash makes it a game move rather than a message."
 msgstr "También puedes introducir un movimiento como /a1 en el campo de chat. La barra indica que se trata de un movimiento del juego y no de un mensaje."
@@ -15422,9 +15692,17 @@ msgstr ""
 msgid "You can play several cards as one packet if they share a rank. Only its first card has to start a legal move; later cards may be of other suits. Choose the order deliberately, because the last card becomes the new table card. A packet is one move, not several turns, and a joker must represent the same rank as the rest."
 msgstr ""
 
+#: games/scientific_war.rb:60
+msgid "You can save the game only at the start of a trick, before any person has chosen a card, because until the cards are revealed, nobody else knows your card. Bots choose their cards at random, but a bot that is the spy takes the other players' cards into account, just like a person."
+msgstr ""
+
 #: lib/game_room_changelog.rb:105 lib/game_room_changelog.rb:83
 msgid "You can subscribe to notifications about new public tables for selected games. Notifications are sent to online subscribers; no games are selected by default. Private and resumed tables are not announced this way."
 msgstr "Puedes suscribirte a notificaciones sobre mesas públicas nuevas de los juegos que elijas. Las notificaciones se envían a quienes estén suscritos y conectados; no hay ningún juego seleccionado de forma predeterminada. Las mesas privadas y las reanudadas no se anuncian de este modo."
+
+#: games/scientific_war.rb:841
+msgid "You can swap your hand with your pile before choosing a card."
+msgstr ""
 
 #: games/biblios.rb:1115
 msgid "You cannot bid"
@@ -15470,7 +15748,11 @@ msgstr "Ahora no puedes cancelar ninguna hipoteca. Necesitas una propiedad hipot
 msgid "You capture an opposing piece by moving one of yours onto its square. You cannot land on a piece of your own colour. Nor may you make a move that exposes your king to attack, even if the move would otherwise be possible."
 msgstr ""
 
-#: __app.rb:805
+#: games/scientific_war.rb:412 games/scientific_war.rb:792
+msgid "You chose %{card}."
+msgstr ""
+
+#: __app.rb:807
 msgid "You created a room."
 msgstr "Has creado una sala."
 
@@ -15506,6 +15788,10 @@ msgstr "Ya has disparado a esa casilla."
 msgid "You have already used all three rolls."
 msgstr "Ya has utilizado las tres tiradas."
 
+#: games/scientific_war.rb:794
+msgid "You have chosen your card."
+msgstr ""
+
 #: games/poker.rb:1182
 msgid "You have invested %{amount} in this hand."
 msgstr "Has aportado %{amount} en este reparto."
@@ -15521,6 +15807,10 @@ msgstr "No tienes oro."
 #: games/monopoly.rb:1750
 msgid "You have no buildings available to sell now."
 msgstr "Ahora no tienes edificios que puedas vender."
+
+#: games/scientific_war.rb:824 games/scientific_war.rb:843 games/scientific_war.rb:860
+msgid "You have no card power in this trick."
+msgstr ""
 
 #: games/biblios.rb:1258 games/poker.rb:1179 games/poker.rb:1184 games/poker.rb:897
 msgid "You have no cards."
@@ -15550,7 +15840,7 @@ msgstr "No tienes ninguna ficha que puedas jugar."
 msgid "You have no properties available to mortgage now."
 msgstr "Ahora no tienes propiedades que puedas hipotecar."
 
-#: __app.rb:868
+#: __app.rb:870
 msgid "You have no saved games."
 msgstr "No tienes partidas guardadas."
 
@@ -15573,7 +15863,11 @@ msgstr "No tienes con qué pagar"
 msgid "You have unlimited time while holding the ball, before a serve or after a defence, unless the opponent presses Ctrl+W. That warning gives the holder ten seconds to actually hit the ball. Preparing does not cancel the warning or restart its timer; only hitting does. If time runs out, the opponent receives a point. Repeated warnings do not extend the active deadline. Observers cannot hurry either player."
 msgstr ""
 
-#: __app.rb:1997
+#: games/scientific_war.rb:44
+msgid "You hold your cards in your hand and choose which one to play. The cards in your hand are always listed from the lowest to the highest, with the joker last. The cards you win go to a separate pile."
+msgstr ""
+
+#: __app.rb:1999
 msgid "You joined %{player}'s room."
 msgstr "Te has unido a la sala de %{player}."
 
@@ -15693,6 +15987,12 @@ msgid_plural "You still have %{count} turns to wait."
 msgstr[0] "Todavía tienes que esperar %{count} turno."
 msgstr[1] "Todavía tienes que esperar %{count} turnos."
 
+#: games/scientific_war.rb:500
+msgid "You swapped your hand with your pile. You now have %{count} card in hand."
+msgid_plural "You swapped your hand with your pile. You now have %{count} cards in hand."
+msgstr[0] ""
+msgstr[1] ""
+
 #: games/domino.rb:152
 msgid "You want as few points as possible"
 msgstr ""
@@ -15701,11 +16001,11 @@ msgstr ""
 msgid "You want as few points as possible. The round winner receives zero; everyone else adds the value of cards still held. Number cards count their number, coloured action cards 20 and wild cards 50. The elimination limit is normally 500, configurable from 50 to 5000. Players reaching it leave after the round, while the others continue. The last remaining player wins the whole game."
 msgstr ""
 
-#: __app.rb:1505
+#: __app.rb:1507
 msgid "You will observe the next game."
 msgstr "Observarás la próxima partida."
 
-#: __app.rb:1505
+#: __app.rb:1507
 msgid "You will play in the next game."
 msgstr "Jugarás en la próxima partida."
 
@@ -15831,9 +16131,15 @@ msgstr "Tu partida ha terminado. Esperando a los demás jugadores."
 msgid "Your hand"
 msgstr "Tu mano"
 
-#: games/card_game.rb:92 games/makao.rb:401 games/ninety_nine.rb:384 games/rummy_ui.rb:61 games/spades.rb:2563 games/three_five_eight.rb:396 games/tile_game.rb:136 games/tysiac.rb:458 games/uno.rb:459 lib/game_surfaces/packet_cards.rb:53
+#: games/card_game.rb:92 games/makao.rb:401 games/ninety_nine.rb:384 games/rummy_ui.rb:61 games/scientific_war.rb:776 games/spades.rb:2563 games/three_five_eight.rb:396 games/tile_game.rb:136 games/tysiac.rb:458 games/uno.rb:459 lib/game_surfaces/packet_cards.rb:53
 msgid "Your hand is empty"
 msgstr "Tu mano está vacía"
+
+#: games/scientific_war.rb:614
+msgid "Your hand is empty, so you take %{count} card from your pile into your hand."
+msgid_plural "Your hand is empty, so you take %{count} cards from your pile into your hand."
+msgstr[0] ""
+msgstr[1] ""
 
 #: games/makao.rb:977 games/ninety_nine.rb:903 games/spades.rb:2636 games/three_five_eight.rb:993 games/tysiac.rb:1517
 msgid "Your hand is empty."
@@ -15918,6 +16224,10 @@ msgstr "Tus fichas: %{positions}."
 msgid "Your pieces are at the bottom."
 msgstr "Tus piezas están abajo."
 
+#: games/scientific_war.rb:839
+msgid "Your pile is empty, so there is nothing to swap."
+msgstr ""
+
 #: games/war.rb:166
 msgid "Your pile: %{count} card. Press Enter to play"
 msgid_plural "Your pile: %{count} cards. Press Enter to play"
@@ -15927,6 +16237,18 @@ msgstr[1] ""
 #: games/mancala.rb:568
 msgid "Your pits: %{values}."
 msgstr "Tus hoyos: %{values}."
+
+#: games/scientific_war.rb:857
+msgid "Your power: you are the spy in this trick."
+msgstr ""
+
+#: games/scientific_war.rb:858
+msgid "Your power: you may check the hand sizes with C."
+msgstr ""
+
+#: games/scientific_war.rb:859
+msgid "Your power: you may swap your hand with your pile with C."
+msgstr ""
 
 #: games/monopoly.rb:1616
 msgid "Your properties in the offer"
@@ -16004,6 +16326,10 @@ msgstr "Z y Shift+Z permiten ir a la carta siguiente o anterior que puedas jugar
 #: games/scrabble_ui.rb:67
 msgid "Z: clear the whole draft."
 msgstr "Z: vacía toda la jugada provisional."
+
+#: games/scientific_war.rb:63
+msgid "Z: move to the next card in your hand; if it is your only card, play it."
+msgstr ""
 
 #: games/biblios.rb:87
 msgid "Z: next card usable for payment, without selecting or paying."
@@ -16554,7 +16880,7 @@ msgstr "full"
 msgid "game finished"
 msgstr "partida terminada"
 
-#: __app.rb:2506
+#: __app.rb:2508
 msgid "game in progress"
 msgstr "partida en curso"
 
@@ -16870,7 +17196,7 @@ msgstr "activado"
 msgid "one pair"
 msgstr "pareja"
 
-#: __app.rb:2506 games/mexican_train.rb:204
+#: __app.rb:2508 games/mexican_train.rb:204
 msgid "open"
 msgstr "abierto"
 
@@ -16882,7 +17208,7 @@ msgstr "naranja"
 msgid "orange group"
 msgstr "grupo naranja"
 
-#: games/poker.rb:370 games/war.rb:171
+#: games/poker.rb:370 games/scientific_war.rb:360 games/war.rb:171
 msgid "out"
 msgstr "fuera"
 
@@ -17044,6 +17370,10 @@ msgstr "leer las finanzas"
 msgid "read forbidden word %{number}"
 msgstr "leer la palabra prohibida %{number}"
 
+#: games/scientific_war.rb:398
+msgid "read how many cards each player owns"
+msgstr ""
+
 #: games/poker.rb:1177
 msgid "read other stacks"
 msgstr "leer las fichas de los demás"
@@ -17111,6 +17441,10 @@ msgstr "leer el título de propiedad de la casilla actual"
 #: games/makao.rb:426
 msgid "read the current penalty"
 msgstr "leer la penalización actual"
+
+#: games/scientific_war.rb:399
+msgid "read the current rules"
+msgstr ""
 
 #: lib/game_shortcuts.rb:17
 msgid "read the current total"
@@ -17191,6 +17525,10 @@ msgstr "leer el tiempo restante"
 msgid "read the result of the last battle"
 msgstr ""
 
+#: games/scientific_war.rb:382
+msgid "read the result of the last trick"
+msgstr ""
+
 #: lib/game_shortcuts.rb:19 lib/game_shortcuts.rb:20
 msgid "read the round information"
 msgstr "leer la información de la ronda"
@@ -17226,6 +17564,10 @@ msgstr "leer las cartas visibles de la mesa"
 #: games/chess.rb:287
 msgid "read what threatens the current field"
 msgstr "leer qué piezas amenazan la casilla actual"
+
+#: games/scientific_war.rb:380
+msgid "read who has already chosen a card"
+msgstr ""
 
 #: games/biblios.rb:330
 msgid "read who leads each category"
@@ -17614,9 +17956,17 @@ msgstr "sin límite"
 msgid "unmortgage a property"
 msgstr "cancelar la hipoteca de una propiedad"
 
+#: games/scientific_war.rb:176
+msgid "up to %{count} tricks"
+msgstr ""
+
 #: games/monopoly.rb:403
 msgid "use a Get out of jail card"
 msgstr "usar una carta de Salir de la cárcel"
+
+#: games/scientific_war.rb:392 games/scientific_war.rb:394
+msgid "use your card power"
+msgstr ""
 
 #: games/monopoly.rb:1828
 msgid "utility"

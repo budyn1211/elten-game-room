@@ -170,6 +170,7 @@ require_relative "games/krowa"
 require_relative "games/axel_pong"
 require_relative "games/audio_ball"
 require_relative "games/war"
+require_relative "games/scientific_war"
 require_relative "games/krowa_support/server_schema"
 require_relative "games/registry"
 
@@ -256,7 +257,8 @@ class EltenGameRoom < Program
     GameRoomGames::Krowa,
     GameRoomGames::AxelPong,
     GameRoomGames::AudioBall,
-    GameRoomGames::War
+    GameRoomGames::War,
+    GameRoomGames::ScientificWar
   ])
 
   DEFAULT_SETTINGS = GameRoomPreferences.defaults(GAME_REGISTRY.ids).freeze

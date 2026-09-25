@@ -104,7 +104,7 @@ results = [0.0, 2.9, 3.1].map do |delay|
   screen.send(:wait_for_action, finished, [0, 0])
 end
 assert(results == [nil, nil, :restart], "Restart after the final move was not delayed for #{game.restart_guard_seconds} s: #{results.inspect}")
-%w[war].each do |id|
+%w[war scientific_war].each do |id|
   assert(EltenGameRoom::GAME_REGISTRY.build(id).restart_guard_seconds >= 2, "#{id} restarts at once after the final battle")
 end
 assert(GameRoomGames::FourInARow.new.restart_guard_seconds == 0, "the restart guard changed an unrelated game")

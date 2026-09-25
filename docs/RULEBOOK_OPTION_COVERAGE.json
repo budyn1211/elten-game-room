@@ -182,5 +182,6 @@
     "yahtzee_bonus": "bonuses",
     "joker_rule": "bonuses"
   },
-  "war": { "deck": "deck", "battle_limit": "ending" }
+  "war": { "deck": "deck", "battle_limit": "ending" },
+  "scientific_war": { "trick_limit": "ending" }
 }

@@ -1,0 +1,152 @@
+{
+  "source": "games/scientific_war.rb",
+  "sections": [
+    {
+      "id": "setup",
+      "title": {
+        "en": "Scientific War is a card game for two to eight players.",
+        "pl": "Wojna naukowa to gra karciana dla dwóch do ośmiu osób."
+      },
+      "paragraphs": [
+        {
+          "en": "It is based on War, but you choose which card to play, so bluff and strategy matter. There is no random deal. Every player gets all thirteen cards of one suit, from two to ace, plus one joker, so everyone starts with the same cards. Two players play with hearts and spades. With more than four players a second deck is added, so some suits appear twice.",
+          "pl": "Przypomina zwykłą wojnę, ale sam wybierasz, którą kartę zagrać, więc liczą się blef i strategia. Nie ma losowego rozdania. Każdy gracz dostaje wszystkie trzynaście kart jednego koloru, od dwójki do asa, i jednego jokera, więc wszyscy zaczynają z takimi samymi kartami. Dwie osoby grają kierami i pikami. Przy więcej niż czterech graczach dochodzi druga talia, więc niektóre kolory się powtarzają."
+        },
+        {
+          "en": "You hold your cards in your hand and choose which one to play. The cards in your hand are always listed from the lowest to the highest, with the joker last. The cards you win go to a separate pile.",
+          "pl": "Karty trzymasz w ręce i sam wybierasz, którą zagrać. Karty w ręce są zawsze ułożone od najniższej do najwyższej, a joker jest na końcu. Wygrane karty trafiają na osobny stos."
+        }
+      ]
+    },
+    {
+      "id": "trick",
+      "title": {
+        "en": "Choosing and revealing",
+        "pl": "Wybór i odkrywanie"
+      },
+      "paragraphs": [
+        {
+          "en": "In each trick everyone chooses a card at the same time. Nobody can see your card until everyone has chosen; then all the cards are turned face up together. Do not leave the table before your card is revealed, because the trick waits for it.",
+          "pl": "W każdej lewie wszyscy wybierają kartę jednocześnie. Nikt nie widzi twojej karty, dopóki wszyscy nie wybiorą; wtedy wszystkie karty zostają odkryte naraz. Nie wychodź od stołu, zanim twoja karta zostanie odkryta, bo lewa na nią czeka."
+        },
+        {
+          "en": "The player with the strongest card wins the trick and puts all its cards on their pile. Normally the ace is the strongest card and the two the weakest. Suits do not matter.",
+          "pl": "Osoba z najsilniejszą kartą wygrywa lewę i odkłada wszystkie jej karty na swój stos. Zwykle najsilniejszy jest as, a najsłabsza dwójka. Kolory nie mają znaczenia."
+        },
+        {
+          "en": "When your hand is empty after a trick, you pick up your pile and it becomes your new hand. If your pile is empty too, you are out of the game.",
+          "pl": "Gdy po lewie zostaniesz z pustą ręką, bierzesz do ręki swój stos. Jeśli stos też jest pusty, odpadasz z gry."
+        }
+      ]
+    },
+    {
+      "id": "war",
+      "title": {
+        "en": "War",
+        "pl": "Wojna"
+      },
+      "paragraphs": [
+        {
+          "en": "If two or more strongest cards are equal, there is a war and nobody takes the trick. The cards stay on the table, and whoever wins the next trick takes them as well. If there are several wars in a row, more and more cards wait on the table.",
+          "pl": "Jeśli dwie lub więcej najsilniejszych kart są równe, wybucha wojna i nikt nie bierze lewy. Karty zostają na stole, a zabiera je zwycięzca następnej lewy. Gdy wojny wybuchają kilka razy z rzędu, na stole zbiera się coraz więcej kart."
+        }
+      ]
+    },
+    {
+      "id": "powers",
+      "title": {
+        "en": "Card powers",
+        "pl": "Moce kart"
+      },
+      "paragraphs": [
+        {
+          "en": "Jack, revolution: a jack reverses the card order at once, already in the trick in which it is played. The two becomes the strongest card and the ace the weakest. The next jack restores the usual order. Two jacks in the same trick cancel each other out.",
+          "pl": "Walet, rewolucja: walet od razu odwraca kolejność kart, już w lewie, w której padł. Dwójka staje się najsilniejsza, a as najsłabszy. Kolejny walet przywraca zwykłą kolejność. Dwa walety w jednej lewie znoszą się nawzajem."
+        },
+        {
+          "en": "Queen, spy: in the next trick, the player who played a queen chooses last and first hears the cards the others have chosen. If two or more queens are played in the same trick, they cancel each other out.",
+          "pl": "Dama, szpieg: w następnej lewie osoba, która zagrała damę, wybiera ostatnia i najpierw poznaje karty wybrane przez pozostałych. Jeśli w jednej lewie padną dwie lub więcej dam, znoszą się nawzajem."
+        },
+        {
+          "en": "Three: in the next trick, the player who played a three can check how many cards each opponent has in hand. At any time, anyone can check how many cards each player has in total, in hand and on the pile.",
+          "pl": "Trójka: w następnej lewie osoba, która zagrała trójkę, może sprawdzić, ile kart w ręce ma każdy przeciwnik. Łączną liczbę kart każdego gracza, w ręce i na stosie, każdy może sprawdzić w dowolnej chwili."
+        },
+        {
+          "en": "Eight: in the next trick, before choosing a card, the player who played an eight may swap their hand with their pile.",
+          "pl": "Ósemka: w następnej lewie, przed wyborem karty, osoba, która zagrała ósemkę, może zamienić rękę ze swoim stosem."
+        }
+      ]
+    },
+    {
+      "id": "joker",
+      "title": {
+        "en": "Joker",
+        "pl": "Joker"
+      },
+      "paragraphs": [
+        {
+          "en": "If the trick would end in a war, the joker prevents it and the player who played it wins the trick. If there would be no war, the joker causes one: nobody takes the trick and the cards stay on the table. If two or more jokers are played in the same trick, none of them has any effect.",
+          "pl": "Jeśli lewa miała skończyć się wojną, joker jej zapobiega, a osoba, która go zagrała, wygrywa lewę. Jeśli wojny miało nie być, joker ją wywołuje: nikt nie bierze lewy, a karty zostają na stole. Jeśli w jednej lewie padną dwa lub więcej jokerów, żaden z nich nie działa."
+        }
+      ]
+    },
+    {
+      "id": "ending",
+      "title": {
+        "en": "End of the game",
+        "pl": "Koniec gry"
+      },
+      "paragraphs": [
+        {
+          "en": "The last player who still has cards wins. The table has a trick limit from 20 to 100, 50 by default. When it is reached, the player with the most cards wins; if several players have the same highest number, the game is a draw. A very long game with many players may end a little earlier in the same way, because a table can store only a limited number of moves.",
+          "pl": "Wygrywa ostatnia osoba, której zostały karty. Stół ma limit lew od 20 do 100, domyślnie 50. Po jego osiągnięciu wygrywa osoba z największą liczbą kart; jeśli kilka osób ma ich tyle samo, jest remis. Bardzo długa partia z wieloma graczami może skończyć się w ten sposób trochę wcześniej, bo stół może zapamiętać tylko ograniczoną liczbę ruchów."
+        },
+        {
+          "en": "You can save the game only at the start of a trick, before any person has chosen a card, because until the cards are revealed, nobody else knows your card. Bots choose their cards at random, but a bot that is the spy takes the other players' cards into account, just like a person.",
+          "pl": "Grę można zapisać tylko na początku lewy, zanim ktokolwiek z ludzi wybierze kartę, bo do odkrycia kart nikt poza tobą nie zna twojej karty. Boty wybierają karty losowo, ale bot w roli szpiega bierze pod uwagę karty pozostałych graczy, tak jak zrobiłby to człowiek."
+        }
+      ]
+    },
+    {
+      "id": "controls",
+      "title": {
+        "en": "Game keyboard shortcuts",
+        "pl": "Skróty klawiszowe gry"
+      },
+      "paragraphs": [
+        {
+          "en": "Enter: play the selected card.",
+          "pl": "Enter: zagraj wybraną kartę."
+        },
+        {
+          "en": "Z: move to the next card in your hand; if it is your only card, play it.",
+          "pl": "Z: przejdź do następnej karty w ręce; jeśli to twoja jedyna karta, zagraj ją."
+        },
+        {
+          "en": "Shift+Z: move to the previous card in your hand; if it is your only card, play it.",
+          "pl": "Shift+Z: przejdź do poprzedniej karty w ręce; jeśli to twoja jedyna karta, zagraj ją."
+        },
+        {
+          "en": "C: use your card power: read the chosen cards as the spy, read the hand sizes after a three, or swap your hand with your pile after an eight.",
+          "pl": "C: użyj mocy karty: jako szpieg odczytaj wybrane karty, po trójce odczytaj liczby kart w rękach, a po ósemce zamień rękę ze stosem."
+        },
+        {
+          "en": "E: read how many cards each player owns.",
+          "pl": "E: odczytaj, ile kart ma każdy gracz."
+        },
+        {
+          "en": "T: read who has already chosen a card.",
+          "pl": "T: odczytaj, kto już wybrał kartę."
+        },
+        {
+          "en": "R: read the current rules.",
+          "pl": "R: odczytaj bieżące zasady."
+        },
+        {
+          "en": "V: read the result of the last trick.",
+          "pl": "V: odczytaj wynik ostatniej lewy."
+        }
+      ]
+    }
+  ]
+}
