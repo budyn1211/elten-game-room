@@ -10,6 +10,7 @@ module GameRoomSounds
     table_notice
     buzzer
     buzzer2
+    war_open
     ding
     shuffle
     card-shuffle
@@ -54,7 +55,7 @@ module GameRoomSounds
   BATTLESHIP_LAUNCHES = %w[rocket_launch1 rocket_launch2 rocket_launch3].freeze
   # Balance the loud Battleship recordings before the user's volume controls.
   # Keep the audio files and playback handles intact for serial presentation.
-  ASSET_VOLUME_GAINS = (BATTLESHIP_HITS + BATTLESHIP_LAUNCHES + ["rocket_miss"]).to_h { |name| [name, 0.2] }.freeze
+  ASSET_VOLUME_GAINS = (BATTLESHIP_HITS + BATTLESHIP_LAUNCHES + ["rocket_miss"]).to_h { |name| [name, 0.2] }.merge("war_open" => 0.6).freeze
 
   class MembershipTracker
     def initialize

@@ -23,6 +23,7 @@ assets.each do |name, hash|
   assert(File.binread(path, 4) == "OggS" && Digest::SHA256.file(path).hexdigest == hash, "altered audio #{name}")
 end
 assert(!GameRoomSounds::ASSET_NAMES.include?("hit_ship3"), "unavailable third hit was registered")
+gains = assets.keys.to_h { |name| [name, 0.2] }.merge("war_open" => 0.6)
 
 game = GameRoomGames::Battleship.new
 repo = NewGames116Repository.new(%w[Alice Bob])
@@ -71,7 +72,7 @@ program.define_singleton_method(:play_sound_from_asset) { |name, volume:| played
     GameRoomSounds::ASSET_NAMES.each do |name|
       played.clear
       result = GameRoomSounds.play(program, name)
-      expected = GameRoomPreferences.sound_volume(levels, name) * (assets.key?(name) ? 0.2 : 1.0)
+      expected = GameRoomPreferences.sound_volume(levels, name) * gains.fetch(name, 1.0)
       if expected.zero?
         assert(result == nil && played.empty?, "muted #{name} played or returned a handle")
       else
@@ -90,11 +91,11 @@ default_program.define_singleton_method(:play_sound_from_asset) { |name, volume:
 GameRoomSounds::ASSET_NAMES.each do |name|
   played.clear
   assert(GameRoomSounds.play(default_program, name).equal?(handle), "default playback lost its handle")
-  assert(played == [[name, assets.key?(name) ? 0.2 : 1.0]], "default asset gain for #{name}")
+  assert(played == [[name, gains.fetch(name, 1.0)]], "default asset gain for #{name}")
 end
 program.define_singleton_method(:game_room_sound_enabled?) { |_name| false }
 played.clear
 assets.each { |name| assert(GameRoomSounds.play(program, name) == nil, "disabled effect returned a handle") }
 assert(played.empty?, "asset gain bypassed the sound switch")
 assert(game.serial_event_presentation? && !GameRoomGames::Uno.new.serial_event_presentation?, "serial audio affected another game")
-puts "PASS Battleship sounds: six unchanged assets at 20% gain, both manifests, random variants, all viewers, 760 volume combinations, default gain, mute, handles, unchanged preferences and other sounds"
+puts "PASS Battleship sounds: six unchanged assets at 20% gain, the war sound at 60%, both manifests, random variants, all viewers, 760 volume combinations, default gain, mute, handles, unchanged preferences and other sounds"

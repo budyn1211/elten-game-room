@@ -181,5 +181,6 @@
     "upper_bonus": "bonuses",
     "yahtzee_bonus": "bonuses",
     "joker_rule": "bonuses"
-  }
+  },
+  "war": { "deck": "deck", "battle_limit": "ending" }
 }

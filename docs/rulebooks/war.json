@@ -1,0 +1,106 @@
+{
+  "source": "games/war.rb",
+  "sections": [
+    {
+      "id": "battle",
+      "title": {
+        "en": "Play your top card",
+        "pl": "Zagraj wierzchnią kartę"
+      },
+      "paragraphs": [
+        {
+          "en": "War is a card game for two to eight players. The whole deck is dealt out, and every player keeps their cards in a face-down pile. Players do not choose cards: in each battle, everyone plays the top card of their own pile, one after another.",
+          "pl": "Wojna to gra karciana dla dwóch do ośmiu osób. Cała talia zostaje rozdana, a każdy trzyma swoje karty w zakrytym stosie. Gracze nie wybierają kart: w każdej bitwie wszyscy po kolei zagrywają wierzchnią kartę ze swojego stosu."
+        },
+        {
+          "en": "The highest card wins the battle and takes all the cards from the table. Aces are highest, then kings, queens, jacks, tens and so on down to the lowest card in the deck. Suits do not matter. The cards taken go to the bottom of the winner's pile in random order.",
+          "pl": "Najwyższa karta wygrywa bitwę i zabiera wszystkie karty ze stołu. Najwyższy jest as, potem król, dama, walet, dziesiątka i tak dalej aż do najniższej karty talii. Kolory nie mają znaczenia. Zabrane karty trafiają pod spód stosu zwycięzcy w losowej kolejności."
+        }
+      ]
+    },
+    {
+      "id": "war",
+      "title": {
+        "en": "War: equal highest cards",
+        "pl": "Wojna: równe najwyższe karty"
+      },
+      "paragraphs": [
+        {
+          "en": "If two or more players share the highest card, a war starts between them. Each of them places one hidden card and then plays the next card face up. The highest of the new cards takes everything from the table, including the hidden cards and the cards of players who did not take part in the war. If the new cards are equal again, the war continues in the same way. When a war is won, the winner hears every hidden card taken, first the opponents' and then their own, and then the other cards from the table.",
+          "pl": "Jeśli dwie lub więcej osób ma taką samą najwyższą kartę, rozpoczyna się między nimi wojna. Każda z nich kładzie jedną kartę zakrytą, a potem zagrywa odkrytą następną. Najwyższa z nowych kart zabiera wszystko ze stołu, także karty zakryte i karty graczy, którzy nie brali udziału w wojnie. Jeśli nowe karty znowu są równe, wojna toczy się dalej w ten sam sposób. Po wygranej wojnie zwycięzca słyszy wszystkie zdobyte karty zakryte, najpierw przeciwników, potem swoje, a na końcu pozostałe karty ze stołu."
+        },
+        {
+          "en": "A player with only one card left plays it face up without a hidden card. A player with no cards cannot continue the war; if only one participant can continue, they take the table. If nobody can continue, the cards stay on the table and go to the winner of the next battle.",
+          "pl": "Osoba, której została jedna karta, zagrywa ją odkrytą, bez karty zakrytej. Osoba bez kart nie może kontynuować wojny; jeśli kontynuować może tylko jeden uczestnik, zabiera on stół. Jeśli nikt nie może kontynuować, karty zostają na stole i przechodzą na zwycięzcę następnej bitwy."
+        }
+      ]
+    },
+    {
+      "id": "deck",
+      "title": {
+        "en": "Choosing the deck",
+        "pl": "Wybór talii"
+      },
+      "paragraphs": [
+        {
+          "en": "The Deck option chooses a short deck of 24 cards, from nine to ace, or a full deck of 52 cards, from two to ace. The short deck is the default and gives a much quicker game. If the cards cannot be divided equally, some players start with one card more.",
+          "pl": "Opcja Talia pozwala wybrać krótką talię 24 kart, od dziewiątki do asa, albo pełną talię 52 kart, od dwójki do asa. Krótka talia jest domyślna i daje znacznie szybszą grę. Jeśli karty nie dzielą się równo, niektórzy gracze zaczynają z jedną kartą więcej."
+        }
+      ]
+    },
+    {
+      "id": "ending",
+      "title": {
+        "en": "End of the game",
+        "pl": "Koniec gry"
+      },
+      "paragraphs": [
+        {
+          "en": "A player who has no cards left after a battle is out of the game. The last player with cards wins.",
+          "pl": "Gracz, któremu po bitwie nie zostały żadne karty, odpada z gry. Wygrywa ostatnia osoba, która ma karty."
+        },
+        {
+          "en": "War can last very long, so the table has a battle limit, from 20 to 300 battles, 20 by default. When the limit is reached, the player with the most cards wins. If several players have the same highest number of cards, the game ends in a draw.",
+          "pl": "Wojna potrafi trwać bardzo długo, dlatego stół ma limit bitew, od 20 do 300, domyślnie 20. Po osiągnięciu limitu wygrywa osoba z największą liczbą kart. Jeśli kilka osób ma tyle samo najwięcej kart, gra kończy się remisem."
+        }
+      ]
+    },
+    {
+      "id": "controls",
+      "title": {
+        "en": "Game keyboard shortcuts",
+        "pl": "Skróty klawiszowe gry"
+      },
+      "paragraphs": [
+        {
+          "en": "Enter: play your top card.",
+          "pl": "Enter: zagraj wierzchnią kartę."
+        },
+        {
+          "en": "Space: play your top card.",
+          "pl": "Spacja: zagraj wierzchnią kartę."
+        },
+        {
+          "en": "C: read the cards on the table, your own first, then each opponent's.",
+          "pl": "C: odczytaj karty na stole, najpierw swoje, potem każdego przeciwnika."
+        },
+        {
+          "en": "E: read each player's card count.",
+          "pl": "E: odczytaj liczby kart graczy."
+        },
+        {
+          "en": "V: read the result of the last battle.",
+          "pl": "V: odczytaj wynik ostatniej bitwy."
+        },
+        {
+          "en": "T: read whose turn it is.",
+          "pl": "T: odczytaj, czyja jest tura."
+        },
+        {
+          "en": "Ctrl+T: read the number of the current battle and the battle limit.",
+          "pl": "Ctrl+T: odczytaj numer bieżącej bitwy i limit bitew."
+        }
+      ]
+    }
+  ]
+}

@@ -546,6 +546,11 @@ module GameRoomGames
       true
     end
 
+    # Seconds after the final move during which Restart ignores key presses.
+    def restart_guard_seconds
+      0
+    end
+
     # Most events use seat numbers or card/square identifiers. Games storing
     # controller names inside values must remap only those documented fields.
     def restored_event_value(event, _controller_mapping)

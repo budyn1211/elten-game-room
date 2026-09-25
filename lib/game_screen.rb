@@ -473,6 +473,7 @@ class GameScreen
     @game.prepare_view(replay, Session.name, context: action_context)
     view_spec = @game.game_view_spec(replay, Session.name)
     phase = replay.finished? ? :finished : :active
+    @finished_at = phase == :finished ? (@layout&.phase == :active ? monotonic_time : @finished_at) : nil
     phase_changed = @layout != nil && (@layout.phase != phase || @focus_new_game == true)
     if @layout == nil
       @layout = GameRoomLayout::Screen.new(
@@ -636,6 +637,7 @@ class GameScreen
     layout.restart_button.on(:press) do
       next if action != nil || !replay.finished? || !same_user?(@table_owner, Session.name)
       next if event_presentation_busy?
+      next if @finished_at && monotonic_time - @finished_at < @game.restart_guard_seconds.to_f
 
       remember_position.call
       action = :restart
