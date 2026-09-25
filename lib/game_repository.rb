@@ -107,6 +107,48 @@ class GameRepository
     GameSnapshot.new(session: current, events: events)
   end
 
+  # The transport invokes this at its mutation boundary, not while a picker
+  # is open. For replacements it checks again against the ordered prefix
+  # preceding the as-yet unauthenticated control record. A racing old-seat
+  # commitment must not be silently inherited by a different participant.
+  def control_change_guard(table:, game:, session:, player: nil, replacement: nil)
+    expected_id = session_id(session)
+    expected_epoch = session && session['__control_epoch']
+    lambda do |before_sequence = nil|
+      current = session_for_table(table, force: true)
+      unless session_id(current) == expected_id && (!current ||
+          (current['__control_epoch'] == expected_epoch && current['__control_ready'] != false))
+        raise GameRoomNetworkErrors::GamePaused, 'The game controller changed'
+      end
+      next true unless current
+      # An aborted match no longer owns playable private input. Its waiting
+      # room may still change master, but its old seats must not be replaced.
+      next true if current['__aborted'] && player == nil
+      if current['__frozen'] || current['__aborted']
+        raise GameRoomNetworkErrors::GamePaused, 'The game is paused'
+      end
+      snapshot = snapshot_for(current)
+      unless snapshot && session_id(snapshot.session) == expected_id && snapshot.session['__control_epoch'] == expected_epoch &&
+          snapshot.session['__control_ready'] != false
+        raise GameRoomNetworkErrors::GamePaused, 'The game controller changed'
+      end
+      next true if snapshot.session['__aborted'] && player == nil
+      if snapshot.session['__frozen'] || snapshot.session['__aborted']
+        raise GameRoomNetworkErrors::GamePaused, 'The game is paused'
+      end
+      events = snapshot.events
+      events = events.reject { |event| event['__stack_sequence'].to_i >= before_sequence } if before_sequence
+      replay = game.replay(snapshot.session, events, self)
+      error = if player
+        game.participant_replacement_error(replay, player: player, replacement: replacement)
+      else
+        game.controller_change_error(replay)
+      end
+      raise GameRoomNetworkErrors::GamePaused, error if error
+      true
+    end
+  end
+
   def event_revision(session, known_revision: nil, force: false)
     events_revision(events_for(session, force: force))
   end

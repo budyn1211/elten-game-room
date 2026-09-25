@@ -100,8 +100,8 @@ class GameRoomTransport
     @live_store.room_snapshot(table_or_id, force: force)
   end
 
-  def transfer_room_owner(table_or_id, user)
-    @live_store.transfer_room_owner(table_or_id, user)
+  def transfer_room_owner(table_or_id, user, control_guard: nil)
+    @live_store.transfer_room_owner(table_or_id, user, control_guard: control_guard)
   end
 
   def set_seat_controller(table_or_id, **options)

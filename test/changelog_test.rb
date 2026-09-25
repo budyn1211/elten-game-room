@@ -322,8 +322,9 @@ polish_238, english_238 = document_238.split('## English', 2)
 end
 
 entry_239 = entries.find { |entry| entry.build == 239 }
-assert(entry_239.version == '2.0.4' && entry_239.changes.length == 14 && entry_239.changes.uniq.length == 14,
+assert(entry_239.version == '2.0.4' && entry_239.changes.length == 15 && entry_239.changes.uniq.length == 15,
   'build 239 must contain the approved changes and minimum ELTEN version')
+assert(entry_239.changes[1].include?('War and Scientific War by balteam'), 'new games or author credit missing')
 assert(entry_239.changes.first == 'This version requires ELTEN 3.0.4 or later.', 'minimum ELTEN version missing')
 assert(entry_239.changes.all? { |text| !catalog[text].to_s.empty? }, 'build 239 has an untranslated change')
 assert(GameRoomChangelog.pending_entries(238, 239).map(&:build) == [239], 'build 239 repeats older changes')

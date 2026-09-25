@@ -8,10 +8,10 @@ module GameRoomExecutionPolicy
     return [] unless replay && members && GameRoomParticipants.same?(owner, viewer)
     return [] if replay.finished? || session["__frozen"] || session["__aborted"] || session["__control_ready"] == false
     return [] unless transport.respond_to?(:set_seat_controller)
-    return [] unless game.controller_change_error(replay, replacement: true) == nil
     controllers = session.fetch("__controllers", {})
     players.reject do |seat|
-      GameRoomParticipants.bot?(seat) || controllers[seat] == "bot" || GameRoomParticipants.includes?(members, seat)
+      GameRoomParticipants.bot?(seat) || controllers[seat] == "bot" || GameRoomParticipants.includes?(members, seat) ||
+        game.participant_replacement_error(replay, player: seat) != nil
     end
   end
 

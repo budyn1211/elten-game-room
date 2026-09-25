@@ -348,13 +348,14 @@ class GameRoomLiveSessionStore
   # Server ownership is the only source of current rights. The stack ledger
   # records their history; neither the creator nor an arbitrary stack writer
   # can confer these rights by declaring themselves the new master.
-  def transfer_room_owner(table_or_id, user)
+  def transfer_room_owner(table_or_id, user, control_guard: nil)
     id = table_identifier(table_or_id)
     native = active_session(id)
     raise ArgumentError, "Only the table master may transfer the table" unless native&.owner?
     target = native.participants.find { |participant| same_user?(participant.user, user) }
     raise ArgumentError, "The user is not at this table" unless target
     return true if same_user?(native.owner.user, user)
+    control_guard&.call
     begin
       native.transfer_ownership(target)
     rescue StandardError => error
@@ -382,15 +383,15 @@ class GameRoomLiveSessionStore
     true
   end
 
-  def set_seat_controller(table_or_id, session_id:, seat:, bot:)
+  def set_seat_controller(table_or_id, session_id:, seat:, bot:, control_guard: nil)
     raise ArgumentError, 'Choose the replacement participant' unless bot
-    replace_game_player(table_or_id, session_id: session_id, player: seat)
+    replace_game_player(table_or_id, session_id: session_id, player: seat, control_guard: control_guard)
   end
 
   # A nil target creates a named bot; a spectator replaces the selected
   # occupant. Everything is one anchored
   # record, so a reader never observes two participants in the same place.
-  def replace_game_player(table_or_id, session_id:, player:, replacement: nil)
+  def replace_game_player(table_or_id, session_id:, player:, replacement: nil, control_guard: nil)
     id = table_identifier(table_or_id)
     native = active_session(id)
     raise ArgumentError, "Only the table master may replace a player" unless native&.owner?
@@ -399,10 +400,10 @@ class GameRoomLiveSessionStore
     game = game_session(session_id, table: id)
     raise GameRoomNetworkErrors::GamePaused, "The player is not in this game" unless game && GameRoomParticipants.includes?(game['__players'], player)
     raise GameRoomNetworkErrors::GamePaused, 'The game is being saved' if game['__frozen']
-    publish_control(id, session_id, {}, replacement: [player, replacement]) != false
+    publish_control(id, session_id, {}, replacement: [player, replacement], control_guard: control_guard) != false
   end
 
-  def publish_control(table_id, session_id, controllers, checkpoint_from: nil, players: nil, replacement: nil)
+  def publish_control(table_id, session_id, controllers, checkpoint_from: nil, players: nil, replacement: nil, control_guard: nil)
     begin_room_io(table_id)
     lock = @mutex.synchronize { @control_locks[table_id] ||= Mutex.new }
     lock.synchronize do
@@ -411,6 +412,7 @@ class GameRoomLiveSessionStore
       ledger = control_ledger(table_id)
       raise GameRoomNetworkErrors::GamePaused, "Incomplete control history" unless ledger.complete
       if replacement
+        control_guard&.call
         latest = records_for(table_id).reverse.find { |row| row.packet['kind'] == 'game_started' }
         raise GameRoomNetworkErrors::GamePaused, 'The game has changed' unless latest && latest.packet.dig('data', 'session_id') == session_id.to_i
         current = game_session(session_id, table: table_id)
@@ -441,6 +443,10 @@ class GameRoomLiveSessionStore
         "session_id" => session_id.to_i, "controllers" => controllers, "from" => checkpoint_from || 0}
       data['players'] = players if players
       record = append_record(table_id, GameRoomTableControl::KIND, data, actor: Session.name)
+      # The stack orders remote actions and this candidate. Recheck its exact
+      # prior prefix before authenticating the new roster. Failure leaves an
+      # inert, unanchored record, just like an unconfirmed metadata write.
+      control_guard&.call(record.sequence) if replacement
       anchor = GameRoomTableControl.anchor(record)
       metadata = native.discovery_metadata.to_h.merge(GameRoomTableControl::ANCHOR_KEY => anchor)
       begin

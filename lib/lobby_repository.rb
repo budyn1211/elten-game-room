@@ -119,7 +119,7 @@ class LobbyRepository
     return JoinResult.new(table: snapshot.table, status: status, members: snapshot.members)
   end
 
-  def leave_table(row, user)
+  def leave_table(row, user, control_guard: nil)
     snapshot = snapshot_for(row)
     return :closed if snapshot == nil
 
@@ -129,7 +129,7 @@ class LobbyRepository
         @transport.deactivate_table(table_id: table_id(snapshot.table))
         return :closed
       end
-      @transport.transfer_room_owner(snapshot.table, successor)
+      @transport.transfer_room_owner(snapshot.table, successor, **(control_guard ? {control_guard: control_guard} : {}))
       snapshot = snapshot_for(snapshot.table)
       raise IOError, "The table master transfer was not confirmed" unless snapshot &&
         GameRoomParticipants.same?(owner_of(snapshot.table), successor)

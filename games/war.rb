@@ -190,8 +190,8 @@ module GameRoomGames
       when :table_cards
         { message: table_text(replay.state, viewer) }
       when :round_summary
-        last = replay.state[:last_battle]
-        { label: _("read the result of the last battle"), message: last == nil ? _("No battle has been decided yet.") : displayed_text(last, viewer) }
+        last = history_entries_for_display(replay, viewer).reverse.find { |entry| [:take, :carried].include?(entry.kind) }
+        { label: _("read the result of the last battle"), message: last == nil ? _("No battle has been decided yet.") : last.text }
       else
         super
       end

@@ -1454,9 +1454,14 @@ class EltenGameRoom < Program
     return false if !confirm(question)
 
     result = run_network_task(_("Leaving table")) do
-      left = @lobby.leave_table(row, Session.name)
-      @transport.deactivate_table(table_id: @lobby.table_id(row)) if left != nil
-      left
+      GameRoomSessionRunner.synchronize_table(program: self, table_id: @lobby.table_id(row), viewer: Session.name) do
+        guard = if own_table && state && game
+          @games.control_change_guard(table: row, game: game, session: state.session)
+        end
+        left = @lobby.leave_table(row, Session.name, **(guard ? {control_guard: guard} : {}))
+        @transport.deactivate_table(table_id: @lobby.table_id(row)) if left != nil
+        left
+      end
     end
     return false if result == nil
 
@@ -1518,7 +1523,11 @@ class EltenGameRoom < Program
       forget_room_membership(row) if closed
       return closed ? :closed : nil
     end
-    error = state.game.controller_change_error(state.replay)
+    error = if action == :transfer_master
+      state.game.controller_change_error(state.replay)
+    else
+      state.game.participant_replacement_error(state.replay, player: participant, replacement: replacement)
+    end
     if error
       alert(error)
       return nil
@@ -1555,13 +1564,17 @@ class EltenGameRoom < Program
       replacement = nil if replacement == :new_bot
     end
     run_network_task(_("Updating table"), ui: :none) do
-      if action == :transfer_master
-        @transport.transfer_room_owner(state.room.table, participant)
-      else
-        @transport.replace_game_player(state.room.table, session_id: @games.session_id(state.session),
-          player: participant, replacement: replacement)
+      GameRoomSessionRunner.synchronize_table(program: self, table_id: @lobby.table_id(state.room.table), viewer: Session.name) do
+        guard = @games.control_change_guard(table: state.room.table, game: state.game, session: state.session,
+          player: action == :transfer_master ? nil : participant, replacement: replacement)
+        if action == :transfer_master
+          @transport.transfer_room_owner(state.room.table, participant, control_guard: guard)
+        else
+          @transport.replace_game_player(state.room.table, session_id: @games.session_id(state.session),
+            player: participant, replacement: replacement, control_guard: guard)
+        end
+        @lobby.snapshot_for(state.room.table)
       end
-      @lobby.snapshot_for(state.room.table)
     end
   end
 

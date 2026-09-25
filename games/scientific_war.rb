@@ -1,6 +1,7 @@
 require "securerandom"
 require_relative "card_game"
 require_relative "../lib/game_bots"
+require_relative "../lib/scientific_war_bot"
 require_relative "../lib/hidden_submissions"
 
 require_relative "../lib/game_room_localization"
@@ -18,7 +19,6 @@ module GameRoomGames
       kinds = history.map(&:kind)
       return "play2" if kinds.include?(:commit)
       return same_user?(event["actor"], viewer) ? "card-shuffle" : nil if kinds.include?(:swap)
-      return "ding" if kinds.include?(:spying)
       return nil unless kinds.include?(:reveal)
 
       cues = ["play"]
@@ -57,7 +57,7 @@ module GameRoomGames
           GameRoomRules.translate("If the trick would end in a war, the joker prevents it and the player who played it wins the trick. If there would be no war, the joker causes one: nobody takes the trick and the cards stay on the table. If two or more jokers are played in the same trick, none of them has any effect.")),
         rule_section(:ending, GameRoomRules.translate("End of the game"),
           GameRoomRules.translate("The last player who still has cards wins. The table has a trick limit from 20 to 100, 50 by default. When it is reached, the player with the most cards wins; if several players have the same highest number, the game is a draw. A very long game with many players may end a little earlier in the same way, because a table can store only a limited number of moves."),
-          GameRoomRules.translate("You can save the game only at the start of a trick, before any person has chosen a card, because until the cards are revealed, nobody else knows your card. Bots choose their cards at random, but a bot that is the spy takes the other players' cards into account, just like a person.")),
+          GameRoomRules.translate("You can save the game only at the start of a trick, before any person has chosen a card, because until the cards are revealed, nobody else knows your card. Bots use their own cards and public information from earlier tricks to choose a play. A bot that is the spy also takes the revealed cards into account, just like a person; it cannot see other players' secret choices.")),
         rule_section(:controls, GameRoomRules.translate("Game keyboard shortcuts"),
           GameRoomRules.translate("Enter: play the selected card."),
           GameRoomRules.translate("Z: move to the next card in your hand; if it is your only card, play it."),
@@ -89,6 +89,13 @@ module GameRoomGames
 
     def controller_change_phase_error(replay)
       _("The current game contains private data that cannot be transferred at this stage.") if pending_seats(replay.state).any?
+    end
+
+    def participant_replacement_error(replay, player:, replacement: nil)
+      return nil if replay == nil || replay.finished?
+
+      seat = player_key(replay.state, player)
+      controller_change_phase_error(replay) if seat == nil || pending_reveal?(replay.state, seat)
     end
 
     def save_game_error(replay)
@@ -154,7 +161,7 @@ module GameRoomGames
     end
 
     def bot_strategy
-      @bot_strategy ||= GameRoomBots::HeuristicStrategy.new
+      @bot_strategy ||= ScientificWarBot::Strategy.new
     end
 
     def option_definitions
@@ -250,6 +257,18 @@ module GameRoomGames
       end
     end
 
+    def required_decision_key(replay, viewer)
+      return nil if replay == nil || replay.finished?
+
+      state = replay.state
+      player = player_key(state, viewer)
+      return nil if player == nil || state[:eliminated][player]
+
+      choosing = state[:phase] == :choosing && choosers(state).include?(player) && !state[:commits].key?(player)
+      spying = state[:phase] == :spying && spy(state) == player
+      [state[:phase], state[:trick], player.downcase] if choosing || spying
+    end
+
     def concurrent_session_input?(before, after, selection)
       first, second = before.state, after.state
       first[:trick] == second[:trick] && first[:phase] == second[:phase] &&
@@ -277,15 +296,7 @@ module GameRoomGames
     end
 
     def bot_action_score(replay, actor, action, context: nil)
-      state = replay.state
-      player = player_key(state, actor)
-      return state[:piles][player].length > state[:hands][player].length ? 1.0 : -1.0 if action["action"].to_s == "swap"
-      card = action["card"].to_s
-      return 0.0 if card.empty? || state[:phase] != :spying
-
-      plays = state[:reveals].merge(player => card)
-      winner, = trick_outcome(state, plays)
-      (winner == player ? 100.0 : 0.0) - keep_value(state, card)
+      ScientificWarBot::Evaluation.new(self, replay, actor).score(action)
     end
 
     def bot_observation(replay, actor)
@@ -379,7 +390,13 @@ module GameRoomGames
       when :turn
         { label: _("read who has already chosen a card"), message: replay.finished? ? result_text(replay).to_s : played_text(replay.state) }
       when :round_summary
-        { label: _("read the result of the last trick"), message: replay.state[:last_trick] || _("No trick has been decided yet.") }
+        entries = history_entries_for_display(replay, viewer)
+        last = entries.reverse.find { |entry| entry.kind == :reveal }
+        summary = entries.select do |entry|
+          last != nil && entry.event_id == last.event_id && entry.field.to_s != "private" &&
+            ![:start, :turn, :trick, :result].include?(entry.kind)
+        end.map(&:text).join(" ")
+        { label: _("read the result of the last trick"), message: last == nil ? _("No trick has been decided yet.") : summary }
       else
         super
       end
@@ -755,12 +772,6 @@ module GameRoomGames
     def strength(card, reversed)
       index = CARD_RANKS.index(playing_card_rank(card)).to_i
       reversed ? CARD_RANKS.length - 1 - index : index
-    end
-
-    def keep_value(state, card)
-      return 0.9 if joker?(card)
-
-      strength(card, state[:reversed]) / 20.0
     end
 
     def card_actions(state, player)

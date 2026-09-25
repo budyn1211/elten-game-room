@@ -234,7 +234,10 @@ class GameScreen
         changed = network_task(_("Updating table"), ui: :none) do
           replaced = false
           departed_players.each do |seat|
-            replaced = @game_services[:transport].set_seat_controller(@table, session_id: @repository.session_id(@session), seat: seat, bot: true) || replaced
+            current = @repository.snapshot_for(@session).session
+            guard = @repository.control_change_guard(table: @table, game: @game, session: current, player: seat)
+            replaced = @game_services[:transport].set_seat_controller(@table, session_id: @repository.session_id(@session), seat: seat, bot: true,
+              control_guard: guard) || replaced
           end
           replaced
         end

@@ -77,6 +77,13 @@
 - Prywatne odpowiedzi koordynować między instancjami tego samego natywnego
   Programu współdzielącymi plik. Usunięcie słowa Krowy musi przetrwać replay:
   znacznik dodania wiązać ze źródłowym zdarzeniem, nie sumą całej sesji.
+- Zmianę gospodarza i zastępstwo sprawdzać ponownie na granicy zapisu,
+  nie tylko przed otwarciem wyboru osoby: w czasie dialogu bot lub człowiek
+  może zatwierdzić prywatny wybór. Zastępstwo rozróżnia konkretną osobę
+  od cudzych oczekujących sekretów; nie znosić ochrony wszystkich prywatnych faz.
+  Skróty podsumowujące wcześniejsze lewy lub bitwy korzystają z historycznych
+  komunikatów, nie z nazw obecnej obsady. Gry z jednoczesnymi decyzjami
+  deklarują `required_decision_key`, zamiast omijać ustawienia własnym `ding`.
 
 Własne okna aplikacji używają `GameRoomUI::Form` lub
 `GameSurfaces::RefreshAwareForm` z referencją `program:`. Wspólny szkielet

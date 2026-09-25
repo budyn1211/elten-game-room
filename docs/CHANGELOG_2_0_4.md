@@ -3,6 +3,7 @@
 ## Polski
 
 - Nowa wersja wymaga ELTEN-a 3.0.4 lub nowszego.
+- Dodano Wojnę i Wojnę naukową autorstwa balteama, dla dwóch do ośmiu graczy, z możliwością gry z botami. W Wojnie porównuje się karty z zakrytej talii, a w Wojnie naukowej samemu wybiera się karty i korzysta z ich specjalnych właściwości.
 - Dodano grę karcianą 3-5-8 autorstwa Guliwer777. Trzech graczy rywalizuje o lewy, wybiera kontrakty i wymienia karty między rozdaniami. Dostępna jest również gra z botami.
 - Dodano czeskie i hiszpańskie tłumaczenie interfejsu autorstwa balteama. Język można wybrać w Ustawieniach, w kategorii Ogólne. Tłumaczenia nie obejmują zasad gier. Angielska nazwa Tysiąca to teraz „1000 card game”.
 - Gospodarz może przekazać prowadzenie stołu innej osobie skrótem Ctrl+M. Jego wyjście nie zamyka już automatycznie całego stołu — prowadzenie przejmuje kolejny uczestnik, wraz z obsługą botów.
@@ -20,6 +21,7 @@
 ## English
 
 - This version requires ELTEN 3.0.4 or later.
+- Added War and Scientific War by balteam, for two to eight players, with bots. War compares cards from a face-down deck; Scientific War lets you choose your cards and use their special powers.
 - Added 3-5-8 by Guliwer777: a card game for three players, with trick-taking, contract selection and card exchanges between deals. You can also play against bots.
 - Added Czech and Spanish interface translations by balteam. Choose the language in Settings > General. These translations do not include game rules. Tysiac is now called 1000 card game in English.
 - The table master can transfer ownership to another person with Ctrl+M. Leaving no longer automatically closes the whole table: another participant takes over, including control of the bots.
@@ -33,4 +35,3 @@
 - Fixed the card-correction and turn-replay dialogs in Taboo. In Krowa, deleted words no longer reappear after drawing another word, and Daily Krowa synchronisation now includes longer histories.
 - Lack of access to server tables no longer blocks the entire Settings window. Settings that do not need that access remain available.
 - Reduced unnecessary calculations when updating games and planning bot moves, and limited the retention of unneeded data from tables you have left.
-

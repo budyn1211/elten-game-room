@@ -250,6 +250,12 @@ module GameRoomGames
       controller_change_phase_error(replay)
     end
 
+    # Replacing one place need not transfer another player's private input.
+    # The default remains conservative for existing private-protocol games.
+    def participant_replacement_error(replay, player:, replacement: nil)
+      controller_change_error(replay, replacement: replacement == nil)
+    end
+
     # Called only for an unfinished game. Models owning private commitments
     # describe their safe boundaries; an unknown realtime model stays closed.
     def controller_change_phase_error(_replay)

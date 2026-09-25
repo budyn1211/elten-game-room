@@ -102,8 +102,8 @@
           "pl": "Wygrywa ostatnia osoba, której zostały karty. Stół ma limit lew od 20 do 100, domyślnie 50. Po jego osiągnięciu wygrywa osoba z największą liczbą kart; jeśli kilka osób ma ich tyle samo, jest remis. Bardzo długa partia z wieloma graczami może skończyć się w ten sposób trochę wcześniej, bo stół może zapamiętać tylko ograniczoną liczbę ruchów."
         },
         {
-          "en": "You can save the game only at the start of a trick, before any person has chosen a card, because until the cards are revealed, nobody else knows your card. Bots choose their cards at random, but a bot that is the spy takes the other players' cards into account, just like a person.",
-          "pl": "Grę można zapisać tylko na początku lewy, zanim ktokolwiek z ludzi wybierze kartę, bo do odkrycia kart nikt poza tobą nie zna twojej karty. Boty wybierają karty losowo, ale bot w roli szpiega bierze pod uwagę karty pozostałych graczy, tak jak zrobiłby to człowiek."
+          "en": "You can save the game only at the start of a trick, before any person has chosen a card, because until the cards are revealed, nobody else knows your card. Bots use their own cards and public information from earlier tricks to choose a play. A bot that is the spy also takes the revealed cards into account, just like a person; it cannot see other players' secret choices.",
+          "pl": "Grę można zapisać tylko na początku lewy, zanim ktokolwiek z ludzi wybierze kartę, bo do odkrycia kart nikt poza tobą nie zna twojej karty. Boty wybierają zagranie na podstawie własnych kart i publicznych informacji z poprzednich lew. Bot w roli szpiega uwzględnia również odkryte karty, tak jak człowiek; nie widzi tajnych wyborów pozostałych graczy."
         }
       ]
     },

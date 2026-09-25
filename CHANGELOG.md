@@ -2,7 +2,7 @@
 
 ## 2.0.4 — build 239
 
-3-5-8, czeski i hiszpański interfejs, przekazywanie gospodarza i zastępowanie
+Wojna i Wojna naukowa autorstwa balteama, 3-5-8, czeski i hiszpański interfejs, przekazywanie gospodarza i zastępowanie
 uczestników, zapisy na koncie, ustawienia pracy w tle oraz poprawki gier.
 Wymagany ELTEN 3.0.4. Pełna lista PL/EN: [zmiany 2.0.4](docs/CHANGELOG_2_0_4.md).
 

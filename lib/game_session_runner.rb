@@ -23,10 +23,13 @@ class GameRoomSessionRunner
     def initialize
       @operation, @members_lock = Monitor.new, Mutex.new
       @members, @executor, @used, @retry_at = [], nil, false, 0.0
+      @control_users = 0
     end
 
     def add(runner); @members_lock.synchronize { @members << runner }; end
-    def remove(runner); @members_lock.synchronize { @members.delete(runner); @members.empty? }; end
+    def remove(runner); @members_lock.synchronize { @members.delete(runner); @members.empty? && @control_users.zero? }; end
+    def retain_control; @members_lock.synchronize { @control_users += 1 }; end
+    def release_control; @members_lock.synchronize { @control_users -= 1; @members.empty? && @control_users.zero? }; end
 
     def activate(runner)
       members = @members_lock.synchronize { @members.dup }.reject(&:closed?)
@@ -44,6 +47,23 @@ class GameRoomSessionRunner
   end
   GROUPS_LOCK = Mutex.new
   GROUPS = {}
+
+  # UI management uses the same account/table boundary as the executor. In
+  # particular no old-owner bot may seal a choice between validation and
+  # ownership transfer. Do not hold this across a UI dialog or another table.
+  def self.synchronize_table(program:, table_id:, viewer:, &operation)
+    key = [program.class, table_id.to_i, viewer.to_s.downcase]
+    group = GROUPS_LOCK.synchronize do
+      value = GROUPS[key] ||= ExecutionGroup.new
+      value.retain_control
+      value
+    end
+    group.operation.synchronize(&operation)
+  ensure
+    GROUPS_LOCK.synchronize do
+      GROUPS.delete(key) if group && group.release_control && GROUPS[key].equal?(group)
+    end
+  end
 
   def initialize(program:, transport:, repository:, game:, session:, table:,
     owner:, viewer:, room_snapshot_provider:, context:, game_status_changed: nil,
@@ -461,7 +481,10 @@ class GameRoomSessionRunner
       players: @repository.players_for(@session), members: @room&.members, owner: @owner, viewer: @viewer, transport: @transport)
     changed = false
     departed.each do |seat|
-      changed = @transport.set_seat_controller(@table_id, session_id: @repository.session_id(@session), seat: seat, bot: true) || changed
+      current = @repository.snapshot_for(@session).session
+      guard = @repository.control_change_guard(table: @table, game: @game, session: current, player: seat)
+      changed = @transport.set_seat_controller(@table_id, session_id: @repository.session_id(@session), seat: seat, bot: true,
+        control_guard: guard) || changed
     end
     changed
   end
