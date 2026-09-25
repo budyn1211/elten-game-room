@@ -156,6 +156,8 @@ module GameRoomGames
 
     def surface_spec(replay, viewer)
       state = replay.state
+      return action_surface([], _("Waiting for the cards to be dealt")) if state[:phase] == :awaiting_deal
+
       if replay.finished? || !same_user?(replay.current_player, viewer)
         label = replay.finished? ? result_text(replay) : current_turn_shortcut_text(replay, viewer)
         return action_surface([], label)
@@ -492,7 +494,7 @@ module GameRoomGames
 
     def action_surface(cards, label)
       GameSurfaces::CardTableSpec.new(zones: [
-        GameSurfaces::CardZoneSpec.new(id: "actions", header: label, cards: cards, empty_label: label)
+        GameSurfaces::CardZoneSpec.new(id: "actions", header: cards.empty? ? "" : label, cards: cards, empty_label: label)
       ])
     end
   end
