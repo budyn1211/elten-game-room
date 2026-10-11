@@ -881,7 +881,7 @@ class EltenGameRoom < Program
   end
 
   def show_rules_library
-    game_id = select_game(_("Game rules"), GAME_REGISTRY.ids)
+    game_id = select_game(_("Game rules"), GAME_REGISTRY.ids, descriptions: true)
     return if game_id == nil
 
     show_game_rules(game_definition(game_id))
