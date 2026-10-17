@@ -218,13 +218,19 @@ Form.on_wait = nil
   assert(shortcut.kind == :number_input && shortcut.value_key == "raise_by", "#{variant}: R is not custom numeric input")
   answers = ["9", "37"]
   errors = []
+  prompts = []
   screen.define_singleton_method(:input_text) do |prompt, **options|
-    assert(prompt == "Raise by:" && options[:select_all], "Verbose prompt or missing selected default")
+    assert(options[:select_all], "Missing selected default")
+    prompts << prompt
     answers.shift
   end
   screen.define_singleton_method(:alert) { |message| errors << message }
   action = screen.send(:number_shortcut_action, shortcut)
-  assert(action.payload == { "quoted_call" => 20, "raise_by" => 37 } && errors.length == 1, "Wrong numeric input validation")
+  assert(action.payload == { "quoted_call" => 20, "raise_by" => 37 } && errors.empty?, "Wrong numeric input validation")
+  # The error is part of the reopened field header, so a screen reader does
+  # not cut it off when the field takes focus.
+  assert(prompts[0] == "Raise by:" && prompts[1].start_with?("This value is not allowed. Allowed values:") &&
+    prompts[1].end_with?("Raise by:"), "#{variant}: invalid raise not announced in the field: #{prompts.inspect}")
   screen.define_singleton_method(:input_text) { |_prompt, **_options| nil }
   assert(screen.send(:number_shortcut_action, shortcut) == nil, "Escape submitted a raise")
 end

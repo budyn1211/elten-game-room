@@ -601,9 +601,12 @@ class GameScreen
 
   def number_shortcut_action(shortcut)
     value_text = shortcut.default_value == nil ? "" : shortcut.default_value.to_i.to_s
+    error_text = nil
     loop do
+      # NVDA cannot report when an alert has finished, so the reopened field
+      # would cut it off. The field header carries the error instead.
       entered = input_text(
-        shortcut.prompt,
+        error_text == nil ? shortcut.prompt : "#{error_text} #{shortcut.prompt}",
         flags: EditBox::Flags::Numbers,
         text: value_text,
         escapable: true,
@@ -628,12 +631,10 @@ class GameScreen
       allowed = allowed_values_text(shortcut.allowed_values)
       message = shortcut.invalid_message.to_s
       message = _("This value is not allowed.") if message.empty?
-      alert(
-        _("%{message} Allowed values: %{values}.") % {
-          message: message,
-          values: allowed
-        }
-      )
+      error_text = _("%{message} Allowed values: %{values}.") % {
+        message: message,
+        values: allowed
+      }
     end
   end
 

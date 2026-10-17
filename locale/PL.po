@@ -407,11 +407,11 @@ msgstr "%{giver} przekazał kartę atutową graczowi %{target}; %{target} wybier
 msgid "%{group}, %{volume}%%"
 msgstr "%{group}, %{volume}%%"
 
-#: games/poker.rb:878
+#: games/poker.rb:940
 msgid "%{hand}: %{values}"
 msgstr "%{hand}: %{values}"
 
-#: games/poker.rb:869
+#: games/poker.rb:931
 msgid "%{hand}: %{values}."
 msgstr "%{hand}: %{values}."
 
@@ -475,11 +475,11 @@ msgstr "%{mark}, znak gracza %{player}"
 msgid "%{matches} matches; extra categories: %{extra}; Yahtzee bonus: %{bonus}; Joker: %{joker}"
 msgstr "Partie: %{matches}; kategorie dodatkowe: %{extra}; premia Yahtzee: %{bonus}; Joker: %{joker}"
 
-#: lib/game_screen.rb:632
+#: lib/game_screen.rb:634
 msgid "%{message} Allowed values: %{values}."
 msgstr "%{message} Dozwolone wartości: %{values}."
 
-#: lib/game_screen.rb:765 lib/game_screen.rb:771
+#: lib/game_screen.rb:766 lib/game_screen.rb:772
 msgid "%{minimum} to %{maximum}"
 msgstr "od %{minimum} do %{maximum}"
 
@@ -741,7 +741,7 @@ msgstr "%{player} buduje drugi dom na %{property}."
 msgid "%{player} builds the third house on %{property}."
 msgstr "%{player} buduje trzeci dom na %{property}."
 
-#: games/poker.rb:1160
+#: games/poker.rb:1225
 msgid "%{player} calls %{amount}."
 msgstr "%{player} sprawdza za %{amount}."
 
@@ -778,7 +778,7 @@ msgstr "%{player} zmienia skryptorium: %{change}."
 msgid "%{player} changes the suit to %{suit}."
 msgstr "%{player} zmienia kolor na %{suit}."
 
-#: games/poker.rb:1159
+#: games/poker.rb:1224
 msgid "%{player} checks."
 msgstr "%{player} czeka."
 
@@ -967,7 +967,7 @@ msgstr "%{player} przerywa partię. Stół pozostaje otwarty."
 msgid "%{player} ended the turn."
 msgstr "%{player} kończy turę."
 
-#: games/poker.rb:605
+#: games/poker.rb:659
 msgid "%{player} exchanged %{count} card."
 msgid_plural "%{player} exchanged %{count} cards."
 msgstr[0] "%{player} wymienia %{count} kartę."
@@ -1000,7 +1000,7 @@ msgstr[2] "%{player} ma przyjąć lub odbić %{count} kolejek postoju."
 msgid "%{player} finished exchanging cards."
 msgstr "%{player} zakończył wymianę kart."
 
-#: games/poker.rb:1158
+#: games/poker.rb:1223
 msgid "%{player} folds."
 msgstr "%{player} pasuje."
 
@@ -1027,6 +1027,10 @@ msgstr "%{player} trafia do więzienia."
 #: games/krowa.rb:478
 msgid "%{player} guesses the word in %{count} attempts."
 msgstr "%{player} odgaduje w %{count} próbach."
+
+#: games/poker.rb:757
+msgid "%{player} had %{cards}: %{hand}."
+msgstr "%{player}: %{cards}, %{hand}."
 
 #: games/ninety_nine.rb:671
 msgid "%{player} had no cards and lost the round."
@@ -1059,7 +1063,7 @@ msgstr "%{player} nie ma legalnego ruchu pionkiem."
 msgid "%{player} invited %{user}."
 msgstr "%{player} zaprosił gracza %{user}."
 
-#: games/poker.rb:1162
+#: games/poker.rb:1227
 msgid "%{player} is all in for %{amount}."
 msgstr "%{player} wchodzi za wszystko za %{amount}."
 
@@ -1150,7 +1154,7 @@ msgstr "%{player} zachowuje kartę wyjścia z więzienia."
 msgid "%{player} keeps a card."
 msgstr "%{player} zachowuje kartę."
 
-#: games/poker.rb:605
+#: games/poker.rb:659
 msgid "%{player} keeps all cards."
 msgstr "%{player} zachowuje wszystkie karty."
 
@@ -1365,15 +1369,15 @@ msgstr "%{player} płaci %{count} kart i otrzymuje: %{card}."
 msgid "%{player} pays %{recipient} %{amount}: %{reason}."
 msgstr "%{player} płaci %{recipient} %{amount}; %{reason}."
 
-#: games/poker.rb:514
+#: games/poker.rb:475
 msgid "%{player} pays ante: %{amount}."
 msgstr "%{player} wpłaca ante: %{amount}."
 
-#: games/poker.rb:529
+#: games/poker.rb:474
 msgid "%{player} pays the big blind: %{amount}."
 msgstr "%{player} wpłaca dużą ciemną: %{amount}."
 
-#: games/poker.rb:528
+#: games/poker.rb:473
 msgid "%{player} pays the small blind: %{amount}."
 msgstr "%{player} wpłaca małą ciemną: %{amount}."
 
@@ -1486,7 +1490,7 @@ msgstr "%{player} promuje pionka na: %{piece}."
 msgid "%{player} proposed a trade to %{target}: %{offer}."
 msgstr "%{player} proponuje wymianę graczowi %{target}: %{offer}."
 
-#: games/poker.rb:1161
+#: games/poker.rb:1226
 msgid "%{player} raises by %{increase}, to %{amount}."
 msgstr "%{player} podbija o %{increase}, do %{amount}."
 
@@ -1560,7 +1564,7 @@ msgstr "%{player} otrzymuje %{amount} — %{pot}; %{hand}."
 msgid "%{player} receives %{amount} from the bank."
 msgstr "%{player} otrzymuje z banku %{amount}."
 
-#: games/poker.rb:728
+#: games/poker.rb:790
 msgid "%{player} receives %{amount} from the pot; all other players folded."
 msgstr "%{player} otrzymuje z puli %{amount}; pozostali spasowali."
 
@@ -1962,6 +1966,10 @@ msgstr[2] "%{player} stoi %{count} tur."
 msgid "%{player} will skip %{count} turns."
 msgstr "%{player} pominie %{count} tur."
 
+#: games/poker.rb:778
+msgid "%{player} wins %{amount} from the %{pot}%{deciding}."
+msgstr "%{player} wygrywa %{amount} — %{pot}%{deciding}."
+
 msgid "%{player} wins %{amount} with %{hand}"
 msgstr "%{player} wygrywa %{amount} układem %{hand}"
 
@@ -2011,6 +2019,10 @@ msgid_plural "%{player} wins the war because the others have no cards left, and 
 msgstr[0] "%{player} wygrywa wojnę, bo pozostałym skończyły się karty, i zabiera %{count} kartę."
 msgstr[1] "%{player} wygrywa wojnę, bo pozostałym skończyły się karty, i zabiera %{count} karty."
 msgstr[2] "%{player} wygrywa wojnę, bo pozostałym skończyły się karty, i zabiera %{count} kart."
+
+#: games/poker.rb:776
+msgid "%{player} wins the whole pot: %{amount}%{deciding}."
+msgstr "%{player} wygrywa całą pulę: %{amount}%{deciding}."
 
 #: games/duck_racing_support/presentation.rb:664
 msgid "%{player} wins."
@@ -2198,7 +2210,7 @@ msgstr "%{player}: %{card}"
 msgid "%{player}: %{card} Cash: %{cash}."
 msgstr "%{player}: %{card} Gotówka: %{cash}."
 
-#: games/poker.rb:1247
+#: games/poker.rb:1312
 msgid "%{player}: %{chips}"
 msgstr "%{player}: %{chips}"
 
@@ -2427,7 +2439,7 @@ msgstr "%{position}, %{player}, pionek %{pawn}"
 msgid "%{position}. %{value}"
 msgstr "%{position}. %{value}"
 
-#: games/poker.rb:711
+#: games/poker.rb:770
 msgid "%{pot} is split between %{players}."
 msgstr "%{pot} — podział między: %{players}."
 
@@ -2456,7 +2468,7 @@ msgstr "%{property}; grupa %{owned} z %{total}."
 msgid "%{property}; group ownership %{owned} of %{total}."
 msgstr "%{property}; w tej grupie %{owned} z %{total}."
 
-#: games/card_game.rb:61 games/makao.rb:884 games/makao.rb:891 games/ninety_nine.rb:1017 games/poker.rb:1241 games/spades.rb:1097 games/three_five_eight.rb:1075 games/tysiac.rb:1681
+#: games/card_game.rb:61 games/makao.rb:884 games/makao.rb:891 games/ninety_nine.rb:1017 games/poker.rb:1306 games/spades.rb:1097 games/three_five_eight.rb:1075 games/tysiac.rb:1681
 msgid "%{rank} of %{suit}"
 msgstr "%{rank} %{suit}"
 
@@ -2524,7 +2536,7 @@ msgstr "%{size} na %{size}; wybrany zestaw zasad"
 msgid "%{size} masts from %{bow} to %{stern} placed."
 msgstr "Postawiono statek: %{size} pól, od %{bow} do %{stern}."
 
-#: games/poker.rb:674
+#: games/poker.rb:728
 msgid "%{stage}: %{cards}."
 msgstr "%{stage}: %{cards}."
 
@@ -3185,7 +3197,7 @@ msgstr "7: odczytaj pozycję 7 stojaka, bez układania."
 msgid "; buildings: %{buildings}"
 msgstr "; budynki: %{buildings}"
 
-#: games/poker.rb:885
+#: games/poker.rb:953
 msgid "; deciding card: %{card}"
 msgstr "; karta rozstrzygająca: %{card}"
 
@@ -4326,7 +4338,7 @@ msgstr "Wszystkich gier"
 msgid "All history"
 msgstr "Cała historia"
 
-#: games/poker.rb:1151
+#: games/poker.rb:1216
 msgid "All in; %{amount}"
 msgstr "Za wszystko; %{amount}"
 
@@ -5241,7 +5253,7 @@ msgstr "B: odczytaj obecną aukcję."
 msgid "B: respond to the buzzer."
 msgstr "B: zareaguj na brzęczyk."
 
-#: __app.rb:1244 __app.rb:1408 __app.rb:1452 __app.rb:1586 __app.rb:2157 __app.rb:2274 __app.rb:2434 games/krowa_support/leaderboards.rb:39 lib/game_room_presence_screen.rb:16 lib/game_room_screens.rb:617 lib/game_room_screens.rb:634 lib/game_screen.rb:365 lib/game_screen.rb:742 lib/game_statistics_screen.rb:25 lib/game_statistics_screen.rb:59 lib/tournaments/draft_preview.rb:24 lib/tournaments/draft_preview.rb:77 lib/tournaments/draft_screen.rb:26 lib/tournaments/local_fixed_team_execution_details.rb:19 lib/tournaments/local_fixed_team_execution_screen.rb:103 lib/tournaments/local_fixed_team_plan_screen.rb:68 lib/tournaments/local_game_choice_dialog.rb:28 lib/tournaments/local_individual_plan_screen.rb:25 lib/tournaments/local_organizer_decision_screen.rb:28 lib/tournaments/local_participant_manager.rb:16 lib/tournaments/local_realtime_game_dialog.rb:44 lib/tournaments/local_test_hub.rb:58 lib/tournaments/local_tournament_overview.rb:26 lib/tournaments/match_entry_screen.rb:280 lib/tournaments/match_entry_screen.rb:375 lib/tournaments/operations_screen.rb:59 lib/tournaments/participant_manager.rb:16 lib/tournaments/proposal_notice_dialog.rb:27 lib/tournaments/public_preview.rb:115 lib/tournaments/public_preview.rb:166 lib/tournaments/public_preview.rb:188 lib/tournaments/public_preview.rb:350 lib/tournaments/public_screen.rb:72 lib/tournaments/server_proposal_screen.rb:31 lib/tournaments/server_schedule_overview.rb:267 lib/tournaments/server_schedule_overview.rb:36 lib/tournaments/server_trial_hub.rb:32
+#: __app.rb:1244 __app.rb:1408 __app.rb:1452 __app.rb:1586 __app.rb:2157 __app.rb:2274 __app.rb:2434 games/krowa_support/leaderboards.rb:39 lib/game_room_presence_screen.rb:16 lib/game_room_screens.rb:617 lib/game_room_screens.rb:634 lib/game_screen.rb:365 lib/game_screen.rb:743 lib/game_statistics_screen.rb:25 lib/game_statistics_screen.rb:59 lib/tournaments/draft_preview.rb:24 lib/tournaments/draft_preview.rb:77 lib/tournaments/draft_screen.rb:26 lib/tournaments/local_fixed_team_execution_details.rb:19 lib/tournaments/local_fixed_team_execution_screen.rb:103 lib/tournaments/local_fixed_team_plan_screen.rb:68 lib/tournaments/local_game_choice_dialog.rb:28 lib/tournaments/local_individual_plan_screen.rb:25 lib/tournaments/local_organizer_decision_screen.rb:28 lib/tournaments/local_participant_manager.rb:16 lib/tournaments/local_realtime_game_dialog.rb:44 lib/tournaments/local_test_hub.rb:58 lib/tournaments/local_tournament_overview.rb:26 lib/tournaments/match_entry_screen.rb:280 lib/tournaments/match_entry_screen.rb:375 lib/tournaments/operations_screen.rb:59 lib/tournaments/participant_manager.rb:16 lib/tournaments/proposal_notice_dialog.rb:27 lib/tournaments/public_preview.rb:115 lib/tournaments/public_preview.rb:166 lib/tournaments/public_preview.rb:188 lib/tournaments/public_preview.rb:350 lib/tournaments/public_screen.rb:72 lib/tournaments/server_proposal_screen.rb:31 lib/tournaments/server_schedule_overview.rb:267 lib/tournaments/server_schedule_overview.rb:36 lib/tournaments/server_trial_hub.rb:32
 msgid "Back"
 msgstr "Wstecz"
 
@@ -5514,7 +5526,7 @@ msgstr "Mnożnik ciemnych"
 msgid "Blinds and ante put chips into play"
 msgstr "Ciemne i ante rozpoczynają pulę"
 
-#: games/poker.rb:537
+#: games/poker.rb:586
 msgid "Blinds increase to %{small} and %{big}."
 msgstr "Ciemne wzrastają do %{small} i %{big}."
 
@@ -5525,7 +5537,7 @@ msgstr "Ciemne muszą być dodatnie, a duża ciemna nie może być mniejsza od m
 msgid "Blinds, ante and increasing stakes"
 msgstr "Ciemne, ante i wzrost stawek"
 
-#: games/poker.rb:1133
+#: games/poker.rb:1198
 msgid "Blinds: %{small} and %{big}."
 msgstr "Ciemne: %{small} i %{big}."
 
@@ -5903,7 +5915,7 @@ msgstr ""
 msgid "Calendar years are unavailable. Try Refresh."
 msgstr "Nie można odczytać listy lat kalendarzowych. Spróbuj użyć przycisku Odśwież."
 
-#: games/poker.rb:1145
+#: games/poker.rb:1210
 msgid "Call %{amount}"
 msgstr "Sprawdź za %{amount}"
 
@@ -5911,7 +5923,7 @@ msgstr "Sprawdź za %{amount}"
 msgid "Calm (short search)"
 msgstr "Spokojny (krótka analiza)"
 
-#: __app.rb:2073 __app.rb:3169 __app.rb:3227 games/krowa_support/client.rb:190 games/krowa_support/leaderboards.rb:204 games/rummy_ui.rb:26 lib/audio_ball/settings.rb:24 lib/axel_pong/settings.rb:38 lib/game_option_editor.rb:107 lib/game_room_screens.rb:327 lib/game_screen.rb:651 lib/game_screen.rb:695 lib/game_surfaces/card_actions.rb:52 lib/game_surfaces/word_board.rb:208 lib/quiz_contributions/views.rb:142 lib/quiz_contributions/views.rb:163 lib/tournaments/draft_details_editor.rb:123 lib/tournaments/draft_details_editor.rb:35 lib/tournaments/draft_editor.rb:42 lib/tournaments/local_fixed_team_execution_details.rb:40 lib/tournaments/local_fixed_team_execution_details.rb:68 lib/tournaments/local_test_dialogs.rb:159 lib/tournaments/local_test_dialogs.rb:190 lib/tournaments/match_entry_screen.rb:386 lib/tournaments/public_preview.rb:92 lib/tournaments/publication_editor.rb:82 lib/tournaments/server_forfeit_screen.rb:13 lib/tournaments/tournament_dates_editor.rb:53 lib/tournaments/tournament_setup_editor.rb:29
+#: __app.rb:2073 __app.rb:3169 __app.rb:3227 games/krowa_support/client.rb:190 games/krowa_support/leaderboards.rb:204 games/rummy_ui.rb:26 lib/audio_ball/settings.rb:24 lib/axel_pong/settings.rb:38 lib/game_option_editor.rb:107 lib/game_room_screens.rb:327 lib/game_screen.rb:652 lib/game_screen.rb:696 lib/game_surfaces/card_actions.rb:52 lib/game_surfaces/word_board.rb:208 lib/quiz_contributions/views.rb:142 lib/quiz_contributions/views.rb:163 lib/tournaments/draft_details_editor.rb:123 lib/tournaments/draft_details_editor.rb:35 lib/tournaments/draft_editor.rb:42 lib/tournaments/local_fixed_team_execution_details.rb:40 lib/tournaments/local_fixed_team_execution_details.rb:68 lib/tournaments/local_test_dialogs.rb:159 lib/tournaments/local_test_dialogs.rb:190 lib/tournaments/match_entry_screen.rb:386 lib/tournaments/public_preview.rb:92 lib/tournaments/publication_editor.rb:82 lib/tournaments/server_forfeit_screen.rb:13 lib/tournaments/tournament_dates_editor.rb:53 lib/tournaments/tournament_setup_editor.rb:29
 msgid "Cancel"
 msgstr "Anuluj"
 
@@ -6018,7 +6030,7 @@ msgstr "Wymiana kart między graczami"
 msgid "Card exchange is available only in a trump contract. A player who scored above zero in the previous deal may exchange up to that many cards with players who scored below zero. A player with the higher target in the current deal exchanges first. You may stop before using the whole allowance."
 msgstr "Wymiana jest dostępna wyłącznie w rozgrywce atutowej. Gracz, który w poprzednim rozdaniu zdobył wynik dodatni, może wymienić najwyżej tyle kart z graczami z wynikiem ujemnym. Pierwszeństwo ma osoba z wyższym celem w bieżącym rozdaniu. Wolno zakończyć wymianę przed wykorzystaniem całego limitu."
 
-#: games/poker.rb:634
+#: games/poker.rb:688
 msgid "Card exchange."
 msgstr "Wymiana kart."
 
@@ -6087,6 +6099,10 @@ msgstr ""
 #: games/tysiac.rb:192
 msgid "Cards in each talon"
 msgstr "Liczba kart w każdym musiku"
+
+#: games/poker.rb:439
+msgid "Cards in hand: %{cards}."
+msgstr "Karty w ręku: %{cards}."
 
 #: games/scientific_war.rb:822
 msgid "Cards in hand: %{counts}."
@@ -6373,7 +6389,7 @@ msgstr "Ruchy wpisywane na czacie przyjmują wybrany zapis, na przykład /21 17 
 msgid "Chat sounds"
 msgstr "Dźwięki czatu"
 
-#: games/poker.rb:1144
+#: games/poker.rb:1209
 msgid "Check"
 msgstr "Czekaj"
 
@@ -10170,7 +10186,7 @@ msgstr "Zakończenie i rozstrzygnięcie remisu"
 msgid "Finishing in the turn of your first meld is rummy: 200 bonus points, or 300 instead if only new melds from your hand were used, without laying off or borrowing. Finishing before anyone else first melded adds another 100. At a blocked round there is no winner bonus. The normal score limit defaults to 1000; check it only after scoring the round. The highest total wins when the limit is reached; tied leaders continue."
 msgstr "Zakończenie w turze pierwszego wyłożenia to remik: 200 punktów premii albo 300 zamiast 200, jeśli użyto wyłącznie nowych układów z własnej ręki, bez dokładania i zabierania. Zakończenie, zanim ktokolwiek inny się otworzył, daje jeszcze 100. Przy blokadzie rozdania nie ma premii zwycięzcy. Zwykły limit wynosi domyślnie 1000 i sprawdzamy go dopiero po rozliczeniu rozdania. Po osiągnięciu limitu wygrywa najwyższy wynik; remisujący liderzy grają dalej."
 
-#: games/poker.rb:540
+#: games/poker.rb:594
 msgid "First betting round."
 msgstr "Pierwsza licytacja."
 
@@ -10362,11 +10378,11 @@ msgstr "Flip używa kart dwustronnych. Zagranie Flip odwraca wszystkie ręce i o
 msgid "Flip: %{side}. %{top}"
 msgstr "Flip: %{side}. %{top}"
 
-#: games/poker.rb:672
+#: games/poker.rb:726
 msgid "Flop"
 msgstr "Flop"
 
-#: games/poker.rb:1146
+#: games/poker.rb:1211
 msgid "Fold"
 msgstr "Pasuj"
 
@@ -11704,7 +11720,7 @@ msgstr "Skróty klawiszowe w grze"
 msgid "In-game keyboard shortcuts are now an arrow-key list. During a game, it uses the same current game-field help as F1. Enter or Escape closes the list; rules remain one document with headings."
 msgstr "Skróty klawiszowe w grze są teraz listą pod strzałkami. W trakcie partii korzysta ona z tej samej aktualnej pomocy pola gry co F1. Enter lub Escape zamyka listę; same zasady pozostają jednym dokumentem z nagłówkami."
 
-#: games/poker.rb:1251
+#: games/poker.rb:1316
 msgid "In: %{active}; folded: %{folded}."
 msgstr "W grze: %{active}; spasowali: %{folded}."
 
@@ -13929,7 +13945,7 @@ msgstr "Nie ma jeszcze ofert."
 msgid "No card has been dealt yet."
 msgstr "Nie rozdano jeszcze kart."
 
-#: games/poker.rb:1137
+#: games/poker.rb:1202
 msgid "No card in position %{number}."
 msgstr "Brak karty na pozycji %{number}."
 
@@ -13964,7 +13980,7 @@ msgstr "Brak dostępnych opcji"
 msgid "No collection start date is available."
 msgstr "Data rozpoczęcia zbierania danych jest nieznana."
 
-#: games/poker.rb:1128
+#: games/poker.rb:1193
 msgid "No community cards are visible."
 msgstr "Nie ma widocznych kart wspólnych."
 
@@ -14739,7 +14755,7 @@ msgstr "Otwarcie licytacji wymaga co najmniej pary waletów."
 msgid "Opening the current game"
 msgstr "Otwieranie bieżącej gry"
 
-#: lib/game_screen.rb:923
+#: lib/game_screen.rb:924
 msgid "Opening the new game"
 msgstr "Otwieranie nowej gry"
 
@@ -15659,7 +15675,7 @@ msgstr "Pozycje są odczytywane od gracza, a potem podawane jest pole, bez numer
 msgid "Pot limit"
 msgstr "Limit puli"
 
-#: games/poker.rb:1129
+#: games/poker.rb:1194
 msgid "Pot: %{amount}."
 msgstr "Pula: %{amount}."
 
@@ -15710,7 +15726,7 @@ msgstr "Spróbuj przewidzieć, ile razy uda ci się zebrać karty ze stołu, a p
 msgid "Prefer a king when equally long captures are available"
 msgstr "Przy równie długich biciach pierwszeństwo ma damka"
 
-#: games/poker.rb:540
+#: games/poker.rb:594
 msgid "Preflop. First betting round."
 msgstr "Preflop. Pierwsza licytacja."
 
@@ -15784,7 +15800,7 @@ msgstr "Przygotowywanie wyzwania."
 msgid "Preparing the match"
 msgstr "Przygotowanie meczu"
 
-#: lib/game_screen.rb:1240
+#: lib/game_screen.rb:1241
 msgid "Preparing the next round"
 msgstr "Przygotowywanie kolejnej rundy"
 
@@ -16511,7 +16527,7 @@ msgstr "Podbij o %{amount}"
 msgid "Raise by %{minimum} to %{maximum} above the call."
 msgstr "Podbicie ponad wyrównanie musi wynosić od %{minimum} do %{maximum}."
 
-#: games/poker.rb:1150
+#: games/poker.rb:1215
 msgid "Raise by %{raise}; total payment %{amount}"
 msgstr "Podbij o %{raise}; łączny koszt %{amount}"
 
@@ -17340,7 +17356,7 @@ msgctxt "categories"
 msgid "River"
 msgstr "Rzeka"
 
-#: games/poker.rb:672
+#: games/poker.rb:726
 msgctxt "poker"
 msgid "River"
 msgstr "River"
@@ -17519,6 +17535,10 @@ msgstr "Domyślnie sędzia się zmienia według kolejności miejsc: każdy czase
 #: games/krowa_support/leaderboards.rb:277
 msgid "Round"
 msgstr "Runda"
+
+#: games/poker.rb:584
+msgid "Round %{hand}. Dealer: %{dealer}."
+msgstr "Runda %{hand}. Rozdaje %{dealer}."
 
 #: games/categories/reduction.rb:309
 msgid "Round %{round} ended."
@@ -18102,7 +18122,7 @@ msgstr "Miejsce %{seat}: %{player}; rola w grze: %{role}"
 msgid "Seats: one match per line, accounts separated by commas"
 msgstr "Miejsca: jeden mecz w wierszu, konta oddzielone przecinkami"
 
-#: games/poker.rb:615
+#: games/poker.rb:669
 msgid "Second betting round."
 msgstr "Druga licytacja."
 
@@ -18118,7 +18138,7 @@ msgstr "Drugi musik"
 msgid "Seeds in each pit"
 msgstr "Kamienie w każdym dołku"
 
-#: __app.rb:1585 __app.rb:2433 __app.rb:3226 lib/game_screen.rb:650 lib/game_surfaces/word_board.rb:208
+#: __app.rb:1585 __app.rb:2433 __app.rb:3226 lib/game_screen.rb:651 lib/game_surfaces/word_board.rb:208
 msgid "Select"
 msgstr "Wybierz"
 
@@ -18220,7 +18240,7 @@ msgstr "Półfinały"
 msgid "Send"
 msgstr "Wyślij"
 
-#: lib/game_screen.rb:694
+#: lib/game_screen.rb:695
 msgid "Send proposal"
 msgstr "Wyślij propozycję"
 
@@ -18240,7 +18260,7 @@ msgstr "Wyślij do autora"
 msgid "Send to the editor"
 msgstr "Wyślij do redakcji"
 
-#: lib/game_screen.rb:797 lib/game_screen.rb:817
+#: lib/game_screen.rb:798 lib/game_screen.rb:818
 msgid "Sending action"
 msgstr "Wysyłanie ruchu"
 
@@ -18248,11 +18268,11 @@ msgstr "Wysyłanie ruchu"
 msgid "Sending and declining invitations is recorded in the room history. Declining no longer creates a separate notification or an empty notification entry."
 msgstr "Wysłanie i odrzucenie zaproszenia trafia do historii pokoju. Odrzucenie nie tworzy już osobnego ani pustego powiadomienia."
 
-#: lib/game_screen.rb:833
+#: lib/game_screen.rb:834
 msgid "Sending assessment"
 msgstr "Wysyłanie oceny"
 
-#: __app.rb:1872 lib/game_screen.rb:1154
+#: __app.rb:1872 lib/game_screen.rb:1155
 msgid "Sending chat message"
 msgstr "Wysyłanie wiadomości na czacie"
 
@@ -20674,7 +20694,7 @@ msgstr "Gra ogłasza wejście gracza na beczkę i zapisuje ten komunikat w histo
 msgid "The game cannot start until these players join the real-time session: %{players}."
 msgstr "Nie można rozpocząć gry, dopóki ci gracze nie dołączą do sesji w czasie rzeczywistym: %{players}."
 
-#: lib/game_screen.rb:1440 lib/game_screen.rb:842 lib/game_screen.rb:875
+#: lib/game_screen.rb:1441 lib/game_screen.rb:843 lib/game_screen.rb:876
 msgid "The game changed before your action was accepted. Please choose again."
 msgstr "Stan gry zmienił się przed przyjęciem twojego ruchu. Wybierz ponownie."
 
@@ -21099,7 +21119,7 @@ msgstr "Liczbę żetonów początkowych można zmienić; domyślna wartość to 
 msgid "The number of starting tokens must be greater than zero."
 msgstr "Liczba żetonów początkowych musi być większa od zera."
 
-#: __app.rb:2142 __app.rb:2866 lib/game_room_widget.rb:230 lib/game_screen.rb:1474
+#: __app.rb:2142 __app.rb:2866 lib/game_room_widget.rb:230 lib/game_screen.rb:1475
 msgid "The operation could not be completed. Please try again."
 msgstr "Nie udało się wykonać operacji. Spróbuj ponownie."
 
@@ -22246,7 +22266,7 @@ msgstr "Ten wariant Tysiąca wymaga dokładnie %{count} graczy."
 msgid "This Word Tower result has already been published."
 msgstr "Ten wynik Wieży jest już opublikowany."
 
-#: lib/game_screen.rb:1337 lib/game_screen.rb:890
+#: lib/game_screen.rb:1338 lib/game_screen.rb:891
 msgid "This action contains too much data and was not sent."
 msgstr "Ta akcja zawiera zbyt dużo danych i nie została wysłana."
 
@@ -22658,7 +22678,7 @@ msgstr "Ta wymiana nie jest już prawidłowa. Sprawdź gracza, nieruchomości i 
 msgid "This user is already at the table."
 msgstr "Ten użytkownik jest już przy stole."
 
-#: lib/game_screen.rb:630
+#: lib/game_screen.rb:633
 msgid "This value is not allowed."
 msgstr "Ta wartość jest niedozwolona."
 
@@ -22836,7 +22856,7 @@ msgstr "Do ustalenia"
 msgid "To be played"
 msgstr "Do rozegrania"
 
-#: games/poker.rb:1126
+#: games/poker.rb:1191
 msgid "To call: %{amount}."
 msgstr "Do sprawdzenia: %{amount}."
 
@@ -23224,7 +23244,7 @@ msgstr "Klawiszami F i J sprawdź dwa dźwięki perkusji. Enter lub Spacja rozpo
 msgid "Turkish board"
 msgstr "Plansza turecka"
 
-#: games/poker.rb:672
+#: games/poker.rb:726
 msgid "Turn"
 msgstr "Turn"
 
@@ -23673,15 +23693,15 @@ msgstr "Zaktualizowano zasady Krowy, w tym opisy wariantów i sterowania, po pol
 msgid "Updated the Russian translation by Danil (Kostenkov-2021) and corrected translations of River in Categories and Poker."
 msgstr "Zaktualizowano rosyjskie tłumaczenie autorstwa Danila (Kostenkov-2021) oraz poprawiono tłumaczenia słowa River w Państwach-miastach i pokerze."
 
-#: lib/game_screen.rb:411 lib/game_screen.rb:986 lib/game_screen/input.rb:490
+#: lib/game_screen.rb:411 lib/game_screen.rb:987 lib/game_screen/input.rb:490
 msgid "Updating game"
 msgstr "Aktualizowanie gry"
 
-#: __app.rb:1371 __app.rb:1700 __app.rb:1899 __app.rb:1908 __app.rb:1919 __app.rb:2002 __app.rb:2050 __app.rb:3242 __app.rb:3251 __app.rb:3395 __app.rb:3408 __app.rb:3449 lib/game_screen.rb:1027 lib/game_screen/input.rb:458
+#: __app.rb:1371 __app.rb:1700 __app.rb:1899 __app.rb:1908 __app.rb:1919 __app.rb:2002 __app.rb:2050 __app.rb:3242 __app.rb:3251 __app.rb:3395 __app.rb:3408 __app.rb:3449 lib/game_screen.rb:1028 lib/game_screen/input.rb:458
 msgid "Updating table"
 msgstr "Aktualizowanie stołu"
 
-#: lib/game_screen.rb:1194
+#: lib/game_screen.rb:1195
 msgid "Updating table status"
 msgstr "Aktualizowanie stanu stołu"
 
@@ -23829,7 +23849,7 @@ msgstr "Opcja dwóch jokerów dodaje karty mogące reprezentować kartę zwykł�
 msgid "User"
 msgstr "Użytkownik"
 
-#: lib/game_screen.rb:1205
+#: lib/game_screen.rb:1206
 msgid "Users at the table (%{count})"
 msgstr "Użytkownicy przy stole (%{count})"
 
@@ -24880,7 +24900,7 @@ msgstr "Nie grasz w tej rundzie."
 msgid "You are not registered for this tournament."
 msgstr "Nie jesteś zapisany do tego turnieju."
 
-#: games/krowa_support/presentation.rb:150 lib/game_screen.rb:784
+#: games/krowa_support/presentation.rb:150 lib/game_screen.rb:785
 msgid "You are observing the game."
 msgstr "Obserwujesz grę."
 
@@ -25129,7 +25149,7 @@ msgstr "Wykorzystano już wszystkie trzy rzuty."
 msgid "You have chosen your card."
 msgstr "Twoja karta jest wybrana."
 
-#: games/poker.rb:1130
+#: games/poker.rb:1195
 msgid "You have invested %{amount} in this hand."
 msgstr "W tym rozdaniu zainwestowano %{amount}."
 
@@ -25153,7 +25173,7 @@ msgstr "Nie masz teraz budynków, które możesz sprzedać."
 msgid "You have no card power in this trick."
 msgstr "W tej lewie nie masz żadnej mocy karty."
 
-#: games/biblios.rb:1223 games/poker.rb:1127 games/poker.rb:1132 games/poker.rb:845
+#: games/biblios.rb:1223 games/poker.rb:1192 games/poker.rb:1197 games/poker.rb:907
 msgid "You have no cards."
 msgstr "Nie masz kart."
 
@@ -25161,7 +25181,7 @@ msgstr "Nie masz kart."
 msgid "You have no chips left to bet."
 msgstr "Nie masz już żetonów do postawienia."
 
-#: games/poker.rb:865
+#: games/poker.rb:927
 msgid "You have no combination."
 msgstr "Nie masz układu"
 
@@ -25351,6 +25371,18 @@ msgstr "Najpierw musisz dodać przynajmniej jedną kategorię."
 #: lib/tournaments/public_text.rb:31
 msgid "You organize this tournament"
 msgstr "Organizujesz ten turniej"
+
+#: games/poker.rb:469
+msgid "You pay ante: %{amount}."
+msgstr "Płacisz ante: %{amount}."
+
+#: games/poker.rb:468
+msgid "You pay the big blind: %{amount}."
+msgstr "Płacisz dużą ciemną: %{amount}."
+
+#: games/poker.rb:467
+msgid "You pay the small blind: %{amount}."
+msgstr "Płacisz małą ciemną: %{amount}."
 
 #: games/biblios.rb:333
 msgid "You pick up %{card}."
@@ -25660,6 +25692,10 @@ msgstr "Twoja strona odsłuchu"
 msgid "Your listening side (only for you)"
 msgstr "Twoja strona odsłuchu (tylko dla Ciebie)"
 
+#: games/poker.rb:454
+msgid "Your move."
+msgstr "Twój ruch."
+
 #: games/war.rb:439
 msgid "Your opponent's hidden cards: %{cards}."
 msgstr "Zakryte karty przeciwnika: %{cards}."
@@ -25756,7 +25792,7 @@ msgstr "Twoje statki zostały rozstawione automatycznie."
 msgid "Your shots"
 msgstr "Twoje strzały"
 
-#: games/poker.rb:1124
+#: games/poker.rb:1189
 msgid "Your stack: %{chips}."
 msgstr "Twój stos: %{chips}."
 
@@ -26437,7 +26473,7 @@ msgstr "stałe polskie zasady turniejowe; 18 rozdań"
 msgid "flip"
 msgstr "odwróć karty"
 
-#: games/poker.rb:840
+#: games/poker.rb:902
 msgid "flush"
 msgstr "kolor"
 
@@ -26445,7 +26481,7 @@ msgstr "kolor"
 msgid "fold"
 msgstr "spasuj"
 
-#: games/poker.rb:840
+#: games/poker.rb:902
 msgid "four of a kind"
 msgstr "kareta"
 
@@ -26465,7 +26501,7 @@ msgstr "z mety"
 msgid "from track %{position}"
 msgstr "z toru %{position}"
 
-#: games/poker.rb:840
+#: games/poker.rb:902
 msgid "full house"
 msgstr "ful"
 
@@ -26529,7 +26565,7 @@ msgstr "kier"
 msgid "held"
 msgstr "zachowana"
 
-#: games/poker.rb:840
+#: games/poker.rb:902
 msgid "high card"
 msgstr "wysoka karta"
 
@@ -26668,7 +26704,7 @@ msgstr "słuchaj z perspektywy trzeciego gracza"
 msgid "magenta group"
 msgstr "grupa purpurowa"
 
-#: games/poker.rb:710
+#: games/poker.rb:769
 msgid "main pot"
 msgstr "pula główna"
 
@@ -26785,7 +26821,7 @@ msgstr "komputery wszechwiedzące"
 msgid "on"
 msgstr "włączone"
 
-#: games/poker.rb:840
+#: games/poker.rb:902
 msgid "one pair"
 msgstr "para"
 
@@ -26960,7 +26996,7 @@ msgstr "losowa długość słowa"
 msgid "read %{player}'s pawn positions"
 msgstr "Odczytaj pionki gracza %{player}"
 
-#: games/poker.rb:1131
+#: games/poker.rb:1196
 msgid "read active and folded players"
 msgstr "odczytaj aktywnych i pasujących graczy"
 
@@ -26968,7 +27004,7 @@ msgstr "odczytaj aktywnych i pasujących graczy"
 msgid "read active shields and invisible ball"
 msgstr "odczytaj działające tarcze i niewidzialność piłki"
 
-#: games/poker.rb:1137
+#: games/poker.rb:1202
 msgid "read card %{number}"
 msgstr "odczytaj kartę %{number}"
 
@@ -26992,7 +27028,7 @@ msgstr "odczyt zakazanego słowa %{number}"
 msgid "read how many cards each player owns"
 msgstr "odczytaj, ile kart ma każdy gracz"
 
-#: games/poker.rb:1125
+#: games/poker.rb:1190
 msgid "read other stacks"
 msgstr "odczytaj stosy innych graczy"
 
@@ -27040,11 +27076,11 @@ msgstr "odczytaj numer bitwy"
 msgid "read the bids"
 msgstr "odczytać deklaracje"
 
-#: games/poker.rb:1133
+#: games/poker.rb:1198
 msgid "read the blinds"
 msgstr "odczytaj ciemne"
 
-#: games/poker.rb:1126
+#: games/poker.rb:1191
 msgid "read the call amount"
 msgstr "odczytaj kwotę do sprawdzenia"
 
@@ -27123,7 +27159,7 @@ msgstr "odczytaj pozycje pionków przeciwników"
 msgid "read the other row"
 msgstr "odczytaj drugi rząd"
 
-#: games/poker.rb:1129
+#: games/poker.rb:1194
 msgid "read the pot"
 msgstr "odczytaj pulę"
 
@@ -27191,7 +27227,7 @@ msgstr "odczytaj kolor atutowy"
 msgid "read the turn or challenge"
 msgstr "bieżąca tura lub wyzwanie"
 
-#: games/poker.rb:1128
+#: games/poker.rb:1193
 msgid "read visible table cards"
 msgstr "odczytaj widoczne karty stołu"
 
@@ -27219,11 +27255,11 @@ msgstr "odczytać, czyja jest kolej"
 msgid "read your Gold"
 msgstr "odczytuje Twoje złoto"
 
-#: games/poker.rb:1132
+#: games/poker.rb:1197
 msgid "read your best combination"
 msgstr "odczytaj swój najlepszy układ"
 
-#: games/poker.rb:1127
+#: games/poker.rb:1192
 msgid "read your cards"
 msgstr "odczytaj swoje karty"
 
@@ -27271,11 +27307,11 @@ msgstr "twoja pozycja i pióra"
 msgid "read your rack"
 msgstr "odczyt stojaka"
 
-#: games/poker.rb:1124
+#: games/poker.rb:1189
 msgid "read your stack"
 msgstr "odczytaj swój stos"
 
-#: games/poker.rb:1130
+#: games/poker.rb:1195
 msgid "read your total investment"
 msgstr "odczytaj swój łączny wkład"
 
@@ -27415,7 +27451,7 @@ msgstr "ustawić ostateczny kontrakt"
 msgid "ship"
 msgstr "statek"
 
-#: games/poker.rb:710
+#: games/poker.rb:769
 msgid "side pot %{number}"
 msgstr "pula boczna %{number}"
 
@@ -27455,11 +27491,11 @@ msgstr "pik"
 msgid "starting a turn without cards"
 msgstr "rozpoczęcie tury bez kart"
 
-#: games/poker.rb:840
+#: games/poker.rb:902
 msgid "straight"
 msgstr "strit"
 
-#: games/poker.rb:840
+#: games/poker.rb:902
 msgid "straight flush"
 msgstr "poker"
 
@@ -27537,7 +27573,7 @@ msgstr "osiągnięcie przez stos %{limit}"
 msgid "the pile reaching 99"
 msgstr "osiągnięcie przez stos 99"
 
-#: games/poker.rb:840
+#: games/poker.rb:902
 msgid "three of a kind"
 msgstr "trójka"
 
@@ -27608,7 +27644,7 @@ msgstr "potrójna premia literowa"
 msgid "triple word"
 msgstr "potrójna premia słowna"
 
-#: games/poker.rb:840
+#: games/poker.rb:902
 msgid "two pairs"
 msgstr "dwie pary"
 

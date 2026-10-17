@@ -232,6 +232,13 @@ module GameRoomGames
       false
     end
 
+    # Seconds the live session runner waits before committing this automatic
+    # selection, for example a pause between rounds. Presentation only: rules
+    # and simulations that call automatic_action directly are not delayed.
+    def automatic_action_delay(_replay, _actor, _selection)
+      0.0
+    end
+
     # Some timed forms need to submit values which still live only in their
     # controls. The screen asks the game for such an action before an
     # authoritative timer transition is allowed to close the phase.

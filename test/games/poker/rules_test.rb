@@ -61,6 +61,39 @@ assert(heads_up_state[:street_bets]["Alice"] == 5 && heads_up_state[:street_bets
   heads_up_state[:current_player] == "Alice",
   "Heads-up Hold'em did not place the dealer in the small blind with first pre-flop action")
 
+# Deal announcements speak to the viewer: own cards, own blind in the second
+# person, the opponent's blind by name and no separate pre-flop line.
+heads_up_replay = GameRoomGames::Replay.new(players: heads_up_players, current_player: "Alice", winner: nil,
+  draw: false, accepted_events: [], history: heads_up_history, state: heads_up_state)
+deal_event = { "id" => 100, "actor" => "Alice", "action" => "deal" }
+alice_cards = heads_up_state[:hands]["Alice"].sort_by { |card| poker.send(:playing_sort_key, card) }.map { |card| poker.send(:poker_card_label, card) }
+assert(poker.describe_event(deal_event, heads_up_repository, heads_up_replay, "Alice") == [
+  "Round 1. Dealer: Alice.", "Cards in hand: #{alice_cards.join(", ")}.",
+  "You pay the small blind: 5.", "Bob pays the big blind: 10."
+], "Wrong deal announcement for the small blind: #{poker.describe_event(deal_event, heads_up_repository, heads_up_replay, "Alice").inspect}")
+bob_view = poker.describe_event(deal_event, heads_up_repository, heads_up_replay, "Bob")
+assert(bob_view[2..] == ["Alice pays the small blind: 5.", "You pay the big blind: 10."] &&
+  alice_cards.none? { |label| bob_view.join(" ").include?(label) && !bob_view[1].include?(label) },
+  "Wrong deal announcement for the big blind: #{bob_view.inspect}")
+spectator_view = poker.describe_event(deal_event, heads_up_repository, heads_up_replay, "Carol")
+assert(spectator_view.none? { |text| text.start_with?("Cards in hand") || text.start_with?("You ") },
+  "A spectator heard private cards or a second-person blind: #{spectator_view.inspect}")
+assert(heads_up_history.none? { |entry| entry.text.start_with?("Cards in hand") }, "Private cards entered the shared history")
+assert(poker.turn_announcement(heads_up_replay, "Alice") == "Your move." &&
+  poker.turn_announcement(heads_up_replay, "Bob") == "It is Alice's turn.", "Wrong poker turn announcement")
+
+showdown_state = poker.send(:initial_state, heads_up_players, poker.default_options)
+showdown_state.update(phase: :betting, dealer_index: 0, street: 3,
+  hands: { "Alice" => %w[5C 7C], "Bob" => %w[8C 8H] }, community: %w[6D 8D 9S 2H KD],
+  stacks: { "Alice" => 900, "Bob" => 900 }, contributions: { "Alice" => 100, "Bob" => 100 })
+showdown_history = []
+poker.send(:showdown, showdown_state, 7, showdown_history)
+# Each shown hand is a separate history line, before the payout line.
+showdown_lines = showdown_history.reject { |entry| entry.kind == :result }.map(&:text)
+assert(showdown_lines == ["Alice had 5 of clubs, 7 of clubs: straight: 9.",
+  "Bob had 8 of hearts, 8 of clubs: three of a kind: 8.", "Alice wins the whole pot: 200."],
+  "Wrong showdown summary: #{showdown_lines.inspect}")
+
 jacks_options = poker.normalize_options("variant" => "draw", "jacks_or_better" => true)
 jacks_state = poker.send(:initial_state, players, jacks_options)
 jacks_state.update(phase: :betting, current_player: "Alice", street: 0,

@@ -80,6 +80,12 @@ module GameRoomSounds
     win1
     win2
     win_party
+    poker_fold
+    poker_check
+    poker_call
+    poker_raise
+    poker_all_in
+    poker_pot
   ].freeze
 
   BATTLESHIP_HITS = %w[hit_ship1 hit_ship2].freeze

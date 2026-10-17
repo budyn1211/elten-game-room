@@ -47,6 +47,25 @@ Ogg Opus, 144 kb/s VBR, 48 kHz, 20 ms frames, audio mode and complexity 10.
 Channels, level and metadata were preserved; there was no trimming,
 normalization or pitch change. The author does not endorse the application.
 
+### Poker — betting sounds
+
+The six `Audio/poker_*.opus` effects come from Freesound HQ Ogg previews.
+Each complete recording was converted with `tools/encode_audio.rb` to
+Ogg Opus, 144 kb/s VBR, 48 kHz, 20 ms frames, audio mode and complexity 10.
+Channels, level and metadata were preserved; there was no trimming,
+normalization or pitch change. Changes: `Audio/poker_fold.opus` was sped up
+from 3.2 to 2.0 seconds (tempo ×1.62, pitch unchanged) and made 15% louder
+(gain ×1.15, no clipping) before encoding; the other five are unchanged. The authors do not endorse the application.
+
+| Application file | Original title and author | Source | License |
+| --- | --- | --- | --- |
+| `Audio/poker_fold.opus` | Failure Jingle.ogg — TitanKaempfer | [Freesound](https://freesound.org/s/689902/) | [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/) |
+| `Audio/poker_check.opus` | Typewriter snippet 02 — cabled_mess | [Freesound](https://freesound.org/s/360602/) | [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| `Audio/poker_call.opus` | poker_chips2.wav — fartheststar | [Freesound](https://freesound.org/s/201806/) | [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| `Audio/poker_raise.opus` | clatter09 — SilverDubloons | [Freesound](https://freesound.org/s/817566/) | [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| `Audio/poker_pot.opus` | Coins - 27.wav — DWOBoyle | [Freesound](https://freesound.org/s/140372/) | [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/) |
+| `Audio/poker_all_in.opus` | AllInPushChips.wav — Joma86 | [Freesound](https://freesound.org/s/532861/) | [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+
 ### 1000 miles (Mille Bornes)
 
 The twenty-three `Audio/mille_*.opus` effects use recordings of vehicles,

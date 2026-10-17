@@ -168,10 +168,20 @@ end
         assert(stages.map(&:text) == ["First betting round.", "Card exchange.", "Second betting round."], stages.map(&:text).inspect)
         assert(replay.state[:community].empty?, "draw unexpectedly exposes community cards")
       end
-      assert(history.any? { |entry| entry.text.start_with?("Showdown:") }, "missing showdown")
+      showdown = history.find { |entry| entry.key.start_with?("showdown:") }
+      assert(showdown, "missing showdown")
+      # Each shown hand names its cards and combination before the payout.
+      game.send(:contenders, replay.state).each do |player|
+        assert(history.any? { |entry| entry.event_id == showdown.event_id && entry.text.start_with?("#{player} had ") },
+          "showdown omits #{player}: #{history.map(&:text).last(4).inspect}")
+      end
+      assert(showdown.text =~ / wins (the whole pot|\d+ from the)/, "showdown omits the payout: #{showdown.text}")
       assert(game.replay(session, events, REPO).history.map(&:text) == history.map(&:text), "replay differs")
       stages.each do |stage|
         source = events.find { |item| item["id"] == stage.event_id }
+        # The opening betting round is implied by the deal and the turn
+        # announcement that follows it.
+        next if source["action"] == "deal"
         assert(game.describe_event(source, REPO, replay, "Carol").include?(stage.text), "phase not spoken")
       end
     end

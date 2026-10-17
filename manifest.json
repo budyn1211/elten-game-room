@@ -211,7 +211,13 @@
       "mille_end_speed_limit",
       "mille_extra_tank",
       "mille_end_counterflow",
-      "mille_instant_repair"
+      "mille_instant_repair",
+      "poker_fold",
+      "poker_check",
+      "poker_call",
+      "poker_raise",
+      "poker_all_in",
+      "poker_pot"
     ]
   }
 }

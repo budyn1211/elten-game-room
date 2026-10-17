@@ -124,7 +124,7 @@ deck = c.replay.state[:deck].dup
 end
 assert([:finished, :hand_complete].include?(c.replay.state[:phase]), "all-in exchange stuck before showdown")
 assert(c.replay.state[:stacks].values.sum == 2000 && c.replay.state[:turn_deadline] == 0, "all-in lost chips or continued timer")
-assert(c.replay.history.any? { |e| e.kind == :round_result && e.text.start_with?("Showdown:") }, "all-in showdown missing")
+assert(c.replay.history.any? { |e| e.kind == :round_result && e.key.start_with?("showdown:") }, "all-in showdown missing")
 assert(c.game.send(:poker_public_exchanges, c.replay).empty?, "forced standing pat was treated as voluntary evidence of hand strength")
 
 # Folding the penultimate player settles the hand, not the tournament; the

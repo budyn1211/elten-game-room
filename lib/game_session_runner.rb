@@ -376,7 +376,7 @@ class GameRoomSessionRunner
     return false if controlled_actors.include?(@viewer) && !GameRoomParticipants.same?(@owner, @viewer)
     actor = @game.automatic_actor(@replay, @viewer, table_owner: @owner)
     return false if actor.to_s.empty?
-    return false if @automatic_checked == key && !retrying &&
+    return false if @automatic_checked == key && !retrying && @automatic_hold&.first != key &&
       !@game.automatic_action_due?(@replay, actor, context: ctx)
     @automatic_checked = key
     selection = @game.automatic_action(@replay, actor, context: ctx)
@@ -385,6 +385,7 @@ class GameRoomSessionRunner
   end
 
   def execute_automatic(selection, actor, key, now, controller: false)
+    return false if automatic_held?(selection, actor, key, now)
     status = commit(selection, actor, controller: controller).first
     if status == :ok
       @automatic_retry_key = nil
@@ -399,6 +400,15 @@ class GameRoomSessionRunner
       end
       false
     end
+  end
+
+  # The hold starts when the selection is first offered for this revision;
+  # any accepted event changes the key and starts a new one.
+  def automatic_held?(selection, actor, key, now)
+    delay = @game.automatic_action_delay(@replay, actor, selection).to_f
+    return false if delay <= 0
+    @automatic_hold = [key, now + delay] unless @automatic_hold&.first == key
+    now < @automatic_hold.last
   end
 
   def prepare_bot
