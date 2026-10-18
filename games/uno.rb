@@ -7,6 +7,7 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class Uno < CardGame
+    def player_spatial_audio?; true; end
     COLORS = %w[R Y G B].freeze
     DARK_COLORS = %w[O P T U].freeze
     COLOUR_CHOICE_ORDER = %w[Y R B G].freeze

@@ -153,6 +153,8 @@ Hlasitost můžete měnit bez opuštění hry:
 
 Lze ovládat všechny zvuky společně nebo zvlášť zvuky hry, příchody a odchody od stolu, chat a pozvánky s oznámeními. Stejné úrovně najdete v Nastavení → Zvuky.
 
+Stejná kategorie začíná zaškrtávacím políčkem 3D zvuku (HRTF), které je ve výchozím stavu zapnuté. Zvuky tahů ostatních hráčů díky němu přicházejí z jejich míst u stolu: sebe slyšíte uprostřed, ostatní před sebou: hráče po vaší levici zepředu zleva a další ve směru hodinových ručiček až zepředu zprava. Ve hře dvou hráčů je soupeř přímo před vámi, ve čtyřech sedí hráči vpředu vlevo, naproti a vpředu vpravo. Ve hře dvou, čtyř nebo šesti hráčů zní hráč naproti o něco hlasitěji a jakoby z druhého konce místnosti, aby se jeho zvuky snadno odlišily od vašich. Pod zaškrtávacím políčkem je seznam her, ve kterých se 3D zvuk používá; jeho první dvě položky označí nebo zruší označení všech her. V seznamu nejsou hry, ve kterých zvuky nevycházejí z tahů jednotlivých hráčů: Audio Ball a Axel Pong mají vlastní rozložení zvuku a Krowa, Závody kachen, Státy a města a Quiz Party nepřiřazují zvuky k místům u stolu. Výhra, prohra, míchání a shrábnutí banku v pokeru znějí vždy uprostřed. Nejlépe je to slyšet ve sluchátkách.
+
 Přechod do zpráv, konference nebo jiného okna ELTENu partii nezastaví. Je to důležité hlavně u akčních her a při zapnutém časovém limitu tahu.
 
 V Nastavení → General (obecné nastavení) zvlášť určíte:

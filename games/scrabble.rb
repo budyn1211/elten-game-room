@@ -14,6 +14,7 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class Scrabble < Base
+    def player_spatial_audio?; true; end
     include PublicHistoryAnnouncements
     Rules = GameRoomScrabbleRules
     def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)

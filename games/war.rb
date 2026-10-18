@@ -6,6 +6,7 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class War < CardGame
+    def player_spatial_audio?; true; end
     include PublicHistoryAnnouncements
 
     SHORT_RANKS = %w[9 T J Q K A].freeze

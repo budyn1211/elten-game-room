@@ -8,6 +8,7 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class Poker < CardGame
+    def player_spatial_audio?; true; end
     VARIANTS = [
       OptionChoice.new(value: "holdem", label: _("Texas Hold'em")),
       OptionChoice.new(value: "draw", label: _("Five-card draw"))

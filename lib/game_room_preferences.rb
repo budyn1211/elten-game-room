@@ -48,7 +48,10 @@ module GameRoomPreferences
       "widget_contacts_only" => false,
       "widget_games" => games.dup,
       "widget_known_games" => games.dup,
-      "widget_show_unavailable" => false
+      "widget_show_unavailable" => false,
+      "hrtf_enabled" => true,
+      "hrtf_games" => games.dup,
+      "hrtf_known_games" => games.dup
     }
   end
 
@@ -81,6 +84,10 @@ module GameRoomPreferences
     result["widget_games"], result["widget_known_games"] = game_selection(
       source, allowed_games, "widget_games", "widget_known_games", LEGACY_WIDGET_GAME_IDS
     )
+    result["hrtf_games"], result["hrtf_known_games"] = game_selection(
+      source, allowed_games, "hrtf_games", "hrtf_known_games", allowed_games
+    )
+    result["hrtf_enabled"] = source["hrtf_enabled"] != false
     result["invitation_notifications"] = normalized_invitation_policy(result["invitation_notifications"])
     result["background_game_sounds"] = %w[all audio never].include?(source["background_game_sounds"]) ? source["background_game_sounds"] : "never"
     result["scrabble_draft_speech"] = source["scrabble_draft_speech"] == true
@@ -145,6 +152,10 @@ module GameRoomPreferences
   def sound_volume(values, name)
     levels = sound_volumes(values)
     levels["all"] * levels[sound_group(name)] / 10_000.0
+  end
+
+  def hrtf_game?(values, game_id)
+    values.is_a?(Hash) && values["hrtf_enabled"] == true && values["hrtf_games"].to_a.map(&:to_s).include?(game_id.to_s)
   end
 
   def widget_enabled?(values, game_ids)

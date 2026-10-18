@@ -8,6 +8,7 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class Makao < CardGame
+    def player_spatial_audio?; true; end
     def remembered_option_definitions(definitions, options: nil)
       return super unless options == nil || options["profile"].to_s == "custom"
 

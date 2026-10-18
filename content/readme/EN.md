@@ -153,6 +153,8 @@ You can adjust the volume without leaving the game:
 
 Choose all sounds together or separate groups: game sounds, people joining and leaving the table, chat, and invitations and notifications. The same levels are available in Settings → Sounds.
 
+The same category starts with the 3D sound (HRTF) check box, which is on by default. With it, other players' moves are heard from their seats at the table: you hear yourself in the centre, and the others in front of you: the player on your left from the front left, then the rest clockwise to the front right. In a two-player game your opponent is straight ahead; with four players they sit front left, opposite you and front right. In games of two, four or six players, the player opposite you sounds a little louder and as if from across the room, so their sounds are easy to tell from your own. Below the check box is the list of games that use 3D sound; its first two items select or deselect all games. Games whose sounds do not come from individual players' moves are not listed: Audio Ball and Axel Pong have their own sound layout, and Krowa, Duck Racing, Countries and cities and Quiz Party do not tie their sounds to seats. Winning, losing, shuffling and taking the poker pot always sound in the centre. Headphones give the best result.
+
 Moving to messages, a conference or another ELTEN window does not pause the game. This matters particularly in action games and when a turn time limit is enabled.
 
 In Settings → General, you can separately choose:

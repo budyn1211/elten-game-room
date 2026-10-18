@@ -10,6 +10,7 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class Spades < Base
+    def player_spatial_audio?; true; end
     RANKS = %w[2 3 4 5 6 7 8 9 T J Q K A].freeze
     SUITS = %w[C D H S].freeze
     # Immutable deck metadata; each actual deal receives its own mutable array.

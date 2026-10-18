@@ -15,6 +15,7 @@ module GameRoomGames
   # reconstructed from the public deal seed, while only information intended
   # by the rules is announced to other players.
   class ThreeFiveEight < Base
+    def player_spatial_audio?; true; end
     RANKS = %w[2 3 4 5 6 7 8 9 T J Q K A].freeze
     SUITS = %w[H S D C].freeze
     CONTRACTS = %w[H S D C NT MISERE].freeze

@@ -153,6 +153,8 @@ Puedes ajustar el volumen sin salir del juego:
 
 Puedes controlar todos los sonidos juntos o grupos separados: juego, entradas y salidas de la mesa, chat, e invitaciones y notificaciones. Encontrarás los mismos niveles en Ajustes → Sonidos.
 
+La misma categoría empieza con la casilla de sonido 3D (HRTF), activada de forma predeterminada. Con ella, las jugadas de los demás se oyen desde su sitio en la mesa: tú te oyes en el centro, y a los demás delante de ti: al jugador de tu izquierda por delante a la izquierda y a los siguientes en el sentido de las agujas del reloj hasta delante a la derecha. En una partida de dos, el rival está justo enfrente; con cuatro jugadores, se sientan delante a la izquierda, enfrente y delante a la derecha. En partidas de dos, cuatro o seis jugadores, quien está enfrente suena algo más fuerte y como desde el otro extremo de la sala, para distinguir fácilmente sus sonidos de los tuyos. Debajo de la casilla está la lista de juegos que usan sonido 3D; sus dos primeros elementos marcan o desmarcan todos los juegos. No aparecen los juegos cuyos sonidos no proceden de las jugadas de cada jugador: Audio Ball y Axel Pong tienen su propia disposición del sonido, y Krowa, Carrera de patos, Países y ciudades y Quiz Party no asocian sus sonidos a los asientos. Ganar, perder, barajar y llevarse el bote del póquer siempre suenan en el centro. Se aprecia mejor con auriculares.
+
 Pasar a mensajes, a una conferencia o a otra ventana de ELTEN no pausa la partida. Esto es especialmente importante en juegos de acción o cuando hay un límite de tiempo por turno.
 
 En Ajustes → General puedes elegir por separado:

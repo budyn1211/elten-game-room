@@ -11,6 +11,7 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class Taboo < Base
+    def player_spatial_audio?; true; end
     include PublicHistoryAnnouncements
     RESULTS = %w[correct skipped buzzed neutral].freeze
     MODERATOR_ACTIONS = %w[deal begin timeout approve correct_result restart_turn].freeze

@@ -63,6 +63,7 @@ class GameRoomEventPresenter
 
   def process_new_events(replay, signal_received_at: nil, session:, background: false)
     return unless prepare_presentation_session(session, background: background)
+    @presentation_session = session
     newest_id = replay.accepted_events.map { |event| @repository.call.event_id(event) }.max.to_i
     if @last_seen_event_id == nil
       @last_seen_event_id = newest_id
@@ -143,7 +144,9 @@ class GameRoomEventPresenter
         game: @game.call, event: event, before_replay: before_replay, after_replay: after_replay,
         repository: @repository.call, viewer: @viewer.call, history: stage&.[](:history), include_result: include_result
       )
-      Array(cues).map { |cue| GameRoomSounds.play(@program.call, cue) }
+      position = GameRoomSpatialSound.event_position(@program.call, @game.call, event, before_replay, after_replay,
+        @repository.call, @viewer.call, @presentation_session) if cues
+      Array(cues).map { |cue| GameRoomSounds.play(@program.call, cue, spatial: GameRoomSpatialSound.cue_position(cue, position)) }
     rescue StandardError => error
       Log.warning("ELTEN Game Room event sound failed: #{error.class}: #{error.message}") if defined?(Log)
       []

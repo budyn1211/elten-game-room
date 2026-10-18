@@ -8,6 +8,7 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class Farkle < Base
+    def player_spatial_audio?; true; end
     DIE_COUNT = 6
 
     def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)

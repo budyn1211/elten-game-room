@@ -7,6 +7,7 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class Ludo < Base
+    def player_spatial_audio?; true; end
     PAWNS_PER_PLAYER = 4
     OUTER_LENGTH = 52
     FINISH_PROGRESS = 57

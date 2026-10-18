@@ -12,6 +12,7 @@ module GameRoomGames
   # the other card games in Game Room. The interface never announces cards
   # passed by the taker to the other defenders.
   class Tysiac < Base
+    def player_spatial_audio?; true; end
     RANKS = %w[9 J Q K T A].freeze
     SUITS = %w[H S D C].freeze
     SUIT_NAMES = {

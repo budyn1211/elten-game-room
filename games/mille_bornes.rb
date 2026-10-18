@@ -6,6 +6,7 @@ module GameRoomGames
   using GameRoomLocalization::Translations
 
   class MilleBornes < Base
+    def player_spatial_audio?; true; end
     def tournament_export_scores(replay, options:)
       tournament_public_unit_scores(replay, options: options)
     end

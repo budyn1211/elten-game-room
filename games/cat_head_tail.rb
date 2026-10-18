@@ -6,6 +6,7 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class CatHeadTail < Base
+    def player_spatial_audio?; true; end
     def event_sound_cues(event:, before_replay:, after_replay:, history:, viewer:, random_variant:)
       action = event["action"].to_s
       entries = history

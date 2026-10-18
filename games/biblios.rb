@@ -10,6 +10,7 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class Biblios < CardGame
+    def player_spatial_audio?; true; end
     CATEGORIES = %w[p m f h s].freeze
     TIE_ORDER = %w[m p f h s].freeze
     LETTERS = %w[A B C D E F G H I].freeze

@@ -238,6 +238,24 @@ Do wyboru są wszystkie dźwięki razem lub oddzielnie: dźwięki gry, wejścia
 i wyjścia ze stołu, czat oraz zaproszenia i powiadomienia. Te same poziomy
 znajdziesz w Ustawienia → Dźwięki.
 
+Na początku tej kategorii jest pole dźwięku 3D (HRTF), domyślnie włączone.
+Dzięki niemu dźwięki ruchów
+innych graczy dochodzą z ich miejsc przy stole: siebie słyszysz na środku,
+a pozostałych graczy przed sobą: najpierw gracza po Twojej lewej — z przodu
+po lewej, a kolejnych zgodnie z ruchem wskazówek zegara aż do przodu po
+prawej. W grze we dwoje przeciwnik jest na wprost, a we czworo gracze siedzą
+z przodu po lewej, naprzeciwko i z przodu po prawej. Gracz naprzeciwko w grze
+we dwoje, we czworo i w sześć osób brzmi trochę głośniej i jakby z drugiego
+końca pokoju, żeby łatwo było odróżnić go od własnych dźwięków. Pod polem
+wyboru znajdziesz
+listę gier, w których dźwięk 3D ma działać; jej dwie pierwsze pozycje
+zaznaczają lub odznaczają wszystkie gry. Na liście nie ma gier, w których
+dźwięki nie pochodzą od ruchów poszczególnych graczy: Audio Ball i Axel Pong
+mają własny układ dźwięku, a w Krowie, Wyścigach kaczek, Państwach-miastach
+i Quizie dźwięki nie są przypisane do miejsc przy stole. Wygrana,
+przegrana, tasowanie i zgarnięcie puli w pokerze zawsze brzmią na środku.
+Najlepiej słychać to w słuchawkach.
+
 Przejście do wiadomości, konferencji lub innego okna ELTEN-a nie oznacza
 wstrzymania partii. To ważne szczególnie w grach zręcznościowych i przy
 włączonym limicie czasu na ruch.

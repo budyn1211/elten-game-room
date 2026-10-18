@@ -259,6 +259,7 @@ module GameRoomScreens
       @program = program
       @values = values.to_h
       @games = games.to_a
+      @hrtf_games = @games.select { |game| game[:spatial_audio] == true }
       @preset_editor = preset_editor
       @preset_writer = preset_writer
       @table_watch_available = table_watch_available
@@ -310,6 +311,7 @@ module GameRoomScreens
         [group, ListBox.new((0..100).map { |level| "#{level}%" },
           header: _(GameRoomUI::VOLUME_LABELS.fetch(group)), index: levels.fetch(group), quiet: true)]
       end
+      hrtf = hrtf_controls
       widget_enabled = CheckBox.new(
         _("Show Power Games on the ELTEN main screen"),
         checked: setting_enabled?("widget_enabled")
@@ -354,7 +356,7 @@ module GameRoomScreens
         [primary_language, known_languages, background_speech, background_turn, background_sounds],
         [lobby_games, created, joined, left, computers],
         [invitation_policy, watched_games, watched_contacts],
-        volume_fields.values,
+        hrtf + volume_fields.values,
         [widget_enabled, widget_games, widget_unavailable, widget_contacts, presets].compact
       ]
       form = PresetSettingsForm.new([sections] + groups.flatten + [save_button, cancel_button], program: @program, quiet: true)
@@ -416,7 +418,7 @@ module GameRoomScreens
 
       # Assignments are independent, immediately saved operations. Returning
       # an opening-time copy here could undo them when Settings is accepted.
-      result = @values.reject { |key, _| %w[table_presets table_watch_games].include?(key) }.merge({
+      result = @values.reject { |key, _| %w[table_presets table_watch_games].include?(key) }.merge(hrtf_values(*hrtf)).merge({
         "interface_language" => languages.fetch(primary_language.index).fetch(:id),
         "background_table_speech" => background_speech.checked,
         "background_turn_sound" => background_turn.checked,
@@ -448,6 +450,20 @@ module GameRoomScreens
 
     private
 
+    # The HRTF switch is followed by the games that place players' sounds.
+    def hrtf_controls
+      [CheckBox.new(GameRoomContent.utf8(_("Use 3D sound (HRTF) to hear other players around the table")),
+        checked: @values["hrtf_enabled"] == true),
+        GameList.new(@hrtf_games, header: GameRoomContent.utf8(_("Games with 3D sound")),
+          selected: @values.fetch("hrtf_games", @hrtf_games.map { |game| game.fetch(:id) }))]
+    end
+
+    def hrtf_values(enabled, games)
+      { "hrtf_enabled" => enabled.checked, "hrtf_games" => selected_game_ids(games, @hrtf_games),
+        "hrtf_known_games" => GameRoomPreferences.normalized_game_ids(
+          @values["hrtf_known_games"].to_a + @games.map { |game| game.fetch(:id) }) }
+    end
+
     def watched_games_status(header, loading:)
       text = loading ? _("Loading notification settings") :
         _("New-table subscriptions are unavailable without access to server settings. Other settings can still be changed.")
@@ -459,8 +475,8 @@ module GameRoomScreens
       GameList.new(@games, header: header, selected: selected)
     end
 
-    def selected_game_ids(control)
-      control.game_indices.filter_map { |index| @games[index]&.fetch(:id)&.to_s }
+    def selected_game_ids(control, games = @games)
+      control.game_indices.filter_map { |index| games[index]&.fetch(:id)&.to_s }
     end
 
     def setting_enabled?(key)

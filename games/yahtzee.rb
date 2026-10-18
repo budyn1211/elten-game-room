@@ -6,6 +6,7 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class Yahtzee < Base
+    def player_spatial_audio?; true; end
     STANDARD_CATEGORIES = %w[
       ones twos threes fours fives sixes three_kind four_kind full_house
       small_straight large_straight yahtzee chance

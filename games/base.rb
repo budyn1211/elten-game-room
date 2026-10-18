@@ -42,6 +42,9 @@ module GameRoomGames
     def build_client(_program, **_services); nil; end
     def background_client?; false; end
     def audio_game?; false; end
+    # Shared HRTF placement of move sounds by seat. A game opts in only when its
+    # event cues come from the moving player; audio and realtime games own their sound scene.
+    def player_spatial_audio?; false; end
     # Turn-based model/actions can continue behind another native scene. A
     # realtime client owns its simulation, focus and pause protocol separately.
     def session_runner?; true; end

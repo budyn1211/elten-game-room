@@ -2776,7 +2776,9 @@ class EltenGameRoom < Program
       self.class.table_watch_start(refresh: true)
       preferences_loader = -> { self.class.table_watch_preferences_snapshot }
     end
-    games = GAME_REGISTRY.ids.map { |game_id| { id: game_id, name: game_name(game_id) } }
+    games = GAME_REGISTRY.ids.map do |game_id|
+      { id: game_id, name: game_name(game_id), spatial_audio: GAME_REGISTRY.build(game_id).player_spatial_audio? }
+    end
     screen = GameRoomScreens::Settings.new(settings, games: games, program: self,
       table_watch_available: false, table_watch_loader: preferences_loader,
       preset_editor: ->(entry) { edit_table_preset(entry) },
@@ -3479,6 +3481,10 @@ class EltenGameRoom < Program
 
   def game_room_sound_volume(name)
     GameRoomPreferences.sound_volume(game_room_settings, name)
+  end
+
+  def game_room_hrtf?(game_id)
+    GameRoomPreferences.hrtf_game?(game_room_settings, game_id)
   end
 
   def adjust_game_room_volume(key, reader: nil, writer: nil)

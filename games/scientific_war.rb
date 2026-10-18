@@ -9,6 +9,7 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class ScientificWar < CardGame
+    def player_spatial_audio?; true; end
     SUIT_ORDER = %w[H S D C].freeze
     TRICK_LIMITS = (20..100).freeze
     EVENT_BUDGET = 1_900

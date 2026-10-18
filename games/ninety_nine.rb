@@ -12,6 +12,7 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class NinetyNine < Base
+    def player_spatial_audio?; true; end
     include GameRoomCardDeckHistory
     RANKS = %w[2 3 4 5 6 7 8 9 T J Q K A].freeze
     SUITS = %w[C D H S].freeze

@@ -10,6 +10,7 @@ require_relative "../lib/game_room_localization"
 module GameRoomGames
   using GameRoomLocalization::Translations
   class Rummy < CardGame
+    def player_spatial_audio?; true; end
     include PublicHistoryAnnouncements
     Rules = GameRoomRummyRules
     DISCARDS = [
