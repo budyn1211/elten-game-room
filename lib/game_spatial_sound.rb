@@ -10,9 +10,7 @@ module GameRoomSpatialSound
   # Steam Audio renders direction only; others sound slightly farther away.
   REMOTE_GAIN = 0.8
   # A source straight ahead loses the ear-level difference the side seats
-  # have and sounds dull and quiet, so seats near 12 o'clock are lifted:
-  # the lone opponent of a two-player game most, the others less.
-  OPPONENT_GAIN = 1.4
+  # have and sounds dull and quiet, so seats near 12 o'clock are lifted.
   FRONT_GAIN = 1.35
   # The seat straight ahead in these table sizes is heard across the table:
   # slightly raised (degrees above ear level), with softer highs and a room.
@@ -28,11 +26,6 @@ module GameRoomSpatialSound
   # degrees, by table size: three players about 11 and 1 o'clock, four about
   # 10, 12 and 2, five or more packed within 9:30 to 2:30.
   FRONT_SPREAD = { 3 => 30.0, 4 => 60.0, 5 => 75.0 }.freeze
-
-  # A direction for the host that also carries the seat's volume factor.
-  class Placement < Array
-    attr_accessor :gain
-  end
 
   module_function
 
@@ -50,10 +43,7 @@ module GameRoomSpatialSound
     # A seat straight ahead otherwise sounds below ear level.
     across = own != nil && DISTANT_TABLES.include?(seats.length) && step == seats.length / 2
     lift = across ? Math::PI * OPPONENT_ELEVATION / 180 : 0.0
-    placement = Placement.new([clean(-Math.sin(angle) * Math.cos(lift)), clean(Math.sin(lift)),
-      clean(Math.cos(angle) * Math.cos(lift))])
-    placement.gain = gain(placement, seats.length == 2 ? OPPONENT_GAIN : FRONT_GAIN)
-    placement
+    [clean(-Math.sin(angle) * Math.cos(lift)), clean(Math.sin(lift)), clean(Math.cos(angle) * Math.cos(lift))]
   end
 
   # Degrees clockwise from behind the listener (90 left, 180 front, 270 right).
@@ -90,12 +80,11 @@ module GameRoomSpatialSound
   end
 
   # Volume factor for a placed seat: REMOTE_GAIN at the sides, rising
-  # steeply to the front gain only close to straight ahead.
-  def gain(position, front_gain = FRONT_GAIN)
-    return position.gain if position.respond_to?(:gain) && position.gain
+  # steeply to FRONT_GAIN only close to straight ahead.
+  def gain(position)
     level = Math.hypot(position[0].to_f, position[2].to_f)
     front = level > 0 ? [-position[2].to_f / level, 0.0].max : 0.0
-    REMOTE_GAIN + (front_gain - REMOTE_GAIN) * front**8
+    REMOTE_GAIN + (FRONT_GAIN - REMOTE_GAIN) * front**8
   end
 
   # Only the seat heard across the table (DISTANT_TABLES) is raised.
@@ -110,7 +99,7 @@ module GameRoomSpatialSound
   def play_distant(program, name, volume, position)
     return nil unless defined?(::ReverbEffect) && defined?(::BiquadFilterEffect) && ::BassFXEffect.available?
     return nil unless program.respond_to?(:create_spatial_sound_from_asset) && program.respond_to?(:sound_pool)
-    sound = program.create_spatial_sound_from_asset(name, position: position.to_a)
+    sound = program.create_spatial_sound_from_asset(name, position: position)
     return nil if sound == nil
     sound.effect_add(::BiquadFilterEffect.new(filter: :low_pass, center: DISTANT_LOW_PASS))
     sound.effect_add(::ReverbEffect.new(**DISTANT_REVERB))

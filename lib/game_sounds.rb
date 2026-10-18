@@ -169,7 +169,7 @@ module GameRoomSounds
       # The host returns nil when the 3D voice cannot start; stay audible.
       placed = volume * GameRoomSpatialSound.gain(spatial)
       (GameRoomSpatialSound.distant?(spatial) && GameRoomSpatialSound.play_distant(program, name, placed, spatial)) ||
-        GameRoomSoundOutput.play(program, name, volume: placed, spatial: spatial.to_a) ||
+        GameRoomSoundOutput.play(program, name, volume: placed, spatial: spatial) ||
         GameRoomSoundOutput.play(program, name, volume: volume)
     else
       GameRoomSoundOutput.play(program, name, volume: volume)

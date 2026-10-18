@@ -14,7 +14,7 @@ assert(seat.call(%w[Ala Bob], "ala", "Ala").nil?, "Own sound left the centre")
 lifted = [0.0, Math.sin(Math::PI / 36), -Math.cos(Math::PI / 36)]
 assert(near?(seat.call(%w[Ala Bob], "Ala", "bob"), lifted), "Two-player opponent is not in front, slightly raised")
 assert(near?(seat.call(%w[Bob Ala], "Ala", "Bob"), lifted), "Second seat hears the first player off-centre")
-assert((GameRoomSpatialSound.gain(seat.call(%w[Ala Bob], "Ala", "Bob")) - GameRoomSpatialSound::OPPONENT_GAIN).abs < 1e-9,
+assert((GameRoomSpatialSound.gain(seat.call(%w[Ala Bob], "Ala", "Bob")) - GameRoomSpatialSound::FRONT_GAIN).abs < 1e-9,
   "Raised opponent lost the front lift")
 four = %w[Ala Bob Cyd Dan]
 half = Math.sqrt(3) / 2
@@ -65,8 +65,7 @@ assert(name == "play" && options[:spatial] == left && (options[:volume] - 0.4).a
 GameRoomSounds.play(program, "play", spatial: front)
 assert((program.calls.last.last[:volume] - 0.675).abs < 1e-9, "Seat straight ahead was not lifted")
 assert(GameRoomSpatialSound.gain(seat.call(four, "Ala", "Bob")) < 0.83, "Side seats were lifted")
-GameRoomSounds.play(program, "play", spatial: seat.call(%w[Ala Bob Cyd], "Ala", "Bob"))
-assert(program.calls.last.last[:spatial].instance_of?(Array), "Host received the placement wrapper instead of a plain direction")
+
 GameRoomSounds.play(program, "play")
 assert(!program.calls.last.last.key?(:spatial) && program.calls.last.last[:volume] == 0.5, "Centred cue changed")
 GameRoomSounds.play(program, "ding", spatial: left)
@@ -109,11 +108,10 @@ opponent = seat.call(%w[Ala Bob], "Ala", "Bob")
 GameRoomSounds.play(distant, "play", spatial: opponent)
 voice = distant.created.last
 assert(distant.pool.played.equal?(voice) && distant.calls.empty? && distant.created[1] == opponent &&
-  voice.effects.map(&:class) == [BiquadFilterEffect, ReverbEffect] && (voice.volume - 0.7).abs < 1e-9,
+  voice.effects.map(&:class) == [BiquadFilterEffect, ReverbEffect] && (voice.volume - 0.675).abs < 1e-9,
   "Lone opponent was not played farther away with filter and room")
 GameRoomSounds.play(distant, "play", spatial: seat.call(four, "Ala", "Cyd"))
-assert(distant.created.last.effects.length == 2 && (distant.created.last.volume - 0.675).abs < 1e-9 &&
-  distant.created[1].instance_of?(Array), "Seat across a four-player table was not played farther away")
+assert(distant.created.last.effects.length == 2 && (distant.created.last.volume - 0.675).abs < 1e-9, "Seat across a four-player table was not played farther away")
 GameRoomSounds.play(distant, "play", spatial: front)
 assert(distant.calls.last.last[:spatial] == front, "Seat ahead at a bigger table got distance effects")
 distant.broken = true
