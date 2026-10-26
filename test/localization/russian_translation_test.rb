@@ -71,6 +71,13 @@ GameRoomLocalization.boot(directory: File.join(root, 'locale'), host_language: '
  'queen' => 'дама', 'Russian' => 'Русский'}.each do |original, expected|
   raise "Incorrect Russian translation: #{original}" unless GameRoomLocalization.translate(original) == expected
 end
+# Table voice labels in the compiled catalogue must match their player guide.
+guide = File.read(File.join(root, 'content/readme/RU.md'), encoding: 'UTF-8')
+['Create voice conversation', 'Join voice conversation', 'Disconnect voice conversation'].each do |source|
+  label = GameRoomLocalization.translate(source)
+  raise "Voice label lost Russian terminology: #{source}" unless label.match?(/комнат[уе] голосового чата/)
+  raise "Russian guide uses an obsolete voice label: #{source}" unless guide.include?("«#{label}»")
+end
 chess = GameRoomGames::Chess.new
 raise 'Chess promotion uses card terminology' unless chess.send(:translated_piece_name, 'Q') == 'ферзь'
 raise 'Chess context lookup failed' unless GameRoomLocalization.translate('queen', context: 'chess') == 'ферзь'
