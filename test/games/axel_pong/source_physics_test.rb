@@ -1,4 +1,5 @@
 require_relative "../../../lib/axel_pong/engine"
+require_relative "../../../lib/axel_pong/bot"
 
 failures = []
 check = lambda do |name, &body|
@@ -14,6 +15,13 @@ check.call('R01: Nightmare speed, both match types') do
   near(GameRoomPong::Engine.new(level: 6).base_speed, 0.323)
   near(GameRoomPong::Engine.new(level: 6, bots: [1]).base_speed, 0.323)
   near(GameRoomPong::Engine.new(level: 5).base_speed, 0.235)
+end
+check.call('R01b: Inferno is faster than Nightmare, both match types') do
+  near(GameRoomPong::Engine.new(level: 7).base_speed, 0.4)
+  near(GameRoomPong::Engine.new(level: 7, bots: [1]).base_speed, 0.4)
+  GameRoomPong::Bot.new(1, level: 7)
+  raised = begin; GameRoomPong::Engine.new(level: 8); false; rescue ArgumentError; true; end
+  assert(raised, 'level 8 accepted')
 end
 check.call('R02: early automatic cap does not narrow the goal-line rescue') do
   [0, 1].each do |side|

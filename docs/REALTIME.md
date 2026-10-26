@@ -38,6 +38,13 @@ client; old tasks, channel closures and repeated invitations must not disrupt
 the new connection. Reconnect restores ping registration and channel settings
 without requiring Enter.
 
+Pong's Inferno difficulty adds `-inferno-1` to its existing event dialect,
+including mixed and doubles matches. Earlier clients normalize an unknown
+difficulty to Normal and cannot simulate this ball speed; their invitations
+must not pass the channel gate. Levels 1–6 retain their existing dialects and
+physics profiles. Custom and unlimited point targets keep their independent
+`-targets-2` capability suffix.
+
 ## Pauses, timers and presentation
 
 The timer uses the native `FormTimer` lifecycle with the match-cadence gate

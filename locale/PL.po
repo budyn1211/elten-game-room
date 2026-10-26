@@ -1994,7 +1994,7 @@ msgstr "%{player} odsyła pionek %{pawn} gracza %{opponent} do bazy."
 msgid "%{player} serves to %{receiver}."
 msgstr "Serwuje %{player}, odbiera %{receiver}."
 
-#: lib/audio_ball/client.rb:658 lib/axel_pong/client.rb:535 lib/game_surfaces/audio_ball_surface.rb:176 lib/game_surfaces/pong_surface.rb:124
+#: lib/audio_ball/client.rb:658 lib/axel_pong/client.rb:538 lib/game_surfaces/audio_ball_surface.rb:176 lib/game_surfaces/pong_surface.rb:124
 msgid "%{player} serves."
 msgstr "Serwuje %{player}."
 
@@ -2790,7 +2790,7 @@ msgstr "%{sender} zaprasza Cię do wznowienia gry przy stole %{table} (%{game}).
 msgid "%{sender} invites you to resume a tournament match (%{game})."
 msgstr "%{sender} zaprasza cię do wznowienia meczu turniejowego (%{game})."
 
-#: lib/axel_pong/client.rb:528 lib/game_surfaces/pong_surface.rb:121
+#: lib/axel_pong/client.rb:531 lib/game_surfaces/pong_surface.rb:121
 msgid "%{server} will serve against %{receiver}."
 msgstr "%{server} będzie serwować do %{receiver}."
 
@@ -3006,11 +3006,11 @@ msgstr "%{value}, zaznaczono."
 msgid "%{value}. Points gained: %{points}."
 msgstr "%{value}. Przyrost punktów: %{points}."
 
-#: lib/axel_pong/client.rb:513
+#: lib/axel_pong/client.rb:516
 msgid "%{variant}. %{difficulty}. %{points} points to win."
 msgstr "%{variant}. %{difficulty}. Do %{points} punktów."
 
-#: lib/axel_pong/client.rb:513
+#: lib/axel_pong/client.rb:516
 msgid "%{variant}. %{difficulty}. Unlimited match."
 msgstr "%{variant}. %{difficulty}. Mecz nieskończony."
 
@@ -6392,7 +6392,7 @@ msgstr "Zatwierdź rozliczenie tury"
 msgid "Apă-Canal"
 msgstr "Wodociągi i kanalizacja"
 
-#: games/axel_pong.rb:43 lib/axel_pong/client.rb:515
+#: games/axel_pong.rb:43 lib/axel_pong/client.rb:518
 msgid "Arcade"
 msgstr "Arcade"
 
@@ -9164,7 +9164,7 @@ msgstr "Doprecyzowano opcje zmiany gracza w obserwatora i odwrotnie: menu wyraź
 msgid "Clarified three questions in the Polish general-knowledge set following player reports."
 msgstr "Doprecyzowano trzy pytania w polskim zestawie wiedzy ogólnej na podstawie zgłoszeń graczy."
 
-#: games/audio_ball.rb:83 games/axel_pong.rb:43 lib/axel_pong/client.rb:515
+#: games/audio_ball.rb:83 games/axel_pong.rb:43 lib/axel_pong/client.rb:518
 msgid "Classic"
 msgstr "Classic"
 
@@ -9863,11 +9863,11 @@ msgstr "Tworzenie stołu turniejowego"
 msgid "Cross-group comparison: %{player}, points %{points}, counted matches %{played}"
 msgstr "Porównanie między grupami: %{player}, punkty %{points}, uwzględnione mecze %{played}"
 
-#: lib/axel_pong/client.rb:312
+#: lib/axel_pong/client.rb:315
 msgid "Crowd off."
 msgstr "Publiczność wyłączona."
 
-#: lib/axel_pong/client.rb:312
+#: lib/axel_pong/client.rb:315
 msgid "Crowd on."
 msgstr "Publiczność włączona."
 
@@ -10697,8 +10697,8 @@ msgid "Difficulty and ball speed"
 msgstr "Trudność i szybkość piłki"
 
 #: games/generated/rulebooks/axel_pong.rb:34
-msgid "Difficulty and ball speed has six levels: Easy, Normal, Hard, Insane, Impossible and Nightmare. Higher settings start with a faster ball. Against a bot, they also change reaction time, movement, aim and the chance of an error. The bot tracks the visible ball with limited precision and does not track an invisible ball. It may still return an invisible ball if its paddle happens to be in the right place."
-msgstr "Trudność i szybkość piłki mają sześć poziomów: łatwy, normalny, trudny, szalony, niemożliwy i koszmar. Im wyższy poziom, tym szybsza jest piłka już na początku wymiany. W grze z botem zmieniają się także jego czas reakcji, ruch, celowanie i prawdopodobieństwo pomyłki. Bot śledzi widoczną piłkę z ograniczoną dokładnością, a niewidzialnej nie śledzi. Może ją jednak odbić, jeśli przypadkiem stoi w odpowiednim miejscu."
+msgid "Difficulty and ball speed have seven levels: Easy, Normal, Hard, Insane, Impossible, Nightmare and Inferno. Higher settings start with a faster ball. Against a bot, they also change reaction time, movement, aim and the chance of an error. The bot tracks the visible ball with limited precision and does not track an invisible ball. It may still return an invisible ball if its paddle happens to be in the right place."
+msgstr "Trudność i szybkość piłki mają siedem poziomów: łatwy, normalny, trudny, szalony, niemożliwy, koszmar i inferno. Im wyższy poziom, tym szybsza jest piłka już na początku wymiany. W grze z botem zmieniają się także jego czas reakcji, ruch, celowanie i prawdopodobieństwo pomyłki. Bot śledzi widoczną piłkę z ograniczoną dokładnością, a niewidzialnej nie śledzi. Może ją jednak odbić, jeśli przypadkiem stoi w odpowiednim miejscu."
 
 msgid "Difficulty and ball speed offers Easy, Normal and Hard; Normal is the default. The first flight takes 1.5 seconds on Easy, 1.2 seconds on Normal and 0.9 seconds on Hard. Each later shot in the rally increases speed by 10 percent on Easy and Normal, or 8 percent on Hard. A new point returns to the initial speed."
 msgstr "Opcja Trudność i prędkość piłki oferuje poziomy Łatwy, Normalny i Trudny; domyślny jest Normalny. Pierwszy lot trwa 1,5 sekundy na poziomie Łatwym, 1,2 sekundy na Normalnym i 0,9 sekundy na Trudnym. Każde kolejne uderzenie w wymianie zwiększa prędkość o 10 procent na poziomach Łatwym i Normalnym albo o 8 procent na Trudnym. Nowy punkt przywraca początkową prędkość."
@@ -13362,7 +13362,7 @@ msgstr "Gra zakończona."
 msgid "Game over. The word was not guessed."
 msgstr "Gra zakończona. Nie odgadnięto słowa."
 
-#: games/duck_racing_support/challenge_presentation.rb:172 games/duck_racing_support/challenge_presentation.rb:312 lib/audio_ball/client.rb:677 lib/axel_pong/client.rb:576 lib/participant_menu.rb:101 lib/participant_menu.rb:99
+#: games/duck_racing_support/challenge_presentation.rb:172 games/duck_racing_support/challenge_presentation.rb:312 lib/audio_ball/client.rb:677 lib/axel_pong/client.rb:579 lib/participant_menu.rb:101 lib/participant_menu.rb:99
 msgid "Game paused."
 msgstr "Gra wstrzymana."
 
@@ -14671,6 +14671,10 @@ msgstr "Domyślnie każdy gra indywidualnie. Cztery osoby mogą utworzyć dwie p
 #: content/monopoly_boards.rb:24
 msgid "Indonesian board"
 msgstr "Plansza indonezyjska"
+
+#: games/axel_pong.rb:47
+msgid "Inferno"
+msgstr "Inferno"
 
 #: __app.rb:1348 lib/tournaments/server_schedule_overview.rb:20
 msgid "Information"
@@ -16312,7 +16316,7 @@ msgstr "Mecz do decyzji organizatora"
 msgid "Match in progress"
 msgstr "Mecz w toku"
 
-#: lib/axel_pong/client.rb:582
+#: lib/axel_pong/client.rb:585
 msgid "Match in progress."
 msgstr "Mecz trwa."
 
@@ -16320,7 +16324,7 @@ msgstr "Mecz trwa."
 msgid "Match interrupted"
 msgstr "Mecz przerwany"
 
-#: lib/axel_pong/client.rb:499 lib/axel_pong/client.rb:580
+#: lib/axel_pong/client.rb:502 lib/axel_pong/client.rb:583
 msgid "Match paused. Waiting for synchronization."
 msgstr "Mecz wstrzymany. Oczekiwanie na synchronizację."
 
@@ -16346,7 +16350,7 @@ msgstr "Wynik meczu"
 msgid "Match result is uncertain. Check original local game before retrying."
 msgstr "Wynik meczu jest niepewny. Przed ponowieniem sprawdź pierwotną partię lokalną."
 
-#: lib/axel_pong/client.rb:501
+#: lib/axel_pong/client.rb:504
 msgid "Match resumed."
 msgstr "Mecz wznowiony."
 
@@ -18627,7 +18631,7 @@ msgstr "Okres: %{period}"
 msgid "Permanent protection"
 msgstr "Stała ochrona"
 
-#: lib/axel_pong/client.rb:308
+#: lib/axel_pong/client.rb:311
 msgid "Perspective: %{player}."
 msgstr "Perspektywa: %{player}."
 
@@ -22602,15 +22606,15 @@ msgstr "Pokaż turnieje"
 msgid "Showdown: %{summary}."
 msgstr "Odkrycie kart: %{summary}."
 
-#: lib/axel_pong/client.rb:296
+#: lib/axel_pong/client.rb:299
 msgid "Side-wall cues: noise."
 msgstr "Brzmienie band: szum."
 
-#: lib/axel_pong/client.rb:296
+#: lib/axel_pong/client.rb:299
 msgid "Side-wall cues: off."
 msgstr "Brzmienie band: wyłączone."
 
-#: lib/axel_pong/client.rb:297
+#: lib/axel_pong/client.rb:300
 msgid "Side-wall cues: tones."
 msgstr "Brzmienie band: tony."
 
@@ -28580,7 +28584,7 @@ msgstr "Oczekiwanie na kolejny mecz"
 msgid "Waiting for the next round"
 msgstr "Oczekiwanie na następną rundę"
 
-#: lib/axel_pong/client.rb:578
+#: lib/axel_pong/client.rb:581
 msgid "Waiting for the next serve."
 msgstr "Oczekiwanie na kolejny serwis."
 
@@ -28679,7 +28683,7 @@ msgstr "Ciepła woda"
 msgid "Watch a word being built"
 msgstr "Obserwuj układanie słowa"
 
-#: lib/axel_pong/client.rb:543
+#: lib/axel_pong/client.rb:546
 msgid "Watching %{player}. %{server} serves."
 msgstr "Obserwujesz %{player}. Serwuje %{server}."
 
@@ -29494,7 +29498,7 @@ msgstr "Przy stole możesz teraz utworzyć konferencję ELTEN-a lub dołączyć 
 msgid "You can exchange tiles only when at least eight remain in the bag."
 msgstr "Możesz wymieniać płytki tylko wtedy, gdy w woreczku zostało ich co najmniej osiem."
 
-#: lib/axel_pong/client.rb:316
+#: lib/axel_pong/client.rb:319
 msgid "You can hurry your opponent only while waiting for their serve."
 msgstr "Możesz ponaglić przeciwnika tylko wtedy, gdy czekasz na jego serwis."
 

@@ -12,7 +12,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<="
+"4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
 "X-Generator: Poedit 3.10\n"
 
 #: games/bridge/presentation.rb:178
@@ -1969,7 +1970,7 @@ msgstr "%{player} отправил фишку %{pawn} игрока %{opponent} �
 msgid "%{player} serves to %{receiver}."
 msgstr "Подаёт %{player}, принимает %{receiver}."
 
-#: lib/audio_ball/client.rb:658 lib/axel_pong/client.rb:535 lib/game_surfaces/audio_ball_surface.rb:176 lib/game_surfaces/pong_surface.rb:124
+#: lib/audio_ball/client.rb:658 lib/axel_pong/client.rb:538 lib/game_surfaces/audio_ball_surface.rb:176 lib/game_surfaces/pong_surface.rb:124
 msgid "%{player} serves."
 msgstr "%{player} подаёт."
 
@@ -2749,7 +2750,7 @@ msgstr "%{sender} приглашает вас продолжить партию 
 msgid "%{sender} invites you to resume a tournament match (%{game})."
 msgstr "%{sender} приглашает вас продолжить матч турнира (%{game})."
 
-#: lib/axel_pong/client.rb:528 lib/game_surfaces/pong_surface.rb:121
+#: lib/axel_pong/client.rb:531 lib/game_surfaces/pong_surface.rb:121
 msgid "%{server} will serve against %{receiver}."
 msgstr "%{server} будет подавать, %{receiver} — принимать."
 
@@ -2965,11 +2966,11 @@ msgstr "%{value}, выбрано."
 msgid "%{value}. Points gained: %{points}."
 msgstr "%{value}. Получаемые очки: %{points}."
 
-#: lib/axel_pong/client.rb:513
+#: lib/axel_pong/client.rb:516
 msgid "%{variant}. %{difficulty}. %{points} points to win."
 msgstr "%{variant}. %{difficulty}. %{points} очков для победы."
 
-#: lib/axel_pong/client.rb:513
+#: lib/axel_pong/client.rb:516
 msgid "%{variant}. %{difficulty}. Unlimited match."
 msgstr "%{variant}. %{difficulty}. Матч без ограничения по очкам."
 
@@ -6344,7 +6345,7 @@ msgstr "Подтвердить этот ход"
 msgid "Apă-Canal"
 msgstr "Водоканал"
 
-#: games/axel_pong.rb:43 lib/axel_pong/client.rb:515
+#: games/axel_pong.rb:43 lib/axel_pong/client.rb:518
 msgid "Arcade"
 msgstr "Аркада"
 
@@ -9116,7 +9117,7 @@ msgstr "Уточнены пункты меню для смены роли игр
 msgid "Clarified three questions in the Polish general-knowledge set following player reports."
 msgstr "По сообщениям игроков уточнены формулировки трёх вопросов в польском наборе общих знаний."
 
-#: games/audio_ball.rb:83 games/axel_pong.rb:43 lib/axel_pong/client.rb:515
+#: games/audio_ball.rb:83 games/axel_pong.rb:43 lib/axel_pong/client.rb:518
 msgid "Classic"
 msgstr "Классика"
 
@@ -9808,11 +9809,11 @@ msgstr "Создание турнирного стола"
 msgid "Cross-group comparison: %{player}, points %{points}, counted matches %{played}"
 msgstr "Сравнение между группами: %{player}, очков: %{points}, учтено матчей: %{played}"
 
-#: lib/axel_pong/client.rb:312
+#: lib/axel_pong/client.rb:315
 msgid "Crowd off."
 msgstr "Звуки зрителей выключены."
 
-#: lib/axel_pong/client.rb:312
+#: lib/axel_pong/client.rb:315
 msgid "Crowd on."
 msgstr "Звуки зрителей включены."
 
@@ -10638,8 +10639,8 @@ msgid "Difficulty and ball speed"
 msgstr "Сложность и скорость мяча"
 
 #: games/generated/rulebooks/axel_pong.rb:34
-msgid "Difficulty and ball speed has six levels: Easy, Normal, Hard, Insane, Impossible and Nightmare. Higher settings start with a faster ball. Against a bot, they also change reaction time, movement, aim and the chance of an error. The bot tracks the visible ball with limited precision and does not track an invisible ball. It may still return an invisible ball if its paddle happens to be in the right place."
-msgstr "Сложность и скорость мяча имеют шесть уровней: Легко, Нормально, Сложно, Безумно, Невозможно и Кошмар. На более высоких настройках мяч стартует быстрее. Против бота также изменяются время реакции, движение, прицеливание и шанс ошибки. Бот отслеживает видимый мяч с ограниченной точностью и не отслеживает невидимый мяч. Он всё же может отбить невидимый мяч, если его ракетка окажется в нужном месте."
+msgid "Difficulty and ball speed have seven levels: Easy, Normal, Hard, Insane, Impossible, Nightmare and Inferno. Higher settings start with a faster ball. Against a bot, they also change reaction time, movement, aim and the chance of an error. The bot tracks the visible ball with limited precision and does not track an invisible ball. It may still return an invisible ball if its paddle happens to be in the right place."
+msgstr "Сложность и скорость мяча имеют семь уровней: Легко, Нормально, Сложно, Безумно, Невозможно, Кошмар и Инферно. На более высоких настройках мяч стартует быстрее. Против бота также изменяются время реакции, движение, прицеливание и шанс ошибки. Бот отслеживает видимый мяч с ограниченной точностью и не отслеживает невидимый мяч. Он всё же может отбить невидимый мяч, если его ракетка окажется в нужном месте."
 
 msgid "Difficulty and ball speed offers Easy, Normal and Hard; Normal is the default. The first flight takes 1.5 seconds on Easy, 1.2 seconds on Normal and 0.9 seconds on Hard. Each later shot in the rally increases speed by 10 percent on Easy and Normal, or 8 percent on Hard. A new point returns to the initial speed."
 msgstr "Сложность и скорость мяча предлагают Легко, Нормально и Сложно; Нормально — по умолчанию. Первый полет занимает 1,5 секунды на Легко, 1,2 секунды на Нормально и 0,9 секунды на Сложно. Каждый последующий удар в розыгрыше увеличивает скорость на 10 процентов на Легко и Нормально или на 8 процентов на Сложно. Новый очко возвращает начальную скорость."
@@ -13281,7 +13282,7 @@ msgstr "Игра окончена."
 msgid "Game over. The word was not guessed."
 msgstr "Игра окончена. Слово не было отгадано."
 
-#: games/duck_racing_support/challenge_presentation.rb:172 games/duck_racing_support/challenge_presentation.rb:312 lib/audio_ball/client.rb:677 lib/axel_pong/client.rb:576 lib/participant_menu.rb:101 lib/participant_menu.rb:99
+#: games/duck_racing_support/challenge_presentation.rb:172 games/duck_racing_support/challenge_presentation.rb:312 lib/audio_ball/client.rb:677 lib/axel_pong/client.rb:579 lib/participant_menu.rb:101 lib/participant_menu.rb:99
 msgid "Game paused."
 msgstr "Игра приостановлена."
 
@@ -14590,6 +14591,10 @@ msgstr "По умолчанию каждый играет за себя. Вче�
 #: content/monopoly_boards.rb:24
 msgid "Indonesian board"
 msgstr "Индонезийское поле"
+
+#: games/axel_pong.rb:47
+msgid "Inferno"
+msgstr "Инфернальный"
 
 #: __app.rb:1348 lib/tournaments/server_schedule_overview.rb:20
 msgid "Information"
@@ -16207,7 +16212,7 @@ msgstr "Матч требует решения организатора"
 msgid "Match in progress"
 msgstr "Матч идёт"
 
-#: lib/axel_pong/client.rb:582
+#: lib/axel_pong/client.rb:585
 msgid "Match in progress."
 msgstr "Игра продолжается."
 
@@ -16215,7 +16220,7 @@ msgstr "Игра продолжается."
 msgid "Match interrupted"
 msgstr "Матч прерван"
 
-#: lib/axel_pong/client.rb:499 lib/axel_pong/client.rb:580
+#: lib/axel_pong/client.rb:502 lib/axel_pong/client.rb:583
 msgid "Match paused. Waiting for synchronization."
 msgstr "Матч приостановлен. Ожидание синхронизации."
 
@@ -16241,7 +16246,7 @@ msgstr "Результат матча"
 msgid "Match result is uncertain. Check original local game before retrying."
 msgstr "Результат матча не подтверждён. Перед повторной попыткой проверьте исходную локальную партию."
 
-#: lib/axel_pong/client.rb:501
+#: lib/axel_pong/client.rb:504
 msgid "Match resumed."
 msgstr "Матч возобновлён."
 
@@ -18514,7 +18519,7 @@ msgstr "Период: %{period}"
 msgid "Permanent protection"
 msgstr "Постоянная защита"
 
-#: lib/axel_pong/client.rb:308
+#: lib/axel_pong/client.rb:311
 msgid "Perspective: %{player}."
 msgstr "Вид от лица игрока %{player}."
 
@@ -22441,15 +22446,15 @@ msgstr "Показать турниры"
 msgid "Showdown: %{summary}."
 msgstr "Вскрытие: %{summary}."
 
-#: lib/axel_pong/client.rb:296
+#: lib/axel_pong/client.rb:299
 msgid "Side-wall cues: noise."
 msgstr "Сигналы боковых стен: шум."
 
-#: lib/axel_pong/client.rb:296
+#: lib/axel_pong/client.rb:299
 msgid "Side-wall cues: off."
 msgstr "Сигналы боковых стен выключены."
 
-#: lib/axel_pong/client.rb:297
+#: lib/axel_pong/client.rb:300
 msgid "Side-wall cues: tones."
 msgstr "Сигналы боковых стен: тоны."
 
@@ -28384,7 +28389,7 @@ msgstr "Ожидание следующего матча"
 msgid "Waiting for the next round"
 msgstr "Ждём следующего раунда"
 
-#: lib/axel_pong/client.rb:578
+#: lib/axel_pong/client.rb:581
 msgid "Waiting for the next serve."
 msgstr "Ожидание следующей подачи."
 
@@ -28483,7 +28488,7 @@ msgstr "Тёплая вода"
 msgid "Watch a word being built"
 msgstr "Наблюдение за составлением слова"
 
-#: lib/axel_pong/client.rb:543
+#: lib/axel_pong/client.rb:546
 msgid "Watching %{player}. %{server} serves."
 msgstr "Вы наблюдаете за %{player}. Подаёт %{server}."
 
@@ -29298,7 +29303,7 @@ msgstr "Теперь прямо за игровым столом можно со
 msgid "You can exchange tiles only when at least eight remain in the bag."
 msgstr "Обменивать фишки можно, только если в мешке осталось хотя бы восемь."
 
-#: lib/axel_pong/client.rb:316
+#: lib/axel_pong/client.rb:319
 msgid "You can hurry your opponent only while waiting for their serve."
 msgstr "Вы можете торопить соперника только во время ожидания его подачи."
 

@@ -165,6 +165,9 @@ module GameRoomPong
       mixed = @players.any? { |p| bot_seat?(p) }
       dialect = rally_state.rotation.doubles? ? 'pong-doubles-' : 'pong-'
       dialect += mixed ? 'mixed-peer-1' : 'peer-2'
+      # Earlier clients normalize the unknown level to Normal. Never let
+      # them exchange actions with a client simulating Inferno's faster ball.
+      dialect += '-inferno-1' if replay.state[:options]['difficulty'] == 7
       # Older clients normalize either new choice to 11 and would disconnect
       # mid-match. Keep them out of these modes at the existing handshake.
       dialect += '-targets-2' if %w[custom unlimited].include?(replay.state[:options]['target'])

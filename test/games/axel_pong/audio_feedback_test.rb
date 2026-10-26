@@ -46,7 +46,7 @@ assert(engine.paddles[1] == 16.0 && engine.events.count { |event| event[1] == 's
 
 # In particular, the normal-level bot takes steps of 0.66 * 0.75 = 0.495
 # before serving. Every individual step used to fall below the audio limit.
-(1..6).each do |level|
+(1..7).each do |level|
   engine = GameRoomPong::Engine.new(level: level, bots: [1], rally: 2)
   bot = GameRoomPong::Bot.new(1, level: level, rng: Random.new(17))
   moved = sounded = false
@@ -61,4 +61,4 @@ assert(engine.paddles[1] == 16.0 && engine.events.count { |event| event[1] == 's
   assert(moved && sounded, "level #{level}: bot moved silently before serving")
 end
 
-puts 'PASS Pong paddle feedback: original 50%/20% proportions, symmetric pitch, shared gain, cumulative bot steps, pre-serve movement at all six levels'
+puts 'PASS Pong paddle feedback: original 50%/20% proportions, symmetric pitch, shared gain, cumulative bot steps, pre-serve movement at all seven levels'

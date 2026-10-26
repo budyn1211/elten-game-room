@@ -18,7 +18,7 @@ cadences = [[8], [10], [12], [16], [17], [20], [24], [32], [40], [48], [50], [64
 models = [%w[Alice Bob], ['Alice', GameRoomParticipants.bot_id(20, 1)]]
 measurements = []
 models.each do |players|
-  (1..6).each do |level|
+  (1..7).each do |level|
     cadences.each do |cadence|
       humans = players.reject { |name| GameRoomParticipants.bot?(name) }
       h = PongHarness.new(players: players, viewers: humans, options: {'difficulty' => level})

@@ -12,20 +12,20 @@ module GameRoomPong
     MIN_X = 1.0
     MAX_X = 29.0
     MAX_LATERAL = 0.25
-    BASE_SPEED = [0.05, 0.1, 0.15, 0.2, 0.235, 0.323].freeze
-    BOT_SPEED = [0.05, 0.1, 0.15, 0.2, 0.253, 0.323].freeze
-    BASE_LATERAL = [0.008, 0.02, 0.03, 0.04, 0.047, 0.06].freeze
-    BOT_LATERAL = [0.008, 0.02, 0.03, 0.04, 0.051, 0.065].freeze
-    WALL = [0.25, 0.30, 0.50, 0.70, 0.85, 0.85].freeze
-    INC_MIN = [0.08, 0.08, 0.04, 0.02, 0.02, 0.02].freeze
-    INC_MAX = [0.20, 0.15, 0.08, 0.05, 0.05, 0.05].freeze
+    BASE_SPEED = [0.05, 0.1, 0.15, 0.2, 0.235, 0.323, 0.4].freeze
+    BOT_SPEED = [0.05, 0.1, 0.15, 0.2, 0.253, 0.323, 0.4].freeze
+    BASE_LATERAL = [0.008, 0.02, 0.03, 0.04, 0.047, 0.06, 0.07].freeze
+    BOT_LATERAL = [0.008, 0.02, 0.03, 0.04, 0.051, 0.065, 0.075].freeze
+    WALL = [0.25, 0.30, 0.50, 0.70, 0.85, 0.85, 0.85].freeze
+    INC_MIN = [0.08, 0.08, 0.04, 0.02, 0.02, 0.02, 0.02].freeze
+    INC_MAX = [0.20, 0.15, 0.08, 0.05, 0.05, 0.05, 0.05].freeze
 
     attr_reader :paddles, :ball, :tick, :server, :goal, :invisible,
       :shields, :level, :base_speed, :events, :now_ms, :edge_attempts, :rotation, :turn
 
     def initialize(level: 2, arcade: false, automatic: false, rally: 0, rng: Random.new, bots: [],
         first_server: 0, paddles: nil, shields: nil, guest: nil, movement_feedback: nil, teams: [0, 1])
-      raise ArgumentError, 'invalid Pong difficulty' unless (1..6).include?(level)
+      raise ArgumentError, 'invalid Pong difficulty' unless (1..7).include?(level)
       @level, @arcade, @rng = level, arcade, rng
       @rotation = Rotation.new(teams: teams, rally: rally, first_server: first_server)
       @turn = 0

@@ -44,7 +44,7 @@ module GameRoomGames
         OptionDefinition.new(key: 'team_size', label: _('Match type'), kind: :choice, default: 0,
           choices: [OptionChoice.new(value: 0, label: _('Single')), OptionChoice.new(value: 2, label: _('Doubles'))]),
         OptionDefinition.new(key: 'difficulty', label: _('Difficulty and ball speed'), kind: :choice, default: 2,
-          choices: [_('Easy'), _('Normal'), _('Hard'), _('Insane'), _('Impossible'), _('Nightmare')].each_with_index.map { |label, i| OptionChoice.new(value: i + 1, label: label) }),
+          choices: [_('Easy'), _('Normal'), _('Hard'), _('Insane'), _('Impossible'), _('Nightmare'), _('Inferno')].each_with_index.map { |label, i| OptionChoice.new(value: i + 1, label: label) }),
         OptionDefinition.new(key: 'target', label: _('Points to win'), kind: :choice, default: 11,
           choices: [7, 11, 21].map { |n| OptionChoice.new(value: n, label: n.to_s) } + [
             OptionChoice.new(value: 'custom', label: _('Custom number')),
