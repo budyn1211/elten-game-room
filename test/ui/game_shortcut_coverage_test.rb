@@ -21,7 +21,8 @@ own = keys.find { |s| s.key == 'v' && s.modifiers.empty? }
 assert(own.choices.any? { |c| c.label == 'Ones: 0' },'filled zero')
 assert(own.choices.any? { |c| c.label == 'Twos: not filled' },'unused field')
 assert(own.choices.any? { |c| c.label.start_with?('One pair:') },'variant categories')
-assert(own.choices.any? { |c| c.label.start_with?('Additional Yahtzee bonuses:') },'bonuses')
+assert(own.choices.any? { |c| c.label.start_with?('Bonus for Ones through Sixes:') },'upper bonus')
+assert(own.choices.none? { |c| c.label.start_with?('Additional Yahtzee bonuses:') },'retired bonus omitted')
 others = keys.find { |s| s.key == 'v' && s.modifiers == [:shift] }
 assert(others.choices.map(&:label) == %w[B C] && others.choices.all? { |c| c.value.is_a?(Array) },'choose opponent then sheet')
 assert(yahtzee.game_shortcuts(replay,'observer').none? { |s| s.key == 'v' && s.modifiers.empty? },'no imaginary observer sheet')

@@ -173,7 +173,8 @@ module GameSurfaces
         text = ''
         if server.is_a?(Integer) && server.between?(0, @spec.players.length - 1)
           receiver = GameRoomAudioBall::Rotation.seat(@spec.teams || [0, 1], server, 1)
-          text = GameRoomContent.utf8(_('%{player} serves to %{receiver}.')) % {
+          template = @spec.players.length == 2 ? _('%{player} serves.') : _('%{player} serves to %{receiver}.')
+          text = GameRoomContent.utf8(template) % {
             player: GameRoomContent.utf8(@spec.players[server]), receiver: GameRoomContent.utf8(@spec.players[receiver])}
         end
         speak([text, @status].reject(&:empty?).join(' '))

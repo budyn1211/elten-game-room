@@ -68,7 +68,7 @@ begin
     GameScreen.define_singleton_method(:wait_for_connection) do |*, **|
       wait_calls += 1
       raise 'continued waiting after a failed client start' if wait_calls > 1 && !second_ok
-      GameRoomSync::Event.new(kind: :game_started, session_id: 2) if wait_calls == 1
+      GameRoomSync::Event.new(kind: wait_calls == 1 ? :game_started : :closed, session_id: 2)
     end
     clients = []
     game = GameRoomGames::FourInARow.new
@@ -81,7 +81,8 @@ begin
       client
     end
     screen = lifecycle_screen(game, Program.new, unavailable_snapshot: unavailable, services: {test_service: service})
-    assert(screen.run == :back, 'startup failure did not return safely')
+    expected = unavailable && first_ok && second_ok ? :room_closed : :back
+    assert(screen.run == expected, 'startup failure/confirmed server closure did not return safely')
     assert(clients.length == (first_ok ? 2 : 1), 'wrong number of session clients')
     clients.each_with_index do |client, index|
       assert(client.starts == 1 && client.closes == 1, 'client not started/closed exactly once')

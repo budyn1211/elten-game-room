@@ -12,19 +12,19 @@ msgstr ""
 msgid "!, @, #, $, %, ^: keep one selected die of value 1, 2, 3, 4, 5 or 6. These are Shift with the corresponding number. Space: repeat what is kept and what will be rerolled."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:37
+#: games/generated/rulebooks/yahtzee.rb:39
 msgid "!: keep one selected die showing 1."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:41
+#: games/generated/rulebooks/yahtzee.rb:43
 msgid "#: keep one selected die showing 3."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:43
+#: games/generated/rulebooks/yahtzee.rb:45
 msgid "$: keep one selected die showing 4."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:45
+#: games/generated/rulebooks/yahtzee.rb:47
 msgid "%: keep one selected die showing 5."
 msgstr ""
 
@@ -151,7 +151,7 @@ msgstr ""
 msgid "%{category}: %{player} with %{total}"
 msgstr ""
 
-#: games/yahtzee.rb:192
+#: games/yahtzee.rb:194
 msgid "%{category}: %{points} points"
 msgstr ""
 
@@ -542,15 +542,19 @@ msgstr[1] ""
 msgid "%{mark}, %{player}'s mark"
 msgstr ""
 
+#: games/yahtzee.rb:87
+msgid "%{matches} matches; extra categories: %{extra}"
+msgstr ""
+
 #: games/yahtzee.rb:84
 msgid "%{matches} matches; extra categories: %{extra}; Yahtzee bonus: %{bonus}; Joker: %{joker}"
 msgstr ""
 
-#: lib/game_screen.rb:650
+#: lib/game_screen.rb:657
 msgid "%{message} Allowed values: %{values}."
 msgstr ""
 
-#: lib/game_screen.rb:779 lib/game_screen.rb:785
+#: lib/game_screen.rb:786 lib/game_screen.rb:792
 msgid "%{minimum} to %{maximum}"
 msgstr ""
 
@@ -1748,7 +1752,7 @@ msgstr ""
 msgid "%{player} receives 100 bonus points for another Yahtzee."
 msgstr ""
 
-#: games/yahtzee.rb:404
+#: games/yahtzee.rb:398
 msgid "%{player} receives 35 bonus points for Ones through Sixes."
 msgstr ""
 
@@ -1804,7 +1808,7 @@ msgstr ""
 msgid "%{player} returns to the ordinary six-sided die."
 msgstr ""
 
-#: games/yahtzee.rb:373
+#: games/yahtzee.rb:374
 msgid "%{player} rolled %{dice}."
 msgstr ""
 
@@ -1913,7 +1917,7 @@ msgstr ""
 msgid "%{player} says UNO!"
 msgstr ""
 
-#: games/yahtzee.rb:395
+#: games/yahtzee.rb:392
 msgid "%{player} scored %{points} in %{category}."
 msgstr ""
 
@@ -1952,7 +1956,7 @@ msgstr ""
 msgid "%{player} serves to %{receiver}."
 msgstr ""
 
-#: lib/audio_ball/client.rb:658 lib/axel_pong/client.rb:535 lib/game_surfaces/pong_surface.rb:124
+#: lib/audio_ball/client.rb:658 lib/axel_pong/client.rb:535 lib/game_surfaces/audio_ball_surface.rb:176 lib/game_surfaces/pong_surface.rb:124
 msgid "%{player} serves."
 msgstr ""
 
@@ -2247,7 +2251,7 @@ msgstr ""
 msgid "%{player}'s piece"
 msgstr ""
 
-#: games/yahtzee.rb:276
+#: games/yahtzee.rb:278
 msgid "%{player}'s score sheet, match %{match}"
 msgstr ""
 
@@ -2445,7 +2449,7 @@ msgstr ""
 msgid "%{player}: %{result}."
 msgstr ""
 
-#: games/biblios.rb:1296 games/cat_head_tail.rb:433 games/farkle.rb:761 games/three_five_eight.rb:1022 games/tysiac.rb:1632 games/uno.rb:1385 games/yahtzee.rb:550
+#: games/biblios.rb:1296 games/cat_head_tail.rb:433 games/farkle.rb:761 games/three_five_eight.rb:1022 games/tysiac.rb:1632 games/uno.rb:1385 games/yahtzee.rb:527
 msgid "%{player}: %{score}"
 msgstr ""
 
@@ -4053,12 +4057,20 @@ msgstr ""
 msgid "- North: Bamboo flower and Winter."
 msgstr ""
 
+#: games/generated/rulebooks/yahtzee.rb:24
+msgid "- One pair and Two pairs score 30 points each."
+msgstr ""
+
 #: games/generated/rulebooks/duck_racing.rb:108
 msgid "- One position away: 75%."
 msgstr ""
 
 #: games/generated/rulebooks/duck_racing.rb:68
 msgid "- One-digit target: an advantage of 1 costs one feather; 2–3 costs two; 4 costs three; 5–6 costs four; 7 or more costs five."
+msgstr ""
+
+#: games/generated/rulebooks/yahtzee.rb:23
+msgid "- Ones through Sixes count only matching dice as usual. Five 4s score 20 in Fours and zero in the other five number categories."
 msgstr ""
 
 #: games/generated/rulebooks/duck_racing.rb:50
@@ -4249,6 +4261,10 @@ msgstr ""
 msgid "- The wall is the supply of tiles you draw from. Drawing adds a tile to your hand; discarding removes one tile from your hand and offers it to opponents."
 msgstr ""
 
+#: games/generated/rulebooks/yahtzee.rb:25
+msgid "- Three of a kind, Four of a kind, Full house, Small straight, Large straight, Chance and Misery score 40 points each."
+msgstr ""
+
 #: games/generated/rulebooks/duck_racing.rb:110
 msgid "- Three positions away: 25%."
 msgstr ""
@@ -4303,6 +4319,10 @@ msgstr ""
 
 #: games/generated/rulebooks/bridge.rb:48
 msgid "- Without a double: 50 for each missing trick, or 100 if your pair is vulnerable."
+msgstr ""
+
+#: games/generated/rulebooks/yahtzee.rb:22
+msgid "- Yahtzee scores 50 points."
 msgstr ""
 
 #: games/generated/rulebooks/mahjong.rb:143
@@ -4403,7 +4423,7 @@ msgstr ""
 msgid "1: read your pawns; for an observer, read the first player's pawns."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:36
+#: games/generated/rulebooks/yahtzee.rb:38
 msgid "1: select one kept die showing 1 for rerolling."
 msgstr ""
 
@@ -4454,7 +4474,7 @@ msgstr ""
 msgid "2: read the next player's pawns in seating order."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:38
+#: games/generated/rulebooks/yahtzee.rb:40
 msgid "2: select one kept die showing 2 for rerolling."
 msgstr ""
 
@@ -4492,7 +4512,7 @@ msgstr ""
 msgid "33, 66, 99 and elimination"
 msgstr ""
 
-#: games/yahtzee.rb:69
+#: games/yahtzee.rb:74
 msgid "35-point bonus for Ones through Sixes"
 msgstr ""
 
@@ -4522,7 +4542,7 @@ msgstr ""
 msgid "3: read the next player's pawns, if present."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:40
+#: games/generated/rulebooks/yahtzee.rb:42
 msgid "3: select one kept die showing 3 for rerolling."
 msgstr ""
 
@@ -4546,7 +4566,7 @@ msgstr ""
 msgid "4: read the last player's pawns at a four-player table."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:42
+#: games/generated/rulebooks/yahtzee.rb:44
 msgid "4: select one kept die showing 4 for rerolling."
 msgstr ""
 
@@ -4574,7 +4594,7 @@ msgstr ""
 msgid "5: read rack position 5, without placing it."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:44
+#: games/generated/rulebooks/yahtzee.rb:46
 msgid "5: select one kept die showing 5 for rerolling."
 msgstr ""
 
@@ -4590,7 +4610,7 @@ msgstr ""
 msgid "6: read rack position 6, without placing it."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:46
+#: games/generated/rulebooks/yahtzee.rb:48
 msgid "6: select one kept die showing 6 for rerolling."
 msgstr ""
 
@@ -4617,7 +4637,7 @@ msgstr ""
 msgid "; requested rank %{rank}"
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:39
+#: games/generated/rulebooks/yahtzee.rb:41
 msgid "@: keep one selected die showing 2."
 msgstr ""
 
@@ -5034,7 +5054,7 @@ msgstr ""
 msgid "A separate %{chance}%% chance: %{effect}"
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:25
+#: games/generated/rulebooks/yahtzee.rb:27
 msgid "A sheet takes 13 turns per player, or 16 with the extra rows. Number of matches chooses how many complete sheets everyone plays, from 1 to 10, normally 1. A new sheet starts empty. Scores from all sheets are added, and the highest final total wins; equal highest totals mean a tied result."
 msgstr ""
 
@@ -6476,7 +6496,7 @@ msgstr ""
 msgid "Arrows: choose a category or answer. Enter: submit the highlighted choice. T: read the question. Ctrl+T: remaining answer time. S: scores. V: round summary. Ctrl+F1: rules and shortcuts. Escape: return to the table."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:28
+#: games/generated/rulebooks/yahtzee.rb:30
 msgid "Arrows: choose a scoring category."
 msgstr ""
 
@@ -6898,7 +6918,7 @@ msgstr ""
 msgid "B: respond to the buzzer."
 msgstr ""
 
-#: __app.rb:1375 __app.rb:1642 __app.rb:1686 __app.rb:1835 __app.rb:2505 __app.rb:2622 __app.rb:2814 games/krowa_support/leaderboards.rb:39 lib/game_room_presence_screen.rb:16 lib/game_room_screens.rb:686 lib/game_room_screens.rb:703 lib/game_screen.rb:371 lib/game_screen.rb:756 lib/game_statistics_screen.rb:37 lib/game_statistics_screen.rb:75 lib/sports_rankings/screen.rb:106 lib/sports_rankings/screen.rb:192 lib/sports_rankings/screen.rb:56 lib/table_voice_screen.rb:142 lib/table_voice_screen.rb:160 lib/tournaments/draft_preview.rb:24 lib/tournaments/draft_preview.rb:77 lib/tournaments/draft_screen.rb:26 lib/tournaments/local_fixed_team_execution_details.rb:19 lib/tournaments/local_fixed_team_execution_screen.rb:103 lib/tournaments/local_fixed_team_plan_screen.rb:68 lib/tournaments/local_game_choice_dialog.rb:28 lib/tournaments/local_individual_plan_screen.rb:25 lib/tournaments/local_organizer_decision_screen.rb:28 lib/tournaments/local_participant_manager.rb:16 lib/tournaments/local_realtime_game_dialog.rb:44 lib/tournaments/local_test_hub.rb:58 lib/tournaments/local_tournament_overview.rb:26 lib/tournaments/match_entry_screen.rb:280 lib/tournaments/match_entry_screen.rb:375 lib/tournaments/operations_screen.rb:59 lib/tournaments/participant_manager.rb:20 lib/tournaments/participant_partner_picker.rb:22 lib/tournaments/partner_choice.rb:55 lib/tournaments/proposal_notice_dialog.rb:27 lib/tournaments/public_preview.rb:127 lib/tournaments/public_preview.rb:189 lib/tournaments/public_preview.rb:210 lib/tournaments/public_screen.rb:75 lib/tournaments/server_proposal_screen.rb:31 lib/tournaments/server_schedule_overview.rb:297 lib/tournaments/server_schedule_overview.rb:38 lib/tournaments/server_trial_hub.rb:32 lib/tournaments/tournament_invitation_screen.rb:13 lib/tournaments/tournament_invite_picker.rb:24 lib/tournaments/tournament_setup_editor.rb:116
+#: __app.rb:1375 __app.rb:1642 __app.rb:1686 __app.rb:1835 __app.rb:2505 __app.rb:2622 __app.rb:2814 games/krowa_support/leaderboards.rb:39 lib/game_room_presence_screen.rb:16 lib/game_room_screens.rb:686 lib/game_room_screens.rb:703 lib/game_screen.rb:763 lib/game_statistics_screen.rb:37 lib/game_statistics_screen.rb:75 lib/sports_rankings/screen.rb:106 lib/sports_rankings/screen.rb:192 lib/sports_rankings/screen.rb:56 lib/table_voice_screen.rb:142 lib/table_voice_screen.rb:160 lib/tournaments/draft_preview.rb:24 lib/tournaments/draft_preview.rb:77 lib/tournaments/draft_screen.rb:26 lib/tournaments/local_fixed_team_execution_details.rb:19 lib/tournaments/local_fixed_team_execution_screen.rb:103 lib/tournaments/local_fixed_team_plan_screen.rb:68 lib/tournaments/local_game_choice_dialog.rb:28 lib/tournaments/local_individual_plan_screen.rb:25 lib/tournaments/local_organizer_decision_screen.rb:28 lib/tournaments/local_participant_manager.rb:16 lib/tournaments/local_realtime_game_dialog.rb:44 lib/tournaments/local_test_hub.rb:58 lib/tournaments/local_tournament_overview.rb:26 lib/tournaments/match_entry_screen.rb:280 lib/tournaments/match_entry_screen.rb:375 lib/tournaments/operations_screen.rb:59 lib/tournaments/participant_manager.rb:20 lib/tournaments/participant_partner_picker.rb:22 lib/tournaments/partner_choice.rb:55 lib/tournaments/proposal_notice_dialog.rb:27 lib/tournaments/public_preview.rb:127 lib/tournaments/public_preview.rb:189 lib/tournaments/public_preview.rb:210 lib/tournaments/public_screen.rb:75 lib/tournaments/server_proposal_screen.rb:31 lib/tournaments/server_schedule_overview.rb:297 lib/tournaments/server_schedule_overview.rb:38 lib/tournaments/server_trial_hub.rb:32 lib/tournaments/tournament_invitation_screen.rb:13 lib/tournaments/tournament_invite_picker.rb:24 lib/tournaments/tournament_setup_editor.rb:116
 msgid "Back"
 msgstr ""
 
@@ -7278,7 +7298,7 @@ msgstr ""
 msgid "Boneyard: %{count}."
 msgstr ""
 
-#: games/yahtzee.rb:286
+#: games/yahtzee.rb:288
 msgid "Bonus for Ones through Sixes: %{points}."
 msgstr ""
 
@@ -7312,7 +7332,7 @@ msgstr ""
 msgid "Bot move delay"
 msgstr ""
 
-#: games/base/options.rb:222
+#: games/base/options.rb:229
 msgid "Bot move delay cannot exceed thinking time."
 msgstr ""
 
@@ -7334,7 +7354,7 @@ msgstr ""
 msgid "Bot move delay lets the table pause briefly before a computer acts, so people can follow the play. Choose 0 to 5 seconds. Zero removes the deliberate pause; it does not disable the bot or change its playing strength. UNO and Makao start at one second, other games at zero."
 msgstr ""
 
-#: games/base/options.rb:217
+#: games/base/options.rb:224
 msgid "Bot move delay must be from 0 to 5 seconds."
 msgstr ""
 
@@ -7699,7 +7719,7 @@ msgstr ""
 msgid "Calm (short search)"
 msgstr ""
 
-#: __app.rb:2421 __app.rb:3567 __app.rb:3625 games/krowa_support/client.rb:190 games/krowa_support/leaderboards.rb:209 games/rummy_ui.rb:26 lib/audio_ball/settings.rb:24 lib/axel_pong/settings.rb:41 lib/game_option_editor.rb:117 lib/game_room_screens.rb:361 lib/game_screen.rb:665 lib/game_screen.rb:709 lib/game_surfaces/card_actions.rb:52 lib/game_surfaces/word_board.rb:208 lib/quiz_contributions/views.rb:143 lib/quiz_contributions/views.rb:164 lib/table_voice_screen.rb:180 lib/tournaments/draft_details_editor.rb:123 lib/tournaments/draft_details_editor.rb:35 lib/tournaments/draft_editor.rb:42 lib/tournaments/local_fixed_team_execution_details.rb:40 lib/tournaments/local_fixed_team_execution_details.rb:68 lib/tournaments/local_test_dialogs.rb:182 lib/tournaments/local_test_dialogs.rb:213 lib/tournaments/match_entry_screen.rb:386 lib/tournaments/public_preview.rb:104 lib/tournaments/publication_editor.rb:82 lib/tournaments/server_forfeit_screen.rb:183 lib/tournaments/server_forfeit_screen.rb:207 lib/tournaments/server_forfeit_screen.rb:217 lib/tournaments/server_forfeit_screen.rb:30 lib/tournaments/server_forfeit_screen.rb:62 lib/tournaments/server_forfeit_screen.rb:86 lib/tournaments/tournament_dates_editor.rb:61 lib/tournaments/tournament_setup_editor.rb:29
+#: __app.rb:2421 __app.rb:3567 __app.rb:3625 games/krowa_support/client.rb:190 games/krowa_support/leaderboards.rb:209 games/rummy_ui.rb:26 lib/audio_ball/settings.rb:24 lib/axel_pong/settings.rb:41 lib/game_option_editor.rb:117 lib/game_room_screens.rb:361 lib/game_screen.rb:672 lib/game_screen.rb:716 lib/game_surfaces/card_actions.rb:52 lib/game_surfaces/word_board.rb:208 lib/quiz_contributions/views.rb:143 lib/quiz_contributions/views.rb:164 lib/table_voice_screen.rb:180 lib/tournaments/draft_details_editor.rb:123 lib/tournaments/draft_details_editor.rb:35 lib/tournaments/draft_editor.rb:42 lib/tournaments/local_fixed_team_execution_details.rb:40 lib/tournaments/local_fixed_team_execution_details.rb:68 lib/tournaments/local_test_dialogs.rb:182 lib/tournaments/local_test_dialogs.rb:213 lib/tournaments/match_entry_screen.rb:386 lib/tournaments/public_preview.rb:104 lib/tournaments/publication_editor.rb:82 lib/tournaments/server_forfeit_screen.rb:183 lib/tournaments/server_forfeit_screen.rb:207 lib/tournaments/server_forfeit_screen.rb:217 lib/tournaments/server_forfeit_screen.rb:30 lib/tournaments/server_forfeit_screen.rb:62 lib/tournaments/server_forfeit_screen.rb:86 lib/tournaments/tournament_dates_editor.rb:61 lib/tournaments/tournament_setup_editor.rb:29
 msgid "Cancel"
 msgstr ""
 
@@ -8095,7 +8115,7 @@ msgstr ""
 msgid "Challenging Wild Draw Four is off by default and available only in Classic. F challenges the last such play: if its author still had a card of the previous colour, they draw four instead. If the play was justified, the challenger draws six and loses the turn. This is not an automatic check on every wild play."
 msgstr ""
 
-#: content/monopoly_boards.rb:181 games/monopoly/board_events.rb:188 games/yahtzee.rb:23
+#: content/monopoly_boards.rb:181 games/monopoly/board_events.rb:188 games/yahtzee.rb:28
 msgid "Chance"
 msgstr ""
 
@@ -8589,7 +8609,7 @@ msgstr ""
 msgid "Choose a player to exchange hands with"
 msgstr ""
 
-#: games/yahtzee.rb:261
+#: games/yahtzee.rb:263
 msgid "Choose a player's score sheet"
 msgstr ""
 
@@ -10175,7 +10195,7 @@ msgstr ""
 msgid "D: read the latest roll."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:31
+#: games/generated/rulebooks/yahtzee.rb:33
 msgid "D: read the rolled dice."
 msgstr ""
 
@@ -10746,7 +10766,7 @@ msgstr ""
 msgid "Do you want to exit Power Games?"
 msgstr ""
 
-#: __app.rb:2251
+#: __app.rb:2252
 msgid "Do you want to leave the table?"
 msgstr ""
 
@@ -11931,7 +11951,7 @@ msgstr ""
 msgid "Enter: roll all dice initially, then reroll selected dice. If none are selected, or you have used three rolls, open the scoring list instead. Arrows and Enter choose and save a category; Escape cancels that choice."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:27
+#: games/generated/rulebooks/yahtzee.rb:29
 msgid "Enter: roll or reroll selected dice; with none selected or no rolls left, choose a scoring category."
 msgstr ""
 
@@ -11997,7 +12017,7 @@ msgstr ""
 msgid "Escape: cancel a value choice without playing."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:29
+#: games/generated/rulebooks/yahtzee.rb:31
 msgid "Escape: cancel category selection."
 msgstr ""
 
@@ -12535,7 +12555,7 @@ msgstr ""
 msgid "Finished game awaiting result registration"
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:24
+#: games/generated/rulebooks/yahtzee.rb:26
 msgid "Finishing a sheet and a match"
 msgstr ""
 
@@ -12613,7 +12633,7 @@ msgstr ""
 msgid "Five-letter words: 30 attempts"
 msgstr ""
 
-#: games/yahtzee.rb:19
+#: games/yahtzee.rb:24
 msgid "Fives"
 msgstr ""
 
@@ -12979,7 +12999,7 @@ msgstr ""
 msgid "Four in a row"
 msgstr ""
 
-#: games/yahtzee.rb:20
+#: games/yahtzee.rb:25
 msgid "Four of a kind"
 msgstr ""
 
@@ -13023,7 +13043,7 @@ msgstr ""
 msgid "Four-letter words: 24 attempts"
 msgstr ""
 
-#: games/yahtzee.rb:19
+#: games/yahtzee.rb:24
 msgid "Fours"
 msgstr ""
 
@@ -13094,7 +13114,7 @@ msgstr ""
 msgid "Full P2P (direct connections between participants)"
 msgstr ""
 
-#: games/yahtzee.rb:21
+#: games/yahtzee.rb:26
 msgid "Full house"
 msgstr ""
 
@@ -13219,11 +13239,11 @@ msgstr ""
 msgid "Game announcements and sounds also reach you while another window covers the game. This includes the waiting room: participants joining and leaving, the start of a game and the table closing."
 msgstr ""
 
-#: games/base/options.rb:337
+#: games/base/options.rb:344
 msgid "Game content language"
 msgstr ""
 
-#: games/base/options.rb:346
+#: games/base/options.rb:353
 msgid "Game content set"
 msgstr ""
 
@@ -13250,7 +13270,7 @@ msgstr ""
 msgid "Game invitation declined"
 msgstr ""
 
-#: games/generated/rulebooks/axel_pong.rb:46 games/generated/rulebooks/battleship.rb:27 games/generated/rulebooks/biblios.rb:29 games/generated/rulebooks/cat_head_tail.rb:11 games/generated/rulebooks/categories.rb:25 games/generated/rulebooks/checkers.rb:25 games/generated/rulebooks/chess.rb:23 games/generated/rulebooks/domino.rb:28 games/generated/rulebooks/farkle.rb:22 games/generated/rulebooks/four_in_a_row.rb:14 games/generated/rulebooks/ludo.rb:23 games/generated/rulebooks/makao.rb:30 games/generated/rulebooks/mancala.rb:33 games/generated/rulebooks/mexican_train.rb:25 games/generated/rulebooks/mille_bornes.rb:42 games/generated/rulebooks/monopoly.rb:44 games/generated/rulebooks/ninety_nine.rb:25 games/generated/rulebooks/poker.rb:35 games/generated/rulebooks/quiz.rb:25 games/generated/rulebooks/reversi.rb:17 games/generated/rulebooks/rummy.rb:42 games/generated/rulebooks/scientific_war.rb:28 games/generated/rulebooks/scrabble.rb:28 games/generated/rulebooks/spades.rb:28 games/generated/rulebooks/taboo.rb:24 games/generated/rulebooks/three_five_eight.rb:24 games/generated/rulebooks/tic_tac_toe.rb:14 games/generated/rulebooks/tysiac.rb:39 games/generated/rulebooks/uno.rb:35 games/generated/rulebooks/war.rb:20 games/generated/rulebooks/yahtzee.rb:26
+#: games/generated/rulebooks/axel_pong.rb:46 games/generated/rulebooks/battleship.rb:27 games/generated/rulebooks/biblios.rb:29 games/generated/rulebooks/cat_head_tail.rb:11 games/generated/rulebooks/categories.rb:25 games/generated/rulebooks/checkers.rb:25 games/generated/rulebooks/chess.rb:23 games/generated/rulebooks/domino.rb:28 games/generated/rulebooks/farkle.rb:22 games/generated/rulebooks/four_in_a_row.rb:14 games/generated/rulebooks/ludo.rb:23 games/generated/rulebooks/makao.rb:30 games/generated/rulebooks/mancala.rb:33 games/generated/rulebooks/mexican_train.rb:25 games/generated/rulebooks/mille_bornes.rb:42 games/generated/rulebooks/monopoly.rb:44 games/generated/rulebooks/ninety_nine.rb:25 games/generated/rulebooks/poker.rb:35 games/generated/rulebooks/quiz.rb:25 games/generated/rulebooks/reversi.rb:17 games/generated/rulebooks/rummy.rb:42 games/generated/rulebooks/scientific_war.rb:28 games/generated/rulebooks/scrabble.rb:28 games/generated/rulebooks/spades.rb:28 games/generated/rulebooks/taboo.rb:24 games/generated/rulebooks/three_five_eight.rb:24 games/generated/rulebooks/tic_tac_toe.rb:14 games/generated/rulebooks/tysiac.rb:39 games/generated/rulebooks/uno.rb:35 games/generated/rulebooks/war.rb:20 games/generated/rulebooks/yahtzee.rb:28
 msgid "Game keyboard shortcuts"
 msgstr ""
 
@@ -15247,7 +15267,7 @@ msgstr ""
 msgid "Laps"
 msgstr ""
 
-#: games/yahtzee.rb:22
+#: games/yahtzee.rb:27
 msgid "Large straight"
 msgstr ""
 
@@ -15329,7 +15349,7 @@ msgstr ""
 msgid "Leaderboards will become available after the first playable game is added."
 msgstr ""
 
-#: __app.rb:2074 lib/game_layout.rb:188 lib/game_screen/input.rb:112 lib/participant_menu.rb:32
+#: __app.rb:2075 lib/game_layout.rb:188 lib/game_screen/input.rb:112 lib/participant_menu.rb:32
 msgid "Leave"
 msgstr ""
 
@@ -15369,6 +15389,10 @@ msgstr ""
 msgid "Leave it on your square. When a duck lands there, everyone draws a card."
 msgstr ""
 
+#: lib/game_screen.rb:373
+msgid "Leave table"
+msgstr ""
+
 #: games/duck_racing_support/presentation.rb:116
 msgid "Leave this card on your square. It affects the next duck to stop there."
 msgstr ""
@@ -15397,7 +15421,7 @@ msgstr ""
 msgid "Leaving a table also disconnects its voice conference. Ctrl+Shift+M toggles your conference microphone while you are at the table."
 msgstr ""
 
-#: __app.rb:2271
+#: __app.rb:2272
 msgid "Leaving table"
 msgstr ""
 
@@ -16155,7 +16179,7 @@ msgstr ""
 msgid "Marylebone station"
 msgstr ""
 
-#: games/yahtzee.rb:652
+#: games/yahtzee.rb:624
 msgid "Match %{match} finished. %{scores}."
 msgstr ""
 
@@ -16474,7 +16498,7 @@ msgstr ""
 msgid "Misere reverses the targets: the dealer may take at most 8 tricks, the player to the dealer's right at most 5, and the chooser at most 3. Your score is the limit minus tricks won, so avoiding tricks earns points and exceeding the limit loses points."
 msgstr ""
 
-#: games/yahtzee.rb:24
+#: games/yahtzee.rb:29
 msgid "Misery"
 msgstr ""
 
@@ -17090,7 +17114,7 @@ msgstr ""
 msgid "No cards have been played in this trick."
 msgstr ""
 
-#: games/yahtzee.rb:206
+#: games/yahtzee.rb:208
 msgid "No categories remain"
 msgstr ""
 
@@ -17626,7 +17650,7 @@ msgstr ""
 msgid "Number of letters - Random word and Race"
 msgstr ""
 
-#: games/yahtzee.rb:67
+#: games/yahtzee.rb:72
 msgid "Number of matches"
 msgstr ""
 
@@ -17840,7 +17864,7 @@ msgstr ""
 msgid "One of these cards is not in your hand."
 msgstr ""
 
-#: games/yahtzee.rb:23
+#: games/yahtzee.rb:28
 msgid "One pair"
 msgstr ""
 
@@ -17863,14 +17887,14 @@ msgstr ""
 msgid "One shot, then your opponent"
 msgstr ""
 
-#: games/yahtzee.rb:18
+#: games/yahtzee.rb:23
 msgid "Ones"
 msgstr ""
 
 msgid "Ones through Sixes sum only dice of that value: three fours score 12 in Fours. Three of a kind and Four of a kind require at least three or four identical dice and score the sum of all five dice. Chance always scores that sum, with no required combination."
 msgstr ""
 
-#: games/yahtzee.rb:285
+#: games/yahtzee.rb:287
 msgid "Ones through Sixes: %{points} of 63."
 msgstr ""
 
@@ -17996,7 +18020,7 @@ msgstr ""
 msgid "Opening the current game"
 msgstr ""
 
-#: lib/game_screen.rb:954
+#: lib/game_screen.rb:961
 msgid "Opening the new game"
 msgstr ""
 
@@ -18302,7 +18326,7 @@ msgstr ""
 msgid "Pair saved. Refresh to check the current partners."
 msgstr ""
 
-#: games/yahtzee.rb:68
+#: games/yahtzee.rb:73
 msgid "Pair, two pairs and misery"
 msgstr ""
 
@@ -19173,7 +19197,7 @@ msgstr ""
 msgid "Preparing the match"
 msgstr ""
 
-#: lib/game_screen.rb:1363
+#: lib/game_screen.rb:1370
 msgid "Preparing the next round"
 msgstr ""
 
@@ -19185,7 +19209,7 @@ msgstr ""
 msgid "Preparing the word."
 msgstr ""
 
-#: lib/game_screen.rb:595
+#: lib/game_screen.rb:602
 msgid "Preparing trade"
 msgstr ""
 
@@ -20980,7 +21004,7 @@ msgstr ""
 msgid "Roll again after a 6 is on by default. After resolving a six you get another roll, even if that six could not move a pawn. Turning it off makes a six end the turn like any other result."
 msgstr ""
 
-#: games/yahtzee.rb:42
+#: games/yahtzee.rb:47
 msgid "Roll five dice and choose how to score them, remembering that each category can only be used once."
 msgstr ""
 
@@ -21000,7 +21024,7 @@ msgstr ""
 msgid "Roll the dice"
 msgstr ""
 
-#: games/yahtzee.rb:329
+#: games/yahtzee.rb:330
 msgid "Roll the dice before choosing a category."
 msgstr ""
 
@@ -21373,7 +21397,7 @@ msgstr ""
 msgid "S: read scores and bags."
 msgstr ""
 
-#: games/generated/rulebooks/axel_pong.rb:52 games/generated/rulebooks/domino.rb:39 games/generated/rulebooks/farkle.rb:27 games/generated/rulebooks/makao.rb:45 games/generated/rulebooks/mexican_train.rb:35 games/generated/rulebooks/mille_bornes.rb:52 games/generated/rulebooks/quiz.rb:31 games/generated/rulebooks/rummy.rb:59 games/generated/rulebooks/scrabble.rb:42 games/generated/rulebooks/three_five_eight.rb:32 games/generated/rulebooks/tysiac.rb:51 games/generated/rulebooks/uno.rb:49 games/generated/rulebooks/yahtzee.rb:34
+#: games/generated/rulebooks/axel_pong.rb:52 games/generated/rulebooks/domino.rb:39 games/generated/rulebooks/farkle.rb:27 games/generated/rulebooks/makao.rb:45 games/generated/rulebooks/mexican_train.rb:35 games/generated/rulebooks/mille_bornes.rb:52 games/generated/rulebooks/quiz.rb:31 games/generated/rulebooks/rummy.rb:59 games/generated/rulebooks/scrabble.rb:42 games/generated/rulebooks/three_five_eight.rb:32 games/generated/rulebooks/tysiac.rb:51 games/generated/rulebooks/uno.rb:49 games/generated/rulebooks/yahtzee.rb:36
 msgid "S: read scores."
 msgstr ""
 
@@ -21754,7 +21778,7 @@ msgstr ""
 msgid "Seeds in each pit"
 msgstr ""
 
-#: __app.rb:1834 __app.rb:2813 __app.rb:3624 lib/game_screen.rb:664 lib/game_surfaces/word_board.rb:208
+#: __app.rb:1834 __app.rb:2813 __app.rb:3624 lib/game_screen.rb:671 lib/game_surfaces/word_board.rb:208
 msgid "Select"
 msgstr ""
 
@@ -21778,7 +21802,7 @@ msgstr ""
 msgid "Select at least one challenge for the whole group and for a duel."
 msgstr ""
 
-#: games/yahtzee.rb:328
+#: games/yahtzee.rb:329
 msgid "Select at least one die to reroll, or open the scoring categories."
 msgstr ""
 
@@ -21860,7 +21884,7 @@ msgstr ""
 msgid "Send"
 msgstr ""
 
-#: lib/game_screen.rb:708
+#: lib/game_screen.rb:715
 msgid "Send proposal"
 msgstr ""
 
@@ -21880,7 +21904,7 @@ msgstr ""
 msgid "Send to the editor"
 msgstr ""
 
-#: lib/game_screen.rb:812 lib/game_screen.rb:834
+#: lib/game_screen.rb:819 lib/game_screen.rb:841
 msgid "Sending action"
 msgstr ""
 
@@ -21888,11 +21912,11 @@ msgstr ""
 msgid "Sending and declining invitations is recorded in the room history. Declining no longer creates a separate notification or an empty notification entry."
 msgstr ""
 
-#: lib/game_screen.rb:858
+#: lib/game_screen.rb:865
 msgid "Sending assessment"
 msgstr ""
 
-#: __app.rb:2225 lib/game_screen.rb:1272
+#: __app.rb:2226 lib/game_screen.rb:1279
 msgid "Sending chat message"
 msgstr ""
 
@@ -22378,7 +22402,7 @@ msgstr ""
 msgid "Shift+V: browse other players' properties."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:33
+#: games/generated/rulebooks/yahtzee.rb:35
 msgid "Shift+V: open an opponent's score sheet."
 msgstr ""
 
@@ -22553,7 +22577,7 @@ msgstr ""
 msgid "Six-letter words: 42 attempts"
 msgstr ""
 
-#: games/yahtzee.rb:19
+#: games/yahtzee.rb:24
 msgid "Sixes"
 msgstr ""
 
@@ -22619,7 +22643,7 @@ msgstr ""
 msgid "Small points: scored %{scored}, conceded %{conceded}, difference %{difference}"
 msgstr ""
 
-#: games/yahtzee.rb:21
+#: games/yahtzee.rb:26
 msgid "Small straight"
 msgstr ""
 
@@ -22848,7 +22872,7 @@ msgstr ""
 msgid "Space: play your top card."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:30
+#: games/generated/rulebooks/yahtzee.rb:32
 msgid "Space: read which dice are kept and which will be rerolled."
 msgstr ""
 
@@ -23349,7 +23373,7 @@ msgstr ""
 msgid "T: read whose turn it is and any double that must be covered."
 msgstr ""
 
-#: games/generated/rulebooks/battleship.rb:37 games/generated/rulebooks/biblios.rb:45 games/generated/rulebooks/bridge.rb:91 games/generated/rulebooks/checkers.rb:35 games/generated/rulebooks/chess.rb:31 games/generated/rulebooks/domino.rb:40 games/generated/rulebooks/farkle.rb:28 games/generated/rulebooks/four_in_a_row.rb:17 games/generated/rulebooks/ludo.rb:38 games/generated/rulebooks/makao.rb:46 games/generated/rulebooks/mancala.rb:40 games/generated/rulebooks/mille_bornes.rb:53 games/generated/rulebooks/ninety_nine.rb:34 games/generated/rulebooks/poker.rb:54 games/generated/rulebooks/reversi.rb:22 games/generated/rulebooks/rummy.rb:60 games/generated/rulebooks/scrabble.rb:43 games/generated/rulebooks/spades.rb:40 games/generated/rulebooks/three_five_eight.rb:33 games/generated/rulebooks/tic_tac_toe.rb:17 games/generated/rulebooks/tysiac.rb:52 games/generated/rulebooks/uno.rb:50 games/generated/rulebooks/war.rb:26 games/generated/rulebooks/yahtzee.rb:35
+#: games/generated/rulebooks/battleship.rb:37 games/generated/rulebooks/biblios.rb:45 games/generated/rulebooks/bridge.rb:91 games/generated/rulebooks/checkers.rb:35 games/generated/rulebooks/chess.rb:31 games/generated/rulebooks/domino.rb:40 games/generated/rulebooks/farkle.rb:28 games/generated/rulebooks/four_in_a_row.rb:17 games/generated/rulebooks/ludo.rb:38 games/generated/rulebooks/makao.rb:46 games/generated/rulebooks/mancala.rb:40 games/generated/rulebooks/mille_bornes.rb:53 games/generated/rulebooks/ninety_nine.rb:34 games/generated/rulebooks/poker.rb:54 games/generated/rulebooks/reversi.rb:22 games/generated/rulebooks/rummy.rb:60 games/generated/rulebooks/scrabble.rb:43 games/generated/rulebooks/spades.rb:40 games/generated/rulebooks/three_five_eight.rb:33 games/generated/rulebooks/tic_tac_toe.rb:17 games/generated/rulebooks/tysiac.rb:52 games/generated/rulebooks/uno.rb:50 games/generated/rulebooks/war.rb:26 games/generated/rulebooks/yahtzee.rb:37
 msgid "T: read whose turn it is."
 msgstr ""
 
@@ -23674,7 +23698,7 @@ msgstr ""
 msgid "Teams"
 msgstr ""
 
-#: games/base/options.rb:263
+#: games/base/options.rb:270
 msgid "Teams in seating order: %{teams}"
 msgstr ""
 
@@ -23783,7 +23807,7 @@ msgstr ""
 msgid "That pit is empty."
 msgstr ""
 
-#: games/yahtzee.rb:330
+#: games/yahtzee.rb:331
 msgid "That scoring category has already been used."
 msgstr ""
 
@@ -24314,7 +24338,7 @@ msgstr ""
 msgid "The describing player presses Enter when everyone is ready. After three seconds, a sound starts the turn and reveals the card. Enter marks a correct guess; P skips. An opponent presses B for a violation. The next card appears immediately without restarting the clock. Guessers do not press anything. The deck is shuffled; no card repeats until exhaustion, and reshuffling avoids an immediate repeat."
 msgstr ""
 
-#: games/cat_head_tail.rb:442 games/ludo.rb:326 games/yahtzee.rb:543 lib/game_surfaces/roll_and_score.rb:175
+#: games/cat_head_tail.rb:442 games/ludo.rb:326 games/yahtzee.rb:520 lib/game_surfaces/roll_and_score.rb:175
 msgid "The dice have not been rolled."
 msgstr ""
 
@@ -24566,7 +24590,7 @@ msgstr ""
 msgid "The game cannot start until these players join the real-time session: %{players}."
 msgstr ""
 
-#: lib/game_screen.rb:1565 lib/game_screen.rb:869 lib/game_screen.rb:903
+#: lib/game_screen.rb:1572 lib/game_screen.rb:876 lib/game_screen.rb:910
 msgid "The game changed before your action was accepted. Please choose again."
 msgstr ""
 
@@ -24640,7 +24664,7 @@ msgstr ""
 msgid "The game is split into two phases. During the Gift phase players receive free cards. During the Auction phase players purchase cards in an auction."
 msgstr ""
 
-#: games/base/options.rb:167
+#: games/base/options.rb:174
 msgid "The game settings are invalid."
 msgstr ""
 
@@ -24733,11 +24757,11 @@ msgstr ""
 msgid "The individual descriptions below give the stake for each challenge. Quiz rewards are new feathers from the game, not feathers taken from another player."
 msgstr ""
 
-#: games/base/options.rb:426
+#: games/base/options.rb:433
 msgid "The installed game content pack does not match the table."
 msgstr ""
 
-#: games/base/options.rb:423
+#: games/base/options.rb:430
 msgid "The installed game content pack has a different version."
 msgstr ""
 
@@ -25034,7 +25058,7 @@ msgstr ""
 msgid "The number of categories shown in a round must be between 1 and 9."
 msgstr ""
 
-#: games/yahtzee.rb:77
+#: games/yahtzee.rb:80
 msgid "The number of matches must be from 1 to 10."
 msgstr ""
 
@@ -25045,7 +25069,7 @@ msgstr ""
 msgid "The number of starting tokens must be greater than zero."
 msgstr ""
 
-#: __app.rb:1560 __app.rb:2490 __app.rb:3251 lib/game_room_widget.rb:251 lib/game_screen.rb:1603
+#: __app.rb:1560 __app.rb:2490 __app.rb:3251 lib/game_room_widget.rb:251 lib/game_screen.rb:1610
 msgid "The operation could not be completed. Please try again."
 msgstr ""
 
@@ -25432,14 +25456,14 @@ msgstr ""
 msgid "The selected category pool is not supported."
 msgstr ""
 
-#: games/base/options.rb:420
+#: games/base/options.rb:427
 msgid "The selected content pack does not match the set and language."
 msgstr ""
 
 msgid "The selected content pack is not compatible with this game."
 msgstr ""
 
-#: games/base/options.rb:407
+#: games/base/options.rb:414
 msgid "The selected content set is not compatible with this game."
 msgstr ""
 
@@ -25447,15 +25471,15 @@ msgstr ""
 msgid "The selected dice do not form a scoring combination."
 msgstr ""
 
-#: games/base/options.rb:418
+#: games/base/options.rb:425
 msgid "The selected game content pack is not installed."
 msgstr ""
 
-#: games/base/options.rb:405
+#: games/base/options.rb:412
 msgid "The selected game content set is not installed."
 msgstr ""
 
-#: games/base/options.rb:415
+#: games/base/options.rb:422
 msgid "The selected language is not available for this content set."
 msgstr ""
 
@@ -25479,7 +25503,7 @@ msgstr ""
 msgid "The selected word dictionary is missing or damaged."
 msgstr ""
 
-#: games/base/options.rb:189
+#: games/base/options.rb:196
 msgid "The selection for %{option} contains an unavailable choice."
 msgstr ""
 
@@ -26192,14 +26216,14 @@ msgstr ""
 msgid "Think of answers that fit the chosen letter and categories."
 msgstr ""
 
-#: games/base/options.rb:201
+#: games/base/options.rb:208
 msgid "Thinking time"
 msgstr ""
 
 msgid "Thinking time defaults to zero, meaning unlimited. At its expiry draw one tile and pass, without playing it. If you already drew, drawing is forbidden or the boneyard is empty, only pass. Drawing does not restart the clock. The timer is not automatically read aloud."
 msgstr ""
 
-#: games/base/options.rb:200
+#: games/base/options.rb:207
 msgid "Thinking time in seconds; zero means no limit"
 msgstr ""
 
@@ -26256,7 +26280,7 @@ msgstr ""
 msgid "Thinking time must be from 0 to 600 seconds."
 msgstr ""
 
-#: games/base/options.rb:209
+#: games/base/options.rb:216
 msgid "Thinking time must be zero or from %{minimum} to %{maximum} seconds."
 msgstr ""
 
@@ -26291,7 +26315,7 @@ msgstr ""
 msgid "This Word Tower result has already been published."
 msgstr ""
 
-#: lib/game_screen.rb:1461 lib/game_screen.rb:920
+#: lib/game_screen.rb:1468 lib/game_screen.rb:927
 msgid "This action contains too much data and was not sent."
 msgstr ""
 
@@ -26663,7 +26687,7 @@ msgstr ""
 msgid "This server test has a 2048-byte field limit. Shorten the rules or settings; a full edit must also fit this limit. Nothing was sent."
 msgstr ""
 
-#: games/yahtzee.rb:288
+#: games/yahtzee.rb:289
 msgid "This sheet: %{points}."
 msgstr ""
 
@@ -26699,7 +26723,7 @@ msgstr ""
 msgid "This table is no longer available."
 msgstr ""
 
-#: games/base/options.rb:265
+#: games/base/options.rb:272
 msgid "This table uses fixed rules with no configurable additions."
 msgstr ""
 
@@ -26751,7 +26775,7 @@ msgstr ""
 msgid "This user is already at the table."
 msgstr ""
 
-#: lib/game_screen.rb:649
+#: lib/game_screen.rb:656
 msgid "This value is not allowed."
 msgstr ""
 
@@ -26829,8 +26853,12 @@ msgstr ""
 msgid "Three marks in a line"
 msgstr ""
 
-#: games/yahtzee.rb:20
+#: games/yahtzee.rb:25
 msgid "Three of a kind"
+msgstr ""
+
+#: games/generated/rulebooks/yahtzee.rb:15
+msgid "Three of a kind needs at least three equal dice and counts all five dice. Four of a kind needs at least four equal dice and also counts all five, but gives at least 15 points. Chance counts all five dice without requiring a combination."
 msgstr ""
 
 #: games/generated/rulebooks/yahtzee.rb:15
@@ -26871,7 +26899,7 @@ msgstr ""
 msgid "Three: in the next trick, the player who played a three can check how many cards each opponent has in hand. At any time, anyone can check how many cards each player has in total, in hand and on the pile."
 msgstr ""
 
-#: games/yahtzee.rb:18
+#: games/yahtzee.rb:23
 msgid "Threes"
 msgstr ""
 
@@ -27066,7 +27094,7 @@ msgstr ""
 msgid "Top card: %{card}; declared suit: %{suit}%{request}."
 msgstr ""
 
-#: games/yahtzee.rb:289
+#: games/yahtzee.rb:290
 msgid "Total across matches: %{points}."
 msgstr ""
 
@@ -27157,7 +27185,7 @@ msgstr ""
 msgid "Tournament game result: %{id}"
 msgstr ""
 
-#: __app.rb:1301 __app.rb:1441 __app.rb:1605 lib/game_screen.rb:283
+#: __app.rb:1301 __app.rb:1441 __app.rb:1605 lib/game_screen.rb:285
 msgid "Tournament games cannot be saved or resumed from a saved game."
 msgstr ""
 
@@ -27481,7 +27509,7 @@ msgstr ""
 msgid "Two mixed kongs — 6 fan: one exposed and one concealed kong. This replaces the individual kong bonuses. This version distinguishes that combination in addition to the standard 81 named entries."
 msgstr ""
 
-#: games/yahtzee.rb:24
+#: games/yahtzee.rb:29
 msgid "Two pairs"
 msgstr ""
 
@@ -27614,7 +27642,7 @@ msgstr ""
 msgid "Two-leg knockout ties use match points, then complete game scores. If still tied, an additional single game is played."
 msgstr ""
 
-#: games/yahtzee.rb:18
+#: games/yahtzee.rb:23
 msgid "Twos"
 msgstr ""
 
@@ -27628,7 +27656,7 @@ msgstr ""
 msgid "Twos, threes, fours and kings"
 msgstr ""
 
-#: __app.rb:2127 lib/game_screen/input.rb:381
+#: __app.rb:2128 lib/game_screen/input.rb:381
 msgid "Type a chat message first."
 msgstr ""
 
@@ -27910,15 +27938,15 @@ msgstr ""
 msgid "Updated the Russian translation by Danil (Kostenkov-2021) and corrected translations of River in Categories and Poker."
 msgstr ""
 
-#: lib/game_screen.rb:1024 lib/game_screen.rb:426 lib/game_screen/input.rb:563
+#: lib/game_screen.rb:1031 lib/game_screen.rb:433 lib/game_screen/input.rb:563
 msgid "Updating game"
 msgstr ""
 
-#: __app.rb:1602 __app.rb:1995 __app.rb:2245 __app.rb:2254 __app.rb:2265 __app.rb:2353 __app.rb:2398 __app.rb:3640 __app.rb:3649 __app.rb:3794 __app.rb:3807 __app.rb:3848 lib/game_screen.rb:1068 lib/game_screen/input.rb:531
+#: __app.rb:1602 __app.rb:1995 __app.rb:2246 __app.rb:2255 __app.rb:2266 __app.rb:2353 __app.rb:2398 __app.rb:3640 __app.rb:3649 __app.rb:3794 __app.rb:3807 __app.rb:3848 lib/game_screen.rb:1075 lib/game_screen/input.rb:531
 msgid "Updating table"
 msgstr ""
 
-#: lib/game_screen.rb:1317
+#: lib/game_screen.rb:1324
 msgid "Updating table status"
 msgstr ""
 
@@ -28089,7 +28117,7 @@ msgstr ""
 msgid "User name"
 msgstr ""
 
-#: lib/game_screen.rb:1328
+#: lib/game_screen.rb:1335
 msgid "Users at the table (%{count})"
 msgstr ""
 
@@ -28134,7 +28162,7 @@ msgstr ""
 msgid "V: legal destinations for the inspected piece. E: pieces attacking the inspected square. C: each player's colour. S: each player's remaining pieces. T: whose turn it is."
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:32
+#: games/generated/rulebooks/yahtzee.rb:34
 msgid "V: open your score sheet."
 msgstr ""
 
@@ -28833,6 +28861,10 @@ msgstr ""
 msgid "When your time runs out"
 msgstr ""
 
+#: games/generated/rulebooks/yahtzee.rb:21
+msgid "Whenever you roll five equal dice, you may score them in any unused category, even if you previously entered zero in Yahtzee. The roll uses these special scores:"
+msgstr ""
+
 msgid "Which captures must be made"
 msgstr ""
 
@@ -29195,12 +29227,16 @@ msgstr ""
 msgid "Y: preview the words and their points."
 msgstr ""
 
-#: games/yahtzee.rb:22 games/yahtzee.rb:38
+#: games/yahtzee.rb:27 games/yahtzee.rb:43
 msgid "Yahtzee"
 msgstr ""
 
 #: games/yahtzee.rb:71
 msgid "Yahtzee Joker rule"
+msgstr ""
+
+#: games/generated/rulebooks/yahtzee.rb:19
+msgid "Yahtzee and the upper-section bonus"
 msgstr ""
 
 #: lib/tournaments/tournament_datetime_field.rb:20
@@ -29279,7 +29315,7 @@ msgstr ""
 msgid "You are not registered for this tournament."
 msgstr ""
 
-#: games/krowa_support/presentation.rb:151 lib/game_screen.rb:798
+#: games/krowa_support/presentation.rb:151 lib/game_screen.rb:805
 msgid "You are observing the game."
 msgstr ""
 
@@ -29560,7 +29596,7 @@ msgstr ""
 msgid "You have already shot at that square."
 msgstr ""
 
-#: games/yahtzee.rb:327
+#: games/yahtzee.rb:328
 msgid "You have already used all three rolls."
 msgstr ""
 
@@ -30433,7 +30469,7 @@ msgstr ""
 msgid "Zürich airport"
 msgstr ""
 
-#: games/generated/rulebooks/yahtzee.rb:47
+#: games/generated/rulebooks/yahtzee.rb:49
 msgid "^: keep one selected die showing 6."
 msgstr ""
 
@@ -30811,7 +30847,7 @@ msgstr ""
 msgid "conflict; no further submission"
 msgstr ""
 
-#: games/base/options.rb:437
+#: games/base/options.rb:444
 msgid "content: %{title}; language: %{language}"
 msgstr ""
 
@@ -31190,7 +31226,7 @@ msgstr ""
 msgid "keep a %{value}"
 msgstr ""
 
-#: games/yahtzee.rb:247
+#: games/yahtzee.rb:249
 msgid "keep another die showing %{value}"
 msgstr ""
 
@@ -31324,7 +31360,7 @@ msgstr ""
 msgid "nil"
 msgstr ""
 
-#: games/makao.rb:153 games/yahtzee.rb:656
+#: games/makao.rb:153 games/yahtzee.rb:628
 msgid "no"
 msgstr ""
 
@@ -31363,7 +31399,7 @@ msgstr ""
 msgid "not bid yet"
 msgstr ""
 
-#: games/yahtzee.rb:281
+#: games/yahtzee.rb:283
 msgid "not filled"
 msgstr ""
 
@@ -31713,7 +31749,7 @@ msgstr ""
 msgid "read the dice"
 msgstr ""
 
-#: games/yahtzee.rb:264
+#: games/yahtzee.rb:266
 msgid "read the dice and their selection state"
 msgstr ""
 
@@ -31813,7 +31849,7 @@ msgstr ""
 msgid "read the round information"
 msgstr ""
 
-#: games/mahjong.rb:164 games/uno.rb:493 games/yahtzee.rb:265 lib/game_shortcuts.rb:9
+#: games/mahjong.rb:164 games/uno.rb:493 games/yahtzee.rb:267 lib/game_shortcuts.rb:9
 msgid "read the scores"
 msgstr ""
 
@@ -32071,7 +32107,7 @@ msgstr ""
 msgid "select a %{value} for reroll"
 msgstr ""
 
-#: games/yahtzee.rb:243
+#: games/yahtzee.rb:245
 msgid "select another die showing %{value}"
 msgstr ""
 
@@ -32348,11 +32384,11 @@ msgstr ""
 msgid "vertical"
 msgstr ""
 
-#: games/yahtzee.rb:260
+#: games/yahtzee.rb:262
 msgid "view another player's score sheet"
 msgstr ""
 
-#: games/yahtzee.rb:253
+#: games/yahtzee.rb:255
 msgid "view your score sheet"
 msgstr ""
 
@@ -32502,7 +32538,7 @@ msgstr ""
 msgid "yellow group"
 msgstr ""
 
-#: games/makao.rb:153 games/yahtzee.rb:656
+#: games/makao.rb:153 games/yahtzee.rb:628
 msgid "yes"
 msgstr ""
 

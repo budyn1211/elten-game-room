@@ -5,8 +5,7 @@ require_relative '../../lib/tournaments/standings'
 
 game = GameRoomGames::Yahtzee.new
 result_type = GameRoomTournaments::GameResult
-options = game.default_options.merge('extra_categories'=>false, 'upper_bonus'=>false,
-  'yahtzee_bonus'=>false, 'joker_rule'=>false)
+options = game.default_options.merge('extra_categories'=>false, 'upper_bonus'=>false)
 session = {'options'=>JSON.generate(options)}
 build = lambda do |dice_by_player, eliminated: nil|
   names = dice_by_player.keys
@@ -32,7 +31,7 @@ build = lambda do |dice_by_player, eliminated: nil|
 end
 
 arguments = build.call({'Ala'=>'6,6,6,6,6', 'Bartek'=>'6,6,6,6,6', 'Celina'=>'1,2,3,4,6'})
-assert(game.participant_scores(arguments[:replay]).values == [170, 170, 62], 'Original accepted subset-tie fixture changed')
+assert(game.participant_scores(arguments[:replay]).values == [320, 320, 62], 'Current accepted subset-tie scores are incorrect')
 expected_legacy = {'participants'=>%w[ala bartek celina], 'winners'=>[], 'draw'=>true,
   'scores'=>nil, 'event_count'=>78}
 # Explicit persisted policy strings, not CURRENT: previously accepted v1-v6

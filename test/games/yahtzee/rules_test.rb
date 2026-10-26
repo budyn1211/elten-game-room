@@ -28,42 +28,11 @@ end, "Yahtzee shortcuts still select dice by position")
 score = yahtzee.legal_actions(yahtzee_replay, "Alice").find { |action| action["action"] == "score" }
 yahtzee_replay = append_action(yahtzee, yahtzee_session, repository, yahtzee_events, yahtzee_replay, "Alice", score)
 assert(yahtzee_replay.current_player == "Bob", "Yahtzee did not advance after scoring")
-assert(yahtzee.default_options["yahtzee_bonus"] && yahtzee.default_options["joker_rule"], "Yahtzee bonus and Joker are not independent enabled defaults")
-[[[1,1,1,1,2],15],[[2,2,2,2,6],15],[[3,3,3,3,6],18],[[1,1,1,1,1],15],[[1,1,1,2,3],0]].each do |dice,expected|
+assert(!yahtzee.default_options.key?("yahtzee_bonus") && !yahtzee.default_options.key?("joker_rule"),
+  "Yahtzee must not expose the retired bonus or Joker options")
+[[[1,1,1,1,2],15],[[2,2,2,2,6],15],[[3,3,3,3,6],18],[[1,1,1,1,1],40],[[1,1,1,2,3],0]].each do |dice,expected|
   assert(yahtzee.send(:score_category,'four_kind',dice,yahtzee_replay.state,'Alice')==expected,
-    "Four of a kind must award at least 15, but only for a qualifying roll: #{dice.inspect}")
+    "Four of a kind must award at least 15, or 40 for Yahtzee, only for a qualifying roll: #{dice.inspect}")
 end
-
-joker_state = yahtzee.send(:initial_state, players,
-  yahtzee.normalize_options("yahtzee_bonus" => false, "joker_rule" => true))
-joker_state[:dice] = [6, 6, 6, 6, 6]
-joker_state[:turn_rolls] = 2
-joker_state[:sheets]["Alice"]["yahtzee"] = 50
-assert(yahtzee.send(:available_scoring_categories, joker_state, "Alice") == ["sixes"],
-  "Yahtzee Joker did not require the matching open upper category")
-joker_state[:sheets]["Alice"]["sixes"] = 30
-joker_lower = yahtzee.send(:available_scoring_categories, joker_state, "Alice")
-assert(joker_lower.include?("full_house") && !joker_lower.include?("ones"),
-  "Yahtzee Joker did not move to the lower section after the matching upper category was filled")
-assert(yahtzee.send(:score_category, "large_straight", joker_state[:dice], joker_state, "Alice") == 40,
-  "Yahtzee Joker did not provide the fixed large-straight score")
-joker_history = []
-assert(yahtzee.send(:apply_score, joker_state,
-  { "id" => 25, "actor" => "Alice", "action" => "score", "value" => "large_straight" },
-  "Alice", repository, joker_history), "Yahtzee rejected a legal Joker category")
-assert(joker_state[:yahtzee_bonuses]["Alice"].zero?,
-  "Yahtzee awarded an additional bonus although that independent option was disabled")
-
-bonus_state = yahtzee.send(:initial_state, players,
-  yahtzee.normalize_options("yahtzee_bonus" => true, "joker_rule" => false))
-bonus_state[:dice] = [2, 2, 2, 2, 2]
-bonus_state[:turn_rolls] = 2
-bonus_state[:sheets]["Alice"]["yahtzee"] = 50
-bonus_history = []
-assert(yahtzee.send(:apply_score, bonus_state,
-  { "id" => 26, "actor" => "Alice", "action" => "score", "value" => "chance" },
-  "Alice", repository, bonus_history), "Yahtzee rejected a category with Joker disabled")
-assert(bonus_state[:yahtzee_bonuses]["Alice"] == 100,
-  "Yahtzee did not award the independently enabled additional-Yahtzee bonus")
 
 puts 'PASS yahtzee: rules, legal actions and options'

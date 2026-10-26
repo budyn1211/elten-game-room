@@ -283,6 +283,17 @@ Details: `docs/UI.md`.
   the dialog. A confirmed departure returns `:left_table`, without a second
   question in the lobby; server-side closure asks no question.
   Regression: `game_leave_confirmation_test.rb`.
+- Ordinary departure, including guests/observers and the first-connection
+  recovery form, requires a confirmed native departure. A cancelled wait or
+  a locally closed SDK object is not server acknowledgement. The shared
+  adapter uses the existing endpoint leave/close RPC before closing the local
+  Session; it preserves the exact visit on error and accepts only explicit
+  absence/closure responses as reconciliation. Do not infer success from an
+  aggregate SDK retry count, rejoin to check departure, or discard a newer
+  attachment when an old request finishes. Rejected provisional joins alone
+  retain explicitly deferred SDK cleanup; that is not a successful UI exit.
+  Regressions: `confirmed_table_departure_test.rb`,
+  `live_sessions_departure_boundary_test.rb`, `table_connection_departure_test.rb`.
 - Launching over Conference may put Game Room on a parallel UI thread.
   Final ELTEN 3.0.4 delivers callbacks for the active scene in its own loop;
   do not add a second dispatch in the form. Application windows still use
@@ -689,6 +700,10 @@ such as Henryk VIII, Jan Paweł II, II wojna światowa and Balet XX Wieku.
 - Realtime progress under menus and behind another scene uses a single
   clock, `GameRoomRealtime::Progress`; do not add a second physics loop in
   a worker. A hidden field has neutral input, not an intentional pause.
+  A covered start can construct the client on the forum's UI thread;
+  attaching its form must adopt that form's UI thread, even on reattachment.
+  Test fresh movement/serving after return, not only points while covered
+  (`test/realtime/covered_start_return_test.rb`).
   The ordinary executor writes agreed points. A Pong point proposal must
   match the current rally even before the validator is called.
 - The Scrabble preview client implements the full GameScreen client

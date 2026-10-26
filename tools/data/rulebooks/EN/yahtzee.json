@@ -102,26 +102,23 @@
     {
       "id": "yahtzees",
       "title": {
-        "en": "More Yahtzees and the Joker rule"
+        "en": "Scoring a Yahtzee"
       },
       "paragraphs": [
         {
-          "en": "After scoring 50 in Yahtzee, each later roll of five equal dice earns a 100-point bonus. You must score that roll in another category because Yahtzee is already used. A zero previously entered in Yahtzee does not qualify for the bonus."
+          "en": "Whenever you roll five equal dice, you may score them in any unused category, even if you previously entered zero in Yahtzee. The roll uses these special scores:"
         },
         {
-          "en": "A later Yahtzee also invokes the Joker rule, which changes where you may score it:"
+          "en": "- Yahtzee scores 50 points."
         },
         {
-          "en": "- Use the matching Ones-to-Sixes category first if it is empty. Five 4s must go into Fours for 20."
+          "en": "- Ones through Sixes count only matching dice as usual. Five 4s score 20 in Fours and zero in the other five number categories."
         },
         {
-          "en": "- If that category is filled, choose an unused category outside Ones to Sixes. The Joker lets five equal dice count as a full house, small straight or large straight for their usual points. Other categories score normally; Two pairs still gives zero for five equal dice."
+          "en": "- One pair and Two pairs score 30 points each."
         },
         {
-          "en": "- Only when every other category is filled may you use a different empty Ones-to-Sixes category, scoring zero because the dice do not match."
-        },
-        {
-          "en": "Like the 100-point bonus, the Joker requires an earlier score of 50 in Yahtzee. Your first roll of five equal dice does not activate it."
+          "en": "- Three of a kind, Four of a kind, Full house, Small straight, Large straight, Chance and Misery score 40 points each."
         }
       ]
     },
@@ -143,22 +140,13 @@
       },
       "paragraphs": [
         {
-          "en": "The table settings can shorten the card or change bonuses. All rules described above are enabled by default."
+          "en": "Before play, you can shorten the scorecard or turn off the Ones-to-Sixes bonus:"
         },
         {
           "en": "- Disable One pair, Two pairs and Misery to remove those three categories and play 13 turns per card instead of 16."
         },
         {
           "en": "- Disable the Ones-to-Sixes bonus to remove the extra 35 points. Scores in those categories still count."
-        },
-        {
-          "en": "- Disable the bonus for further Yahtzees to remove the extra 100 points."
-        },
-        {
-          "en": "- Disable the Joker to remove both the required matching category and the use of five equal dice as a full house or straight. You may then choose any unused category and score it normally."
-        },
-        {
-          "en": "The extra-Yahtzee bonus and Joker are independent. You can keep the 100-point bonus while playing without the Joker."
         },
         {
           "en": "The default match uses one scorecard. Choose several games to play successive fresh cards while keeping earlier points. The highest combined total wins at the end."
@@ -240,8 +228,6 @@
   "option_chapters": {
     "matches": "options",
     "extra_categories": "options",
-    "upper_bonus": "options",
-    "yahtzee_bonus": "options",
-    "joker_rule": "options"
+    "upper_bonus": "options"
   }
 }

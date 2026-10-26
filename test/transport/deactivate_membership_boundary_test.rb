@@ -82,9 +82,9 @@ checks = 0
         new_queues = fixture.mark_current_queues
       end
       if callback_first
-        native_leave = old_session.method(:leave)
-        old_session.define_singleton_method(:leave) do
-          result = native_leave.call
+        native_close = old_session.method(:close_local)
+        old_session.define_singleton_method(:close_local) do |reason, **options|
+          result = native_close.call(reason, **options)
           fixture.endpoint.dispatch_events
           assert(!fixture.store.active_membership?(41), 'Old close callback was not dispatched')
           replace.call
@@ -98,10 +98,18 @@ checks = 0
           result
         end
       end
-      result = lobby.leave_table(initial.table, 'Bob')
+      paused = false
+      begin
+        result = lobby.leave_table(initial.table, 'Bob')
+      rescue GameRoomNetworkErrors::GamePaused
+        paused = true
+      end
       fixture.endpoint.dispatch_events
       label = "callback_first=#{callback_first}, replacement=#{replacement_user.inspect}"
-      failures << "#{label}: leave did not succeed" unless result && old_session.closed?
+      failures << "#{label}: old native departure did not finish" unless old_session.closed?
+      # Completing an old departure must not send a newer visit back to the
+      # lobby. The new attachment survives and the UI receives no success.
+      failures << "#{label}: wrong completion scope" unless replacement ? paused && !result : !paused && result
       if replacement
         room, token, pending, recovered, private_messages, previews = new_queues
         failures << "#{label}: current native attachment lost" unless fixture.store.send(:active_session, 41).equal?(new_session)

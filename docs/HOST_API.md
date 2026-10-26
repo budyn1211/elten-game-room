@@ -63,6 +63,21 @@ The local plural-rule parser uses integer division and remainder compatible
 with C/gettext for negative intermediate values. Application translations do
 not depend on the host's private catalog.
 
+### Confirmed table departure
+
+The public native endpoint methods `leave_session(session)` and
+`close_session(session)` perform the existing authenticated departure RPC.
+Unlike the Session convenience methods, they do not close the local view in
+an `ensure` after a failed request. The shared table adapter calls them for
+the exact Session belonging to the current endpoint, then calls
+`close_local(..., confirmed: true)` only after acknowledgement or an explicit
+server absence/closure error. Network failures and authentication refusals
+are not acknowledgements. No host monkey patch or separate HTTP client is
+introduced. The original SDK deferred cleanup remains for rejected provisional
+joins; it must not be used to announce a successful ordinary departure.
+`test/host/confirmed_table_departure_test.rb` exercises the actual host
+Session, Endpoint and EltenLink wrappers with only HTTP substituted.
+
 ## Application-specific contracts
 
 ### LiveSessions table capacity

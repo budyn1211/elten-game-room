@@ -10,7 +10,7 @@ class RetentionRaceSession
 
   def owner?; false; end
   def closed?; @closed; end
-  def leave; @closed = true; @closed_callback&.call(:left); end
+  def leave; @closed = true; @closed_callback&.call(:left); true; end
   def on_closed(&block); @closed_callback = block; end
   def on_stack_message(**_options, &block); @stack_callback = block; end
   def on_stack_gap; end

@@ -102,26 +102,23 @@
     {
       "id": "yahtzees",
       "title": {
-        "es": "Más Yahtzees y regla del comodín"
+        "es": "Cómo puntúa un Yahtzee"
       },
       "paragraphs": [
         {
-          "es": "Después de anotar 50 en Yahtzee, cada nueva tirada de cinco iguales da 100 puntos extra. La tirada se anota en otra categoría porque Yahtzee ya está ocupado. Si anotaste cero en Yahtzee, no recibes esa bonificación."
+          "es": "Cada vez que saques cinco dados iguales, puedes anotarlos en cualquier casilla libre, aunque antes hayas puesto un cero en Yahtzee. Esta tirada tiene una puntuación especial:"
         },
         {
-          "es": "Un Yahtzee posterior también activa la regla del comodín. Permite usar cinco iguales en otras combinaciones, pero exige elegir en este orden:"
+          "es": "- En Yahtzee, anotas 50 puntos."
         },
         {
-          "es": "- Primero, la casilla numérica correspondiente si está libre. Cinco cuatros deben ir a Cuatros, por 20 puntos."
+          "es": "- De Unos a Seises, solo cuentan los dados que coinciden con la casilla. Cinco cuatros dan 20 puntos en Cuatros y cero en las otras cinco casillas numéricas."
         },
         {
-          "es": "- Si esa casilla está ocupada, elige cualquier categoría libre fuera de Unos a Seises. El comodín permite tratar la tirada como Full, Escalera corta o Escalera larga y obtener sus puntos. Las demás se calculan normalmente: Doble pareja, por ejemplo, sigue dando cero con cinco iguales."
+          "es": "- Una pareja y Doble pareja dan 30 puntos cada una."
         },
         {
-          "es": "- Solo cuando todas las demás categorías estén ocupadas puedes elegir otra casilla numérica libre. Como no coincide con los dados, anotas cero."
-        },
-        {
-          "es": "Tanto el comodín como los 100 puntos extra requieren tener ya 50 anotados en Yahtzee. Sacar cinco iguales por primera vez no activa esta regla."
+          "es": "- Trío, Póquer, Full, Escalera corta, Escalera larga, Suerte y Miseria dan 40 puntos cada una."
         }
       ]
     },
@@ -143,22 +140,13 @@
       },
       "paragraphs": [
         {
-          "es": "Puedes acortar la hoja o cambiar las bonificaciones antes de empezar. Por defecto están activadas todas las reglas anteriores:"
+          "es": "Antes de empezar puedes acortar la hoja o desactivar la bonificación de las casillas numéricas:"
         },
         {
           "es": "- Quitar Una pareja, Doble pareja y Miseria deja 13 turnos por jugador en vez de 16."
         },
         {
           "es": "- Quitar la bonificación de las casillas numéricas elimina los 35 puntos extra. Los puntos de esas casillas siguen contando."
-        },
-        {
-          "es": "- Quitar la bonificación de Yahtzees posteriores elimina los 100 puntos extra por nuevas tiradas de cinco iguales."
-        },
-        {
-          "es": "- Quitar el comodín elimina tanto la obligación de usar la casilla numérica correspondiente como la posibilidad de tratar cinco iguales como full o escalera. Puedes elegir cualquier casilla libre y puntuarla normalmente."
-        },
-        {
-          "es": "El comodín y la bonificación por nuevos Yahtzees son independientes. Puedes desactivar el primero y conservar los 100 puntos extra."
         },
         {
           "es": "Por defecto se juega una hoja. Puedes elegir varias: al completar una se empieza otra vacía, manteniendo los puntos anteriores. Gana la suma total más alta de todas las hojas."
@@ -240,8 +228,6 @@
   "option_chapters": {
     "matches": "options",
     "extra_categories": "options",
-    "upper_bonus": "options",
-    "yahtzee_bonus": "options",
-    "joker_rule": "options"
+    "upper_bonus": "options"
   }
 }

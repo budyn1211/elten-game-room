@@ -244,6 +244,19 @@ Ctrl+Shift+R on the participant list replaces the selected player/bot with a
 present human who is not playing, or a new bot if the game permits it. This
 is not a swap between two active players.
 
+Leaving a table is a confirmed membership operation, not closing its form.
+The first-connection recovery form uses the same guarded Leave action as an
+already loaded game. Cancelled or failed departure keeps the current form;
+an unrelated return from its wait does not become a return to the lobby.
+The native SDK's `Session#leave` and `#close` close locally even when their
+RPC fails. Ordinary departure therefore uses the existing native endpoint
+RPC first and closes the local Session only after acknowledgement or an
+explicit server response confirming absence/closure. An error retains the
+exact native visit for retry; cleanup cannot erase a later attachment.
+Cleanup of a rejected, provisional invitation join remains explicitly
+deferred through the SDK, without treating it as a completed user departure.
+This is not account-wide room admission or a one-table-per-user fence.
+
 The lineup of a started game is recorded in the `game_started` event on the
 session stack. Later replacements have their own history and epoch; replay
 maps actions according to the lineup at the time they were performed. A

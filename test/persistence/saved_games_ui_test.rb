@@ -18,11 +18,17 @@ assert(app.transport.current_room("Alice") != nil && !app.games.snapshot_for(ses
 assert(app.send(:saved_games).list.empty?, "failed write left a fake save")
 app.write_error = false
 view = broker.endpoint("Alice").sessions.first
-view.define_singleton_method(:close) { raise EltenAPI::LiveSessions::TimeoutError, "close denied" }
+endpoint = broker.endpoint('Alice')
+native_close = endpoint.method(:close_session)
+endpoint.define_singleton_method(:close_session) do |session|
+  raise EltenAPI::LiveSessions::TimeoutError, 'close denied' if session.equal?(view)
+  native_close.call(session)
+end
 assert(!app.send(:save_current_game, table, session, game), "unconfirmed close was treated as success")
 assert(app.send(:saved_games).list.length == 1, "close failure lost the verified save")
 assert(app.transport.current_room("Alice") != nil && !app.games.snapshot_for(session).session["__frozen"], "close failure left the room unusable")
-view.singleton_class.remove_method(:close)
+assert(!view.closed?, 'close failure locally discarded the unresolved membership')
+endpoint.singleton_class.remove_method(:close_session)
 assert(app.send(:save_current_game, table, session, game), "confirmed save did not close room: #{app.errors}")
 assert(app.transport.current_room("Alice") == nil && broker.cores.values.first.closed, "successful save kept original table open")
 saved = app.send(:saved_games).fetch(app.send(:saved_games).list.first['id'])

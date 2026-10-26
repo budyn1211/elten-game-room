@@ -62,7 +62,7 @@ f.assert_roster(%w[Bob Dave])
 # An unfilled eliminated sheet cannot stall either match. Original sheet/total
 # keys survive and later match dealer rotation skips the eliminated first seat.
 f = fixture.new(GameRoomGames::Yahtzee.new, options:{'matches'=>2, 'extra_categories'=>false,
-  'upper_bonus'=>false, 'yahtzee_bonus'=>false, 'joker_rule'=>false})
+  'upper_bonus'=>false})
 f.append('Alice', 'roll', '6,6,6,6,6')
 f.eliminate('Alice')
 f.eliminate('Carol')

@@ -141,8 +141,7 @@ class LobbyRepository
     if owner_of(snapshot.table).casecmp(user.to_s) == 0
       successor = successor_for(snapshot, user)
       unless successor
-        @transport.deactivate_table(table_id: table_id(snapshot.table))
-        return :closed
+        return @transport.deactivate_table(table_id: table_id(snapshot.table)) ? :closed : nil
       end
       @transport.transfer_room_owner(snapshot.table, successor, **(control_guard ? {control_guard: control_guard} : {}))
       snapshot = snapshot_for(snapshot.table)
@@ -150,8 +149,7 @@ class LobbyRepository
         GameRoomParticipants.same?(owner_of(snapshot.table), successor)
     end
     append_activity(snapshot.table, "left", actor: user, table_users: snapshot.members)
-    @transport.deactivate_table(table_id: table_id(snapshot.table))
-    return :left
+    @transport.deactivate_table(table_id: table_id(snapshot.table)) ? :left : nil
   end
 
   def successor_for(snapshot, departing)

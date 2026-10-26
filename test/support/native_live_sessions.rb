@@ -126,6 +126,16 @@ class NativeLiveSessionsBroker
       @sessions.reject(&:closed?)
     end
 
+    # Match the native SDK's acknowledgement boundary. Session#leave/close
+    # also close locally on failure; these endpoint calls do not.
+    def leave_session(session)
+      session.remote_leave
+    end
+
+    def close_session(session)
+      session.remote_close
+    end
+
     def on_invitation(&block)
       @invitation_callbacks << block
     end
@@ -453,18 +463,32 @@ class NativeLiveSessionsBroker
     end
 
     def leave
-      return true if closed?
+      return false if closed?
+      confirmed = false
+      begin
+        @endpoint.leave_session(self)
+        confirmed = true
+      ensure
+        close_local(:left, confirmed: confirmed)
+      end
+      true
+    end
+
+    def remote_leave
       was_owner = owner?
       if was_owner && @core.participants.size > 1
         successor = @core.participants.values.find { |entry| entry.user.casecmp(@endpoint.user) != 0 }
         transfer_ownership(successor)
       end
       participant = @core.participants.delete(@endpoint.user.downcase)
-      @closed = true
       @core.views.each { |view| view.participant_left(participant) unless view.equal?(self) }
-      # Native Session#leave calls close_local(:left), which also delivers
-      # on_closed. Omitting it hides stale close events on a later rejoin.
-      @closed_callbacks.each { |callback| callback.call(:left) }
+      true
+    end
+
+    def close_local(reason, confirmed: false, operation: :leave)
+      return false if @closed
+      @closed = true
+      @closed_callbacks.each { |callback| callback.call(reason) }
       true
     end
 
@@ -473,6 +497,17 @@ class NativeLiveSessionsBroker
     end
 
     def close
+      confirmed = false
+      begin
+        @endpoint.close_session(self)
+        confirmed = true
+      ensure
+        close_local(:closed, confirmed: confirmed, operation: :close)
+      end
+      true
+    end
+
+    def remote_close
       raise EltenAPI::LiveSessions::NotOwner if !owner?
       @core.closed = true
       @core.views.each do |view|

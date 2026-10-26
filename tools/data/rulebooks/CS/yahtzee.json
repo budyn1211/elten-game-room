@@ -102,26 +102,23 @@
     {
       "id": "yahtzees",
       "title": {
-        "cs": "Další Yahtzee a žolík"
+        "cs": "Bodování Yahtzee"
       },
       "paragraphs": [
         {
-          "cs": "Máš-li už v kategorii Yahtzee zapsáno 50, každých dalších pět stejných kostek přinese prémii 100 bodů. Samotný hod zapíšeš jinam, protože Yahtzee je obsazené. Dříve zapsaná nula tuto prémii neumožní."
+          "cs": "Pět stejných kostek můžeš zapsat do kterékoli volné kategorie, i když už máš v Yahtzee nulu. Pro takový hod platí zvláštní bodování:"
         },
         {
-          "cs": "U dalšího Yahtzee platí také pravidlo žolíka. Dovoluje pět stejných kostek využít i jinde, ale určuje pořadí zápisu:"
+          "cs": "- V kategorii Yahtzee získáš 50 bodů."
         },
         {
-          "cs": "- Nejprve musíš vyplnit odpovídající kategorii jedniček až šestek, pokud je volná. Pět čtyřek tedy patří do čtyřek za 20 bodů."
+          "cs": "- Jedničky až šestky počítají jen kostky odpovídající hodnoty. Pět čtyřek tedy dává 20 bodů ve čtyřkách a nulu v ostatních pěti číselných kategoriích."
         },
         {
-          "cs": "- Pokud už je tato kategorie obsazená, zvol jakoukoli volnou mimo jedničky až šestky. Žolík dovolí zapsat full house, malou či velkou postupku za jejich běžné body. Ostatní kategorie se hodnotí normálně: například dva páry jsou při tomto hodu pořád za nulu."
+          "cs": "- Jeden pár i Dva páry dávají po 30 bodech."
         },
         {
-          "cs": "- Teprve když jsou všechny ostatní kategorie plné, vyber jiné volné políčko mezi jedničkami a šestkami. Hodnota nesouhlasí, takže do něj zapíšeš nulu."
-        },
-        {
-          "cs": "Žolík i stobodová prémie vyžadují dřívější zápis 50 v Yahtzee. První hod pěti stejných kostek pravidlo žolíka sám nespustí."
+          "cs": "- Trojice, Čtveřice, Full house, Malá postupka, Velká postupka, Šance a Bída dávají po 40 bodech."
         }
       ]
     },
@@ -143,22 +140,13 @@
       },
       "paragraphs": [
         {
-          "cs": "Nastavení stolu umožňuje zkrátit tabulku a měnit prémie. Všechna výše uvedená pravidla jsou běžně zapnutá."
+          "cs": "Před hrou můžeš zkrátit tabulku nebo vypnout prémii za jedničky až šestky:"
         },
         {
           "cs": "- Vypnutí kategorií Jeden pár, Dva páry a Bída je odstraní z tabulky. Hraje se pak 13 tahů místo 16."
         },
         {
           "cs": "- Vypnutí prémie horní části zruší dodatečných 35 bodů. Body za jedničky až šestky se dál počítají."
-        },
-        {
-          "cs": "- Vypnutí prémie za další Yahtzee zruší dodatečných 100 bodů za opakovaný hod pěti stejných kostek."
-        },
-        {
-          "cs": "- Bez žolíka nemusíš přednostně vyplnit odpovídající číselnou kategorii, ale pět stejných kostek ani nesmíš vydávat za full house či postupku. Vybereš libovolné volné pole a oboduješ ho obvyklým způsobem."
-        },
-        {
-          "cs": "Žolíka a prémii za další Yahtzee lze vypínat zvlášť. Necháš-li prémii zapnutou, můžeš 100 bodů získat i bez žolíka."
         },
         {
           "cs": "Standardně se vyplňuje jedna tabulka. Při více hrách začneš po každé vyplněné tabulce novou, prázdnou, ale body z předchozích zůstanou. Celkově vyhraje nejvyšší součet ze všech her."
@@ -240,8 +228,6 @@
   "option_chapters": {
     "matches": "options",
     "extra_categories": "options",
-    "upper_bonus": "options",
-    "yahtzee_bonus": "options",
-    "joker_rule": "options"
+    "upper_bonus": "options"
   }
 }

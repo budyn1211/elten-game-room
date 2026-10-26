@@ -14,6 +14,16 @@ tournament presence. Their physics, real-time bots, pause protocol, input and
 Communications belong to their separate clients and active-UI progress loop,
 not the runner's worker. See [REALTIME.md](REALTIME.md).
 
+A realtime client can first start on the covering scene's UI thread, before
+the table has a playfield. `Progress#attach` assigns ownership to the thread
+attaching the actual form, including after a temporary detach. The same timer,
+client and pending result survive this handoff. Keeping the constructor's
+thread would let the background bridge consume every frame with neutral input
+after returning, even though the native playfield still receives keys.
+Regression: `test/realtime/covered_start_return_test.rb` uses native controls
+and keyboard state to check fresh paddle movement and serving after adoption,
+chat isolation, later covers and a single timer.
+
 ## Speech and sounds while Messages or the forum is open
 
 The runner publishes a copied presentation bundle after an existing state

@@ -60,7 +60,7 @@ assert($spoken_messages.length == 1 && $spoken_messages.first.include?('Alice') 
   $spoken_messages.first.include?('12') && $spoken_messages.first.include?('10') &&
   $spoken_messages.first.include?('Sets: 1'), 'Shift+S did not read both points and sets')
 surface.handle_command('server')
-assert($spoken_messages.last.include?('Bob serves to Alice.'), 'server readout points at the wrong service pair')
+assert($spoken_messages.last == 'Bob serves. Match in progress.', 'singles readout names the receiver or loses connection status')
 commands = []
 surface.on_audio_ball_command = ->(command) { commands << command }
 surface.handle_command('hurry')
@@ -82,3 +82,28 @@ assert(field.take_input.empty?, 'UI double without host chronology invented the 
 pressed.replace([0x26]); field.update
 assert(field.take_input == ['up'], 'UI double fallback rejected a single released press')
 puts 'PASS Audio Ball UI-double fallback: single key accepted, ambiguous simultaneous input ignored'
+
+# T uses the same concise singles wording for both players and observers.
+# Doubles still needs the actual service pair, including non-interleaved seats.
+[0, 1, nil].each do |viewer|
+  single = GameSurfaces.build(GameSurfaces::AudioBallSpec.new(**spec.to_h.merge(viewer: viewer)))
+  [0, 1].each do |server|
+    single.present({'server' => server}, '')
+    single.handle_command('server')
+    assert($spoken_messages.last == "#{spec.players[server]} serves.", 'T adds a redundant singles receiver')
+  end
+  single.present({'server' => 1}, 'Game paused.')
+  single.handle_command('server')
+  assert($spoken_messages.last == 'Bob serves. Game paused.', 'T lost pause status')
+end
+doubles = GameSurfaces.build(GameSurfaces::AudioBallSpec.new(**spec.to_h.merge(
+  players: %w[Alice Bob Carol Dave], teams: [0, 0, 1, 1], viewer: nil)))
+['Alice serves to Carol.', 'Bob serves to Dave.', 'Carol serves to Bob.', 'Dave serves to Alice.'].each_with_index do |expected, server|
+  doubles.present({'server' => server}, '')
+  doubles.handle_command('server')
+  assert($spoken_messages.last == expected, 'T lost the doubles receiver or used the wrong rotation')
+end
+doubles.present({}, 'Waiting for players.')
+doubles.handle_command('server')
+assert($spoken_messages.last == 'Waiting for players.', 'T invents a server before the draw')
+puts 'PASS Audio Ball T readout: singles players/observer, pause/connection status, every doubles service pair'

@@ -14,6 +14,11 @@ module GameRoomGames
       small_straight large_straight yahtzee chance
     ].freeze
     EXTRA_CATEGORIES = %w[pair two_pairs misery].freeze
+    YAHTZEE_SCORES = {
+      'pair' => 30, 'two_pairs' => 30, 'three_kind' => 40, 'four_kind' => 40,
+      'full_house' => 40, 'small_straight' => 40, 'large_straight' => 40,
+      'chance' => 40, 'misery' => 40, 'yahtzee' => 50
+    }.freeze
     CATEGORY_LABELS = {
       "ones" => _("Ones"), "twos" => _("Twos"), "threes" => _("Threes"),
       "fours" => _("Fours"), "fives" => _("Fives"), "sixes" => _("Sixes"),
@@ -66,9 +71,7 @@ module GameRoomGames
       [
         OptionDefinition.new(key: "matches", label: _("Number of matches"), kind: :integer, default: 1),
         OptionDefinition.new(key: "extra_categories", label: _("Pair, two pairs and misery"), kind: :boolean, default: true),
-        OptionDefinition.new(key: "upper_bonus", label: _("35-point bonus for Ones through Sixes"), kind: :boolean, default: true),
-        OptionDefinition.new(key: "yahtzee_bonus", label: _("Bonus for additional Yahtzees"), kind: :boolean, default: true),
-        OptionDefinition.new(key: "joker_rule", label: _("Yahtzee Joker rule"), kind: :boolean, default: true)
+        OptionDefinition.new(key: "upper_bonus", label: _("35-point bonus for Ones through Sixes"), kind: :boolean, default: true)
       ]
     end
 
@@ -81,9 +84,8 @@ module GameRoomGames
 
     def options_summary(options)
       values = normalize_options(options)
-      _("%{matches} matches; extra categories: %{extra}; Yahtzee bonus: %{bonus}; Joker: %{joker}") % {
-        matches: values["matches"], extra: yes_no(values["extra_categories"]),
-        bonus: yes_no(values["yahtzee_bonus"]), joker: yes_no(values["joker_rule"])
+      _("%{matches} matches; extra categories: %{extra}") % {
+        matches: values["matches"], extra: yes_no(values["extra_categories"])
       }
     end
 
@@ -284,7 +286,6 @@ module GameRoomGames
       upper = %w[ones twos threes fours fives sixes].sum { |c| sheet[c].to_i }
       labels << (_("Ones through Sixes: %{points} of 63.") % { points: upper })
       labels << (_("Bonus for Ones through Sixes: %{points}.") % { points: upper >= 63 ? 35 : 0 }) if state[:options]["upper_bonus"]
-      labels << (_("Additional Yahtzee bonuses: %{points}.") % { points: state[:yahtzee_bonuses][player].to_i }) if state[:options]["yahtzee_bonus"]
       labels << (_("This sheet: %{points}.") % { points: sheet_total(state,player) })
       labels << (_("Total across matches: %{points}.") % { points: total_score(state,player) })
       labels.map { |label| ShortcutChoice.new(label: label,value: nil) }
@@ -313,7 +314,7 @@ module GameRoomGames
       # All 6^n outcomes are represented by a small memoized tree of sorted
       # multisets. This evaluates the remaining rolls without sampling or
       # inspecting any other player's future dice.
-      key = [state[:sheets][actor], state[:options], state[:yahtzee_bonuses][actor], state[:turn_rolls]].inspect
+      key = [state[:sheets][actor], state[:options], state[:turn_rolls]].inspect
       if @dice_plan_key != key
         @dice_plan_key = key
         @dice_expectations = {}
@@ -345,7 +346,7 @@ module GameRoomGames
         players: players, options: options, match: 1, current_player: players.first,
         dice: Array.new(5), turn_rolls: 0,
         sheets: new_sheets(players), totals: players.to_h { |player| [player, 0] },
-        yahtzee_bonuses: players.to_h { |player| [player, 0] }, winner: nil, draw: false
+        winner: nil, draw: false
       }
     end
 
@@ -383,22 +384,15 @@ module GameRoomGames
       category = event["value"].to_s
       player = player_key(state, actor)
       return false if state[:turn_rolls].zero? || !available_scoring_categories(state, player).include?(category)
-      bonus_yahtzee = additional_yahtzee?(state, player)
       upper_before = %w[ones twos threes fours fives sixes].sum { |key| state[:sheets][player][key].to_i }
       points = score_category(category, state[:dice], state, player)
       state[:sheets][player][category] = points
-      if bonus_yahtzee
-        state[:yahtzee_bonuses][player] += 100
-      end
       id = repository.event_id(event)
       history << HistoryEntry.new(
         key: "score:#{id}", text: _("%{player} scored %{points} in %{category}.") % {
           player: participant_name(player), points: points, category: CATEGORY_LABELS.fetch(category)
         }, event_id: id, actor: player, kind: :score, value: points
       )
-      if bonus_yahtzee
-        history << HistoryEntry.new(key: "yahtzee_bonus:#{id}", text: _("%{player} receives 100 bonus points for another Yahtzee.") % { player: participant_name(player) }, event_id: id, actor: player, kind: :game)
-      end
       upper_after = %w[ones twos threes fours fives sixes].sum { |key| state[:sheets][player][key].to_i }
       if state[:options]["upper_bonus"] && upper_before < 63 && upper_after >= 63
         history << HistoryEntry.new(key: "upper_bonus:#{id}", text: _("%{player} receives 35 bonus points for Ones through Sixes.") % { player: participant_name(player) }, event_id: id, actor: player, kind: :game)
@@ -433,7 +427,6 @@ module GameRoomGames
         state[:match] += 1
         state[:sheets] = new_sheets(state[:players])
         state[:sheet_counted] = false
-        state[:yahtzee_bonuses] = state[:players].to_h { |player| [player, 0] }
         first = (state[:match] - 1) % state[:players].length
         state[:current_player] = state[:players].rotate(first).find { |player| active.include?(player) }
       end
@@ -464,14 +457,7 @@ module GameRoomGames
     end
 
     def available_scoring_categories(state, actor)
-      unused = unused_categories(state, actor)
-      return unused if !joker_active?(state, actor, state[:dice])
-
-      matching_upper = %w[ones twos threes fours fives sixes][state[:dice].first.to_i - 1]
-      return [matching_upper] if unused.include?(matching_upper)
-
-      lower = unused - %w[ones twos threes fours fives sixes]
-      lower.empty? ? unused : lower
+      unused_categories(state, actor)
     end
 
     def score_category(category, dice, state, actor)
@@ -479,13 +465,15 @@ module GameRoomGames
       counts = values.tally
       face = %w[ones twos threes fours fives sixes].index(category.to_s)
       return values.count(face + 1) * (face + 1) if face != nil
-      joker = joker_active?(state, actor, values)
+      if values.length == 5 && counts.values == [5]
+        return YAHTZEE_SCORES.fetch(category.to_s, 0)
+      end
       case category.to_s
       when "three_kind" then counts.values.max.to_i >= 3 ? values.sum : 0
       when "four_kind" then counts.values.max.to_i >= 4 ? [15, values.sum].max : 0
-      when "full_house" then (counts.values.sort == [2, 3] || joker) ? [25, values.sum].max : 0
-      when "small_straight" then straight_length(values) >= 4 || joker ? 30 : 0
-      when "large_straight" then straight_length(values) >= 5 || joker ? 40 : 0
+      when "full_house" then counts.values.sort == [2, 3] ? [25, values.sum].max : 0
+      when "small_straight" then straight_length(values) >= 4 ? 30 : 0
+      when "large_straight" then straight_length(values) >= 5 ? 40 : 0
       when "yahtzee" then counts.values.max.to_i == 5 ? 50 : 0
       when "chance" then values.sum
       when "pair" then counts.values.any? { |count| count >= 2 } ? values.sum : 0
@@ -506,22 +494,11 @@ module GameRoomGames
       best
     end
 
-    def joker_active?(state, actor, dice)
-      player = player_key(state, actor)
-      state[:options]["joker_rule"] && dice.uniq.length == 1 &&
-        state[:sheets][player]["yahtzee"].to_i == 50
-    end
-
-    def additional_yahtzee?(state, actor)
-      state[:options]["yahtzee_bonus"] && state[:dice].uniq.length == 1 &&
-        state[:sheets][actor]["yahtzee"].to_i == 50
-    end
-
     def sheet_total(state, player)
       sheet = state[:sheets][player]
       upper = %w[ones twos threes fours fives sixes].sum { |category| sheet[category].to_i }
       bonus = state[:options]["upper_bonus"] && upper >= 63 ? 35 : 0
-      sheet.values.sum + bonus + state[:yahtzee_bonuses][player].to_i
+      sheet.values.sum + bonus
     end
 
     def new_sheets(players)
@@ -574,9 +551,6 @@ module GameRoomGames
         after = bot_upper_bonus_probability(remaining - [face], 63 - previous - points.to_i)
         value += 35.0 * (after - before)
       end
-      if state[:options]["yahtzee_bonus"] && dice.uniq.length == 1 && state[:sheets][actor]["yahtzee"] == 50
-        value += 100
-      end
       value
     end
 
@@ -613,9 +587,7 @@ module GameRoomGames
       return false unless others.all? { |other| unused_categories(state, other).empty? }
 
       sheet = state[:sheets][player].merge(category => score_category(category, state[:dice], state, player))
-      bonuses = state[:yahtzee_bonuses].dup
-      bonuses[player] += 100 if additional_yahtzee?(state, player)
-      after = state.merge(sheets: state[:sheets].merge(player => sheet), yahtzee_bonuses: bonuses)
+      after = state.merge(sheets: state[:sheets].merge(player => sheet))
       others.all? { |other| total_score(after, player) > total_score(state, other) }
     end
 

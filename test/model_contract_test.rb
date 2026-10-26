@@ -43,7 +43,17 @@ assert_equal(without_replay_hashes.call(previous_categories), without_replay_has
 scientific_war = JSON.parse(File.read(File.join(__dir__, 'fixtures/contracts/v2/scientific_war.json'), encoding: 'UTF-8'))
 previous_scientific_war = corpus.fetch('cases').find { |item| item.fetch('game') == 'scientific_war' }
 assert_equal(without_replay_hashes.call(previous_scientific_war), without_replay_hashes.call(scientific_war), 'Scientific War cleanup must not replace the reference actions or RNG')
-cases = corpus.fetch('cases').reject { |item| %w[tysiac quiz poker categories scientific_war].include?(item.fetch('game')) } + [tysiac, quiz, poker, categories, scientific_war,
+# The maintainer replaced Yahtzee's Joker/100-point rules outright. This trace
+# contains no five-of-a-kind, so actions, scores, legal order and RNG must remain
+# unchanged. Only the retired options and bonus bookkeeping leave the replay.
+# Preserve the original corpus and inputs; the reviewed v2 records the new state.
+yahtzee = JSON.parse(File.read(File.join(__dir__, 'fixtures/contracts/v2/yahtzee.json'), encoding: 'UTF-8'))
+previous_yahtzee = corpus.fetch('cases').find { |item| item.fetch('game') == 'yahtzee' }
+expected_yahtzee = without_replay_hashes.call(previous_yahtzee)
+expected_yahtzee['session'] = previous_yahtzee.fetch('session').merge('options' => JSON.generate(
+  JSON.parse(previous_yahtzee.fetch('session').fetch('options')).except('yahtzee_bonus', 'joker_rule')))
+assert_equal(expected_yahtzee, without_replay_hashes.call(yahtzee), 'Yahtzee scoring cleanup must not replace the reference inputs, actions or RNG')
+cases = corpus.fetch('cases').reject { |item| %w[tysiac quiz poker categories scientific_war yahtzee].include?(item.fetch('game')) } + [tysiac, quiz, poker, categories, scientific_war, yahtzee,
   JSON.parse(File.read(File.join(__dir__, 'fixtures/contracts/v1/mille_bornes.json'), encoding: 'UTF-8'))]
 # Bridge's shared private-hand integration changes ordinary hands from seat
 # arrays to account-keyed hashes. All original actions, order and RNG remain.

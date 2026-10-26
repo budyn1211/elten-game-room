@@ -8,18 +8,20 @@ score = ->(category, dice) { yahtzee.send(:score_category, category, dice, state
 assert(score.call("twos", [2, 2, 4, 4, 6]) == 4, "manual: count only twos")
 assert(score.call("fours", [2, 2, 4, 4, 6]) == 8, "manual: count only fours")
 assert(score.call("full_house", [6, 6, 6, 4, 4]) == 26, "manual: local full house may exceed 25")
-assert(score.call("full_house", [6, 6, 6, 6, 6]) == 0, "manual: Yahtzee is not an ordinary full house")
+assert(score.call("full_house", [6, 6, 6, 6, 6]) == 40, "manual: Yahtzee uses its special Full house score")
 assert(score.call("pair", [2, 2, 4, 4, 6]) == 18, "manual: pair counts all five dice")
 assert(score.call("two_pairs", [6, 6, 6, 4, 4]) == 26, "manual: full house also has two different pairs")
 assert(score.call("two_pairs", [6, 6, 6, 6, 4]) == 0, "manual: four equal dice alone are not two pairs")
 assert(score.call("small_straight", [1, 2, 2, 4, 5]) == 0, "manual: duplicates do not fill a straight's gap")
-state[:sheets]["Alice"]["yahtzee"] = 50
+state[:sheets]["Alice"]["yahtzee"] = 0
 state[:dice] = [3, 3, 3, 3, 3]
-assert(yahtzee.send(:available_scoring_categories, state, "Alice") == ["threes"], "manual: Joker forces matching unused upper row")
+assert(yahtzee.send(:available_scoring_categories, state, "Alice").include?("large_straight"), "manual: Yahtzee can use a straight even with a zero in Yahtzee")
 state[:sheets]["Alice"]["threes"] = 15
-assert(yahtzee.send(:available_scoring_categories, state, "Alice").include?("large_straight"), "manual: Joker opens lower rows after matching upper row")
-assert(score.call("large_straight", state[:dice]) == 40, "manual: Joker large straight scores 40")
-assert(score.call("full_house", [6, 6, 6, 6, 6]) == 30, "manual: Joker full house keeps the local 25-or-sum calculation")
+assert(yahtzee.send(:available_scoring_categories, state, "Alice").include?("ones"), "manual: upper categories remain available without a forced order")
+assert(score.call("large_straight", state[:dice]) == 40, "manual: Yahtzee in Large straight scores 40")
+assert(score.call("full_house", [6, 6, 6, 6, 6]) == 40, "manual: Yahtzee in Full house scores 40")
+assert(score.call("two_pairs", state[:dice]) == 30, "manual: Yahtzee in Two pairs scores 30")
+assert(score.call("sixes", state[:dice]) == 0, "manual: a Yahtzee does not change the upper dice values")
 
 ninety_nine = GameRoomGames::NinetyNine.new
 assert(ninety_nine.send(:total_after_card, 25, "0JS", "normal") == 35, "manual: jack adds ten, not zero")
@@ -49,4 +51,4 @@ assert(domino.send(:hand_points, [zero]) == 10, "manual: lone double zero costs 
 assert(domino.send(:hand_points, [zero, eight]) == 8, "manual: double zero with another tile costs zero in Domino")
 assert(mexican.send(:hand_points, [zero, eight]) == 18, "manual: double zero always costs ten in Mexican Train")
 
-puts "PASS manual examples: Yahtzee categories and Joker, 99 arithmetic, ordered Rummy jokers and recovery, distinct Domino/Mexican Train double-zero scoring"
+puts "PASS manual examples: Yahtzee scoring, 99 arithmetic, ordered Rummy jokers and recovery, distinct Domino/Mexican Train double-zero scoring"

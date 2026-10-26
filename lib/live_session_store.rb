@@ -617,14 +617,22 @@ class GameRoomLiveSessionStore
     end_room_io(table_id)
   end
 
-  def deactivate_room(table_or_id)
+  def deactivate_room(table_or_id, deferred: false)
     table_id = table_identifier(table_or_id)
     return false if table_id == nil
 
     session, attachment = @mutex.synchronize { [@sessions[table_id], @rooms[table_id]&.attachment] }
     return false if session == nil
 
-    session.owner? ? session.close : session.leave
+    begin_room_io(table_id)
+    io_started = true
+    if deferred
+      # Rejected provisional joins have no table screen to retain. Preserve
+      # the SDK's deferred cleanup, without reporting a successful UI exit.
+      session.owner? ? session.close : session.leave
+    else
+      confirmed_native_departure(session)
+    end
     removed = @mutex.synchronize do
       # The native RPC may return after a new endpoint has joined this room.
       # Its close callback has the same identity guard; the caller must not
@@ -641,7 +649,10 @@ class GameRoomLiveSessionStore
       true
     end
     emit_presence_change if removed
+    raise GameRoomNetworkErrors::GamePaused, 'The table membership changed while leaving' unless removed
     true
+  ensure
+    end_room_io(table_id) if io_started
   end
 
   def connected_users(table_or_id)
@@ -967,6 +978,38 @@ class GameRoomLiveSessionStore
     return unless @mutex.synchronize { @sessions[table_id].equal?(session) }
     session.owner? ? session.close : session.leave unless session.closed?
     forget_joined_session(table_id, session)
+  end
+
+  # Session#leave/#close also call close_local in ensure on a failed RPC.
+  # Keep the exact native membership alive until the endpoint acknowledges
+  # departure (or confirms it is already absent). Never patch the host or
+  # infer acknowledgement from a local closed flag/background retry count.
+  def confirmed_native_departure(session)
+    connection = @mutex.synchronize { @endpoint }
+    operation = session.owner? ? :close : :leave
+    if connection.respond_to?(:leave_session) && connection.respond_to?(:close_session) && session.respond_to?(:close_local)
+      unless @endpoint_provider.call.equal?(connection) && connection.sessions.any? { |candidate| candidate.equal?(session) }
+        raise GameRoomNetworkErrors::GamePaused, 'The table connection changed while leaving'
+      end
+      begin
+        confirmed = connection.public_send("#{operation}_session", session)
+        raise GameRoomNetworkErrors::UncertainWrite, 'Table departure was not confirmed' unless confirmed == true
+      rescue StandardError => error
+        code = error.respond_to?(:code) ? error.code.to_s : ''
+        raise unless GameRoomNetworkErrors.expected?(error) &&
+          %w[apps.live_sessions.not_found apps.live_sessions.closed apps.live_sessions.membership_required].include?(code)
+      end
+      session.close_local(operation == :close ? :closed : :left, confirmed: true, operation: operation)
+    else
+      # Detached local adapters retain their own synchronous close contract.
+      # The supported native host always has the endpoint methods above.
+      if defined?(EltenAPI::LiveSessions::Session) && session.is_a?(EltenAPI::LiveSessions::Session)
+        raise GameRoomNetworkErrors::GamePaused, 'Confirmed native departure is unavailable'
+      end
+      confirmed = operation == :close ? session.close : session.leave
+      raise GameRoomNetworkErrors::UncertainWrite, 'Table departure was not confirmed' unless confirmed == true
+    end
+    true
   end
 
   # An old accepted request may finish after the runtime changes account.

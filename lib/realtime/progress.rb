@@ -17,6 +17,11 @@ module GameRoomRealtime
     end
 
     def attach(form)
+      # A match may start on the covering scene's UI before it has a view.
+      # Its eventual form belongs to the returning game's UI, not that scene.
+      # Otherwise the bridge wins every clock tick with neutral background
+      # input even while this form is visibly processing the player's keys.
+      @ui_thread = Thread.current
       return if @form.equal?(form)
       detach
       @form = form

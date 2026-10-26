@@ -102,26 +102,23 @@
     {
       "id": "yahtzees",
       "title": {
-        "pl": "Kolejne Yahtzee i zasada Jokera"
+        "pl": "Punktacja Yahtzee"
       },
       "paragraphs": [
         {
-          "pl": "Po zapisaniu 50 punktów w polu Yahtzee każde następne pięć jednakowych kości daje dodatkową premię 100 punktów. Sam rzut zapisujesz wtedy w innej kategorii, bo pole Yahtzee jest już zajęte. Jeżeli wcześniej wpisałeś w nim zero, kolejne pięć jednakowych kości nie daje tej premii."
+          "pl": "Każde pięć jednakowych kości możesz zapisać w dowolnym wolnym polu. Możesz tak zrobić również po wcześniejszym zapisaniu zera w Yahtzee. Za taki rzut obowiązuje specjalna punktacja:"
         },
         {
-          "pl": "Przy kolejnym Yahtzee działa też Joker. Pozwala wykorzystać pięć jednakowych kości w niektórych układach, ale ustala kolejność wyboru pola:"
+          "pl": "- W polu Yahtzee zapisujesz 50 punktów."
         },
         {
-          "pl": "- Najpierw musisz zająć pasujące pole od jedynek do szóstek, jeśli jest wolne. Pięć czwórek trafia więc do Czwórek i daje tam 20 punktów."
+          "pl": "- W Jedynkach–Szóstkach liczą się tylko pasujące oczka. Pięć czwórek daje więc 20 punktów w Czwórkach i zero w pozostałych pięciu polach."
         },
         {
-          "pl": "- Jeśli pasujące pole jest już zajęte, wybierz dowolną wolną kategorię spoza pól od jedynek do szóstek. Joker pozwala wpisać pięć jednakowych kości jako Full, Mały strit albo Duży strit i dostać punkty przewidziane dla tych układów. Pozostałe kategorie liczą się zwyczajnie; na przykład Dwie pary nadal dają za taki rzut zero."
+          "pl": "- Jedna para i Dwie pary dają po 30 punktów."
         },
         {
-          "pl": "- Dopiero gdy wszystkie pozostałe kategorie są zajęte, wybierasz inne wolne pole od jedynek do szóstek. Ponieważ wartość kości do niego nie pasuje, zapisujesz zero."
-        },
-        {
-          "pl": "Joker, podobnie jak premia 100 punktów, wymaga wcześniejszego wyniku 50 w polu Yahtzee. Samo wyrzucenie pięciu jednakowych kości po raz pierwszy nie uruchamia tej zasady."
+          "pl": "- Trójka, Kareta, Full, Mały strit, Duży strit, Szansa i Nędza dają po 40 punktów."
         }
       ]
     },
@@ -143,22 +140,13 @@
       },
       "paragraphs": [
         {
-          "pl": "W ustawieniach stołu możesz skrócić kartę lub zmienić premie. Zwykle wszystkie opisane wyżej zasady są włączone:"
+          "pl": "Przed grą możesz skrócić kartę lub wyłączyć premię za pola od jedynek do szóstek:"
         },
         {
           "pl": "- Wyłączenie kategorii „Jedna para”, „Dwie pary” i „Nędza” usuwa te trzy pola. Każdy rozgrywa wtedy 13 tur zamiast 16."
         },
         {
           "pl": "- Wyłączenie premii za pola od jedynek do szóstek usuwa dodatkowe 35 punktów. Same wyniki w tych polach nadal się liczą."
-        },
-        {
-          "pl": "- Wyłączenie premii za kolejne Yahtzee usuwa dodatkowe 100 punktów za następne pięć jednakowych kości."
-        },
-        {
-          "pl": "- Wyłączenie Jokera znosi zarówno obowiązek wyboru pasującego pola od jedynek do szóstek, jak i możliwość traktowania pięciu jednakowych kości jako Fulla lub strita. Wybierasz dowolne wolne pole i liczysz je zwykłym sposobem."
-        },
-        {
-          "pl": "Premię za kolejne Yahtzee i Jokera można wyłączać osobno. Bez Jokera nadal możesz dostać premię 100 punktów, jeśli pozostawisz ją włączoną."
         },
         {
           "pl": "Liczba rozgrywek jest początkowo ustawiona na jedną. Możesz wybrać kilka: po każdej wypełnionej karcie zaczniecie następną z pustymi polami, zachowując punkty z poprzednich. Ostatecznie wygrywa osoba z najwyższą sumą ze wszystkich rozgrywek."
@@ -240,8 +228,6 @@
   "option_chapters": {
     "matches": "options",
     "extra_categories": "options",
-    "upper_bonus": "options",
-    "yahtzee_bonus": "options",
-    "joker_rule": "options"
+    "upper_bonus": "options"
   }
 }

@@ -205,8 +205,10 @@ class GameScreen
         @automatic_recovery_pending = true
         @synchronizer.request_recovery!(delay: GameRoomSync::ERROR_BACKOFF) if !@synchronizer.recovery_pending?
         if @last_game_payload == nil
-          event = self.class.wait_for_connection(@synchronizer, program: @program)
-          return :back if event == nil
+          event = self.class.wait_for_connection(@synchronizer, program: @program,
+            leave_table: -> { @leave_table&.call(@table) })
+          next if event == nil
+          return :left_table if event.kind == :left_table
           return :room_closed if event.kind == :closed
           if event.kind == :game_started
             @new_session_id = event.session_id
@@ -367,12 +369,17 @@ class GameScreen
 
   # Used only when a screen has not received its first valid snapshot yet.
   # Timers consume existing recovery wake-ups; they never poll the server.
-  def self.wait_for_connection(synchronizer, program: nil)
-    back = Button.new(_("Back"))
-    form = GameSurfaces::RefreshAwareForm.new([back], program: program, quiet: true)
+  def self.wait_for_connection(synchronizer, program: nil, leave_table: nil)
+    leave = Button.new(_("Leave table"))
+    form = GameSurfaces::RefreshAwareForm.new([leave], program: program, quiet: true)
     result = nil
-    back.on(:press) { form.resume }
-    form.cancel_button = back
+    leave.on(:press) do
+      if leave_table&.call
+        result = GameRoomSync::Event.new(kind: :left_table)
+        form.resume
+      end
+    end
+    form.cancel_button = leave
     form.add_timer(FormTimer.new(TIMER_INTERVAL, repeat: true) do
       event = synchronizer.next_event
       if event != nil

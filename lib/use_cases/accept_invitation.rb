@@ -92,7 +92,7 @@ module GameRoomUseCases
           raise GameRoomNetworkErrors::GamePaused, 'The current table could not be left' if left == nil
           left_current = true
         rescue StandardError
-          @transport.deactivate_table(table_id: invitation.table_id) if allowed.call
+          @transport.deactivate_table(table_id: invitation.table_id, deferred: true) if allowed.call
           raise
         end
       end
@@ -105,13 +105,13 @@ module GameRoomUseCases
       if joined.entered?
         @membership.complete.call(joined.table, pending)
       elsif joined.status == :closed
-        @transport.deactivate_table(table_id: invitation.table_id)
+        @transport.deactivate_table(table_id: invitation.table_id, deferred: true)
         return refused.call unless allowed.call
         @invitations.respond(invitation, recipient: user, response: 'expired')
         return refused.call unless allowed.call
         @membership.revoke.call(invitation, notification_id: notification_id)
       else
-        @transport.deactivate_table(table_id: invitation.table_id)
+        @transport.deactivate_table(table_id: invitation.table_id, deferred: true)
       end
       return refused.call unless allowed.call
       InvitationJoin.new(result: joined, left_current: left_current)

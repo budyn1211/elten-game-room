@@ -3,7 +3,7 @@ require_relative "../../../games/yahtzee"
 
 game = GameRoomGames::Yahtzee.new
 repository = CatHeadTailRepository.new(%w[Alice Bob])
-options = game.default_options.merge('extra_categories' => false, 'upper_bonus' => false, 'yahtzee_bonus' => false, 'joker_rule' => false)
+options = game.default_options.merge('extra_categories' => false, 'upper_bonus' => false)
 session = {'options' => JSON.generate(options)}
 build_match = lambda do |alice_dice, bob_dice|
   events = []

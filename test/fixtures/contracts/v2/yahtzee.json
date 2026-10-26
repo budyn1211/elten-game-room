@@ -1,0 +1,494 @@
+{
+  "game": "yahtzee",
+  "seed": 137,
+  "players": [
+    "Alice",
+    "Bob"
+  ],
+  "options": {
+    "matches": 1,
+    "extra_categories": true,
+    "upper_bonus": true,
+    "yahtzee_bonus": true,
+    "joker_rule": true,
+    "bot_delay": 0
+  },
+  "steps": [
+    {
+      "events": 0,
+      "replay": "d82bf4352bf4067a4e28cff18ff31b3ac75c9df47a3f7ff1fe0514849e39bb2b",
+      "actor": "Alice",
+      "legal": "5ff55420456410071735ca117ee6d6db21e6cbaa9cf685d3869da4935514eef1",
+      "rng": [
+        735,
+        295,
+        590,
+        148,
+        241,
+        332,
+        335,
+        130
+      ],
+      "action": {
+        "kind": "dice",
+        "action": "roll",
+        "die_ids": "d0,d1,d2,d3,d4"
+      }
+    },
+    {
+      "events": 1,
+      "replay": "4a7252344ed95e43746f92be579dc9c9471364a3d734db13277d7ea5de31fa1c",
+      "actor": "Alice",
+      "legal": "c22050a4a22110b4a6b51de8f43fd4f02b0d2f9b3a2b8a90a614f4638cb46742",
+      "rng": [
+        746,
+        407,
+        311,
+        408,
+        634,
+        440,
+        634,
+        52
+      ],
+      "action": {
+        "kind": "dice",
+        "action": "score",
+        "category": "ones"
+      }
+    },
+    {
+      "events": 2,
+      "replay": "39bd88997cb3c80f900d3bbf9f828fcf115313bda16393b8a63a5f5092026862",
+      "actor": "Bob",
+      "legal": "5ff55420456410071735ca117ee6d6db21e6cbaa9cf685d3869da4935514eef1",
+      "rng": [
+        746,
+        407,
+        311,
+        408,
+        634,
+        440,
+        634,
+        52
+      ],
+      "action": {
+        "kind": "dice",
+        "action": "roll",
+        "die_ids": "d0,d1,d2,d3,d4"
+      }
+    },
+    {
+      "events": 3,
+      "replay": "450e199cef96b2ec254fb880e0c225ccc0932cb56575daba6250a05183d401a6",
+      "actor": "Bob",
+      "legal": "c22050a4a22110b4a6b51de8f43fd4f02b0d2f9b3a2b8a90a614f4638cb46742",
+      "rng": [
+        294,
+        949,
+        329,
+        512,
+        285,
+        984,
+        349,
+        817
+      ],
+      "action": {
+        "kind": "dice",
+        "action": "score",
+        "category": "ones"
+      }
+    },
+    {
+      "events": 4,
+      "replay": "f60cecc4b556b2e193239175a7cd5faf9c7bc745820535a166ac2773d8f077ce",
+      "actor": "Alice",
+      "legal": "5ff55420456410071735ca117ee6d6db21e6cbaa9cf685d3869da4935514eef1",
+      "rng": [
+        294,
+        949,
+        329,
+        512,
+        285,
+        984,
+        349,
+        817
+      ],
+      "action": {
+        "kind": "dice",
+        "action": "roll",
+        "die_ids": "d0,d1,d2,d3,d4"
+      }
+    },
+    {
+      "events": 5,
+      "replay": "b2e57bdc3243956c3ea871bb5ead9a71917ad69ef594a658dd139e2462a27133",
+      "actor": "Alice",
+      "legal": "dab32cca52e2cc133abb914826b3f90f2a3feca48be0395ffa929c6ee2d918b5",
+      "rng": [
+        817,
+        736,
+        886,
+        525,
+        361,
+        872,
+        312,
+        583
+      ],
+      "action": {
+        "kind": "dice",
+        "action": "score",
+        "category": "twos"
+      }
+    },
+    {
+      "events": 6,
+      "replay": "e081a6aa8bd170a087464ae082961335ce51c2fe8e288d4a53077838bb06ed89",
+      "actor": "Bob",
+      "legal": "5ff55420456410071735ca117ee6d6db21e6cbaa9cf685d3869da4935514eef1",
+      "rng": [
+        817,
+        736,
+        886,
+        525,
+        361,
+        872,
+        312,
+        583
+      ],
+      "action": {
+        "kind": "dice",
+        "action": "roll",
+        "die_ids": "d0,d1,d2,d3,d4"
+      }
+    },
+    {
+      "events": 7,
+      "replay": "1c8138c3dfad5644ac9e43e2d5bb819541b9e55930f47a145b43212e69597679",
+      "actor": "Bob",
+      "legal": "dab32cca52e2cc133abb914826b3f90f2a3feca48be0395ffa929c6ee2d918b5",
+      "rng": [
+        967,
+        62,
+        461,
+        269,
+        886,
+        209,
+        799,
+        935
+      ],
+      "action": {
+        "kind": "dice",
+        "action": "score",
+        "category": "twos"
+      }
+    },
+    {
+      "events": 8,
+      "replay": "f7b7c68b0efc74b7fcd97a8256febaea2a2340ccc6ced4509da9eeefb80164f6",
+      "actor": "Alice",
+      "legal": "5ff55420456410071735ca117ee6d6db21e6cbaa9cf685d3869da4935514eef1",
+      "rng": [
+        967,
+        62,
+        461,
+        269,
+        886,
+        209,
+        799,
+        935
+      ],
+      "action": {
+        "kind": "dice",
+        "action": "roll",
+        "die_ids": "d0,d1,d2,d3,d4"
+      }
+    },
+    {
+      "events": 9,
+      "replay": "0f855adcea9789400367693a0b0dca0dd28282ebbe48b110efcd9bd609684636",
+      "actor": "Alice",
+      "legal": "4163b9fc0ede4880aaaf9812d322e54d5dbdc78bbfa4119c8b007b5134289f17",
+      "rng": [
+        209,
+        799,
+        935,
+        242,
+        668,
+        885,
+        928,
+        968
+      ],
+      "action": {
+        "kind": "dice",
+        "action": "score",
+        "category": "threes"
+      }
+    },
+    {
+      "events": 10,
+      "replay": "415e91a4beb83db1d00535ed358b7a6f27875461b2d757a5aafcf71cc159adff",
+      "actor": "Bob",
+      "legal": "5ff55420456410071735ca117ee6d6db21e6cbaa9cf685d3869da4935514eef1",
+      "rng": [
+        209,
+        799,
+        935,
+        242,
+        668,
+        885,
+        928,
+        968
+      ],
+      "action": {
+        "kind": "dice",
+        "action": "roll",
+        "die_ids": "d0,d1,d2,d3,d4"
+      }
+    },
+    {
+      "events": 11,
+      "replay": "e1c14c83726c797fa136502d334c43f018c456521ecfab22722ea00133e3c569",
+      "actor": "Bob",
+      "legal": "4163b9fc0ede4880aaaf9812d322e54d5dbdc78bbfa4119c8b007b5134289f17",
+      "rng": [
+        118,
+        546,
+        798,
+        781,
+        847,
+        955,
+        431,
+        330
+      ],
+      "action": {
+        "kind": "dice",
+        "action": "score",
+        "category": "threes"
+      }
+    },
+    {
+      "events": 12,
+      "replay": "0a556a92c1e702c20a2d6cc89a4e778ec52cf8eb632db1af1d35559271ef429c",
+      "actor": "Alice",
+      "legal": "5ff55420456410071735ca117ee6d6db21e6cbaa9cf685d3869da4935514eef1",
+      "rng": [
+        118,
+        546,
+        798,
+        781,
+        847,
+        955,
+        431,
+        330
+      ],
+      "action": {
+        "kind": "dice",
+        "action": "roll",
+        "die_ids": "d0,d1,d2,d3,d4"
+      }
+    },
+    {
+      "events": 13,
+      "replay": "48884bcf00c19e3ebf114a03282aff793c8dfcc35da974f4731f042a0fe456c6",
+      "actor": "Alice",
+      "legal": "14ebb3e11c6f338b202636c4ce2fdd21b29dfb4126bd5e1050436e7048e870b3",
+      "rng": [
+        847,
+        955,
+        431,
+        330,
+        592,
+        125,
+        678,
+        18
+      ],
+      "action": {
+        "kind": "dice",
+        "action": "score",
+        "category": "fours"
+      }
+    },
+    {
+      "events": 14,
+      "replay": "5719203bd8444d89d01939b5ccfdd5970db1c7404d42d8bf751d6e9d1f1842a3",
+      "actor": "Bob",
+      "legal": "5ff55420456410071735ca117ee6d6db21e6cbaa9cf685d3869da4935514eef1",
+      "rng": [
+        847,
+        955,
+        431,
+        330,
+        592,
+        125,
+        678,
+        18
+      ],
+      "action": {
+        "kind": "dice",
+        "action": "roll",
+        "die_ids": "d0,d1,d2,d3,d4"
+      }
+    },
+    {
+      "events": 15,
+      "replay": "80c9a1c930f8aa3811fe236ffd17cc944249331cd8bb525e51859ba3f1816fab",
+      "actor": "Bob",
+      "legal": "14ebb3e11c6f338b202636c4ce2fdd21b29dfb4126bd5e1050436e7048e870b3",
+      "rng": [
+        18,
+        620,
+        691,
+        212,
+        703,
+        67,
+        522,
+        549
+      ],
+      "action": {
+        "kind": "dice",
+        "action": "score",
+        "category": "fours"
+      }
+    }
+  ],
+  "final": {
+    "events": 16,
+    "replay": "ea3fe87e3fe298c9d63e670406f0427e0c4207f371c9cdee01e0cf72c2bceba5",
+    "actor": "Alice",
+    "legal": "5ff55420456410071735ca117ee6d6db21e6cbaa9cf685d3869da4935514eef1",
+    "rng": [
+      18,
+      620,
+      691,
+      212,
+      703,
+      67,
+      522,
+      549
+    ]
+  },
+  "session": {
+    "__id": 1,
+    "table_id": 1,
+    "game": "yahtzee",
+    "options": "{\"matches\":1,\"extra_categories\":true,\"upper_bonus\":true,\"bot_delay\":0}",
+    "__players": [
+      "Alice",
+      "Bob"
+    ]
+  },
+  "events": [
+    {
+      "id": 1,
+      "sequence": 1,
+      "actor": "Alice",
+      "action": "roll",
+      "value": "1,2,4,4,6"
+    },
+    {
+      "id": 2,
+      "sequence": 2,
+      "actor": "Alice",
+      "action": "score",
+      "value": "ones"
+    },
+    {
+      "id": 3,
+      "sequence": 3,
+      "actor": "Bob",
+      "action": "roll",
+      "value": "2,2,2,4,4"
+    },
+    {
+      "id": 4,
+      "sequence": 4,
+      "actor": "Bob",
+      "action": "score",
+      "value": "ones"
+    },
+    {
+      "id": 5,
+      "sequence": 5,
+      "actor": "Alice",
+      "action": "roll",
+      "value": "1,5,5,5,6"
+    },
+    {
+      "id": 6,
+      "sequence": 6,
+      "actor": "Alice",
+      "action": "score",
+      "value": "twos"
+    },
+    {
+      "id": 7,
+      "sequence": 7,
+      "actor": "Bob",
+      "action": "roll",
+      "value": "1,1,5,6,6"
+    },
+    {
+      "id": 8,
+      "sequence": 8,
+      "actor": "Bob",
+      "action": "score",
+      "value": "twos"
+    },
+    {
+      "id": 9,
+      "sequence": 9,
+      "actor": "Alice",
+      "action": "roll",
+      "value": "5,5,5,6,6"
+    },
+    {
+      "id": 10,
+      "sequence": 10,
+      "actor": "Alice",
+      "action": "score",
+      "value": "threes"
+    },
+    {
+      "id": 11,
+      "sequence": 11,
+      "actor": "Bob",
+      "action": "roll",
+      "value": "1,1,2,4,5"
+    },
+    {
+      "id": 12,
+      "sequence": 12,
+      "actor": "Bob",
+      "action": "score",
+      "value": "threes"
+    },
+    {
+      "id": 13,
+      "sequence": 13,
+      "actor": "Alice",
+      "action": "roll",
+      "value": "2,2,5,6,6"
+    },
+    {
+      "id": 14,
+      "sequence": 14,
+      "actor": "Alice",
+      "action": "score",
+      "value": "fours"
+    },
+    {
+      "id": 15,
+      "sequence": 15,
+      "actor": "Bob",
+      "action": "roll",
+      "value": "1,2,3,5,6"
+    },
+    {
+      "id": 16,
+      "sequence": 16,
+      "actor": "Bob",
+      "action": "score",
+      "value": "fours"
+    }
+  ]
+}

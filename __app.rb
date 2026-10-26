@@ -1997,8 +1997,9 @@ class EltenGameRoom < Program
     return state unless state == :unavailable
     return last_room_state unless last_room_state == nil
 
-    event = GameScreen.wait_for_connection(synchronizer, program: self)
-    event == nil || event.kind == :closed ? nil : :retry
+    event = GameScreen.wait_for_connection(synchronizer, program: self,
+      leave_table: -> { leave_table_from_screen(row) })
+    event && [:closed, :left_table].include?(event.kind) ? nil : :retry
   end
 
   def present_table_screen(state, layout, table_id, prepared_screen, synchronizer, chat_sends)
@@ -2252,7 +2253,7 @@ class EltenGameRoom < Program
     game = game_definition(row["game"])
     if own_table
       state = load_room_state(row, title: _("Updating table"))
-      return false unless state
+      return false if state == nil || state == :unavailable
       if state.active? && state.room.members.any? { |user| !GameRoomParticipants.same?(user, Session.name) }
         error = game&.controller_change_error(state.replay)
         if error
@@ -2296,7 +2297,6 @@ class EltenGameRoom < Program
     GameRoomSessionRunner.synchronize_table(program: self, table_id: @lobby.table_id(row), viewer: Session.name) do
       guard = table_departure_guard(row)
       left = @lobby.leave_table(row, Session.name, **(guard ? {control_guard: guard} : {}))
-      @transport.deactivate_table(table_id: @lobby.table_id(row)) if left != nil
       left
     end
   end

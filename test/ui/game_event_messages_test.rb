@@ -38,16 +38,16 @@ check.call("UNO: roulette and buzzer status") do
   assert(game.send(:status_text, state, "Alice").include?("B"), "Buzzer says ordinary turn")
 end
 
-check.call("Yahtzee: awarded bonuses, without changing score") do
+check.call("Yahtzee: special score and upper bonus announcements") do
   game = GameRoomGames::Yahtzee.new
-  state = game.send(:initial_state, players, game.default_options.merge("yahtzee_bonus" => true, "joker_rule" => false))
+  state = game.send(:initial_state, players, game.default_options)
   state.update(current_player: "Alice", dice: [2, 2, 2, 2, 2], turn_rolls: 1)
   state[:sheets]["Alice"]["yahtzee"] = 50
   before = game.send(:sheet_total, state, "Alice")
   history = []
   assert(game.send(:apply_score, state, event.merge("value" => "twos"), "Alice", repository, history), "Score refused")
-  assert(game.send(:sheet_total, state, "Alice") - before == 110, "Bonus economics changed")
-  assert(history.any? { |h| h.text.include?("Alice") && h.text.include?("100") }, "Bonus not announced")
+  assert(game.send(:sheet_total, state, "Alice") - before == 10, "Yahtzee must not add a separate bonus")
+  assert(history.none? { |h| h.text.include?("100") }, "Retired bonus was announced")
   state = game.send(:initial_state, players, game.default_options.merge("upper_bonus" => true))
   state[:sheets]["Alice"].merge!("ones" => 3, "twos" => 6, "threes" => 9, "fours" => 12, "fives" => 15)
   state.update(current_player: "Alice", dice: [1, 2, 6, 6, 6], turn_rolls: 1)

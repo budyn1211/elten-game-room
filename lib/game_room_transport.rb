@@ -272,8 +272,8 @@ class GameRoomTransport
     @live_store.wait_for_room(table_id, timeout: timeout)
   end
 
-  def deactivate_table(table_id:)
-    @live_store.deactivate_room(table_id)
+  def deactivate_table(table_id:, deferred: false)
+    @live_store.deactivate_room(table_id, deferred: deferred)
   end
 
   def connected_users(table_id)
