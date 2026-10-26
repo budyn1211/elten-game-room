@@ -7377,7 +7377,7 @@ msgstr "Opóźnienie bota jest osobnym ustawieniem: zero nie dodaje celowej pauz
 msgid "Bot move delay"
 msgstr "Opóźnienie bota"
 
-#: games/base/options.rb:222
+#: games/base/options.rb:229
 msgid "Bot move delay cannot exceed thinking time."
 msgstr "Opóźnienie ruchu komputera nie może przekraczać czasu na myślenie."
 
@@ -7399,7 +7399,7 @@ msgstr "Opóźnienie ruchu bota daje krótką pauzę przed jego działaniem, aby
 msgid "Bot move delay lets the table pause briefly before a computer acts, so people can follow the play. Choose 0 to 5 seconds. Zero removes the deliberate pause; it does not disable the bot or change its playing strength. UNO and Makao start at one second, other games at zero."
 msgstr "Opóźnienie ruchu bota daje krótką pauzę przed jego działaniem, aby ludzie mogli śledzić rozgrywkę. Wybierz od 0 do 5 sekund. Zero usuwa celową pauzę, nie wyłącza bota ani nie zmienia jego umiejętności. W UNO i Makao początkowo jest jedna sekunda, w pozostałych grach zero."
 
-#: games/base/options.rb:217
+#: games/base/options.rb:224
 msgid "Bot move delay must be from 0 to 5 seconds."
 msgstr "Opóźnienie bota musi wynosić od 0 do 5 sekund."
 
@@ -10677,8 +10677,8 @@ msgid "Difficulty and ball speed"
 msgstr "Trudność i szybkość piłki"
 
 #: games/generated/rulebooks/axel_pong.rb:34
-msgid "Difficulty and ball speed has six levels: Easy, Normal, Hard, Insane, Impossible and Nightmare. Higher settings start with a faster ball. Against a bot, they also change reaction time, movement, aim and the chance of an error. The bot tracks the visible ball with limited precision and does not track an invisible ball. It may still return an invisible ball if its paddle happens to be in the right place."
-msgstr "Trudność i szybkość piłki mają sześć poziomów: łatwy, normalny, trudny, szalony, niemożliwy i koszmar. Im wyższy poziom, tym szybsza jest piłka już na początku wymiany. W grze z botem zmieniają się także jego czas reakcji, ruch, celowanie i prawdopodobieństwo pomyłki. Bot śledzi widoczną piłkę z ograniczoną dokładnością, a niewidzialnej nie śledzi. Może ją jednak odbić, jeśli przypadkiem stoi w odpowiednim miejscu."
+msgid "Difficulty and ball speed has seven levels: Easy, Normal, Hard, Insane, Impossible, Nightmare and Inferno. Higher settings start with a faster ball. Against a bot, they also change reaction time, movement, aim and the chance of an error. The bot tracks the visible ball with limited precision and does not track an invisible ball. It may still return an invisible ball if its paddle happens to be in the right place."
+msgstr "Trudność i szybkość piłki mają siedem poziomów: łatwy, normalny, trudny, szalony, niemożliwy, koszmar i inferno. Im wyższy poziom, tym szybsza jest piłka już na początku wymiany. W grze z botem zmieniają się także jego czas reakcji, ruch, celowanie i prawdopodobieństwo pomyłki. Bot śledzi widoczną piłkę z ograniczoną dokładnością, a niewidzialnej nie śledzi. Może ją jednak odbić, jeśli przypadkiem stoi w odpowiednim miejscu."
 
 msgid "Difficulty and ball speed offers Easy, Normal and Hard; Normal is the default. The first flight takes 1.5 seconds on Easy, 1.2 seconds on Normal and 0.9 seconds on Hard. Each later shot in the rally increases speed by 10 percent on Easy and Normal, or 8 percent on Hard. A new point returns to the initial speed."
 msgstr "Opcja Trudność i prędkość piłki oferuje poziomy Łatwy, Normalny i Trudny; domyślny jest Normalny. Pierwszy lot trwa 1,5 sekundy na poziomie Łatwym, 1,2 sekundy na Normalnym i 0,9 sekundy na Trudnym. Każde kolejne uderzenie w wymianie zwiększa prędkość o 10 procent na poziomach Łatwym i Normalnym albo o 8 procent na Trudnym. Nowy punkt przywraca początkową prędkość."
@@ -13291,11 +13291,11 @@ msgstr "Aktualizacje gry i pokoju są odbierane również podczas naciskania kla
 msgid "Game announcements and sounds also reach you while another window covers the game. This includes the waiting room: participants joining and leaving, the start of a game and the table closing."
 msgstr "Komunikaty i dźwięki z takiej partii docierają także wtedy, gdy jej okno jest przykryte. Dotyczy to również poczekalni: dołączania i wychodzenia uczestników, rozpoczęcia rozgrywki oraz zamknięcia stołu."
 
-#: games/base/options.rb:337
+#: games/base/options.rb:344
 msgid "Game content language"
 msgstr "Język zawartości gry"
 
-#: games/base/options.rb:346
+#: games/base/options.rb:353
 msgid "Game content set"
 msgstr "Zestaw zawartości gry"
 
@@ -14651,6 +14651,10 @@ msgstr "Domyślnie każdy gra indywidualnie. Cztery osoby mogą utworzyć dwie p
 #: content/monopoly_boards.rb:24
 msgid "Indonesian board"
 msgstr "Plansza indonezyjska"
+
+#: games/axel_pong.rb:47
+msgid "Inferno"
+msgstr "Inferno"
 
 #: __app.rb:1348 lib/tournaments/server_schedule_overview.rb:20
 msgid "Information"
@@ -23762,7 +23766,7 @@ msgstr "Członkowie drużyny mają wspólny dystans, przeszkody, ochronę i punk
 msgid "Teams"
 msgstr "Drużyny"
 
-#: games/base/options.rb:263
+#: games/base/options.rb:270
 msgid "Teams in seating order: %{teams}"
 msgstr "Drużyny według kolejności miejsc: %{teams}"
 
@@ -24729,7 +24733,7 @@ msgstr "Gra jest zakończona. Wygrywa %{winner}."
 msgid "The game is split into two phases. During the Gift phase players receive free cards. During the Auction phase players purchase cards in an auction."
 msgstr "Partia ma dwie fazy. W fazie darów otrzymujecie karty bezpłatnie. W fazie aukcji kupujecie je w licytacjach."
 
-#: games/base/options.rb:167
+#: games/base/options.rb:174
 msgid "The game settings are invalid."
 msgstr "Ustawienia gry są nieprawidłowe."
 
@@ -24822,11 +24826,11 @@ msgstr "Włączone karty muszą wystarczyć na początkowe rozdanie po sześć k
 msgid "The individual descriptions below give the stake for each challenge. Quiz rewards are new feathers from the game, not feathers taken from another player."
 msgstr ""
 
-#: games/base/options.rb:426
+#: games/base/options.rb:433
 msgid "The installed game content pack does not match the table."
 msgstr "Zainstalowany pakiet zawartości gry nie jest zgodny z pakietem stołu."
 
-#: games/base/options.rb:423
+#: games/base/options.rb:430
 msgid "The installed game content pack has a different version."
 msgstr "Zainstalowany pakiet zawartości gry ma inną wersję."
 
@@ -25523,14 +25527,14 @@ msgstr "Wybrane karty nie tworzą prawidłowej paczki."
 msgid "The selected category pool is not supported."
 msgstr "Wybrana pula kategorii nie jest obsługiwana."
 
-#: games/base/options.rb:420
+#: games/base/options.rb:427
 msgid "The selected content pack does not match the set and language."
 msgstr "Wybrany pakiet zawartości nie odpowiada zestawowi i językowi."
 
 msgid "The selected content pack is not compatible with this game."
 msgstr "Wybrany pakiet zawartości nie jest zgodny z tą grą."
 
-#: games/base/options.rb:407
+#: games/base/options.rb:414
 msgid "The selected content set is not compatible with this game."
 msgstr "Wybrany zestaw zawartości nie jest zgodny z tą grą."
 
@@ -25538,15 +25542,15 @@ msgstr "Wybrany zestaw zawartości nie jest zgodny z tą grą."
 msgid "The selected dice do not form a scoring combination."
 msgstr "Wybrane kości nie tworzą kombinacji punktującej."
 
-#: games/base/options.rb:418
+#: games/base/options.rb:425
 msgid "The selected game content pack is not installed."
 msgstr "Wybrany pakiet zawartości gry nie jest zainstalowany."
 
-#: games/base/options.rb:405
+#: games/base/options.rb:412
 msgid "The selected game content set is not installed."
 msgstr "Wybrany zestaw zawartości gry nie jest zainstalowany."
 
-#: games/base/options.rb:415
+#: games/base/options.rb:422
 msgid "The selected language is not available for this content set."
 msgstr "Wybrany język nie jest dostępny dla tego zestawu zawartości."
 
@@ -25570,7 +25574,7 @@ msgstr "Wybrane pytania lub słownik są niedostępne. Wybierz zainstalowany zes
 msgid "The selected word dictionary is missing or damaged."
 msgstr "Wybrany słownik wyrazów jest niedostępny lub uszkodzony."
 
-#: games/base/options.rb:189
+#: games/base/options.rb:196
 msgid "The selection for %{option} contains an unavailable choice."
 msgstr "W ustawieniu „%{option}” wybrano niedostępną opcję."
 
@@ -26284,14 +26288,14 @@ msgstr "Rzecz"
 msgid "Think of answers that fit the chosen letter and categories."
 msgstr "Wymyślaj odpowiedzi pasujące do wylosowanej litery i kategorii."
 
-#: games/base/options.rb:201
+#: games/base/options.rb:208
 msgid "Thinking time"
 msgstr "Czas na ruch"
 
 msgid "Thinking time defaults to zero, meaning unlimited. At its expiry draw one tile and pass, without playing it. If you already drew, drawing is forbidden or the boneyard is empty, only pass. Drawing does not restart the clock. The timer is not automatically read aloud."
 msgstr "Czas na ruch domyślnie wynosi zero, czyli bez limitu. Po jego upływie gracz dobiera jedną kostkę i traci turę, bez możliwości jej zagrania. Jeżeli już dobierał, dobieranie jest zabronione albo stos jest pusty, następuje sam koniec tury. Dobieranie nie odnawia czasu. Odliczanie nie jest samoczynnie odczytywane."
 
-#: games/base/options.rb:200
+#: games/base/options.rb:207
 msgid "Thinking time in seconds; zero means no limit"
 msgstr "Czas na ruch w sekundach; zero oznacza brak limitu"
 
@@ -26348,7 +26352,7 @@ msgstr "Czas na ruch musi wynosić od 0 do 300 sekund."
 msgid "Thinking time must be from 0 to 600 seconds."
 msgstr "Czas na ruch musi wynosić od 0 do 600 sekund."
 
-#: games/base/options.rb:209
+#: games/base/options.rb:216
 msgid "Thinking time must be zero or from %{minimum} to %{maximum} seconds."
 msgstr "Czas na ruch musi wynosić zero lub od %{minimum} do %{maximum} sekund."
 
@@ -26791,7 +26795,7 @@ msgstr "Ten stół jest pełny."
 msgid "This table is no longer available."
 msgstr "Ten stół nie jest już dostępny."
 
-#: games/base/options.rb:265
+#: games/base/options.rb:272
 msgid "This table uses fixed rules with no configurable additions."
 msgstr "Ten stół korzysta ze stałych zasad, bez dodatkowych ustawień."
 
@@ -30913,7 +30917,7 @@ msgstr "konflikt"
 msgid "conflict; no further submission"
 msgstr "konflikt; bez ponownego wysyłania"
 
-#: games/base/options.rb:437
+#: games/base/options.rb:444
 msgid "content: %{title}; language: %{language}"
 msgstr "zawartość: %{title}; język: %{language}"
 

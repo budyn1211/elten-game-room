@@ -7312,7 +7312,7 @@ msgstr ""
 msgid "Bot move delay"
 msgstr ""
 
-#: games/base/options.rb:222
+#: games/base/options.rb:229
 msgid "Bot move delay cannot exceed thinking time."
 msgstr ""
 
@@ -7334,7 +7334,7 @@ msgstr ""
 msgid "Bot move delay lets the table pause briefly before a computer acts, so people can follow the play. Choose 0 to 5 seconds. Zero removes the deliberate pause; it does not disable the bot or change its playing strength. UNO and Makao start at one second, other games at zero."
 msgstr ""
 
-#: games/base/options.rb:217
+#: games/base/options.rb:224
 msgid "Bot move delay must be from 0 to 5 seconds."
 msgstr ""
 
@@ -10608,7 +10608,7 @@ msgid "Difficulty and ball speed"
 msgstr ""
 
 #: games/generated/rulebooks/axel_pong.rb:34
-msgid "Difficulty and ball speed has six levels: Easy, Normal, Hard, Insane, Impossible and Nightmare. Higher settings start with a faster ball. Against a bot, they also change reaction time, movement, aim and the chance of an error. The bot tracks the visible ball with limited precision and does not track an invisible ball. It may still return an invisible ball if its paddle happens to be in the right place."
+msgid "Difficulty and ball speed has seven levels: Easy, Normal, Hard, Insane, Impossible, Nightmare and Inferno. Higher settings start with a faster ball. Against a bot, they also change reaction time, movement, aim and the chance of an error. The bot tracks the visible ball with limited precision and does not track an invisible ball. It may still return an invisible ball if its paddle happens to be in the right place."
 msgstr ""
 
 msgid "Difficulty and ball speed offers Easy, Normal and Hard; Normal is the default. The first flight takes 1.5 seconds on Easy, 1.2 seconds on Normal and 0.9 seconds on Hard. Each later shot in the rally increases speed by 10 percent on Easy and Normal, or 8 percent on Hard. A new point returns to the initial speed."
@@ -13219,11 +13219,11 @@ msgstr ""
 msgid "Game announcements and sounds also reach you while another window covers the game. This includes the waiting room: participants joining and leaving, the start of a game and the table closing."
 msgstr ""
 
-#: games/base/options.rb:337
+#: games/base/options.rb:344
 msgid "Game content language"
 msgstr ""
 
-#: games/base/options.rb:346
+#: games/base/options.rb:353
 msgid "Game content set"
 msgstr ""
 
@@ -14578,6 +14578,10 @@ msgstr ""
 
 #: content/monopoly_boards.rb:24
 msgid "Indonesian board"
+msgstr ""
+
+#: games/axel_pong.rb:47
+msgid "Inferno"
 msgstr ""
 
 #: __app.rb:1348 lib/tournaments/server_schedule_overview.rb:20
@@ -23674,7 +23678,7 @@ msgstr ""
 msgid "Teams"
 msgstr ""
 
-#: games/base/options.rb:263
+#: games/base/options.rb:270
 msgid "Teams in seating order: %{teams}"
 msgstr ""
 
@@ -24640,7 +24644,7 @@ msgstr ""
 msgid "The game is split into two phases. During the Gift phase players receive free cards. During the Auction phase players purchase cards in an auction."
 msgstr ""
 
-#: games/base/options.rb:167
+#: games/base/options.rb:174
 msgid "The game settings are invalid."
 msgstr ""
 
@@ -24733,11 +24737,11 @@ msgstr ""
 msgid "The individual descriptions below give the stake for each challenge. Quiz rewards are new feathers from the game, not feathers taken from another player."
 msgstr ""
 
-#: games/base/options.rb:426
+#: games/base/options.rb:433
 msgid "The installed game content pack does not match the table."
 msgstr ""
 
-#: games/base/options.rb:423
+#: games/base/options.rb:430
 msgid "The installed game content pack has a different version."
 msgstr ""
 
@@ -25432,14 +25436,14 @@ msgstr ""
 msgid "The selected category pool is not supported."
 msgstr ""
 
-#: games/base/options.rb:420
+#: games/base/options.rb:427
 msgid "The selected content pack does not match the set and language."
 msgstr ""
 
 msgid "The selected content pack is not compatible with this game."
 msgstr ""
 
-#: games/base/options.rb:407
+#: games/base/options.rb:414
 msgid "The selected content set is not compatible with this game."
 msgstr ""
 
@@ -25447,15 +25451,15 @@ msgstr ""
 msgid "The selected dice do not form a scoring combination."
 msgstr ""
 
-#: games/base/options.rb:418
+#: games/base/options.rb:425
 msgid "The selected game content pack is not installed."
 msgstr ""
 
-#: games/base/options.rb:405
+#: games/base/options.rb:412
 msgid "The selected game content set is not installed."
 msgstr ""
 
-#: games/base/options.rb:415
+#: games/base/options.rb:422
 msgid "The selected language is not available for this content set."
 msgstr ""
 
@@ -25479,7 +25483,7 @@ msgstr ""
 msgid "The selected word dictionary is missing or damaged."
 msgstr ""
 
-#: games/base/options.rb:189
+#: games/base/options.rb:196
 msgid "The selection for %{option} contains an unavailable choice."
 msgstr ""
 
@@ -26192,14 +26196,14 @@ msgstr ""
 msgid "Think of answers that fit the chosen letter and categories."
 msgstr ""
 
-#: games/base/options.rb:201
+#: games/base/options.rb:208
 msgid "Thinking time"
 msgstr ""
 
 msgid "Thinking time defaults to zero, meaning unlimited. At its expiry draw one tile and pass, without playing it. If you already drew, drawing is forbidden or the boneyard is empty, only pass. Drawing does not restart the clock. The timer is not automatically read aloud."
 msgstr ""
 
-#: games/base/options.rb:200
+#: games/base/options.rb:207
 msgid "Thinking time in seconds; zero means no limit"
 msgstr ""
 
@@ -26256,7 +26260,7 @@ msgstr ""
 msgid "Thinking time must be from 0 to 600 seconds."
 msgstr ""
 
-#: games/base/options.rb:209
+#: games/base/options.rb:216
 msgid "Thinking time must be zero or from %{minimum} to %{maximum} seconds."
 msgstr ""
 
@@ -26699,7 +26703,7 @@ msgstr ""
 msgid "This table is no longer available."
 msgstr ""
 
-#: games/base/options.rb:265
+#: games/base/options.rb:272
 msgid "This table uses fixed rules with no configurable additions."
 msgstr ""
 
@@ -30811,7 +30815,7 @@ msgstr ""
 msgid "conflict; no further submission"
 msgstr ""
 
-#: games/base/options.rb:437
+#: games/base/options.rb:444
 msgid "content: %{title}; language: %{language}"
 msgstr ""
 

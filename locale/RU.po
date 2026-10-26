@@ -7329,7 +7329,7 @@ msgstr "Задержка бота — отдельная настройка: н�
 msgid "Bot move delay"
 msgstr "Задержка хода бота"
 
-#: games/base/options.rb:222
+#: games/base/options.rb:229
 msgid "Bot move delay cannot exceed thinking time."
 msgstr "Задержка хода бота не может превышать время на обдумывание."
 
@@ -7351,7 +7351,7 @@ msgstr "Задержка хода бота позволяет столу нен�
 msgid "Bot move delay lets the table pause briefly before a computer acts, so people can follow the play. Choose 0 to 5 seconds. Zero removes the deliberate pause; it does not disable the bot or change its playing strength. UNO and Makao start at one second, other games at zero."
 msgstr "Задержка хода бота позволяет столу ненадолго приостановиться перед ходом компьютера, чтобы людям было легче следить за игрой. Выберите от 0 до 5 секунд. Ноль убирает намеренную паузу; это не отключает бота и не меняет его силу. UNO и Makao начинают с одной секунды, другие игры с нуля."
 
-#: games/base/options.rb:217
+#: games/base/options.rb:224
 msgid "Bot move delay must be from 0 to 5 seconds."
 msgstr "Задержка хода бота должна быть от 0 до 5 секунд."
 
@@ -10618,8 +10618,8 @@ msgid "Difficulty and ball speed"
 msgstr "Сложность и скорость мяча"
 
 #: games/generated/rulebooks/axel_pong.rb:34
-msgid "Difficulty and ball speed has six levels: Easy, Normal, Hard, Insane, Impossible and Nightmare. Higher settings start with a faster ball. Against a bot, they also change reaction time, movement, aim and the chance of an error. The bot tracks the visible ball with limited precision and does not track an invisible ball. It may still return an invisible ball if its paddle happens to be in the right place."
-msgstr "Сложность и скорость мяча имеют шесть уровней: Легко, Нормально, Сложно, Безумно, Невозможно и Кошмар. На более высоких настройках мяч стартует быстрее. Против бота также изменяются время реакции, движение, прицеливание и шанс ошибки. Бот отслеживает видимый мяч с ограниченной точностью и не отслеживает невидимый мяч. Он всё же может отбить невидимый мяч, если его ракетка окажется в нужном месте."
+msgid "Difficulty and ball speed has seven levels: Easy, Normal, Hard, Insane, Impossible, Nightmare and Inferno. Higher settings start with a faster ball. Against a bot, they also change reaction time, movement, aim and the chance of an error. The bot tracks the visible ball with limited precision and does not track an invisible ball. It may still return an invisible ball if its paddle happens to be in the right place."
+msgstr "Сложность и скорость мяча имеют семь уровней: Легко, Нормально, Сложно, Безумно, Невозможно, Кошмар и Инферно. На более высоких настройках мяч стартует быстрее. Против бота также изменяются время реакции, движение, прицеливание и шанс ошибки. Бот отслеживает видимый мяч с ограниченной точностью и не отслеживает невидимый мяч. Он всё же может отбить невидимый мяч, если его ракетка окажется в нужном месте."
 
 msgid "Difficulty and ball speed offers Easy, Normal and Hard; Normal is the default. The first flight takes 1.5 seconds on Easy, 1.2 seconds on Normal and 0.9 seconds on Hard. Each later shot in the rally increases speed by 10 percent on Easy and Normal, or 8 percent on Hard. A new point returns to the initial speed."
 msgstr "Сложность и скорость мяча предлагают Легко, Нормально и Сложно; Нормально — по умолчанию. Первый полет занимает 1,5 секунды на Легко, 1,2 секунды на Нормально и 0,9 секунды на Сложно. Каждый последующий удар в розыгрыше увеличивает скорость на 10 процентов на Легко и Нормально или на 8 процентов на Сложно. Новый очко возвращает начальную скорость."
@@ -13210,11 +13210,11 @@ msgstr "Обновления партии и комнаты принимаютс
 msgid "Game announcements and sounds also reach you while another window covers the game. This includes the waiting room: participants joining and leaving, the start of a game and the table closing."
 msgstr "Объявления и звуки игры теперь слышны, даже когда её закрывает другое окно. Это относится и к комнате ожидания: сообщается о входе и выходе участников, начале партии и закрытии стола."
 
-#: games/base/options.rb:337
+#: games/base/options.rb:344
 msgid "Game content language"
 msgstr "Язык игрового содержимого"
 
-#: games/base/options.rb:346
+#: games/base/options.rb:353
 msgid "Game content set"
 msgstr "Набор игрового содержимого"
 
@@ -14570,6 +14570,10 @@ msgstr "По умолчанию каждый играет за себя. Вче�
 #: content/monopoly_boards.rb:24
 msgid "Indonesian board"
 msgstr "Индонезийское поле"
+
+#: games/axel_pong.rb:47
+msgid "Inferno"
+msgstr "Инфернальный"
 
 #: __app.rb:1348 lib/tournaments/server_schedule_overview.rb:20
 msgid "Information"
@@ -23587,7 +23591,7 @@ msgstr "Товарищи по команде делят расстояние, п
 msgid "Teams"
 msgstr "Команды"
 
-#: games/base/options.rb:263
+#: games/base/options.rb:270
 msgid "Teams in seating order: %{teams}"
 msgstr "Команды по порядку мест: %{teams}"
 
@@ -24550,7 +24554,7 @@ msgstr "Партия завершена. Победил %{winner}."
 msgid "The game is split into two phases. During the Gift phase players receive free cards. During the Auction phase players purchase cards in an auction."
 msgstr "Игра разделена на две фазы. Во время фазы Подарка игроки получают бесплатные карты. Во время фазы Аукциона игроки покупают карты на аукционе."
 
-#: games/base/options.rb:167
+#: games/base/options.rb:174
 msgid "The game settings are invalid."
 msgstr "Некорректные настройки игры."
 
@@ -24643,11 +24647,11 @@ msgstr "Включённых карт должно хватать на нача�
 msgid "The individual descriptions below give the stake for each challenge. Quiz rewards are new feathers from the game, not feathers taken from another player."
 msgstr "Ставка каждого испытания указана в его описании ниже. Награды викторины — новые перья от игры, а не перья других игроков."
 
-#: games/base/options.rb:426
+#: games/base/options.rb:433
 msgid "The installed game content pack does not match the table."
 msgstr "Установленный набор игрового содержимого не соответствует столу."
 
-#: games/base/options.rb:423
+#: games/base/options.rb:430
 msgid "The installed game content pack has a different version."
 msgstr "Версия установленного набора игрового содержимого отличается."
 
@@ -25341,14 +25345,14 @@ msgstr "Выбранные карты не образуют допустимый
 msgid "The selected category pool is not supported."
 msgstr "Выбранный набор категорий не поддерживается."
 
-#: games/base/options.rb:420
+#: games/base/options.rb:427
 msgid "The selected content pack does not match the set and language."
 msgstr "Выбранный пакет содержимого не соответствует набору и языку."
 
 msgid "The selected content pack is not compatible with this game."
 msgstr "Выбранный пакет содержимого несовместим с этой игрой."
 
-#: games/base/options.rb:407
+#: games/base/options.rb:414
 msgid "The selected content set is not compatible with this game."
 msgstr "Выбранный набор содержимого несовместим с этой игрой."
 
@@ -25356,15 +25360,15 @@ msgstr "Выбранный набор содержимого несовмест�
 msgid "The selected dice do not form a scoring combination."
 msgstr "Выбранные кубики не образуют зачётную комбинацию."
 
-#: games/base/options.rb:418
+#: games/base/options.rb:425
 msgid "The selected game content pack is not installed."
 msgstr "Выбранный пакет игрового содержимого не установлен."
 
-#: games/base/options.rb:405
+#: games/base/options.rb:412
 msgid "The selected game content set is not installed."
 msgstr "Выбранный набор игрового содержимого не установлен."
 
-#: games/base/options.rb:415
+#: games/base/options.rb:422
 msgid "The selected language is not available for this content set."
 msgstr "Выбранный язык недоступен для этого набора."
 
@@ -25388,7 +25392,7 @@ msgstr "Выбранные вопросы или словарь недоступ
 msgid "The selected word dictionary is missing or damaged."
 msgstr "Выбранный словарь отсутствует или повреждён."
 
-#: games/base/options.rb:189
+#: games/base/options.rb:196
 msgid "The selection for %{option} contains an unavailable choice."
 msgstr "В настройке «%{option}» выбрана недоступная опция."
 
@@ -26092,14 +26096,14 @@ msgstr "Предмет"
 msgid "Think of answers that fit the chosen letter and categories."
 msgstr "Придумывай ответы, подходящие к выпавшей букве и заданным категориям."
 
-#: games/base/options.rb:201
+#: games/base/options.rb:208
 msgid "Thinking time"
 msgstr "Время размышлять"
 
 msgid "Thinking time defaults to zero, meaning unlimited. At its expiry draw one tile and pass, without playing it. If you already drew, drawing is forbidden or the boneyard is empty, only pass. Drawing does not restart the clock. The timer is not automatically read aloud."
 msgstr "По умолчанию время на размышление равно нулю, то есть не ограничено. По истечении времени игра берёт одну кость и передаёт ход без её выкладывания. Если вы уже добирали, добор запрещён или базар пуст, происходит только передача хода. Добор не перезапускает таймер. Оставшееся время автоматически не озвучивается."
 
-#: games/base/options.rb:200
+#: games/base/options.rb:207
 msgid "Thinking time in seconds; zero means no limit"
 msgstr "Время на обдумывание в секундах; ноль — без ограничения"
 
@@ -26156,7 +26160,7 @@ msgstr "Время на обдумывание должно быть от 0 до
 msgid "Thinking time must be from 0 to 600 seconds."
 msgstr "Время мышления должно быть от 0 до 600 секунд."
 
-#: games/base/options.rb:209
+#: games/base/options.rb:216
 msgid "Thinking time must be zero or from %{minimum} to %{maximum} seconds."
 msgstr "Время мышления должно быть равным нулю или от %{minimum} до %{maximum} секунд."
 
@@ -26599,7 +26603,7 @@ msgstr "Этот стол заполнен."
 msgid "This table is no longer available."
 msgstr "Этот стол больше недоступен."
 
-#: games/base/options.rb:265
+#: games/base/options.rb:272
 msgid "This table uses fixed rules with no configurable additions."
 msgstr "У этого стола фиксированные правила без настраиваемых дополнений."
 
@@ -30709,7 +30713,7 @@ msgstr "конфликт"
 msgid "conflict; no further submission"
 msgstr "конфликт; повторной отправки не будет"
 
-#: games/base/options.rb:437
+#: games/base/options.rb:444
 msgid "content: %{title}; language: %{language}"
 msgstr "содержимое: %{title}; язык: %{language}"
 

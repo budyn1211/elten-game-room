@@ -10,7 +10,7 @@ require_relative "../../../lib/realtime/protocol"
 def assert(value, message); raise message unless value; end
 
 engine_type = GameRoomPong::Engine
-6.times do |i|
+7.times do |i|
   game = engine_type.new(level: i + 1, rng: Random.new(101))
   assert(game.base_speed == engine_type::BASE_SPEED[i], 'network difficulty mismatch')
   assert(!game.strike(1), 'wrong player served')
@@ -77,7 +77,7 @@ assert(rules.default_options.keys.sort == %w[arcade custom_target difficulty p2p
 
 started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 steps = 0
-6.times do |level|
+7.times do |level|
   engine = engine_type.new(level: level + 1, bots: [0, 1], arcade: true, rng: Random.new(level))
   bots = [0, 1].map { |side| GameRoomPong::Bot.new(side, level: level + 1, rng: Random.new(level + side)) }
   2000.times do

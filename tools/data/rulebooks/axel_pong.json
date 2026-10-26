@@ -140,8 +140,8 @@
       },
       "paragraphs": [
         {
-          "en": "Difficulty and ball speed has six levels: Easy, Normal, Hard, Insane, Impossible and Nightmare. Higher settings start with a faster ball. Against a bot, they also change reaction time, movement, aim and the chance of an error. The bot tracks the visible ball with limited precision and does not track an invisible ball. It may still return an invisible ball if its paddle happens to be in the right place.",
-          "pl": "Trudność i szybkość piłki mają sześć poziomów: łatwy, normalny, trudny, szalony, niemożliwy i koszmar. Im wyższy poziom, tym szybsza jest piłka już na początku wymiany. W grze z botem zmieniają się także jego czas reakcji, ruch, celowanie i prawdopodobieństwo pomyłki. Bot śledzi widoczną piłkę z ograniczoną dokładnością, a niewidzialnej nie śledzi. Może ją jednak odbić, jeśli przypadkiem stoi w odpowiednim miejscu."
+          "en": "Difficulty and ball speed has seven levels: Easy, Normal, Hard, Insane, Impossible, Nightmare and Inferno. Higher settings start with a faster ball. Against a bot, they also change reaction time, movement, aim and the chance of an error. The bot tracks the visible ball with limited precision and does not track an invisible ball. It may still return an invisible ball if its paddle happens to be in the right place.",
+          "pl": "Trudność i szybkość piłki mają siedem poziomów: łatwy, normalny, trudny, szalony, niemożliwy, koszmar i inferno. Im wyższy poziom, tym szybsza jest piłka już na początku wymiany. W grze z botem zmieniają się także jego czas reakcji, ruch, celowanie i prawdopodobieństwo pomyłki. Bot śledzi widoczną piłkę z ograniczoną dokładnością, a niewidzialnej nie śledzi. Może ją jednak odbić, jeśli przypadkiem stoi w odpowiednim miejscu."
         }
       ]
     },

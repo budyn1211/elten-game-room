@@ -5,7 +5,7 @@ def assert(value, message); raise message unless value; end
 # Unifying delivery must not re-tune local bot physics or strategy. Compare
 # every frame with the original single-process engine, including Arcade RNG.
 [false, true].each do |arcade|
-  (1..6).each do |level|
+  (1..7).each do |level|
     args = {bots: [0, 1], level: level, arcade: arcade}
     engines = [GameRoomPong::Engine.new(**args, rng: Random.new(55)),
       GameRoomPong::PeerEngine.new(**args, side: nil, authority: true, rng: Random.new(55))]
@@ -45,9 +45,9 @@ assert(calls == [[remote, true]], 'remote human serve did not initialize bot ope
 assert(!remote.apply_return(event) && calls.length == 1, 'duplicate serve restarted bot reaction')
 
 # Bot timing/width and mixed human reach stay on their old profiles.
-(1..6).each do |level|
+(1..7).each do |level|
   old = GameRoomPong::Engine.new(level: level, bots: [1, 3], teams: teams)
   peer = GameRoomPong::PeerEngine.new(side: 2, authority: false, level: level, bots: [1, 3], teams: teams)
   assert(old.base_speed == peer.base_speed && old.hit_width(2) == peer.hit_width(2), 'routing changed mixed physics profile')
 end
-puts 'PASS unified engine: frame parity for local bots/Arcade at six levels, owned seats, remote serve reaction and unchanged physics profiles'
+puts 'PASS unified engine: frame parity for local bots/Arcade at seven levels, owned seats, remote serve reaction and unchanged physics profiles'
