@@ -3,7 +3,12 @@ require_relative '../../games/three_five_eight'
 
 [true, false].each do |exchange|
   game = GameRoomGames::ThreeFiveEight.new
-  h, runners = PrivateCardGamesTest.create(game, users: %w[Alice Bob Carol], options: {'card_exchange'=>exchange})
+  # Fix the server recipe as well as the private-pool shuffle. An arbitrary
+  # first dealer can produce a balanced round with no exchange entitlement;
+  # that is legal play, but it must not randomly skip this test's subject.
+  server_values = Array.new(16, 1)
+  h, runners = PrivateCardGamesTest.create(game, users: %w[Alice Bob Carol],
+    options: {'card_exchange'=>exchange}, random_values: server_values.dup)
   h.view('Alice').transfer_ownership(h.view('Alice').participants.find { |player| player.user == 'Carol' })
   PrivateCardGamesTest.tick(h, runners)
   3.times do |round|
@@ -37,7 +42,10 @@ require_relative '../../games/three_five_eight'
       'old owner can submit next deal')
     assert(h.events('Alice').size == h.replay('Alice').accepted_events.size, 'rejected event')
     assert(h.events('Alice').any? { |event| event['action'] == 'exchange' }, 'exchange not exercised') if exchange && round > 0
-    12.times { PrivateCardGamesTest.tick(h, runners) } if round < 2
+    if round < 2
+      h.view('Carol').next_random_values = server_values.dup
+      12.times { PrivateCardGamesTest.tick(h, runners) }
+    end
   end
   runners.each_value(&:close)
 end

@@ -132,7 +132,12 @@ def open_shortcuts_after_wait(screen, replay, focus: :game, via_menu: false, clo
         'Returning from shortcuts moved the document selection')
     end
   end
-  assert(shown == expected, "#{screen.instance_variable_get(:@game).id}: shortcut descriptions vanished between Ctrl+F1 and the rules dialog (expected #{expected.length}, got #{shown.inspect})")
+  rule_tips = expected.dup
+  if (settings = GameRoomParticipantMenu.personal_settings_entry(screen.instance_variable_get(:@game)))
+    rule_tips << GameRoomContextHelp.shortcut_tip(settings.help_key, settings.label)
+  end
+  rule_tips.uniq!
+  assert(shown == rule_tips, "#{screen.instance_variable_get(:@game).id}: shortcut descriptions vanished between Ctrl+F1 and the rules dialog (expected #{rule_tips.length}, got #{shown.inspect})")
   after = Marshal.dump([replay, layout.surface.state, layout.form.index,
     layout.chat.text, layout.chat.index, layout.chat.check, layout.history.index])
   assert(after == before, "Help changed the game, cursor, draft or chat")

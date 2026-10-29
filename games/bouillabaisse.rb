@@ -24,7 +24,10 @@ module GameRoomGames
     def options_summary(options)
       normalize_options(options)['all_or_nothing'] ? _("Six rounds, all or nothing") : _("Six rounds")
     end
-    def notification_variant(options); options_summary(options); end
+    def notification_option_keys(_options); %w[all_or_nothing]; end
+    def notification_variant(options)
+      notification_flag(options, 'all_or_nothing', _("All or nothing"), _("Without all or nothing")).to_s
+    end
 
     def bot_strategy; @bot_strategy ||= BouillabaisseStrategy.new; end
     def bot_observation(replay, actor)

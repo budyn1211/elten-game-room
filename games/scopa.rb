@@ -51,7 +51,17 @@ module GameRoomGames
       selected << _("win by two") if values['two_point_lead']
       selected.join(', ')
     end
-    def notification_variant(options); options_summary(options); end
+    def notification_option_keys(_options); %w[escoba scopone muerto score_limit]; end
+    def notification_variant(options)
+      variants = []
+      variants << _("Escoba") if options['escoba'] == true
+      variants << _("Scopone") if options['scopone'] == true
+      variants << _("Muerto") if options['muerto'] == true
+      if %w[escoba scopone muerto].all? { |key| options[key] == false }
+        variants << p_("scopa variant", "Classic")
+      end
+      [*variants, notification_points(options, 'score_limit')].compact.join(', ')
+    end
 
     def bot_strategy; @bot_strategy ||= ScopaStrategy.new; end
     def bot_observation(replay, actor)

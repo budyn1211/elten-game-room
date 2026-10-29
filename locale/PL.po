@@ -729,7 +729,7 @@ msgstr "%{players}: strata %{count} żetonów."
 msgid "%{players} lost a token."
 msgstr "%{players}: strata 1 żetonu."
 
-#: games/scopa.rb:256
+#: games/scopa.rb:266
 msgid "%{players} receives 1 point."
 msgid_plural "%{players} receive 1 point each."
 msgstr[0] "%{players} dostaje 1 punkt."
@@ -874,7 +874,7 @@ msgstr "%{player} sprawdza za %{amount}."
 msgid "%{player} captured a piece, moving from %{from} to %{to}."
 msgstr "%{player} zbija pionek, poruszając się z %{from} na %{to}."
 
-#: games/scopa.rb:192
+#: games/scopa.rb:202
 msgid "%{player} captures %{cards}."
 msgstr "%{player} zbiera: %{cards}."
 
@@ -1217,19 +1217,19 @@ msgstr "%{player} nie ma legalnego ruchu; kolejka zostaje przekazana."
 msgid "%{player} has no legal pawn move."
 msgstr "%{player} nie ma legalnego ruchu pionkiem."
 
-#: games/scopa.rb:251
+#: games/scopa.rb:261
 msgid "%{player} has the most cards."
 msgstr "%{player} ma najwięcej kart."
 
-#: games/scopa.rb:252
+#: games/scopa.rb:262
 msgid "%{player} has the most diamonds."
 msgstr "%{player} ma najwięcej karo."
 
-#: games/scopa.rb:253
+#: games/scopa.rb:263
 msgid "%{player} has the most sevens."
 msgstr "%{player} ma najwięcej siódemek."
 
-#: games/scopa.rb:254
+#: games/scopa.rb:264
 msgid "%{player} has the seven of diamonds."
 msgstr "%{player} ma siódemkę karo."
 
@@ -2236,7 +2236,7 @@ msgstr[0] "%{player} wygrywa lewę i zabiera %{count} kartę."
 msgstr[1] "%{player} wygrywa lewę i zabiera %{count} karty."
 msgstr[2] "%{player} wygrywa lewę i zabiera %{count} kart."
 
-#: games/bouillabaisse.rb:151
+#: games/bouillabaisse.rb:154
 msgid "%{player} wins the trick."
 msgstr "%{player} wygrywa lewę."
 
@@ -2441,7 +2441,7 @@ msgstr "%{player}: %{attempt}"
 msgid "%{player}: %{bid}"
 msgstr "%{player}: %{bid}"
 
-#: games/scopa.rb:272
+#: games/scopa.rb:282
 msgid "%{player}: %{bonuses}."
 msgstr "%{player}: %{bonuses}."
 
@@ -2449,7 +2449,7 @@ msgstr "%{player}: %{bonuses}."
 msgid "%{player}: %{cards} points for opponents' cards and %{bonus} bonus points."
 msgstr "%{player}: %{cards} punktów za karty przeciwników i %{bonus} punktów premii."
 
-#: games/base/shortcuts.rb:50 games/bouillabaisse.rb:45 games/bouillabaisse.rb:81 games/scientific_war.rb:886 games/spades.rb:936 games/three_five_eight.rb:1017 games/tysiac.rb:1620 games/war.rb:427 games/war.rb:486
+#: games/base/shortcuts.rb:50 games/bouillabaisse.rb:48 games/bouillabaisse.rb:84 games/scientific_war.rb:886 games/spades.rb:936 games/three_five_eight.rb:1017 games/tysiac.rb:1620 games/war.rb:427 games/war.rb:486
 msgid "%{player}: %{card}"
 msgstr "%{player}: %{card}"
 
@@ -4524,19 +4524,19 @@ msgstr "1 hotel"
 msgid "1 hour before the start"
 msgstr "1 godzina przed rozpoczęciem"
 
-#: games/scopa.rb:265
+#: games/scopa.rb:275
 msgid "1 point for the most cards"
 msgstr "1 punkt za najwięcej kart"
 
-#: games/scopa.rb:266
+#: games/scopa.rb:276
 msgid "1 point for the most diamonds"
 msgstr "1 punkt za najwięcej karo"
 
-#: games/scopa.rb:267
+#: games/scopa.rb:277
 msgid "1 point for the most sevens"
 msgstr "1 punkt za najwięcej siódemek"
 
-#: games/scopa.rb:268
+#: games/scopa.rb:278
 msgid "1 point for the seven of diamonds"
 msgstr "1 punkt za siódemkę karo"
 
@@ -6156,6 +6156,10 @@ msgstr "Wszystkie mecze"
 
 msgid "All options appear in one table form. Length applies to Random word and Race, while scoring applies only to Race. Daily Krowa and Word Tower ignore those fields."
 msgstr "Wszystkie opcje są widoczne w jednym formularzu stołu. Długość dotyczy Losowego słowa i Wyścigu, a sposób punktacji tylko Wyścigu. Dzienna Krowa i Wieża ignorują te pola."
+
+#: games/bouillabaisse.rb:29
+msgid "All or nothing"
+msgstr "Wszystko albo nic"
 
 #: games/generated/rulebooks/bouillabaisse.rb:24
 msgid "All or nothing and the final result"
@@ -8176,7 +8180,7 @@ msgstr "Karty w ręce: %{cards}."
 msgid "Cards in hand: %{counts}."
 msgstr "Karty w rękach: %{counts}."
 
-#: games/base/shortcuts.rb:59 games/bouillabaisse.rb:44 games/bridge/presentation.rb:471 games/dealt_card_game.rb:138
+#: games/base/shortcuts.rb:59 games/bouillabaisse.rb:47 games/bridge/presentation.rb:471 games/dealt_card_game.rb:138
 msgid "Cards on the table"
 msgstr "Karty na stole"
 
@@ -9362,6 +9366,11 @@ msgstr "Doprecyzowano trzy pytania w polskim zestawie wiedzy ogólnej na podstaw
 #: games/audio_ball.rb:83 games/axel_pong.rb:43 lib/axel_pong/client.rb:518
 msgid "Classic"
 msgstr "Classic"
+
+#: games/scopa.rb:61
+msgctxt "scopa variant"
+msgid "Classic"
+msgstr "Klasyczny"
 
 #: games/uno.rb:35
 msgid "Classic UNO deck"
@@ -10636,11 +10645,11 @@ msgstr "Rozdanie %{round} z 18. Rozdaje %{dealer}; %{chooser} wybiera rodzaj roz
 msgid "Deal %{round} of 18. %{details}."
 msgstr "Rozdanie %{round} z 18. %{details}."
 
-#: games/scopa.rb:143
+#: games/scopa.rb:153
 msgid "Deal %{round}."
 msgstr "Rozdanie %{round}."
 
-#: games/scopa.rb:282
+#: games/scopa.rb:292
 msgid "Deal %{round}. Cards left to deal: %{count}."
 msgstr "Rozdanie %{round}. Kart do rozdania: %{count}."
 
@@ -11549,11 +11558,11 @@ msgstr "Figury: %{rank}, po 50 punktów."
 msgid "Each board is scored on its own. A game earns a bonus of 300, or 500 when vulnerable, and a part score earns 50. Everything else is scored as described above. There are no honours and no rubber."
 msgstr ""
 
-#: games/bouillabaisse.rb:197
+#: games/bouillabaisse.rb:200
 msgid "Each card of %{suit} costs 10 points."
 msgstr "Każda zabrana karta w kolorze %{suit} kosztuje 10 punktów."
 
-#: games/bouillabaisse.rb:190
+#: games/bouillabaisse.rb:193
 msgid "Each card of %{suit} you take subtracts 10 points."
 msgstr "Za każdą zabraną kartę w kolorze %{suit} odejmujesz sobie 10 punktów."
 
@@ -11581,19 +11590,19 @@ msgstr ""
 msgid "Each honba adds 300 to a discard payment or 100 from each opponent on self-draw. Riichi deposits are awarded to the winner in addition. Honba increases after a draw or dealer repeat and resets after another player wins."
 msgstr ""
 
-#: games/bouillabaisse.rb:198
+#: games/bouillabaisse.rb:201
 msgid "Each jack you take costs 50 points."
 msgstr "Każdy zabrany walet kosztuje 50 punktów."
 
-#: games/bouillabaisse.rb:191
+#: games/bouillabaisse.rb:194
 msgid "Each jack you take subtracts 50 points."
 msgstr "Każdy zabrany walet zmniejsza twój wynik o 50 punktów."
 
-#: games/bouillabaisse.rb:200
+#: games/bouillabaisse.rb:203
 msgid "Each king you take costs 50 points."
 msgstr "Każdy zabrany król kosztuje 50 punktów."
 
-#: games/bouillabaisse.rb:193
+#: games/bouillabaisse.rb:196
 msgid "Each king you take subtracts 50 points."
 msgstr "Każdy zabrany król zmniejsza twój wynik o 50 punktów."
 
@@ -11663,15 +11672,15 @@ msgstr "Każdy rzuca kością raz. Wygrywa najwyższy wynik."
 msgid "Each player's closest guess counts. The winner takes three feathers from each opponent; equally close guesses tie."
 msgstr ""
 
-#: games/bouillabaisse.rb:199
+#: games/bouillabaisse.rb:202
 msgid "Each queen you take costs 50 points."
 msgstr "Każda zabrana dama kosztuje 50 punktów."
 
-#: games/bouillabaisse.rb:192
+#: games/bouillabaisse.rb:195
 msgid "Each queen you take subtracts 50 points."
 msgstr "Każda zabrana dama zmniejsza twój wynik o 50 punktów."
 
-#: games/bouillabaisse.rb:196
+#: games/bouillabaisse.rb:199
 msgid "Each trick costs 5 points."
 msgstr "Każde zabranie kart ze stołu kosztuje 5 punktów."
 
@@ -11679,7 +11688,7 @@ msgstr "Każde zabranie kart ze stołu kosztuje 5 punktów."
 msgid "Each trick has four cards, one from each player in clockwise order. To play, go to a card in your hand with the arrow keys and press Enter. Z moves to the next card you are allowed to play and Shift+Z to the previous one; if you have only one playable card, Z plays it."
 msgstr ""
 
-#: games/bouillabaisse.rb:189
+#: games/bouillabaisse.rb:192
 msgid "Each trick you take subtracts 5 points from your score."
 msgstr "Każde zabranie kart ze stołu zmniejsza twój wynik o 5 punktów."
 
@@ -12382,7 +12391,7 @@ msgstr "Escape: wyczyść paczkę płatności."
 msgid "Escape: close the current list."
 msgstr "Escape: zamknij bieżącą listę."
 
-#: games/scopa.rb:46
+#: games/scopa.rb:46 games/scopa.rb:57
 msgid "Escoba"
 msgstr "Escoba"
 
@@ -12814,7 +12823,7 @@ msgstr "Film"
 msgid "Final"
 msgstr "Finał"
 
-#: games/scopa.rb:220
+#: games/scopa.rb:230
 msgid "Final deal."
 msgstr "Ostatnie rozdanie."
 
@@ -16990,15 +16999,15 @@ msgstr "Zastawy i negocjowane wymiany"
 msgid "Mortgaging pays the deed's mortgage value and stops rent on that property. A street may be mortgaged only after all buildings in its colour group have been sold. Unmortgaging costs the mortgage plus 10%, rounded up to whole money units. Both lists show the actual amount and stay open for further operations."
 msgstr "Zastaw wypłaca wartość zastawu z aktu własności i wstrzymuje czynsz tej nieruchomości. Ulicę można zastawić dopiero po sprzedaniu całej zabudowy jej koloru. Wykup kosztuje zastaw plus 10%, zaokrąglone w górę do całych jednostek waluty. Obie listy pokazują faktyczne kwoty i zostają otwarte na dalsze operacje."
 
-#: games/scopa.rb:275
+#: games/scopa.rb:285
 msgid "Most cards: tied, no point."
 msgstr "Najwięcej kart: remis, bez punktu."
 
-#: games/scopa.rb:276
+#: games/scopa.rb:286
 msgid "Most diamonds: tied, no point."
 msgstr "Najwięcej karo: remis, bez punktu."
 
-#: games/scopa.rb:277
+#: games/scopa.rb:287
 msgid "Most sevens: tied, no point."
 msgstr "Najwięcej siódemek: remis, bez punktu."
 
@@ -17153,7 +17162,7 @@ msgstr "Przesuwanie rakietki myszą"
 msgid "Mud squelches under your feet."
 msgstr "Błoto chlupie pod łapkami."
 
-#: games/scopa.rb:48
+#: games/scopa.rb:48 games/scopa.rb:59
 msgid "Muerto"
 msgstr "Muerto"
 
@@ -17316,7 +17325,7 @@ msgstr "Przygotowano nowe zasady wszystkich gier po angielsku, czesku, hiszpańs
 msgid "New Tic Tac Toe games randomly choose who starts. The starting player uses X."
 msgstr "W nowych partiach kółka i krzyżyka osoba rozpoczynająca jest losowana i gra krzyżykami."
 
-#: games/scopa.rb:222
+#: games/scopa.rb:232
 msgid "New cards dealt."
 msgstr "Rozdano kolejne karty."
 
@@ -17552,7 +17561,7 @@ msgstr "W tej lewie nie zagrano jeszcze żadnej karty"
 msgid "No cards have been played in this trick."
 msgstr "W tej lewie nie zagrano jeszcze żadnej karty."
 
-#: games/bouillabaisse.rb:51 games/dealt_card_game.rb:139 games/dealt_card_game.rb:277
+#: games/bouillabaisse.rb:54 games/dealt_card_game.rb:139 games/dealt_card_game.rb:277
 msgid "No cards on the table"
 msgstr "Na stole nie ma kart"
 
@@ -21612,7 +21621,7 @@ msgstr "Runda %{round} zakończyła się."
 msgid "Round %{round} ended. %{scores}"
 msgstr "Koniec rundy %{round}. %{scores}"
 
-#: games/bouillabaisse.rb:204
+#: games/bouillabaisse.rb:207
 msgid "Round %{round} of 6. %{rule}"
 msgstr "Runda %{round} z 6. %{rule}"
 
@@ -21699,7 +21708,7 @@ msgstr "1/8 finału"
 msgid "Round robin"
 msgstr "Każdy z każdym"
 
-#: games/bouillabaisse.rb:175 games/scopa.rb:236
+#: games/bouillabaisse.rb:178 games/scopa.rb:246
 msgid "Round scores: %{scores}."
 msgstr ""
 "Wyniki rundy:\n"
@@ -22125,7 +22134,7 @@ msgstr "Nożyce"
 msgid "Scopa is for 2–6 players. You capture cards from the table and try to collect more valuable groups than your opponents. By default, you play individually to 11 points, with a lead of at least two."
 msgstr ""
 
-#: games/scopa.rb:196
+#: games/scopa.rb:206
 msgid "Scopa!"
 msgstr "Scopa!"
 
@@ -22133,7 +22142,7 @@ msgstr "Scopa!"
 msgid "Scopas and scoring"
 msgstr ""
 
-#: games/scopa.rb:47
+#: games/scopa.rb:47 games/scopa.rb:58
 msgid "Scopone"
 msgstr "Scopone"
 
@@ -24062,11 +24071,11 @@ msgstr ""
 msgid "Take turns uncovering two positions by pressing their digits. Listen to your opponent's choices too and remember where the sounds are. A matching pair is removed and scores a point; a mismatch is hidden again."
 msgstr ""
 
-#: games/bouillabaisse.rb:201
+#: games/bouillabaisse.rb:204
 msgid "Taking %{card} costs 200 points."
 msgstr "Zabranie karty %{card} kosztuje 200 punktów."
 
-#: games/bouillabaisse.rb:194
+#: games/bouillabaisse.rb:197
 msgid "Taking %{card} subtracts 200 points."
 msgstr "Zabranie karty %{card} zmniejsza twój wynik o 200 punktów."
 
@@ -29049,7 +29058,7 @@ msgstr "Oczekiwanie na rozdanie kart"
 msgid "Waiting for the deal"
 msgstr "Oczekiwanie na rozdanie"
 
-#: games/bouillabaisse.rb:186
+#: games/bouillabaisse.rb:189
 msgid "Waiting for the deal."
 msgstr "Oczekiwanie na rozdanie."
 
@@ -29705,6 +29714,10 @@ msgstr "Bez partnera"
 #: lib/tournaments/local_participant_manager.rb:33
 msgid "Without a partner yet"
 msgstr "Na razie bez partnera"
+
+#: games/bouillabaisse.rb:29
+msgid "Without all or nothing"
+msgstr "Bez wariantu „wszystko albo nic”"
 
 #: games/duck_racing_support/presentation.rb:37
 msgid "Wooden zone"
@@ -31435,7 +31448,7 @@ msgstr[2] "najbliższa odpowiedź %{number}, %{attempts} prób"
 msgid "closest answer %{number}, %{attempts} attempts"
 msgstr "najbliższa odpowiedź: %{number}, próby: %{attempts}"
 
-#: games/bouillabaisse.rb:182 games/bridge/presentation.rb:194 games/card_game.rb:58 games/makao.rb:29 games/ninety_nine.rb:26 games/poker.rb:36 games/spades.rb:32 games/three_five_eight.rb:35 games/tysiac.rb:24
+#: games/bouillabaisse.rb:185 games/bridge/presentation.rb:194 games/card_game.rb:58 games/makao.rb:29 games/ninety_nine.rb:26 games/poker.rb:36 games/spades.rb:32 games/three_five_eight.rb:35 games/tysiac.rb:24
 msgid "clubs"
 msgstr "trefl"
 
@@ -31509,7 +31522,7 @@ msgstr "zgłoś UNO albo wyłap jego brak"
 msgid "describe the selected card"
 msgstr "opis wybranej karty"
 
-#: games/bouillabaisse.rb:182 games/bridge/presentation.rb:194 games/card_game.rb:58 games/makao.rb:29 games/ninety_nine.rb:27 games/poker.rb:36 games/spades.rb:33 games/three_five_eight.rb:35 games/tysiac.rb:25
+#: games/bouillabaisse.rb:185 games/bridge/presentation.rb:194 games/card_game.rb:58 games/makao.rb:29 games/ninety_nine.rb:27 games/poker.rb:36 games/spades.rb:33 games/three_five_eight.rb:35 games/tysiac.rb:25
 msgid "diamonds"
 msgstr "karo"
 
@@ -31758,7 +31771,7 @@ msgstr "han"
 msgid "hard category pool"
 msgstr "trudna pula kategorii"
 
-#: games/bouillabaisse.rb:182 games/bridge/presentation.rb:194 games/card_game.rb:59 games/makao.rb:29 games/ninety_nine.rb:28 games/poker.rb:36 games/spades.rb:34 games/three_five_eight.rb:36 games/tysiac.rb:26
+#: games/bouillabaisse.rb:185 games/bridge/presentation.rb:194 games/card_game.rb:59 games/makao.rb:29 games/ninety_nine.rb:28 games/poker.rb:36 games/spades.rb:34 games/three_five_eight.rb:36 games/tysiac.rb:26
 msgid "hearts"
 msgstr "kier"
 
@@ -32467,7 +32480,7 @@ msgstr "odczytaj wynik ostatniej lewy"
 msgid "read the round information"
 msgstr "odczytać informacje o rundzie"
 
-#: games/bouillabaisse.rb:39
+#: games/bouillabaisse.rb:42
 msgid "read the rules for this round"
 msgstr "odczytaj zasady bieżącej rundy"
 
@@ -32783,7 +32796,7 @@ msgstr "sortuj karty według koloru"
 msgid "sort cards by value"
 msgstr "sortuj karty według wartości"
 
-#: games/bouillabaisse.rb:182 games/bridge/presentation.rb:194 games/card_game.rb:59 games/makao.rb:29 games/ninety_nine.rb:29 games/poker.rb:36 games/spades.rb:35 games/three_five_eight.rb:36 games/tysiac.rb:27
+#: games/bouillabaisse.rb:185 games/bridge/presentation.rb:194 games/card_game.rb:59 games/makao.rb:29 games/ninety_nine.rb:29 games/poker.rb:36 games/spades.rb:35 games/three_five_eight.rb:36 games/tysiac.rb:27
 msgid "spades"
 msgstr "pik"
 

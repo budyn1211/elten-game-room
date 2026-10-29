@@ -30,6 +30,32 @@ assert(read.call("uno", {}).empty?, "UNO absent data guessed")
 assert(read.call("domino", {"tile_set" => "2d6", "teams" => true}) == "2 × Double 6, Team play", "Domino description too detailed")
 assert(read.call("axel_pong", {"team_size" => 2, "arcade" => true, "difficulty" => 3}) == "Doubles, Arcade, Hard", "Pong variant incomplete")
 assert(read.call("krowa", {"variant" => "daily", "length" => 4}) == read.call("krowa", {"variant" => "daily"}), "Daily leaked meaningless length")
+assert(read.call('bouillabaisse', {'all_or_nothing' => true}) == 'All or nothing', 'Bouillabaisse enabled variant missing')
+assert(read.call('bouillabaisse', {'all_or_nothing' => false}) == 'Without all or nothing', 'Bouillabaisse disabled variant missing')
+assert(read.call('bouillabaisse', {}).empty?, 'Missing Bouillabaisse settings became defaults')
+scopa_options = registry.build('scopa').default_options
+assert(read.call('scopa', scopa_options) == 'Classic, 11 points', 'Classic Scopa or its target missing')
+8.times do |mask|
+  options = scopa_options.merge('score_limit' => 21)
+  names = []
+  %w[escoba scopone muerto].each_with_index do |key, index|
+    options[key] = (mask & (1 << index)) != 0
+    names << %w[Escoba Scopone Muerto][index] if options[key]
+  end
+  names << 'Classic' if names.empty?
+  assert(read.call('scopa', options) == [*names, '21 points'].join(', '), "Scopa variants #{mask} or target missing")
+end
+assert(read.call('scopa', {'score_limit' => 21}) == '21 points', 'Missing Scopa flags became Classic')
+assert(read.call('scopa', {'escoba' => false}).empty?, 'Partial Scopa flags became a known variant')
+assert(read.call('scopa', {'escoba' => true}) == 'Escoba', 'A known partial variant was hidden')
+assert(!read.call('scopa', scopa_options).include?('win by two'), 'Scopa short description contains extra settings')
+%w[bouillabaisse scopa].each do |id|
+  game = registry.build(id)
+  source = game.default_options.merge('bot_delay' => 3, 'thinking_time' => 123, '__private' => 'secret')
+  keys = GameRoomTableVariant.payload(game, source).fetch('options').keys
+  expected_keys = id == 'bouillabaisse' ? %w[all_or_nothing] : %w[escoba scopone muerto score_limit]
+  assert(keys.sort == expected_keys.sort, "#{id}: unexpected short-description metadata")
+end
 [nil, 1, [], "broken", {"format" => 9}, {"format" => 1, "options" => []}].each do |payload|
   assert(GameRoomTableVariant.text(registry.build("uno"), payload).empty?, "malformed metadata not ignored")
 end

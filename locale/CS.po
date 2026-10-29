@@ -717,7 +717,7 @@ msgstr "%{players}: ztráta žetonů: %{count}."
 msgid "%{players} lost a token."
 msgstr "%{players}: ztráta jednoho žetonu."
 
-#: games/scopa.rb:256
+#: games/scopa.rb:266
 msgid "%{players} receives 1 point."
 msgid_plural "%{players} receive 1 point each."
 msgstr[0] "%{players} získává 1 bod."
@@ -862,7 +862,7 @@ msgstr "Hráč %{player} dorovnává %{amount}."
 msgid "%{player} captured a piece, moving from %{from} to %{to}."
 msgstr "%{player} bere kámen tahem z %{from} na %{to}."
 
-#: games/scopa.rb:192
+#: games/scopa.rb:202
 msgid "%{player} captures %{cards}."
 msgstr "%{player} bere: %{cards}."
 
@@ -1201,19 +1201,19 @@ msgstr "Hráč %{player} nemá žádný přípustný tah; na řadě je další h
 msgid "%{player} has no legal pawn move."
 msgstr "Hráč %{player} nemá žádný povolený tah figurkou."
 
-#: games/scopa.rb:251
+#: games/scopa.rb:261
 msgid "%{player} has the most cards."
 msgstr "%{player} má nejvíc karet."
 
-#: games/scopa.rb:252
+#: games/scopa.rb:262
 msgid "%{player} has the most diamonds."
 msgstr "%{player} má nejvíc kár."
 
-#: games/scopa.rb:253
+#: games/scopa.rb:263
 msgid "%{player} has the most sevens."
 msgstr "%{player} má nejvíc sedmiček."
 
-#: games/scopa.rb:254
+#: games/scopa.rb:264
 msgid "%{player} has the seven of diamonds."
 msgstr "%{player} má károvou sedmu."
 
@@ -2192,7 +2192,7 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: games/bouillabaisse.rb:151
+#: games/bouillabaisse.rb:154
 msgid "%{player} wins the trick."
 msgstr "%{player} získává zdvih."
 
@@ -2397,7 +2397,7 @@ msgstr "%{player}: %{attempt}"
 msgid "%{player}: %{bid}"
 msgstr "%{player}: %{bid}"
 
-#: games/scopa.rb:272
+#: games/scopa.rb:282
 msgid "%{player}: %{bonuses}."
 msgstr "%{player}: %{bonuses}."
 
@@ -2405,7 +2405,7 @@ msgstr "%{player}: %{bonuses}."
 msgid "%{player}: %{cards} points for opponents' cards and %{bonus} bonus points."
 msgstr "%{player}: %{cards} bodů za karty soupeřů a %{bonus} bonusových bodů."
 
-#: games/base/shortcuts.rb:50 games/bouillabaisse.rb:45 games/bouillabaisse.rb:81 games/scientific_war.rb:886 games/spades.rb:936 games/three_five_eight.rb:1017 games/tysiac.rb:1620 games/war.rb:427 games/war.rb:486
+#: games/base/shortcuts.rb:50 games/bouillabaisse.rb:48 games/bouillabaisse.rb:84 games/scientific_war.rb:886 games/spades.rb:936 games/three_five_eight.rb:1017 games/tysiac.rb:1620 games/war.rb:427 games/war.rb:486
 msgid "%{player}: %{card}"
 msgstr "%{player}: %{card}"
 
@@ -4468,19 +4468,19 @@ msgstr "1 hotel"
 msgid "1 hour before the start"
 msgstr ""
 
-#: games/scopa.rb:265
+#: games/scopa.rb:275
 msgid "1 point for the most cards"
 msgstr "1 bod za nejvíc karet"
 
-#: games/scopa.rb:266
+#: games/scopa.rb:276
 msgid "1 point for the most diamonds"
 msgstr "1 bod za nejvíc kár"
 
-#: games/scopa.rb:267
+#: games/scopa.rb:277
 msgid "1 point for the most sevens"
 msgstr "1 bod za nejvíc sedmiček"
 
-#: games/scopa.rb:268
+#: games/scopa.rb:278
 msgid "1 point for the seven of diamonds"
 msgstr "1 bod za károvou sedmu"
 
@@ -6096,6 +6096,10 @@ msgstr "Všechny zápasy"
 
 msgid "All options appear in one table form. Length applies to Random word and Race, while scoring applies only to Race. Daily Krowa and Word Tower ignore those fields."
 msgstr ""
+
+#: games/bouillabaisse.rb:29
+msgid "All or nothing"
+msgstr "Všechno, nebo nic"
 
 #: games/generated/rulebooks/bouillabaisse.rb:24
 msgid "All or nothing and the final result"
@@ -8116,7 +8120,7 @@ msgstr "Karty v ruce: %{cards}."
 msgid "Cards in hand: %{counts}."
 msgstr ""
 
-#: games/base/shortcuts.rb:59 games/bouillabaisse.rb:44 games/bridge/presentation.rb:471 games/dealt_card_game.rb:138
+#: games/base/shortcuts.rb:59 games/bouillabaisse.rb:47 games/bridge/presentation.rb:471 games/dealt_card_game.rb:138
 msgid "Cards on the table"
 msgstr "Karty na stole"
 
@@ -9288,6 +9292,11 @@ msgid "Clarified three questions in the Polish general-knowledge set following p
 msgstr "Na základě hlášení hráčů bylo upřesněno znění tří otázek v polské sadě všeobecných znalostí."
 
 #: games/audio_ball.rb:83 games/axel_pong.rb:43 lib/axel_pong/client.rb:518
+msgid "Classic"
+msgstr "Klasická"
+
+#: games/scopa.rb:61
+msgctxt "scopa variant"
 msgid "Classic"
 msgstr "Klasická"
 
@@ -10557,11 +10566,11 @@ msgstr ""
 msgid "Deal %{round} of 18. %{details}."
 msgstr ""
 
-#: games/scopa.rb:143
+#: games/scopa.rb:153
 msgid "Deal %{round}."
 msgstr "Rozdání %{round}."
 
-#: games/scopa.rb:282
+#: games/scopa.rb:292
 msgid "Deal %{round}. Cards left to deal: %{count}."
 msgstr "Rozdání %{round}. K rozdání zbývá %{count} karet."
 
@@ -11462,11 +11471,11 @@ msgstr "Figury: %{rank}, po 50 bodech."
 msgid "Each board is scored on its own. A game earns a bonus of 300, or 500 when vulnerable, and a part score earns 50. Everything else is scored as described above. There are no honours and no rubber."
 msgstr ""
 
-#: games/bouillabaisse.rb:197
+#: games/bouillabaisse.rb:200
 msgid "Each card of %{suit} costs 10 points."
 msgstr "Za každou získanou kartu barvy %{suit} dostaneš 10 trestných bodů."
 
-#: games/bouillabaisse.rb:190
+#: games/bouillabaisse.rb:193
 msgid "Each card of %{suit} you take subtracts 10 points."
 msgstr "Za každou získanou kartu barvy %{suit} se ti odečte 10 bodů."
 
@@ -11494,19 +11503,19 @@ msgstr ""
 msgid "Each honba adds 300 to a discard payment or 100 from each opponent on self-draw. Riichi deposits are awarded to the winner in addition. Honba increases after a draw or dealer repeat and resets after another player wins."
 msgstr ""
 
-#: games/bouillabaisse.rb:198
+#: games/bouillabaisse.rb:201
 msgid "Each jack you take costs 50 points."
 msgstr "Za každého získaného kluka dostaneš 50 trestných bodů."
 
-#: games/bouillabaisse.rb:191
+#: games/bouillabaisse.rb:194
 msgid "Each jack you take subtracts 50 points."
 msgstr "Za každého získaného kluka se ti odečte 50 bodů."
 
-#: games/bouillabaisse.rb:200
+#: games/bouillabaisse.rb:203
 msgid "Each king you take costs 50 points."
 msgstr "Za každého získaného krále dostaneš 50 trestných bodů."
 
-#: games/bouillabaisse.rb:193
+#: games/bouillabaisse.rb:196
 msgid "Each king you take subtracts 50 points."
 msgstr "Za každého získaného krále se ti odečte 50 bodů."
 
@@ -11576,15 +11585,15 @@ msgstr "Každý hráč jednou hodí kostkou. Vyhrává nejvyšší hod."
 msgid "Each player's closest guess counts. The winner takes three feathers from each opponent; equally close guesses tie."
 msgstr ""
 
-#: games/bouillabaisse.rb:199
+#: games/bouillabaisse.rb:202
 msgid "Each queen you take costs 50 points."
 msgstr "Za každou získanou dámu dostaneš 50 trestných bodů."
 
-#: games/bouillabaisse.rb:192
+#: games/bouillabaisse.rb:195
 msgid "Each queen you take subtracts 50 points."
 msgstr "Za každou získanou dámu se ti odečte 50 bodů."
 
-#: games/bouillabaisse.rb:196
+#: games/bouillabaisse.rb:199
 msgid "Each trick costs 5 points."
 msgstr "Každý získaný zdvih stojí 5 bodů."
 
@@ -11592,7 +11601,7 @@ msgstr "Každý získaný zdvih stojí 5 bodů."
 msgid "Each trick has four cards, one from each player in clockwise order. To play, go to a card in your hand with the arrow keys and press Enter. Z moves to the next card you are allowed to play and Shift+Z to the previous one; if you have only one playable card, Z plays it."
 msgstr ""
 
-#: games/bouillabaisse.rb:189
+#: games/bouillabaisse.rb:192
 msgid "Each trick you take subtracts 5 points from your score."
 msgstr "Za každý získaný zdvih se ti odečte 5 bodů."
 
@@ -12288,7 +12297,7 @@ msgstr "Escape: zrušte výběr karet k zaplacení."
 msgid "Escape: close the current list."
 msgstr "Escape: zavřete aktuální seznam."
 
-#: games/scopa.rb:46
+#: games/scopa.rb:46 games/scopa.rb:57
 msgid "Escoba"
 msgstr "Escoba"
 
@@ -12713,7 +12722,7 @@ msgstr "Film"
 msgid "Final"
 msgstr "Finále"
 
-#: games/scopa.rb:220
+#: games/scopa.rb:230
 msgid "Final deal."
 msgstr "Poslední rozdání."
 
@@ -16845,15 +16854,15 @@ msgstr ""
 msgid "Mortgaging pays the deed's mortgage value and stops rent on that property. A street may be mortgaged only after all buildings in its colour group have been sold. Unmortgaging costs the mortgage plus 10%, rounded up to whole money units. Both lists show the actual amount and stay open for further operations."
 msgstr ""
 
-#: games/scopa.rb:275
+#: games/scopa.rb:285
 msgid "Most cards: tied, no point."
 msgstr "Nejvíc karet: remíza, bod se neuděluje."
 
-#: games/scopa.rb:276
+#: games/scopa.rb:286
 msgid "Most diamonds: tied, no point."
 msgstr "Nejvíc kár: remíza, bod se neuděluje."
 
-#: games/scopa.rb:277
+#: games/scopa.rb:287
 msgid "Most sevens: tied, no point."
 msgstr "Nejvíc sedmiček: remíza, bod se neuděluje."
 
@@ -17000,7 +17009,7 @@ msgstr ""
 msgid "Mud squelches under your feet."
 msgstr "Pod nohama ti čvachtá bláto."
 
-#: games/scopa.rb:48
+#: games/scopa.rb:48 games/scopa.rb:59
 msgid "Muerto"
 msgstr "Muerto"
 
@@ -17163,7 +17172,7 @@ msgstr "Všechny hry mají nová pravidla v angličtině, češtině, španělš
 msgid "New Tic Tac Toe games randomly choose who starts. The starting player uses X."
 msgstr "V nových partiích piškvorek se začínající hráč losuje a hraje s křížky."
 
-#: games/scopa.rb:222
+#: games/scopa.rb:232
 msgid "New cards dealt."
 msgstr "Rozdány další karty."
 
@@ -17399,7 +17408,7 @@ msgstr "V tomto zdvihu zatím nebyla zahrána žádná karta"
 msgid "No cards have been played in this trick."
 msgstr "V tomto zdvihu zatím nebyla zahrána žádná karta."
 
-#: games/bouillabaisse.rb:51 games/dealt_card_game.rb:139 games/dealt_card_game.rb:277
+#: games/bouillabaisse.rb:54 games/dealt_card_game.rb:139 games/dealt_card_game.rb:277
 msgid "No cards on the table"
 msgstr "Na stole nejsou karty"
 
@@ -21402,7 +21411,7 @@ msgstr "Kolo %{round} skončilo."
 msgid "Round %{round} ended. %{scores}"
 msgstr "Kolo %{round} skončilo. %{scores}"
 
-#: games/bouillabaisse.rb:204
+#: games/bouillabaisse.rb:207
 msgid "Round %{round} of 6. %{rule}"
 msgstr "Kolo %{round} ze 6. %{rule}"
 
@@ -21489,7 +21498,7 @@ msgstr "Osmifinále"
 msgid "Round robin"
 msgstr "Každý s každým"
 
-#: games/bouillabaisse.rb:175 games/scopa.rb:236
+#: games/bouillabaisse.rb:178 games/scopa.rb:246
 msgid "Round scores: %{scores}."
 msgstr ""
 "Výsledky kola:\n"
@@ -21915,7 +21924,7 @@ msgstr "Nůžky"
 msgid "Scopa is for 2–6 players. You capture cards from the table and try to collect more valuable groups than your opponents. By default, you play individually to 11 points, with a lead of at least two."
 msgstr ""
 
-#: games/scopa.rb:196
+#: games/scopa.rb:206
 msgid "Scopa!"
 msgstr "Scopa!"
 
@@ -21923,7 +21932,7 @@ msgstr "Scopa!"
 msgid "Scopas and scoring"
 msgstr ""
 
-#: games/scopa.rb:47
+#: games/scopa.rb:47 games/scopa.rb:58
 msgid "Scopone"
 msgstr "Scopone"
 
@@ -23841,11 +23850,11 @@ msgstr ""
 msgid "Take turns uncovering two positions by pressing their digits. Listen to your opponent's choices too and remember where the sounds are. A matching pair is removed and scores a point; a mismatch is hidden again."
 msgstr ""
 
-#: games/bouillabaisse.rb:201
+#: games/bouillabaisse.rb:204
 msgid "Taking %{card} costs 200 points."
 msgstr "Získání karty %{card} stojí 200 bodů."
 
-#: games/bouillabaisse.rb:194
+#: games/bouillabaisse.rb:197
 msgid "Taking %{card} subtracts 200 points."
 msgstr "Za získání karty %{card} se ti odečte 200 bodů."
 
@@ -28795,7 +28804,7 @@ msgstr "Čekání na rozdání karet"
 msgid "Waiting for the deal"
 msgstr ""
 
-#: games/bouillabaisse.rb:186
+#: games/bouillabaisse.rb:189
 msgid "Waiting for the deal."
 msgstr "Čeká se na rozdání."
 
@@ -29451,6 +29460,10 @@ msgstr "Bez spoluhráče"
 #: lib/tournaments/local_participant_manager.rb:33
 msgid "Without a partner yet"
 msgstr "Zatím bez partnera"
+
+#: games/bouillabaisse.rb:29
+msgid "Without all or nothing"
+msgstr "Bez varianty „všechno, nebo nic“"
 
 #: games/duck_racing_support/presentation.rb:37
 msgid "Wooden zone"
@@ -31165,7 +31178,7 @@ msgstr[0] "nejbližší odpověď %{number}, %{attempts} pokus"
 msgstr[1] "nejbližší odpověď %{number}, %{attempts} pokusy"
 msgstr[2] "nejbližší odpověď %{number}, %{attempts} pokusů"
 
-#: games/bouillabaisse.rb:182 games/bridge/presentation.rb:194 games/card_game.rb:58 games/makao.rb:29 games/ninety_nine.rb:26 games/poker.rb:36 games/spades.rb:32 games/three_five_eight.rb:35 games/tysiac.rb:24
+#: games/bouillabaisse.rb:185 games/bridge/presentation.rb:194 games/card_game.rb:58 games/makao.rb:29 games/ninety_nine.rb:26 games/poker.rb:36 games/spades.rb:32 games/three_five_eight.rb:35 games/tysiac.rb:24
 msgid "clubs"
 msgstr "trefy"
 
@@ -31235,7 +31248,7 @@ msgstr "ohlásit UNO nebo přistihnout hráče, který ho neohlásil"
 msgid "describe the selected card"
 msgstr "popsat vybranou kartu"
 
-#: games/bouillabaisse.rb:182 games/bridge/presentation.rb:194 games/card_game.rb:58 games/makao.rb:29 games/ninety_nine.rb:27 games/poker.rb:36 games/spades.rb:33 games/three_five_eight.rb:35 games/tysiac.rb:25
+#: games/bouillabaisse.rb:185 games/bridge/presentation.rb:194 games/card_game.rb:58 games/makao.rb:29 games/ninety_nine.rb:27 games/poker.rb:36 games/spades.rb:33 games/three_five_eight.rb:35 games/tysiac.rb:25
 msgid "diamonds"
 msgstr "káry"
 
@@ -31480,7 +31493,7 @@ msgstr "han"
 msgid "hard category pool"
 msgstr "sada těžkých kategorií"
 
-#: games/bouillabaisse.rb:182 games/bridge/presentation.rb:194 games/card_game.rb:59 games/makao.rb:29 games/ninety_nine.rb:28 games/poker.rb:36 games/spades.rb:34 games/three_five_eight.rb:36 games/tysiac.rb:26
+#: games/bouillabaisse.rb:185 games/bridge/presentation.rb:194 games/card_game.rb:59 games/makao.rb:29 games/ninety_nine.rb:28 games/poker.rb:36 games/spades.rb:34 games/three_five_eight.rb:36 games/tysiac.rb:26
 msgid "hearts"
 msgstr "srdce"
 
@@ -32189,7 +32202,7 @@ msgstr ""
 msgid "read the round information"
 msgstr "přečtěte informace o kole"
 
-#: games/bouillabaisse.rb:39
+#: games/bouillabaisse.rb:42
 msgid "read the rules for this round"
 msgstr "připomenout pravidla tohoto kola"
 
@@ -32505,7 +32518,7 @@ msgstr "seřaďte karty podle barvy"
 msgid "sort cards by value"
 msgstr "seřadit karty podle hodnoty"
 
-#: games/bouillabaisse.rb:182 games/bridge/presentation.rb:194 games/card_game.rb:59 games/makao.rb:29 games/ninety_nine.rb:29 games/poker.rb:36 games/spades.rb:35 games/three_five_eight.rb:36 games/tysiac.rb:27
+#: games/bouillabaisse.rb:185 games/bridge/presentation.rb:194 games/card_game.rb:59 games/makao.rb:29 games/ninety_nine.rb:29 games/poker.rb:36 games/spades.rb:35 games/three_five_eight.rb:36 games/tysiac.rb:27
 msgid "spades"
 msgstr "piky"
 

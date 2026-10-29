@@ -18,8 +18,15 @@ questions = pack.data.fetch('questions')
 # The 2026-10-23 reports corrected three existing items (Gerard Wilk,
 # subtraction spoken as a word, and the giveaway qualifier in a distractor).
 # Their exact approved content is checked in reviewed_questions_test.rb.
-assert(Digest::SHA256.hexdigest(JSON.generate(questions.first(14887))) ==
-  '8fba62bd7f79360d805216922be9c9847534d58ef8c707b206c66a92eff157cc',
+# The 2026-10-28 reports corrected six existing items and removed the weaker
+# duplicate carat question. Their wording is pinned in reviewed_questions_test.rb.
+# Anchor this baseline to the first community ID, not a fixed prefix length:
+# removing an original item must not pull a submitted question into the baseline.
+baseline = questions.take_while { |question| !question.fetch('id').start_with?('community_') }
+assert(baseline.size == 14886 && questions.fetch(baseline.size).fetch('id') == 'community_b96_20261014_01',
+  'The original/community boundary changed')
+assert(Digest::SHA256.hexdigest(JSON.generate(baseline)) ==
+  '98f30d12b97e74f28c4951fe36df9438068378dd5ff580d8599bcda0cd8f23c7',
   'The existing Polish set changed while importing a community proposal')
 
 expected = {
