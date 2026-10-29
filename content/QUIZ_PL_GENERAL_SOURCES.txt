@@ -119,3 +119,21 @@ https://www.uniconf.ru/holding/candy_history/?id=329
 https://www.culture.ru/lectures/dictionaries/63552/klecka
 https://wsjp.pl/haslo/podglad/61965/lampas/5167419/pas
 https://wsjp.pl/haslo/podglad/74179/galon/5188437/tasma
+
+Data version 17 incorporates six wording corrections following reports from
+Zuzler and Paulinux, and removes polqa_05804 as a weaker duplicate of the
+retained gemstone-mass question polqa_03286. The set contains 14,899 questions.
+The French presidential question now specifies the 2017 election; the
+Commission question asks who took office in 2019 rather than referring to
+an undated current officeholder. Other changes clarify polar night (at least
+24 hours), the maximum number of raised dots in traditional braille, Matthew's
+occupation and the titles of Orwell's books. Retained question IDs and source
+attribution are unchanged. These references verify facts; their prose was
+not copied into the questions.
+https://www.elysee.fr/en/the-inauguration-of-emmanuel-macron
+https://commission.europa.eu/about/organisation/president_en
+https://zpe.gov.pl/a/arktyka-i-antarktyka---srodowisko-przyrodnicze-obszarow-podbiegunowych/Di8oFWNBS
+https://www.rnib.org.uk/living-with-sight-loss/education-and-learning/braille-tactile-codes/
+https://www.vatican.va/content/benedict-xvi/en/audiences/2006/documents/hf_ben-xvi_aud_20060830.html
+https://www.orwellfoundation.com/the-orwell-foundation/about/about-george-orwell/
+https://www.gia.edu/gia-about/4Cs-carat

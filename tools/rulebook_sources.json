@@ -23,6 +23,18 @@
     "source": "games/biblios.rb",
     "output": "games/generated/rulebooks/biblios.rb"
   },
+  "bouillabaisse.json": {
+    "class": "Bouillabaisse",
+    "kind": "class",
+    "source": "games/bouillabaisse.rb",
+    "output": "games/generated/rulebooks/bouillabaisse.rb"
+  },
+  "scopa.json": {
+    "class": "Scopa",
+    "kind": "class",
+    "source": "games/scopa.rb",
+    "output": "games/generated/rulebooks/scopa.rb"
+  },
   "bridge.json": {
     "class": "Bridge",
     "kind": "class",

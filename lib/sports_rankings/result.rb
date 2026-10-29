@@ -97,14 +97,6 @@ module GameRoomSportsRankings
         winner: units.index(summary.fetch('winners').first))
     end
 
-    # Calculate each match separately; aggregating raw goal totals first would
-    # give long score targets disproportionate influence on the goal component.
-    def points(won:, scored:, conceded:)
-      total = scored + conceded
-      winning_goals = won ? scored : conceded
-      ((won ? 10.0 : -10.0) + (total.zero? ? 0.0 : 5.0 * (scored - conceded) / total)) * winning_goals / 100.0
-    end
-
     def day(epoch)
       GameRoomStatistics::Periods.today(clock: -> { Time.at(epoch) }).strftime('%Y%m%d').to_i
     end

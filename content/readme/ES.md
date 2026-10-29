@@ -42,9 +42,9 @@ Es un documento de solo lectura con un encabezado para cada versión. H pasa al 
 
 ## A qué puedes jugar
 
-Power Games incluye actualmente 36 juegos:
+Power Games incluye actualmente 38 juegos:
 
-- Cartas: 3-5-8, 99, 1000 millas, Biblios, Bridge, Makao, Picas, Póker, Rummy, Mil, UNO, War y Scientific War.
+- Cartas: 3-5-8, 99, 1000 millas, Biblios, Bouillabaisse, Bridge, Makao, Picas, Póker, Rummy, Scopa, Mil, UNO, War y Scientific War.
 - Tablero y estrategia: Ludo, Cuatro en raya, Tres en raya, Mancala, Monopoly, Reversi, Batalla naval, Ajedrez, Damas y Carrera de patos.
 - Dados y dominó: Cat, head, tail, Dominó, Farkle, Mexican Train y Yahtzee.
 - Palabras y conocimientos: Krowa, Categorías, Quiz Party, Scrabble y Taboo.
@@ -243,14 +243,6 @@ Ctrl+Shift+S guarda el historial disponible de la mesa en un archivo TXT en la c
 
 En el menú principal, elige Clasificaciones y después un juego.
 
-### Axel Pong y Audio Ball
-
-Primero elige individuales o dobles y después Mis estadísticas o una clasificación de los últimos 7 días, 30 días, seis meses o un año. La lista muestra posiciones y nombres de usuario. Pulsa Enter sobre un jugador para ver sus victorias, derrotas, balance de partidos, goles a favor y en contra y diferencia de goles durante ese período. Mis estadísticas contiene los mismos datos de todos tus partidos registrados.
-
-La posición depende de las victorias y derrotas, la ventaja en goles y la duración de los partidos. Los partidos cortos tienen menos peso que los largos: cuenta el total real de goles del bando ganador, no la meta elegida antes de jugar. En Audio Ball se suman los goles de todos los sets. En dobles, cada compañero recibe el resultado completo del equipo.
-
-Los resultados se guardan automáticamente al terminar un partido si ambos bandos están formados únicamente por personas en ese momento. También cuentan los partidos de torneo, incluidos los goles asignados por incomparecencia.
-
 ### Krowa
 
 - En las clasificaciones de palabras, cuantos menos intentos, mejor posición. Puedes buscar una palabra o parte de ella.
@@ -259,9 +251,21 @@ Los resultados se guardan automáticamente al terminar un partido si ambos bando
 
 ## Estadísticas
 
-«Statistics» (estadísticas) muestra la actividad en Power Games: por ejemplo, las partidas iniciadas y terminadas, separadas por juego y por partidas con personas, con bots o en solitario. Puedes elegir un período, como los últimos siete días o todo el tiempo registrado.
+En el menú principal, elige Estadísticas y después General, Axel Pong o Audio Ball.
+
+### General
+
+Aquí se muestra la actividad en Power Games: por ejemplo, las partidas iniciadas y terminadas, separadas por juego y por partidas con personas, con bots o en solitario. Puedes elegir un período, como los últimos siete días o todo el tiempo registrado.
 
 En el menú principal de Power Games, Ctrl+W abre el resumen de personas presentes en las mesas, con el número de mesas y participantes. Este uso es distinto del que tiene en la lista de mesas, donde lee los participantes de una mesa concreta.
+
+### Axel Pong y Audio Ball
+
+Elige individuales o dobles. Al principio se muestran tus resultados de todos los partidos registrados: victorias, derrotas, balance de partidos, goles a favor, goles en contra y diferencia de goles.
+
+Con Tab llegas al selector de período. Puedes consultar los últimos 7 días, 30 días, seis meses, un año o todo el período. Elegir jugador abre las estadísticas de otra persona; Mis estadísticas vuelve a las tuyas. Actualizar obtiene los datos más recientes.
+
+En Audio Ball se suman los goles de todos los sets. En dobles, cada compañero recibe el resultado completo del equipo. Los resultados se guardan automáticamente al terminar un partido si ambos bandos están formados únicamente por personas en ese momento. También cuentan los partidos de torneo, incluidos los goles asignados por incomparecencia.
 
 ## Funciones que conviene conocer
 

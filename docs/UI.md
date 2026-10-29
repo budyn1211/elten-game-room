@@ -81,6 +81,12 @@ returns without rebuilding the form.
 
 ## Help during a game
 
+The live in-game shortcut reference also includes a game's declared personal
+settings command (Ctrl+P), using the same entry as its table menu. Do not
+drop that command when replacing the authored shortcut reference with current
+game-field tips, or add it to games without that capability. Other room
+management commands remain outside the game-only reference.
+
 F1, Ctrl+F1 and the [audio tutorial](AUDIO_TUTORIAL.md) use the shared form's
 help stack. Input reaches only its topmost window; parent timers keep running.
 Refresh preserves the help text, cursor and selection. The game runner,
@@ -156,6 +162,10 @@ Ctrl+R reads `table_options_announcement`, based on the same definitions as
 the settings document. The board game's S counter uses
 `remaining_piece_counts(replay)` and the actual board, in player order.
 Letter-based game shortcuts do not apply in editable chat.
+Read-only history keeps native text selection and copying, including Ctrl+C;
+it is not a game shortcut field. The same key still operates the game when
+its actual playfield is focused. Explicit history-navigation shortcuts retain
+their existing scope.
 
 A browse shortcut may set `default_value` to select the matching choice on
 opening. This does not reorder the choices: arrows, Home and End keep their

@@ -594,6 +594,32 @@ module GameRoomChangelog
         "Fixed Ctrl+Shift+M at the table. It now toggles your conference microphone and announces its state. You can also mute or unmute it from the table's context menu while connected.",
         "While connected to a voice conference, Channel space appears directly after the voice conversation button. Use the arrow keys to move, and Shift+Left/Right Arrow to turn, just as in ELTEN conferences."
       ].freeze
+    ).freeze,
+    Entry.new(
+      version: "2.0.5.7",
+      build: 258,
+      changes: [
+        "Added Inferno, a seventh difficulty level in Axel Pong, faster than Nightmare. Thank you to budyn1211!",
+        "Fixed paddle movement and serving after returning from the forum or another ELTEN window when Pong or Audio Ball started in the background.",
+        "Leaving a table now waits for confirmation. If the connection fails, you stay at the table and can retry instead of returning to the lobby without leaving.",
+        "In Yahtzee, any five-of-a-kind can now fill any unused category, even after scoring zero for Yahtzee. It scores 30 for One pair or Two pairs, 40 for the other lower categories and 50 for Yahtzee. Upper categories still count matching dice. Removed the extra 100-point bonus.",
+        "In singles, the T shortcut in Audio Ball now names only the server; doubles still names the receiver.",
+        "Updated Russian voice-chat labels and instructions. Thank you to Kostenkov-2021!"
+      ].freeze
+    ).freeze,
+    Entry.new(
+      version: "2.0.5.8",
+      build: 259,
+      changes: [
+        "Added Bouillabaisse, a card game for two to eight players with six rounds and changing scoring rules. Play with people or computer players, including in tournaments. Each round announces its rules; R repeats them.",
+        "Added Scopa for two to six players, with Escoba, Scopone, Muerto and team play. Includes computer players, tournament play, game sounds and a short scoring breakdown after each round.",
+        "Unfortunately, the Axel Pong and Audio Ball leaderboards did not meet expectations and have been disabled. Player statistics remain available under Statistics: wins, losses, goals and balances, separately for singles and doubles.",
+        "After a temporary failure to read game updates, Power Games retries automatically after 5, 10 and then 15 seconds. A failed update should no longer leave the game waiting indefinitely.",
+        "Ctrl+C in game history now copies selected text instead of triggering a game command.",
+        "The keyboard shortcuts in game rules now include Ctrl+P wherever personal game settings are available.",
+        "Corrected reported questions in the Polish general-knowledge set and removed a duplicate. Thank you to Zuzler and paulinux for the reports!",
+        "Player statistics, like general statistics, are not collected, read or sent while ELTEN runs in developer mode. Previously unsent normal-mode results remain saved."
+      ].freeze
     ).freeze
   ].freeze
 

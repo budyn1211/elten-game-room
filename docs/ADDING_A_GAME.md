@@ -11,6 +11,12 @@ Do not create a new layer just because one game needs an additional
 action. First try extending the surface specification or adding a small,
 reusable component to the existing framework.
 
+`DealtCardGame` reuses `CardGame` for round-based games whose decisions are
+single-card plays. Bouillabaisse and Scopa share its deal validation, hand
+surface and shortcuts, public history and score exports. Each still owns its
+deck, legal-card rule, round reducer and scoring. Its private adapter uses the
+existing pool ledger, not a parallel transport or bot scheduler.
+
 ## 2. Implement the model
 
 Create `games/<id>.rb` and implement at least:

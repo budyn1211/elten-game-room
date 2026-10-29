@@ -3,6 +3,8 @@
   "axel_pong": { "arcade": "arcade", "team_size": "doubles", "difficulty": "difficulty", "target": "rally", "custom_target": "rally" },
   "battleship": { "fleet": "fleet", "touching": "fleet" },
   "bridge": { "variant": "variants", "boards": "variants", "scoring": "variants", "honors": "honors" },
+  "bouillabaisse": { "all_or_nothing": "scoring" },
+  "scopa": { "score_limit": "points", "two_point_lead": "points", "team_size": "teams", "escoba": "variants", "scopone": "variants", "muerto": "variants" },
   "duck_racing": { "laps": "aim", "question_language": "settings", "question_sets": "settings", "challenges": "settings" },
   "mancala": { "variant": "board", "stones": "board", "skill": "computer", "capture": "kalah" },
   "biblios": {

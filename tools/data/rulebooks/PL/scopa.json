@@ -1,0 +1,154 @@
+{
+  "source": "games/scopa.rb",
+  "sections": [
+    {
+      "id": "aim",
+      "title": {
+        "pl": "Cel gry"
+      },
+      "paragraphs": [
+        {
+          "pl": "W Scopie może uczestniczyć od dwóch do sześciu osób. Zagrywasz karty z ręki, żeby zbierać nimi karty ze stołu. Liczy się nie tylko ich liczba, lecz także to, jakie karty uda ci się zdobyć. Domyślnie każdy gra na siebie, do 11 punktów i z wymaganą przewagą dwóch punktów."
+        }
+      ]
+    },
+    {
+      "id": "play",
+      "title": {
+        "pl": "Przebieg tury"
+      },
+      "paragraphs": [
+        {
+          "pl": "Na stole leżą cztery karty, a ty otrzymujesz trzy. Przy pięciu graczach na stole jest początkowo pięć kart, a w ostatniej części rozdania każdy dostaje po cztery zamiast trzech. Używana talia zawiera karty od asa do dziesiątki w czterech kolorach. As ma wartość 1."
+        },
+        {
+          "pl": "Pierwszy rozdający jest losowany. Grę rozpoczyna osoba siedząca za nim, a potem gracze wykonują ruchy po kolei. Wybierz kartę z ręki strzałkami i zagraj ją Enterem. Karty na stole odczytasz klawiszem C; Ctrl+C pozwala je przeglądać pojedynczo."
+        },
+        {
+          "pl": "Twoja karta zbiera ze stołu kartę o takiej samej wartości. Gdy takiej nie ma, może zebrać kilka kart, których suma jest równa jej wartości. Siódemką zabierzesz na przykład trójkę i czwórkę. Zagraną kartę też zalicza się do twoich zdobyczy. Jeśli nic nie pasuje, zostawiasz ją na stole."
+        },
+        {
+          "pl": "Gra sama wybiera zbierane karty. Najpierw szuka pojedynczej karty o tej samej wartości, a dopiero potem sumy złożonej z jak najmniejszej liczby kart. Jeżeli jest kilka takich możliwości, wybiera karty leżące wcześniej na liście."
+        },
+        {
+          "pl": "Gdy wszyscy zużyją karty z ręki, dostają następne. Po wyczerpaniu talii i rąk karty pozostałe na stole otrzymuje ten, kto ostatnio coś zebrał. Następuje podliczenie rundy, po czym rozdaje kolejna osoba."
+        }
+      ]
+    },
+    {
+      "id": "points",
+      "title": {
+        "pl": "Scopa i punktacja"
+      },
+      "paragraphs": [
+        {
+          "pl": "Jeżeli swoim zagraniem zbierzesz wszystkie karty ze stołu, zdobywasz scopę wartą 1 punkt. Dotyczy to również ostatniego zagrania rundy. Samo otrzymanie kart pozostałych na stole nie daje tej premii."
+        },
+        {
+          "pl": "Po rundzie przyznawane są też:"
+        },
+        {
+          "pl": "- 1 punkt za największą liczbę zebranych kart."
+        },
+        {
+          "pl": "- 1 punkt za najwięcej kart karo."
+        },
+        {
+          "pl": "- 1 punkt za najwięcej siódemek."
+        },
+        {
+          "pl": "- 1 punkt za siódemkę karo."
+        },
+        {
+          "pl": "Remis w liczbie kart, kart karo lub siódemek oznacza brak punktu za daną kategorię. Dopiero po podliczeniu całej rundy sprawdza się, kto wygrał. Domyślnie potrzebujesz co najmniej 11 punktów i przewagi dwóch punktów nad każdym przeciwnikiem. Jeżeli nikt jej nie ma, gracie następną rundę. Wyniki sprawdzisz klawiszem S."
+        }
+      ]
+    },
+    {
+      "id": "teams",
+      "title": {
+        "pl": "Gra w drużynach"
+      },
+      "paragraphs": [
+        {
+          "pl": "Przy czterech graczach można wybrać dwie pary. Przy sześciu dostępne są drużyny dwu- lub trzyosobowe. Partnerzy wykonują ruchy na zmianę z przeciwnikami i wspólnie zbierają karty, scope oraz punkty. W punktacji drużyna jest traktowana jak jeden gracz."
+        }
+      ]
+    },
+    {
+      "id": "variants",
+      "title": {
+        "pl": "Warianty"
+      },
+      "paragraphs": [
+        {
+          "pl": "W ustawieniach stołu możesz włączyć poniższe warianty, także kilka jednocześnie:"
+        },
+        {
+          "pl": "- Escoba: twoja karta wraz ze zbieranymi kartami musi dawać sumę 15. Ósemka może więc zebrać siódemkę albo trójkę i czwórkę."
+        },
+        {
+          "pl": "- Scopone: stół zaczyna pusty, a gracze dostają większe ręce. We dwoje otrzymujecie dwa razy po dziesięć kart; przy trzech osobach po trzynaście, przy czterech po dziesięć, przy pięciu po osiem, a przy sześciu po sześć. Karty, których nie da się rozdać po równo, nie biorą udziału w tej rundzie."
+        },
+        {
+          "pl": "- Muerto: każdy zdobyty przez ciebie punkt trafia zamiast tego do każdego przeciwnika lub przeciwnej drużyny. Jeżeli grasz przeciwko dwóm osobom i zdobędziesz 3 punkty, obie dostaną po 3, a ty żadnego. Nadal wygrywa najwyższy wynik, warto więc unikać zbierania kart, które pomagają innym."
+        },
+        {
+          "pl": "Możesz też zmienić docelowy wynik i wyłączyć wymóg przewagi dwóch punktów. Po jego wyłączeniu trzeba zakończyć rundę z samodzielnym prowadzeniem i osiągniętym limitem."
+        }
+      ]
+    },
+    {
+      "id": "controls",
+      "title": {
+        "pl": "Skróty klawiszowe"
+      },
+      "paragraphs": [
+        {
+          "pl": "Strzałki: przeglądaj swoją rękę."
+        },
+        {
+          "pl": "Enter: zagraj wybraną kartę."
+        },
+        {
+          "pl": "H: odczytaj swoją rękę."
+        },
+        {
+          "pl": "C: odczytaj karty na stole."
+        },
+        {
+          "pl": "Ctrl+C: przejrzyj karty na stole."
+        },
+        {
+          "pl": "V: sprawdź rundę i liczbę kart do rozdania."
+        },
+        {
+          "pl": "S: odczytaj wyniki."
+        },
+        {
+          "pl": "T: sprawdź, czyja jest tura."
+        },
+        {
+          "pl": "Z / Shift+Z: znajdź następną / poprzednią kartę do zagrania."
+        },
+        {
+          "pl": "Shift+C: sortuj według kolorów."
+        },
+        {
+          "pl": "Shift+H: sortuj według wartości."
+        },
+        {
+          "pl": "Shift+M: przywróć kolejność otrzymania kart."
+        }
+      ]
+    }
+  ],
+  "option_chapters": {
+    "score_limit": "points",
+    "two_point_lead": "points",
+    "team_size": "teams",
+    "escoba": "variants",
+    "scopone": "variants",
+    "muerto": "variants"
+  }
+}

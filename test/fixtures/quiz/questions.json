@@ -1,9 +1,9 @@
 {
   "packs": {
     "quiz.wikidata.pl": {
-      "count": 14900,
-      "version": 16,
-      "checksum": "4c4481b99970865a3bc6e798869cca337d0f9b51cfdb3fdb1daa70f9678c221a"
+      "count": 14899,
+      "version": 17,
+      "checksum": "2068980b7c11b16d70f221c379f37b559cfd828ab859cf59d06c89625ef78012"
     },
     "quiz.general.en": {
       "count": 13903,
@@ -22,7 +22,8 @@
       "1d1d6d91bd9e",
       "a92f2dd83f15",
       "69843c5d9805",
-      "09559cfc46fe"
+      "09559cfc46fe",
+      "polqa_05804"
     ],
     "quiz.witcher.books.pl": [
       "36884a770c73",

@@ -89,6 +89,12 @@ Manual sorting is declared through `hand_sorting_available?` and the shared
 colour/number/none. Sorting the view does not change the game state, packet
 selection order or default layout. Physical IDs and the cursor remain stable.
 
+The dealt-card family shares `hand_cards_for_display` between its default
+surface and H reminder. Bouillabaisse orders both by the same suit/rank keys
+as Spades; Scopa retains received order. The hook must not mutate its input.
+`hand_order` and the `none` sort keys always retain the actual received order,
+and explicit manual sorting remains controlled by the shared surface.
+
 ## Confirming card actions
 
 The optional `Card#confirmation` supplies a ready-to-use question before the

@@ -1,0 +1,132 @@
+{
+  "source": "games/bouillabaisse.rb",
+  "sections": [
+    {
+      "id": "aim",
+      "title": {
+        "pl": "Na czym polega gra"
+      },
+      "paragraphs": [
+        {
+          "pl": "W Bouillabaisse może uczestniczyć od dwóch do ośmiu osób. Przez sześć rund starasz się zebrać jak najmniej punktów. Zwykle dostajesz je za zabranie określonych kart, ale w ostatniej rundzie możesz w ten sposób zmniejszyć swój wynik."
+        }
+      ]
+    },
+    {
+      "id": "play",
+      "title": {
+        "pl": "Zagrywanie i zbieranie kart"
+      },
+      "paragraphs": [
+        {
+          "pl": "Każdy otrzymuje tyle samo kart z jednej talii. Jeżeli nie da się jej rozdać po równo, gra usuwa kilka najniższych kart. Pierwszy rozdający jest losowany, a w kolejnych rundach rozdaje następna osoba."
+        },
+        {
+          "pl": "Rozpoczyna gracz siedzący za rozdającym. Wybierz kartę strzałkami i zagraj ją Enterem. Pozostali dokładają po jednej karcie. Jeśli masz kartę w kolorze pierwszej zagranej, musisz jej użyć. W przeciwnym razie możesz wybrać dowolną."
+        },
+        {
+          "pl": "Kto zagrał najwyższą kartę w kolorze rozpoczynającym, zabiera wszystkie karty z tej kolejki i rozpoczyna następną. Najwyższy jest as, potem król, dama, walet, dziesiątka i kolejne karty aż do dwójki. Żaden kolor nie ma pierwszeństwa przed innymi. Gdy skończą się karty w rękach, następuje podliczenie rundy."
+        },
+        {
+          "pl": "Klawisz C odczytuje karty na stole, a F przypomina kolor, do którego trzeba dokładać. Pod H sprawdzisz swoją rękę. Klawisz Z przenosi do karty, którą możesz zagrać; jeśli pasuje tylko jedna, od razu ją zagrywa."
+        }
+      ]
+    },
+    {
+      "id": "rounds",
+      "title": {
+        "pl": "Sześć rund"
+      },
+      "paragraphs": [
+        {
+          "pl": "Na początku partii gra losuje kolor, rodzaj figury i jedną konkretną kartę, za które będą naliczane kary. Ten wybór obowiązuje do końca partii. Na początku każdej rundy usłyszysz, za co liczą się punkty. Klawiszem R możesz przypomnieć te zasady; działa też dotychczasowy klawisz V."
+        },
+        {
+          "pl": "- W pierwszej rundzie każde zabranie kart ze stołu kosztuje 5 punktów."
+        },
+        {
+          "pl": "- W drugiej dostajesz 10 punktów za każdą zabraną kartę w wylosowanym kolorze."
+        },
+        {
+          "pl": "- W trzeciej dostajesz po 50 punktów za każdą zabraną figurę wylosowanego rodzaju: waleta, damę albo króla."
+        },
+        {
+          "pl": "- W czwartej zabranie wskazanej karty kosztuje 200 punktów."
+        },
+        {
+          "pl": "- W piątej obowiązują wszystkie cztery kary naraz. Jedna karta może być liczona na kilka sposobów."
+        },
+        {
+          "pl": "- W szóstej te same wartości odejmuje się od wyniku. Tym razem warto więc zbierać karty."
+        }
+      ]
+    },
+    {
+      "id": "scoring",
+      "title": {
+        "pl": "Wszystko albo nic i zakończenie partii"
+      },
+      "paragraphs": [
+        {
+          "pl": "Domyślnie działa zasada „Wszystko albo nic”: jeżeli zbierzesz wszystkie punktujące karty lub wszystkie kolejki, wynik tej rundy zmienia znak. Zamiast dopisać karę, odejmujesz ją od wyniku. Ta zasada nie dotyczy czwartej rundy."
+        },
+        {
+          "pl": "W pierwszej rundzie musisz zebrać wszystkie karty, w drugiej wszystkie karty wybranego koloru, a w trzeciej wszystkie cztery figury wskazanego rodzaju. W piątej i szóstej trzeba zebrać całą talię. W szóstej zmiana znaku działa na niekorzyść: zamiast odjąć punkty, dopisujesz je sobie."
+        },
+        {
+          "pl": "Po sześciu rundach wygrywa osoba z najniższym wynikiem. Równe najniższe wyniki oznaczają remis. Punktację sprawdzisz klawiszem S. Zasadę „Wszystko albo nic” można wyłączyć w ustawieniach stołu."
+        }
+      ]
+    },
+    {
+      "id": "controls",
+      "title": {
+        "pl": "Skróty klawiszowe"
+      },
+      "paragraphs": [
+        {
+          "pl": "Strzałki: przeglądaj karty."
+        },
+        {
+          "pl": "Enter: zagraj wybraną kartę."
+        },
+        {
+          "pl": "H: odczytaj swoją rękę."
+        },
+        {
+          "pl": "C: odczytaj karty z bieżącej kolejki."
+        },
+        {
+          "pl": "Ctrl+C: przejrzyj te karty."
+        },
+        {
+          "pl": "F: przypomnij kolor, do którego dokładasz."
+        },
+        {
+          "pl": "R / V: przypomnij zasady bieżącej rundy."
+        },
+        {
+          "pl": "S: odczytaj wyniki."
+        },
+        {
+          "pl": "T: sprawdź, czyja jest tura."
+        },
+        {
+          "pl": "Z / Shift+Z: znajdź następną / poprzednią kartę możliwą do zagrania."
+        },
+        {
+          "pl": "Shift+C: sortuj według kolorów."
+        },
+        {
+          "pl": "Shift+H: sortuj według wartości."
+        },
+        {
+          "pl": "Shift+M: przywróć kolejność otrzymania kart."
+        }
+      ]
+    }
+  ],
+  "option_chapters": {
+    "all_or_nothing": "scoring"
+  }
+}

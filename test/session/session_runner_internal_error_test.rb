@@ -34,7 +34,7 @@ r.close
   r.instance_variable_set(:@room_snapshot_provider, -> { calls += 1; raise error if calls == 1; provider.call })
   h.as('Alice') { 100.times { r.step } }
   assert(calls == 1 && r.instance_variable_get(:@internal_error).nil?, 'network backoff lost')
-  assert(r.instance_variable_get(:@sync).next_reconcile_at == (error.message.include?('429') ? 60 : 30), 'wrong recovery delay')
+  assert(r.instance_variable_get(:@sync).next_reconcile_at == (error.message.include?('429') ? 60 : 5), 'wrong recovery delay')
   tick = 61
   step(h, r, count: 3)
   assert(r.presentation_snapshot && r.take_error.nil?, 'known network error no longer recovers')

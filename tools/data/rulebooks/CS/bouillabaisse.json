@@ -1,0 +1,132 @@
+{
+  "source": "games/bouillabaisse.rb",
+  "sections": [
+    {
+      "id": "aim",
+      "title": {
+        "cs": "Cíl hry"
+      },
+      "paragraphs": [
+        {
+          "cs": "Bouillabaisse může hrát 2 až 8 lidí. Během šesti kol se snažíš nasbírat co nejméně bodů. Většinou dostáváš trestné body za určité získané karty; v posledním kole si je naopak odečítáš."
+        }
+      ]
+    },
+    {
+      "id": "play",
+      "title": {
+        "cs": "Jak se hraje"
+      },
+      "paragraphs": [
+        {
+          "cs": "Každý dostane stejný počet karet z jednoho balíčku. Pokud karty nevycházejí rovnoměrně, několik nejnižších se vyřadí. První rozdávající se losuje, v dalších kolech rozdává následující hráč."
+        },
+        {
+          "cs": "Začíná hráč po rozdávajícím. Šipkami vyber kartu a Enterem ji zahraj. Ostatní postupně přidají po jedné kartě. Máš-li barvu první zahrané karty, musíš ji přiznat; jinak můžeš zahrát cokoli."
+        },
+        {
+          "cs": "Nejvyšší karta v první zahrané barvě získá celý zdvih a jeho vítěz začíná další. Nejvyšší je eso, pak král, dáma, kluk, desítka a další karty až po dvojku. Trumfy tu nejsou. Když dojdou karty v rukách, kolo se vyhodnotí."
+        },
+        {
+          "cs": "C přečte karty v rozehraném zdvihu, F připomene jeho barvu a H přečte tvoji ruku. Z tě přesune na kartu, kterou smíš zahrát; pokud je taková jen jedna, rovnou ji zahraje."
+        }
+      ]
+    },
+    {
+      "id": "rounds",
+      "title": {
+        "cs": "Šest kol"
+      },
+      "paragraphs": [
+        {
+          "cs": "Na začátku partie se vylosuje barva, druh figury a jedna konkrétní karta. Tento výběr platí po celou partii. Na začátku každého kola uslyšíš, za co se počítají body. Klávesou R si tato pravidla připomeneš; funguje i klávesa V."
+        },
+        {
+          "cs": "- V prvním kole stojí každý získaný zdvih 5 bodů."
+        },
+        {
+          "cs": "- Ve druhém dostáváš 10 bodů za každou získanou kartu vylosované barvy."
+        },
+        {
+          "cs": "- Ve třetím stojí každá figura zvoleného druhu — kluk, dáma nebo král — 50 bodů."
+        },
+        {
+          "cs": "- Ve čtvrtém stojí získání určené karty 200 bodů."
+        },
+        {
+          "cs": "- V pátém platí všechny čtyři sazby současně. Jedna karta se může započítat vícekrát."
+        },
+        {
+          "cs": "- V šestém se stejné hodnoty od výsledku odečítají. Tentokrát se tedy vyplatí karty získávat."
+        }
+      ]
+    },
+    {
+      "id": "scoring",
+      "title": {
+        "cs": "Všechno, nebo nic"
+      },
+      "paragraphs": [
+        {
+          "cs": "Tato volba je ve výchozím nastavení zapnutá. Získáš-li v kole všechny bodované karty či zdvihy, znaménko tvého výsledku za kolo se obrátí: místo trestu si body odečteš. Ve čtvrtém kole se pravidlo neuplatňuje."
+        },
+        {
+          "cs": "V prvním kole potřebuješ všechny zdvihy, ve druhém všechny karty vybrané barvy a ve třetím všechny čtyři figury vybraného druhu. V pátém a šestém musíš získat všechny zdvihy. V šestém se obrácení znaménka nevyplatí: z odečtu se stane trest."
+        },
+        {
+          "cs": "Po šestém kole vyhrává nejnižší součet. Shodné nejnižší výsledky znamenají remízu. S přečte skóre. Pravidlo Všechno, nebo nic můžeš vypnout v nastavení stolu."
+        }
+      ]
+    },
+    {
+      "id": "controls",
+      "title": {
+        "cs": "Klávesové zkratky"
+      },
+      "paragraphs": [
+        {
+          "cs": "Šipky: procházení karet."
+        },
+        {
+          "cs": "Enter: zahrání vybrané karty."
+        },
+        {
+          "cs": "H: přečtení ruky."
+        },
+        {
+          "cs": "C: přečtení rozehraného zdvihu."
+        },
+        {
+          "cs": "Ctrl+C: procházení jeho karet."
+        },
+        {
+          "cs": "F: připomenutí první zahrané barvy."
+        },
+        {
+          "cs": "R / V: připomenutí pravidel právě hraného kola."
+        },
+        {
+          "cs": "S: skóre."
+        },
+        {
+          "cs": "T: kdo je na tahu."
+        },
+        {
+          "cs": "Z / Shift+Z: další / předchozí hratelná karta."
+        },
+        {
+          "cs": "Shift+C: seřazení podle barev."
+        },
+        {
+          "cs": "Shift+H: seřazení podle hodnot."
+        },
+        {
+          "cs": "Shift+M: obnovení pořadí přijatých karet."
+        }
+      ]
+    }
+  ],
+  "option_chapters": {
+    "all_or_nothing": "scoring"
+  }
+}

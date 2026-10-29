@@ -498,6 +498,27 @@ The user supplied the Freesound `preview-hq-ogg` recording and its license notic
 On 21 October 2026 it was converted to Opus 144 kb/s VBR, 48 kHz,
 20 ms frames, preserving channels, level and the full recording.
 
+### Scopa bonus
+
+`Audio/scopa.opus` uses [PS1 Pick up SFX 18](https://freesound.org/s/869686/)
+by **SignatureSoundsOrg**, released under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
+The user supplied the Freesound `preview-hq-ogg` recording and its license notice.
+It was converted to Opus 144 kb/s VBR, 48 kHz, 20 ms frames, preserving
+channels, level, metadata and the complete recording.
+
+`Audio/scopa_deal.opus` uses [1 carte mélange-10](https://freesound.org/s/161075/)
+by **Julien Nicolas**, released under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/).
+This recording is restricted to non-commercial use. The user supplied the
+Freesound `preview-hq-ogg` recording and its license notice. It was converted
+to Opus 144 kb/s VBR, 48 kHz, 20 ms frames, preserving channels, level,
+metadata and the complete recording.
+
+`Audio/scopa_take.opus` uses [Dealing Card](https://freesound.org/s/240777/)
+by **f4ngy**, released under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+The user supplied the Freesound `preview-hq-ogg` recording and its license notice.
+It was converted to Opus 144 kb/s VBR, 48 kHz, 20 ms frames, preserving
+channels, level, metadata and the complete recording.
+
 ### Krowa — dictionary and recordings
 
 Krowa was supplied by **paulinux** in PR #10 from the GitHub account

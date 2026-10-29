@@ -1,0 +1,154 @@
+{
+  "source": "games/scopa.rb",
+  "sections": [
+    {
+      "id": "aim",
+      "title": {
+        "es": "Objetivo"
+      },
+      "paragraphs": [
+        {
+          "es": "Scopa admite de 2 a 6 personas. Juegas cartas de tu mano para capturar las de la mesa y reunir las que dan puntos. Por defecto se juega individualmente hasta 11 puntos, con una ventaja mínima de dos."
+        }
+      ]
+    },
+    {
+      "id": "play",
+      "title": {
+        "es": "Cómo capturar cartas"
+      },
+      "paragraphs": [
+        {
+          "es": "En la mesa se colocan cuatro cartas y cada jugador recibe tres. Con cinco jugadores se empieza con cinco cartas en la mesa y el último reparto da cuatro a cada uno en vez de tres. La baraja contiene cuatro palos, del as al diez; el as vale 1."
+        },
+        {
+          "es": "El primer repartidor se sortea. Empieza quien está después de él y los turnos siguen alrededor de la mesa. Elige una carta con las flechas y pulsa Intro para jugarla. C lee las cartas de la mesa; Ctrl+C permite recorrerlas una por una."
+        },
+        {
+          "es": "Tu carta captura una de igual valor. Si no la hay, puede llevarse varias que sumen su valor: un siete puede capturar un tres y un cuatro. La carta jugada se añade a tu captura. Si no hay ninguna combinación válida, se queda en la mesa."
+        },
+        {
+          "es": "La captura es automática. Una carta del mismo valor tiene preferencia sobre una suma. Entre varias sumas se usa el menor número de cartas; si sigue habiendo varias opciones, se eligen las que aparecen antes en la mesa."
+        },
+        {
+          "es": "Cuando se agotan todas las manos, se reparten más cartas. Al terminar la baraja y las manos, las que quedan en la mesa se entregan a quien hizo la última captura. Se puntúa la ronda y pasa el reparto al siguiente jugador."
+        }
+      ]
+    },
+    {
+      "id": "points",
+      "title": {
+        "es": "Scopas y puntuación"
+      },
+      "paragraphs": [
+        {
+          "es": "Dejar la mesa vacía con una jugada te da una scopa, que vale 1 punto. También cuenta si es la última jugada de la ronda. Recibir automáticamente las cartas sobrantes no da scopa."
+        },
+        {
+          "es": "Además, al final de la ronda se otorgan:"
+        },
+        {
+          "es": "- 1 punto por capturar más cartas que los demás."
+        },
+        {
+          "es": "- 1 punto por tener más diamantes."
+        },
+        {
+          "es": "- 1 punto por tener más sietes."
+        },
+        {
+          "es": "- 1 punto por el siete de diamantes."
+        },
+        {
+          "es": "Si hay empate en cartas, diamantes o sietes, nadie recibe el punto de esa categoría. La victoria se comprueba después de puntuar toda la ronda. Por defecto necesitas al menos 11 puntos y dos de ventaja sobre cada rival; si nadie lo consigue, se juega otra ronda. S lee las puntuaciones."
+        }
+      ]
+    },
+    {
+      "id": "teams",
+      "title": {
+        "es": "Jugar por equipos"
+      },
+      "paragraphs": [
+        {
+          "es": "Cuatro personas pueden jugar en dos parejas. Con seis se admiten equipos de dos o de tres. Los compañeros intercalan sus turnos con los rivales y comparten capturas, scopas y puntos. Cada equipo cuenta como una sola parte al puntuar."
+        }
+      ]
+    },
+    {
+      "id": "variants",
+      "title": {
+        "es": "Variantes"
+      },
+      "paragraphs": [
+        {
+          "es": "En los ajustes de la mesa puedes combinar estas variantes:"
+        },
+        {
+          "es": "- Escoba: tu carta y las que captures deben sumar 15. Un ocho, por ejemplo, puede llevarse un siete o un tres y un cuatro."
+        },
+        {
+          "es": "- Scopone: se empieza con la mesa vacía y se reciben manos mayores. Dos jugadores reciben diez cartas dos veces; tres reciben trece cada uno, cuatro reciben diez, cinco reciben ocho y seis reciben seis. Las cartas que sobran se apartan durante esa ronda."
+        },
+        {
+          "es": "- Muerto: cada punto que consigas se entrega a cada rival o equipo rival, en vez de a ti. Si hay tres partes y consigues 3 puntos, las otras dos reciben 3 cada una y tú ninguno. Sigue ganando la puntuación más alta, así que interesa evitar capturas que ayuden a los demás."
+        },
+        {
+          "es": "También puedes cambiar el objetivo y quitar la ventaja obligatoria de dos puntos. Sin ella, aún debes alcanzar el objetivo y acabar la ronda en cabeza sin empatar."
+        }
+      ]
+    },
+    {
+      "id": "controls",
+      "title": {
+        "es": "Atajos de teclado"
+      },
+      "paragraphs": [
+        {
+          "es": "Flechas: recorrer tu mano."
+        },
+        {
+          "es": "Intro: jugar la carta elegida."
+        },
+        {
+          "es": "H: leer tu mano."
+        },
+        {
+          "es": "C: leer las cartas de la mesa."
+        },
+        {
+          "es": "Ctrl+C: recorrer las cartas de la mesa."
+        },
+        {
+          "es": "V: consultar la ronda y las cartas por repartir."
+        },
+        {
+          "es": "S: leer los resultados."
+        },
+        {
+          "es": "T: saber de quién es el turno."
+        },
+        {
+          "es": "Z / Mayús+Z: buscar la siguiente / anterior carta jugable."
+        },
+        {
+          "es": "Mayús+C: ordenar por palo."
+        },
+        {
+          "es": "Mayús+H: ordenar por valor."
+        },
+        {
+          "es": "Mayús+M: recuperar el orden recibido."
+        }
+      ]
+    }
+  ],
+  "option_chapters": {
+    "score_limit": "points",
+    "two_point_lead": "points",
+    "team_size": "teams",
+    "escoba": "variants",
+    "scopone": "variants",
+    "muerto": "variants"
+  }
+}

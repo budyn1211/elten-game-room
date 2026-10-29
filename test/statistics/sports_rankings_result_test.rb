@@ -7,13 +7,7 @@ require_relative '../../__app'
 
 def assert(value, message); raise message unless value; end
 R = GameRoomSportsRankings::Result
-[[2,0,0.30],[11,0,1.65],[20,0,3.0],[11,9,1.155],[13,11,1.3541666666666667]].each do |scored,conceded,expected|
-  actual = R.points(won:true,scored:scored,conceded:conceded)
-  assert((actual-expected).abs < 1e-10, "Wrong weighted points for #{scored}:#{conceded}")
-  assert((R.points(won:false,scored:conceded,conceded:scored)+expected).abs < 1e-10, 'Winner/loser weights differ')
-end
-assert(R.points(won:true,scored:0,conceded:0).zero?, 'Zero goals divided by zero')
-assert(R.points(won:true,scored:15,conceded:16).positive?, 'A set winner with fewer total goals lost ranking points')
+assert(!R.respond_to?(:points), 'The retired sports ranking formula remains active')
 
 Repo = Struct.new(:people) do
   def players_for(_session); people; end
@@ -89,5 +83,7 @@ forfeit = R.from_tournament(game:game,candidate:candidate,match:match,receipt:re
 assert(R.parse(forfeit)['sides'].map { |side| side['goals'] }==[11,0], 'Forfeit lost its technical goals')
 assert(R.from_tournament(game:game,candidate:candidate,match:match,receipt:{'summary'=>receipt['summary'].merge('resolution'=>'all_zero')},players:names,finished_at:epoch).nil?, 'All-zero settlement became a win')
 ids = EltenGameRoom::GAME_REGISTRY.ids.select { |id| EltenGameRoom::GAME_REGISTRY.build(id).supports_leaderboards? }
-assert(ids.sort == %w[audio_ball axel_pong krowa], 'Leaderboard opt-in changed unrelated games')
-puts 'PASS sports results: weighted formula, actual terminal reducers, full sets, final human roster, late replacement, doubles and technical forfeits'
+assert(ids == %w[krowa], 'Retired sports rankings remain available or Krowa disappeared')
+statistics = EltenGameRoom::GAME_REGISTRY.ids.select { |id| EltenGameRoom::GAME_REGISTRY.build(id).supports_player_statistics? }
+assert(statistics.sort == %w[audio_ball axel_pong], 'Personal statistics capabilities differ from the two sports games')
+puts 'PASS sports statistics results: no ranking formula/capability, actual terminal reducers, full sets, final human roster, late replacement, doubles and technical forfeits'

@@ -1,0 +1,154 @@
+{
+  "source": "games/scopa.rb",
+  "sections": [
+    {
+      "id": "aim",
+      "title": {
+        "en": "The aim"
+      },
+      "paragraphs": [
+        {
+          "en": "Scopa is for 2–6 players. You capture cards from the table and try to collect more valuable groups than your opponents. By default, you play individually to 11 points, with a lead of at least two."
+        }
+      ]
+    },
+    {
+      "id": "play",
+      "title": {
+        "en": "Your turn"
+      },
+      "paragraphs": [
+        {
+          "en": "Four cards are placed on the table and everyone receives three. With five players, the table starts with five cards and the final deal gives everyone four instead of three. The deck contains aces through tens in four suits; an ace counts as 1."
+        },
+        {
+          "en": "The first dealer is chosen at random. The player after the dealer starts, and play continues around the table. Choose a card from your hand with the arrows and play it with Enter. Press C to hear the table cards, or Ctrl+C to inspect them one by one."
+        },
+        {
+          "en": "Your card captures a table card of the same value. If there is no such card, it can capture several cards whose values add up to its own: a seven can take a three and a four, for example. The played card joins the cards you capture. If nothing matches, your card stays on the table."
+        },
+        {
+          "en": "Capture is automatic. A single matching card takes precedence over a sum; among sums, the game chooses the fewest cards. If several choices use the same number, it takes the earliest matching cards in table order."
+        },
+        {
+          "en": "When everyone has played their hand, more cards are dealt. Once the deck and all hands are empty, the last player to have made a capture receives the cards left on the table. The round is then scored, and the next player becomes dealer."
+        }
+      ]
+    },
+    {
+      "id": "points",
+      "title": {
+        "en": "Scopas and scoring"
+      },
+      "paragraphs": [
+        {
+          "en": "Clearing the table with your play earns a scopa worth 1 point, including on the last play of the round. Receiving leftover cards at the end is not a scopa."
+        },
+        {
+          "en": "At the end of a round, you also receive:"
+        },
+        {
+          "en": "- 1 point for collecting the most cards."
+        },
+        {
+          "en": "- 1 point for collecting the most diamonds."
+        },
+        {
+          "en": "- 1 point for collecting the most sevens."
+        },
+        {
+          "en": "- 1 point for the seven of diamonds."
+        },
+        {
+          "en": "A tie for the most cards, diamonds or sevens awards no point in that category. After the whole round is scored, the game checks the target. You need at least 11 points and a two-point lead by default; otherwise, another round is played. S reads the scores."
+        }
+      ]
+    },
+    {
+      "id": "teams",
+      "title": {
+        "en": "Playing in teams"
+      },
+      "paragraphs": [
+        {
+          "en": "Table settings offer two pairs with four players, or teams of two or three with six. Partners take turns between opposing players and share captured cards, scopas and points. Each team counts as one side for every scoring rule."
+        }
+      ]
+    },
+    {
+      "id": "variants",
+      "title": {
+        "en": "Other ways to play"
+      },
+      "paragraphs": [
+        {
+          "en": "The table settings let you combine these variants:"
+        },
+        {
+          "en": "- Escoba: your played card and the cards it captures must total 15. An eight, for example, can capture a seven or a three and a four."
+        },
+        {
+          "en": "- Scopone: the table starts empty and you receive a larger hand. Two players get ten cards twice; three get thirteen each, four get ten, five get eight and six get six. Any cards left over from this deal are set aside for the round."
+        },
+        {
+          "en": "- Muerto: every point you earn goes instead to each opposing player or team. With three sides, scoring 3 gives both opponents 3 each and gives you none. You still try to reach the target, so avoid making captures that help the others."
+        },
+        {
+          "en": "You can change the score target and turn off the two-point lead requirement. With that requirement off, you still need to finish a round with the highest score on your own."
+        }
+      ]
+    },
+    {
+      "id": "controls",
+      "title": {
+        "en": "Keyboard shortcuts"
+      },
+      "paragraphs": [
+        {
+          "en": "Arrows: browse your hand."
+        },
+        {
+          "en": "Enter: play the selected card."
+        },
+        {
+          "en": "H: read your hand."
+        },
+        {
+          "en": "C: read the table cards."
+        },
+        {
+          "en": "Ctrl+C: inspect the table cards."
+        },
+        {
+          "en": "V: read the round and the number of cards left to deal."
+        },
+        {
+          "en": "S: read the scores."
+        },
+        {
+          "en": "T: read whose turn it is."
+        },
+        {
+          "en": "Z / Shift+Z: find the next / previous playable card."
+        },
+        {
+          "en": "Shift+C: sort by suit."
+        },
+        {
+          "en": "Shift+H: sort by rank."
+        },
+        {
+          "en": "Shift+M: restore received order."
+        }
+      ]
+    }
+  ],
+  "option_chapters": {
+    "score_limit": "points",
+    "two_point_lead": "points",
+    "team_size": "teams",
+    "escoba": "variants",
+    "scopone": "variants",
+    "muerto": "variants"
+  }
+}

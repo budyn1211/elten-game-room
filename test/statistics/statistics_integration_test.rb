@@ -28,6 +28,11 @@ class Form
     attr_accessor :statistics_driver
   end
   def wait
+    if fields.first.is_a?(ListBox) && fields.first.options.first == 'General'
+      accept_button.trigger(:press)
+      cancel_button.trigger(:press)
+      return
+    end
     settle_statistics(self)
     Form.statistics_driver.call(self)
   end

@@ -33,6 +33,42 @@ end
 # Reviewed source decisions: preserve wording except for approved minimal
 # choice-list edits, corrected keys, distinct distractors and the Polsat negation.
 reviewed_general = {
+  # Reports reviewed on 2026-10-28: explicit dates, precise definitions,
+  # matching grammar and correctly written book titles. The second carat
+  # question is excluded by the pinned fixture; retain the stronger wording.
+  '1z10_1da2080e7bccf707' => {
+    'prompt' => 'Kto napisał „Folwark zwierzęcy” i „Rok 1984”?',
+    'correct' => 'George Orwell',
+    'wrong' => ['Aldous Huxley', 'Ray Bradbury', 'Herbert George Wells']
+  },
+  '1z10_a4eeb972b17be78e' => {
+    'prompt' => 'Na czym polega noc polarna?',
+    'correct' => 'Słońce nie wschodzi przez co najmniej 24 godziny',
+    'wrong' => ['Słońce nie zachodzi przez co najmniej 24 godziny',
+      'Księżyc pozostaje widoczny przez całą dobę', 'Słońce zachodzi tylko na kilka minut każdej doby']
+  },
+  '1z10_71913973088a420e' => {
+    'prompt' => 'Kto wygrał wybory prezydenckie we Francji w 2017 roku?',
+    'correct' => 'Emmanuel Macron',
+    'wrong' => ['François Hollande', 'Nicolas Sarkozy', 'Édouard Philippe']
+  },
+  '1z10_5a7501fff49cd44e' => {
+    'prompt' => 'Kim był święty Mateusz Ewangelista, zanim został apostołem?',
+    'correct' => 'Celnikiem', 'wrong' => ['Rybakiem', 'Cieślą', 'Lekarzem']
+  },
+  '1z10_375d099dbae7c729' => {
+    'prompt' => 'Kto w 2019 roku stanął na czele Komisji Europejskiej?',
+    'correct' => 'Ursula von der Leyen',
+    'wrong' => ['Christine Lagarde', 'Roberta Metsola', 'Kaja Kallas']
+  },
+  'polqa_06007' => {
+    'prompt' => 'Jaka jest maksymalna liczba wypukłych punktów w jednym znaku tradycyjnego pisma Braille’a?',
+    'correct' => '6', 'wrong' => ['4', '5', '7']
+  },
+  'polqa_03286' => {
+    'prompt' => 'Jak nazywa się jednostka masy używana w obrocie kamieniami szlachetnymi?',
+    'correct' => 'karat', 'wrong' => ['uncja', 'gran', 'funt']
+  },
   # Reports from Zuzler and Paulinux: grammar, a giveaway qualifier and a
   # subtraction sign that may be silent when punctuation speech is disabled.
   'polqa_01372' => {

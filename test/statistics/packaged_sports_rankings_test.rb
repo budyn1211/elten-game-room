@@ -4,9 +4,12 @@ require_relative '../../lib/sports_rankings/screen'
 schema=GameRoomSportsRankings::Schema::TABLES
 schema.each { |name,definition| raise 'Packaged sports schema differs' unless EltenGameRoom::SERVER_TABLES.fetch(name)==definition }
 games=%w[axel_pong audio_ball].map { |id| EltenGameRoom::GAME_REGISTRY.build(id) }
-raise 'Sports games missing leaderboard capability' unless games.all?(&:supports_leaderboards?)
+raise 'Sports games still expose leaderboards' if games.any?(&:supports_leaderboards?)
+raise 'Sports games missing statistics capability' unless games.all?(&:supports_player_statistics?)
+raise 'Retired sports ranking formula remains' if GameRoomSportsRankings::Result.respond_to?(:points)
 expected={'pl'=>'Wygrane mecze: 2','en'=>'Matches won: 2','cs'=>'Vyhrané zápasy: 2','es'=>'Victorias: 2','ru'=>'Победы: 2'}
-row={'user'=>'Alice','won'=>2,'lost'=>1,'scored'=>24,'conceded'=>18,'points'=>1.234567}
+all_time={'pl'=>'Cały okres','en'=>'All time','cs'=>'Celé období','es'=>'Todo el período','ru'=>'Всё время'}
+row={'user'=>'Alice','won'=>2,'lost'=>1,'scored'=>24,'conceded'=>18}
 expected.each do |language,label|
   GameRoomTestLocalization.use_language(language)
   screen=GameRoomSportsRankings::Screen.new(program:Object.new,game:games.first,service:nil)
@@ -14,9 +17,14 @@ expected.each do |language,label|
   raise "Missing sports translation: #{language}" unless text.include?(label)
   raise 'Internal ranking points leaked into details' if text.include?('1.234567') || text.lines.size!=6
   raise 'Binary sports text has wrong encoding' unless text.encoding==Encoding::UTF_8 && text.valid_encoding?
+  labels=screen.send(:period_labels).map { |value| GameRoomContent.utf8(value) }
+  raise "Statistics periods are not translated: #{language}" unless labels.first==all_time.fetch(language)
+  if language!='en'
+    raise "Statistics period labels fell back to English: #{language}" unless labels.none? { |value| value.start_with?('Last ') }
+  end
 end
 %w[result game store service runtime screen].each do |name|
   path=File.join(BinaryRulesLoad::ROOT,"lib/sports_rankings/#{name}.rb")
   raise "Sports source did not load from binary: #{name}" unless BinaryRulesLoad.instance_variable_get(:@loaded)[path]
 end
-puts 'PASS binary sports leaderboards: games, schema, all five UI languages, six counters and hidden internal score'
+puts 'PASS binary sports statistics: unranked game capabilities, preserved schema, all five UI languages and six counters'

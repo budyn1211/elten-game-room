@@ -57,16 +57,18 @@ api.table_object.insert(row) # Two clients can race; canonical first ID wins.
 store.write_batch([build.call('old',[2,0],[['Alice'],['Bob']],epoch-40*86400)])
 report=store.report(game:'axel_pong',mode:'singles',from_day:20261018,to_day:20261024)
 assert(report.map { |r| r['won'] }==[1,0] && report.map { |r|r['lost']}==[0,1],'Duplicate or out-of-period match counted')
-assert(report.first.values_at('scored','conceded','points')==[11,0,1.65],'Goals or weighted points differ')
+assert(report.first.values_at('scored','conceded')==[11,0],'Recorded goals changed')
+assert(report.all? { |value| value.keys.sort == %w[conceded lost scored user won] }, 'Sports reports still calculate points or places')
 api.table_object.server_select_limit=1
 store.write_batch([build.call('two',[2,0])])
 report=store.report(game:'axel_pong',mode:'singles',from_day:nil,to_day:20261024)
 assert(report.first['won']==3,'A short nonempty server page stopped pagination')
-assert((report.first['points']-2.25).abs<1e-9,'Short matches have full-length weight')
+assert(report.first['scored']==15,'Statistics changed the unweighted totals of short and long matches')
 store.write_batch([build.call('doubles',[11,0],[%w[Alice Carol],%w[Bob Dave]])])
 report=store.report(game:'axel_pong',mode:'doubles',from_day:nil,to_day:20261024)
-assert(report.size==4 && report.select { |r|r['won']==1 }.all? { |r|r['scored']==11 && r['points']==1.65 },'Team goals were divided among members')
-assert(report.map { |r| r['place'] }==[1,1,3,3],'Equal ranking points do not share a place')
+assert(report.size==4 && report.select { |r|r['won']==1 }.all? { |r|r['scored']==11 },'Team goals were divided among members')
+assert(report.map { |r| r['user'] }==%w[Alice Bob Carol Dave], 'Unranked statistics are not ordered by username')
+assert(report.none? { |r| r.key?('place') || r.key?('points') }, 'Statistics still assign ranking places or points')
 
 # Short aggregate replies must also be completed, independently of data pages.
 api.table_object.server_select_limit=1000

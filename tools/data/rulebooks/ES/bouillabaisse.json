@@ -1,0 +1,132 @@
+{
+  "source": "games/bouillabaisse.rb",
+  "sections": [
+    {
+      "id": "aim",
+      "title": {
+        "es": "Objetivo"
+      },
+      "paragraphs": [
+        {
+          "es": "En Bouillabaisse pueden jugar de 2 a 8 personas. A lo largo de seis rondas intentas acabar con la menor puntuación. En casi todas recibes penalizaciones por llevarte determinadas cartas; en la última, esas mismas cartas te permiten restar puntos."
+        }
+      ]
+    },
+    {
+      "id": "play",
+      "title": {
+        "es": "Cómo jugar"
+      },
+      "paragraphs": [
+        {
+          "es": "Todos reciben el mismo número de cartas de una sola baraja. Si no se puede repartir por igual, se retiran unas pocas de las más bajas. El primer repartidor se elige al azar y el reparto pasa al siguiente jugador en cada ronda."
+        },
+        {
+          "es": "Sale quien está después del repartidor. Elige una carta con las flechas y juégala con Intro. Los demás añaden una carta por turno. Debes seguir el palo de la primera carta si lo tienes; si no, puedes jugar cualquiera."
+        },
+        {
+          "es": "La carta más alta del palo de salida se lleva la baza, y su dueño sale en la siguiente. El as es el más alto, seguido del rey, la dama, la jota, el diez y las demás hasta el dos. No hay triunfo. La ronda se puntúa cuando se agotan las manos."
+        },
+        {
+          "es": "C lee las cartas de la baza en curso; F recuerda el palo de salida y H lee tu mano. Z busca una carta que puedas jugar; si solo hay una, la juega directamente."
+        }
+      ]
+    },
+    {
+      "id": "rounds",
+      "title": {
+        "es": "Las seis rondas"
+      },
+      "paragraphs": [
+        {
+          "es": "Al empezar la partida se sortean un palo, un tipo de figura y una carta concreta. Esa selección se mantiene en las seis rondas. Al comienzo de cada ronda oirás cómo se puntúa. Pulsa R para volver a escucharlo; también puedes usar V."
+        },
+        {
+          "es": "- Primera ronda: cada baza que ganes te cuesta 5 puntos."
+        },
+        {
+          "es": "- Segunda: cada carta que captures del palo elegido te cuesta 10 puntos."
+        },
+        {
+          "es": "- Tercera: cada figura del tipo elegido — jota, dama o rey — te cuesta 50 puntos."
+        },
+        {
+          "es": "- Cuarta: llevarte la carta señalada cuesta 200 puntos."
+        },
+        {
+          "es": "- Quinta: se suman las cuatro penalizaciones anteriores. Una carta puede contar en varias de ellas."
+        },
+        {
+          "es": "- Sexta: esos mismos valores se restan de tu total, así que ahora conviene llevarse cartas."
+        }
+      ]
+    },
+    {
+      "id": "scoring",
+      "title": {
+        "es": "Todo o nada y final"
+      },
+      "paragraphs": [
+        {
+          "es": "La opción Todo o nada está activada por defecto. Si te llevas todo lo que puntúa en una ronda, se invierte el signo de tu resultado: en vez de sumarte una penalización, te la restas. No se aplica en la cuarta ronda."
+        },
+        {
+          "es": "En la primera debes ganar todas las bazas; en la segunda, llevarte todas las cartas del palo elegido; en la tercera, las cuatro figuras del tipo elegido. En la quinta y la sexta necesitas todas las bazas. En la sexta, invertir el signo te perjudica: lo que ibas a restar se convierte en una penalización."
+        },
+        {
+          "es": "Tras la sexta ronda gana el total más bajo. Si varias personas comparten ese mínimo, hay empate. S lee las puntuaciones. Puedes desactivar Todo o nada en los ajustes de la mesa."
+        }
+      ]
+    },
+    {
+      "id": "controls",
+      "title": {
+        "es": "Atajos de teclado"
+      },
+      "paragraphs": [
+        {
+          "es": "Flechas: recorrer la mano."
+        },
+        {
+          "es": "Intro: jugar la carta seleccionada."
+        },
+        {
+          "es": "H: leer tu mano."
+        },
+        {
+          "es": "C: leer la baza actual."
+        },
+        {
+          "es": "Ctrl+C: revisar sus cartas."
+        },
+        {
+          "es": "F: recordar el palo de salida."
+        },
+        {
+          "es": "R / V: recordar cómo se puntúa la ronda actual."
+        },
+        {
+          "es": "S: leer los resultados."
+        },
+        {
+          "es": "T: saber de quién es el turno."
+        },
+        {
+          "es": "Z / Mayús+Z: buscar la siguiente / anterior carta jugable."
+        },
+        {
+          "es": "Mayús+C: ordenar por palo."
+        },
+        {
+          "es": "Mayús+H: ordenar por valor."
+        },
+        {
+          "es": "Mayús+M: recuperar el orden recibido."
+        }
+      ]
+    }
+  ],
+  "option_chapters": {
+    "all_or_nothing": "scoring"
+  }
+}

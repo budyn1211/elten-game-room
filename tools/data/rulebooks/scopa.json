@@ -1,0 +1,191 @@
+{
+  "source": "games/scopa.rb",
+  "sections": [
+    {
+      "id": "aim",
+      "title": {
+        "en": "The aim",
+        "pl": "Na czym polega gra"
+      },
+      "paragraphs": [
+        {
+          "en": "Scopa is for 2–6 players. You capture cards from the table and try to collect more valuable groups than your opponents. By default, you play individually to 11 points, with a lead of at least two.",
+          "pl": ""
+        }
+      ]
+    },
+    {
+      "id": "play",
+      "title": {
+        "en": "Your turn",
+        "pl": ""
+      },
+      "paragraphs": [
+        {
+          "en": "Four cards are placed on the table and everyone receives three. With five players, the table starts with five cards and the final deal gives everyone four instead of three. The deck contains aces through tens in four suits; an ace counts as 1.",
+          "pl": ""
+        },
+        {
+          "en": "The first dealer is chosen at random. The player after the dealer starts, and play continues around the table. Choose a card from your hand with the arrows and play it with Enter. Press C to hear the table cards, or Ctrl+C to inspect them one by one.",
+          "pl": ""
+        },
+        {
+          "en": "Your card captures a table card of the same value. If there is no such card, it can capture several cards whose values add up to its own: a seven can take a three and a four, for example. The played card joins the cards you capture. If nothing matches, your card stays on the table.",
+          "pl": ""
+        },
+        {
+          "en": "Capture is automatic. A single matching card takes precedence over a sum; among sums, the game chooses the fewest cards. If several choices use the same number, it takes the earliest matching cards in table order.",
+          "pl": ""
+        },
+        {
+          "en": "When everyone has played their hand, more cards are dealt. Once the deck and all hands are empty, the last player to have made a capture receives the cards left on the table. The round is then scored, and the next player becomes dealer.",
+          "pl": ""
+        }
+      ]
+    },
+    {
+      "id": "points",
+      "title": {
+        "en": "Scopas and scoring",
+        "pl": ""
+      },
+      "paragraphs": [
+        {
+          "en": "Clearing the table with your play earns a scopa worth 1 point, including on the last play of the round. Receiving leftover cards at the end is not a scopa.",
+          "pl": ""
+        },
+        {
+          "en": "At the end of a round, you also receive:",
+          "pl": ""
+        },
+        {
+          "en": "- 1 point for collecting the most cards.",
+          "pl": ""
+        },
+        {
+          "en": "- 1 point for collecting the most diamonds.",
+          "pl": ""
+        },
+        {
+          "en": "- 1 point for collecting the most sevens.",
+          "pl": ""
+        },
+        {
+          "en": "- 1 point for the seven of diamonds.",
+          "pl": ""
+        },
+        {
+          "en": "A tie for the most cards, diamonds or sevens awards no point in that category. After the whole round is scored, the game checks the target. You need at least 11 points and a two-point lead by default; otherwise, another round is played. S reads the scores.",
+          "pl": ""
+        }
+      ]
+    },
+    {
+      "id": "teams",
+      "title": {
+        "en": "Playing in teams",
+        "pl": ""
+      },
+      "paragraphs": [
+        {
+          "en": "Table settings offer two pairs with four players, or teams of two or three with six. Partners take turns between opposing players and share captured cards, scopas and points. Each team counts as one side for every scoring rule.",
+          "pl": ""
+        }
+      ]
+    },
+    {
+      "id": "variants",
+      "title": {
+        "en": "Other ways to play",
+        "pl": ""
+      },
+      "paragraphs": [
+        {
+          "en": "The table settings let you combine these variants:",
+          "pl": ""
+        },
+        {
+          "en": "- Escoba: your played card and the cards it captures must total 15. An eight, for example, can capture a seven or a three and a four.",
+          "pl": ""
+        },
+        {
+          "en": "- Scopone: the table starts empty and you receive a larger hand. Two players get ten cards twice; three get thirteen each, four get ten, five get eight and six get six. Any cards left over from this deal are set aside for the round.",
+          "pl": ""
+        },
+        {
+          "en": "- Muerto: every point you earn goes instead to each opposing player or team. With three sides, scoring 3 gives both opponents 3 each and gives you none. You still try to reach the target, so avoid making captures that help the others.",
+          "pl": ""
+        },
+        {
+          "en": "You can change the score target and turn off the two-point lead requirement. With that requirement off, you still need to finish a round with the highest score on your own.",
+          "pl": ""
+        }
+      ]
+    },
+    {
+      "id": "controls",
+      "title": {
+        "en": "Keyboard shortcuts",
+        "pl": "Skróty klawiszowe"
+      },
+      "paragraphs": [
+        {
+          "en": "Arrows: browse your hand.",
+          "pl": ""
+        },
+        {
+          "en": "Enter: play the selected card.",
+          "pl": "Enter: zagraj wybraną kartę."
+        },
+        {
+          "en": "H: read your hand.",
+          "pl": "H: odczytaj swoją rękę."
+        },
+        {
+          "en": "C: read the table cards.",
+          "pl": ""
+        },
+        {
+          "en": "Ctrl+C: inspect the table cards.",
+          "pl": ""
+        },
+        {
+          "en": "V: read the round and the number of cards left to deal.",
+          "pl": ""
+        },
+        {
+          "en": "S: read the scores.",
+          "pl": "S: odczyt wyniku."
+        },
+        {
+          "en": "T: read whose turn it is.",
+          "pl": "T: odczytaj, czyja jest tura."
+        },
+        {
+          "en": "Z / Shift+Z: find the next / previous playable card.",
+          "pl": ""
+        },
+        {
+          "en": "Shift+C: sort by suit.",
+          "pl": ""
+        },
+        {
+          "en": "Shift+H: sort by rank.",
+          "pl": ""
+        },
+        {
+          "en": "Shift+M: restore received order.",
+          "pl": "Shift+M: przywrócenie kolejności otrzymanych kart."
+        }
+      ]
+    }
+  ],
+  "option_chapters": {
+    "score_limit": "points",
+    "two_point_lead": "points",
+    "team_size": "teams",
+    "escoba": "variants",
+    "scopone": "variants",
+    "muerto": "variants"
+  }
+}

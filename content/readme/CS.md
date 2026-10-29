@@ -42,9 +42,9 @@ Jde o dokument pouze ke čtení s nadpisem pro každou verzi. H přejde na dalš
 
 ## Co si můžete zahrát
 
-Power Games v současnosti obsahuje 36 her:
+Power Games v současnosti obsahuje 38 her:
 
-- Karetní hry: 3-5-8, 99, 1000 mil, Biblios, Bridž, Makao, Piky, Poker, Rummy, Tisíc, UNO, War a Scientific War.
+- Karetní hry: 3-5-8, 99, 1000 mil, Biblios, Bouillabaisse, Bridž, Makao, Piky, Poker, Rummy, Scopa, Tisíc, UNO, War a Scientific War.
 - Deskové a strategické hry: Člověče, nezlob se, Čtyři v řadě, Piškvorky, Mankala, Monopoly, Reversi, Lodě, Šachy, Dáma a Závody kachen.
 - Kostky a domino: Cat, head, tail, Domino, Farkle, Mexican Train a Yahtzee.
 - Slova a vědomosti: Krowa, Kategorie, Quiz Party, Scrabble a Taboo.
@@ -243,14 +243,6 @@ Ctrl+Shift+S uloží dostupnou historii stolu do souboru TXT ve vybrané složce
 
 V hlavním menu vyberte Žebříčky a potom hru.
 
-### Axel Pong a Audio Ball
-
-Nejprve zvolte dvouhru nebo čtyřhru, potom Moje statistiky nebo žebříček za posledních 7 dní, 30 dní, půl roku či rok. Seznam obsahuje pořadí a přezdívky. Enter na hráči otevře jeho vyhrané a prohrané zápasy, bilanci zápasů, vstřelené a obdržené góly a rozdíl gólů za zvolené období. Moje statistiky obsahují stejné údaje za všechny zaznamenané zápasy.
-
-Pořadí závisí na výhrách a prohrách, rozdílu gólů a délce zápasů. Krátké zápasy mají menší váhu než delší; počítá se skutečný počet gólů vítězné strany, nikoli nastavený cíl. Audio Ball sčítá góly ze všech setů. Ve čtyřhře se každému spoluhráči započítá celý výsledek týmu.
-
-Výsledky se ukládají automaticky po skončení zápasu, pokud obě strany v tu chvíli tvoří pouze lidé. Počítají se i turnajové zápasy včetně gólů přidělených při kontumaci.
-
 ### Krowa
 
 - V žebříčku slov je výše ten, kdo slovo uhodl na méně pokusů. Vyhledávat lze celé slovo i jeho část.
@@ -259,9 +251,21 @@ Výsledky se ukládají automaticky po skončení zápasu, pokud obě strany v t
 
 ## Statistiky
 
-„Statistics“ (statistiky) ukazují aktivitu v Power Games, například zahájené a dokončené partie, rozdělené podle her a hraní s lidmi, s boty či o samotě. Lze vybrat období, například posledních sedm dní nebo celou dobu sběru údajů.
+V hlavním menu vyberte Statistiky a potom Obecné, Axel Pong nebo Audio Ball.
+
+### Obecné
+
+Zde najdete přehled aktivity v Power Games, například zahájené a dokončené partie, rozdělené podle her a hraní s lidmi, s boty či o samotě. Lze vybrat období, například posledních sedm dní nebo celou dobu sběru údajů.
 
 V hlavním menu Power Games otevře Ctrl+W přehled lidí právě přítomných u stolů, s počty stolů a účastníků. To je jiné použití než v seznamu stolů, kde zkratka čte obsazení jednoho konkrétního stolu.
+
+### Axel Pong a Audio Ball
+
+Zvolte dvouhru nebo čtyřhru. Nejprve se zobrazí vaše výsledky ze všech zaznamenaných zápasů: výhry, prohry, bilance zápasů, vstřelené a obdržené góly a rozdíl gólů.
+
+Tabem přejdete na výběr období. Můžete zvolit posledních 7 dní, 30 dní, půl roku, rok nebo celé období. Tlačítkem Vybrat hráče otevřete statistiky jiné osoby; Moje statistiky vás vrátí k vlastním výsledkům. Obnovit načte aktuální údaje.
+
+Audio Ball sčítá góly ze všech setů. Ve čtyřhře se každému spoluhráči započítá celý výsledek týmu. Výsledky se ukládají automaticky po skončení zápasu, pokud obě strany v tu chvíli tvoří pouze lidé. Počítají se i turnajové zápasy včetně gólů přidělených při kontumaci.
 
 ## Funkce které snadno přehlédnete
 

@@ -1,6 +1,6 @@
-# Axel Pong and Audio Ball leaderboards
+# Axel Pong and Audio Ball player statistics
 
-Both games opt into the shared leaderboard registry through
+Both games opt into the shared player-statistics capability through
 `GameRoomSportsRankings::Game`. Their existing tournament result and goal
 exports supply the outcome; this module does not run a second scorekeeper.
 Singles and doubles are separate. Each teammate receives the full team score.
@@ -30,31 +30,43 @@ Terminal callbacks copy bounded scalar records into memory. The existing
 analytics worker framework persists `sports-rankings-pending.json` and uploads
 it, with account/runtime guards, atomic storage, bounded passes and the same
 retry policy. No result request or file write is made during an ongoing match.
-A ranking failure must not stop play or invalidate a confirmed tournament
-result. Table access governs this deliberately public feature; the separate
-development-mode opt-out for anonymous activity statistics is unchanged.
+A statistics failure must not stop play or invalidate a confirmed tournament
+result. Player statistics use the same `analytics_enabled?` development-mode
+opt-out as general statistics: no service/queue construction, collection,
+reading or upload while the host's actual `$developer_mode` is true, even
+for the application author. Captured observers and workers recheck that
+predicate. Previously queued normal-mode results remain intact and can be
+sent after normal mode resumes; development-mode games are not queued for later.
 
-## Ordering and presentation
+## Navigation and presentation
 
-Each match contributes a win/loss component and a bounded goal-ratio component,
-weighted by the actual winning side's goals divided by 100. Winner and loser
-use the same weight, including a set winner with fewer total goals. User-facing
-text describes wins, goal advantage and match length without exposing formulas.
-Wins/losses and goal counters themselves are unweighted.
+These games do not opt into leaderboards. The shared Statistics menu offers
+General for the existing application activity screen, followed by games with
+`supports_player_statistics?`. Each game supplies its own client through
+`build_player_statistics_client`; there is no game-ID branch in the menu.
+The sports client offers singles/doubles and six read-only counters: wins,
+losses, match balance, goals scored, goals conceded and goal balance. There
+are no ranking points, weights or places. The store returns unweighted totals
+in username order, not sporting order.
 
 Dates use Europe/Warsaw. Seven- and thirty-day periods include today; the
-half-year and year are calendar-month intervals ending today. My statistics
-covers all recorded history. Equal internal scores share a place. Lists show
-only place and username; Enter opens six read-only counters and balances.
-Internal ordering points are not displayed, including in player details.
+half-year and year are calendar-month intervals ending today. The initial
+view shows the signed-in player's whole recorded history. Period selection,
+Choose player, My statistics and Refresh update that same text view.
 
 Native background tasks keep reads and Refresh off the UI thread. Each read
 rechecks the schema. Snapshots are bounded by a highest server ID; data and
 canonical-group pagination continue after short nonempty pages. Manual Refresh
 and every attempted write invalidate the 15-second/4096-match report cache.
 Closing or changing accounts discards pending UI results without waiting on I/O.
+While a request is pending, only the latest period/player selection is retained;
+an older response must not replace it or move focus.
 
-Deploy the one new table by merging it into the fresh complete owner schema;
-do not change existing tables, stamp protection, notifications or file quotas.
+The existing table, result format, acknowledgement keys and pending-file path
+remain unchanged. Existing data and unsent results need no migration or reset.
+The internal `GameRoomSportsRankings` namespace and file names are retained
+to avoid changing persistence and runtime identities merely for terminology.
+Do not change stamp protection, notifications or file quotas for this UI change.
 Tests: `test/statistics/sports_rankings_*_test.rb` and
+`test/statistics/sports_statistics_screen_test.rb`, plus
 `test/tournaments/sports_rankings_test.rb`.

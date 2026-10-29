@@ -1,6 +1,7 @@
 require_relative "game_rules_ui"
 
-def read_live_shortcuts(screen, replay, close_with: :enter)
+def read_live_shortcuts(screen, replay, close_with: :enter,
+  expected_documents: ["Rules", "In-game keyboard shortcuts", "Current table options"])
   visits = 0
   result = nil
   Form.driver = lambda do |form|
@@ -9,7 +10,7 @@ def read_live_shortcuts(screen, replay, close_with: :enter)
     list = visible.first
     case visits
     when 0
-      assert(list.options == ["Rules", "In-game keyboard shortcuts", "Current table options"], "table rules lost their document picker")
+      assert(list.options == expected_documents, "table rules lost their document picker")
       list.index = 1
       visits += 1
       form.accept_button.trigger(:press)

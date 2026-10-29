@@ -2,6 +2,46 @@ require_relative "game_statistics_periods"
 require_relative "game_room_ui"
 require_relative "game_room_background"
 
+class GameRoomStatisticsMenu
+  using GameRoomLocalization::Translations
+
+  def initialize(program:, registry:, general:)
+    @program, @registry, @general = program, registry, general
+    @user = Session.name.to_s.dup.freeze
+  end
+
+  def run
+    games = @registry.ids.map { |id| @registry.build(id) }.select(&:supports_player_statistics?)
+    labels = [_('General')] + games.map(&:name)
+    choices = ListBox.new(labels.map { |label| text(label) }, header: text(_('Statistics')), quiet: true)
+    open_button, back = Button.new(text(_('Open'))), Button.new(text(_('Back')))
+    form = GameRoomUI::Form.new([choices, open_button, back], program: @program, quiet: true)
+    form.accept_button, form.cancel_button = open_button, back
+    form.hide(open_button)
+    form.hide(back)
+    open_button.on(:press) do
+      unless GameRoomParticipants.same?(@user, Session.name)
+        form.resume
+        next
+      end
+      choices.index.zero? ? @general.call : open_game(games.fetch(choices.index - 1))
+    end
+    back.on(:press) { form.resume }
+    form.wait
+  end
+
+  private
+
+  def text(value); GameRoomContent.utf8(value); end
+
+  def open_game(game)
+    client = game.build_player_statistics_client(@program)
+    client&.run
+  ensure
+    client&.close
+  end
+end
+
 class GameRoomStatisticsScreen
   using GameRoomLocalization::Translations
 

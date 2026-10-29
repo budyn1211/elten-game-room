@@ -1,0 +1,154 @@
+{
+  "source": "games/scopa.rb",
+  "sections": [
+    {
+      "id": "aim",
+      "title": {
+        "cs": "O co jde"
+      },
+      "paragraphs": [
+        {
+          "cs": "Scopu může hrát 2 až 6 lidí. Kartami z ruky bereš karty ze stolu a snažíš se získat co nejvíc bodů. Záleží nejen na počtu získaných karet, ale i na jejich hodnotách a barvách. Běžně hraje každý sám za sebe do 11 bodů a je třeba vést alespoň o dva."
+        }
+      ]
+    },
+    {
+      "id": "play",
+      "title": {
+        "cs": "Průběh tahu"
+      },
+      "paragraphs": [
+        {
+          "cs": "Na stole jsou čtyři karty a každý dostane tři. Při pěti hráčích začíná na stole pět karet a při posledním doplnění ruky dostanou všichni čtyři místo tří. V balíčku jsou čtyři barvy s hodnotami od esa po desítku; eso má hodnotu 1."
+        },
+        {
+          "cs": "První rozdávající se losuje. Začíná hráč po něm a dále se hráči střídají po pořadě. Šipkami vyber kartu a zahraj ji Enterem. Karty na stole přečteš klávesou C, jednotlivě je procházíš zkratkou Ctrl+C."
+        },
+        {
+          "cs": "Zahraná karta bere kartu stejné hodnoty. Není-li taková na stole, může vzít několik karet, jejichž součet odpovídá její hodnotě: sedmičkou například vezmeš trojku a čtyřku. Zahranou kartu získáš spolu s nimi. Pokud žádná možnost není, zůstane na stole."
+        },
+        {
+          "cs": "Karty vybírá hra automaticky. Jediná karta stejné hodnoty má přednost před součtem. Ze součtů se vybírá nejmenší počet karet; při shodě ty, které jsou na stole dříve."
+        },
+        {
+          "cs": "Když všichni zahrají karty z ruky, rozdají se další. Po vyčerpání balíčku i rukou dostane zbytek stolu ten, kdo naposledy něco vzal. Kolo se vyhodnotí a rozdává další hráč."
+        }
+      ]
+    },
+    {
+      "id": "points",
+      "title": {
+        "cs": "Scopa a body"
+      },
+      "paragraphs": [
+        {
+          "cs": "Pokud tahem vezmeš všechny karty ze stolu, získáš scopu za 1 bod. Platí to i pro poslední zahranou kartu kola. Pouhé přidělení zbylých karet na konci scopu nepřináší."
+        },
+        {
+          "cs": "Po kole se přidělují také tyto body:"
+        },
+        {
+          "cs": "- 1 bod za nejvíce získaných karet."
+        },
+        {
+          "cs": "- 1 bod za nejvíce kár."
+        },
+        {
+          "cs": "- 1 bod za nejvíce sedmiček."
+        },
+        {
+          "cs": "- 1 bod za károvou sedmičku."
+        },
+        {
+          "cs": "Při shodě v počtu karet, kár nebo sedmiček se bod za danou kategorii neudělí. Vítěz se určuje až po vyhodnocení celého kola. Běžně potřebuješ alespoň 11 bodů a náskok dvou bodů před každým soupeřem; jinak se hraje další kolo. S přečte skóre."
+        }
+      ]
+    },
+    {
+      "id": "teams",
+      "title": {
+        "cs": "Týmová hra"
+      },
+      "paragraphs": [
+        {
+          "cs": "Ve čtyřech lze hrát ve dvou dvojicích. V šesti jsou možné tříčlenné i dvoučlenné týmy. Spoluhráči se střídají se soupeři a sdílejí získané karty, scopy i body. Každý tým se při bodování počítá jako jediná strana."
+        }
+      ]
+    },
+    {
+      "id": "variants",
+      "title": {
+        "cs": "Varianty"
+      },
+      "paragraphs": [
+        {
+          "cs": "V nastavení stolu můžeš zapnout i několik variant současně:"
+        },
+        {
+          "cs": "- Escoba: zahraná karta musí se získanými kartami dát součet 15. Osmička tedy může vzít sedmičku nebo trojku se čtyřkou."
+        },
+        {
+          "cs": "- Scopone: stůl začíná prázdný a hráči dostanou větší ruce. Dva hráči dostávají dvakrát deset karet; tři po třinácti, čtyři po deseti, pět po osmi a šest po šesti. Karty, které nelze rozdat rovnoměrně, se pro toto kolo vyřadí."
+        },
+        {
+          "cs": "- Muerto: každý bod, který získáš, se místo tobě přičte každému soupeři nebo soupeřovu týmu. Při třech stranách dá tvůj zisk 3 bodů oběma soupeřům po 3 a tobě nic. Vyhrává stále nejvyšší skóre, takže se snaž soupeřům takto nepomáhat."
+        },
+        {
+          "cs": "Lze změnit cílové skóre a vypnout požadavek dvoubodového náskoku. I bez něj musíš na konci kola dosáhnout cíle a být sám ve vedení."
+        }
+      ]
+    },
+    {
+      "id": "controls",
+      "title": {
+        "cs": "Klávesové zkratky"
+      },
+      "paragraphs": [
+        {
+          "cs": "Šipky: procházení ruky."
+        },
+        {
+          "cs": "Enter: zahrání karty."
+        },
+        {
+          "cs": "H: přečtení ruky."
+        },
+        {
+          "cs": "C: karty na stole."
+        },
+        {
+          "cs": "Ctrl+C: procházení karet na stole."
+        },
+        {
+          "cs": "V: kolo a počet karet k rozdání."
+        },
+        {
+          "cs": "S: skóre."
+        },
+        {
+          "cs": "T: kdo je na tahu."
+        },
+        {
+          "cs": "Z / Shift+Z: další / předchozí hratelná karta."
+        },
+        {
+          "cs": "Shift+C: seřazení podle barev."
+        },
+        {
+          "cs": "Shift+H: seřazení podle hodnot."
+        },
+        {
+          "cs": "Shift+M: obnovení pořadí přijatých karet."
+        }
+      ]
+    }
+  ],
+  "option_chapters": {
+    "score_limit": "points",
+    "two_point_lead": "points",
+    "team_size": "teams",
+    "escoba": "variants",
+    "scopone": "variants",
+    "muerto": "variants"
+  }
+}

@@ -10,6 +10,7 @@ end
 original_name = Session.method(:name)
 original_client = EltenLink::Client.method(:new)
 original_queue = GameRoomStatistics::Queue.method(:new)
+original_storage = GameRoomAnalyticsStorage.method(:new)
 original_warning = Log.method(:warning)
 original_developer_mode = $developer_mode
 original_clock_ready = GameRoomClock.method(:synchronized?)
@@ -25,6 +26,10 @@ end
 GameRoomStatistics::Queue.define_singleton_method(:new) do |**options|
   calls << :queue
   original_queue.call(**options)
+end
+GameRoomAnalyticsStorage.define_singleton_method(:new) do |program|
+  calls << :storage_adapter
+  program # The factory's isolated read_json/update_json methods below.
 end
 Log.define_singleton_method(:warning) { |message| warnings << message }
 
@@ -54,8 +59,10 @@ begin
     app.define_singleton_method(:alert) { |_message| calls << :alert }
     $developer_mode = true
     calls.clear
-    assert(factory.statistics_service.nil? && factory.room_presence_collector.nil?,
+    assert(factory.statistics_service.nil? && factory.room_presence_collector.nil? && factory.sports_rankings_service.nil?,
       "Development mode constructed telemetry services for #{user}")
+    assert(app.send(:statistics_observer_for, GameRoomGames::AxelPong.new).nil?, 'Development mode built a sports observer')
+    factory.sports_rankings_tick
     app.send(:record_statistics_visit)
     app.send(:register_room_presence)
     assert(calls.empty? && warnings.empty?, "Development mode touched telemetry storage, queue, client or error reporting")
@@ -63,15 +70,23 @@ begin
     $developer_mode = false
     service = factory.statistics_service
     collector = factory.room_presence_collector
-    assert(service && collector && factory.analytics_enabled?, "Normal mode no longer initializes analytics")
+    sports = factory.sports_rankings_service
+    assert(service && collector && sports && factory.analytics_enabled?, "Normal mode no longer initializes analytics")
     game = GameRoomGames::TicTacToe.new
     session = {"__id" => 7, "__players" => [user, "Bob"], "__statistics" => {
       "id" => "22222222-2222-4222-8222-222222222222", "mode" => "humans", "started_at" => 1_790_294_400}}
     replay = GameRoomGames::Replay.new(players: session.fetch("__players"), current_player: user)
     observer = app.send(:statistics_observer_for, game, service: service)
+    sports_observer = app.send(:statistics_observer_for, GameRoomGames::AxelPong.new, service: service)
     start = -> { app.send(:record_statistics_start, session, game, service: service) }
     app.send(:record_statistics_visit)
     service.__send__(:persist_staged)
+    sports_row = GameRoomSportsRankings::Result.build(identity: "development-#{user}", game: 'axel_pong',
+      finished_at: 1_790_294_400, sides: [{'players' => [user], 'goals' => 11}, {'players' => ['Bob'], 'goals' => 0}], winner: 0)
+    sports.__send__(:record, sports_row)
+    sports.__send__(:persist_staged)
+    assert(!data.fetch(GameRoomSportsRankings::Service::PATH).fetch('accounts').fetch(user.downcase).fetch('pending').empty?,
+      'Normal mode did not preserve a sports result for the disable test')
     assert(!data.fetch(GameRoomStatistics::Queue::PATH).fetch("accounts").fetch(user.downcase).fetch("pending").empty?,
       "Normal mode did not preserve a pending visit for the disable test")
     collector.register do |_token|
@@ -81,6 +96,7 @@ begin
     end
     collector.store.define_singleton_method(:publish) { |rooms, **_options| calls << :presence_publish; true }
     service.store.define_singleton_method(:write_batch) { |entries, **_options| calls << :statistics_publish; entries.length }
+    sports.store.define_singleton_method(:write_batch) { |entries, **_options| calls << :sports_publish; entries.length }
     pending = JSON.generate(data)
 
     definitions = []
@@ -93,14 +109,22 @@ begin
       extension
     end
     factory.activate
-    schedules = definitions.first.schedules.select { |definition| %w[statistics_upload room_presence].include?(definition.key) }
-    assert(schedules.length == 2, "Telemetry lifecycle schedules are missing")
+    schedules = definitions.first.schedules.select { |definition| %w[statistics_upload room_presence sports_rankings_upload].include?(definition.key) }
+    assert(schedules.length == 3, "Telemetry lifecycle schedules are missing")
     context = Struct.new(:token).new(EltenAPI::Tasks::CancellationToken.new)
     $developer_mode = true
     calls.clear
     warnings.clear
-    assert(factory.statistics_service.nil? && factory.room_presence_collector.nil?, "Development mode returned cached telemetry")
+    assert(factory.statistics_service.nil? && factory.room_presence_collector.nil? && factory.sports_rankings_service.nil?,
+      'Development mode returned cached telemetry')
     observer.call(session, replay)
+    sports_observer.call(session, replay)
+    app.send(:record_tournament_ranking, {}, {}, {}, [], 0)
+    assert(!sports.observe(game: Object.new, session: nil, replay: Object.new), 'Captured sports observer ignored disabled context')
+    assert(!sports.observe_tournament(game: Object.new, candidate: {}, match: {}, receipt: {}, players: [], finished_at: 0),
+      'Captured tournament observer ignored disabled context')
+    sports.flush(context.token)
+    assert(sports.last_error.nil?, 'Expected sports disable was reported as an error')
     start.call
     app.send(:record_statistics_visit)
     app.send(:register_room_presence)
@@ -113,7 +137,7 @@ begin
     assert(JSON.generate(data) == pending, "Disabling analytics deleted or modified normal-mode pending history")
 
     $developer_mode = false
-    assert(factory.statistics_service.equal?(service) && factory.room_presence_collector.equal?(collector),
+    assert(factory.statistics_service.equal?(service) && factory.room_presence_collector.equal?(collector) && factory.sports_rankings_service.equal?(sports),
       "Returning to normal mode discarded the pending services")
     observer.call(session, replay)
     start.call
@@ -124,13 +148,18 @@ begin
     presence_job = factory.instance_variable_get(:@presence_job)
     presence_job.instance_variable_set(:@clock, -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) + 2 })
     factory.analytics_tick
+    factory.sports_rankings_tick
     schedules.each { |definition| definition.callback.call(context) }
     assert(calls.include?(:write_storage), "The managed worker did not persist staged statistics")
-    assert(calls.include?(:source_snapshot) && calls.include?(:presence_publish) && calls.include?(:statistics_publish),
+    assert(calls.include?(:source_snapshot) && calls.include?(:presence_publish) && calls.include?(:statistics_publish) && calls.include?(:sports_publish),
       "Normal-mode scheduled telemetry no longer works")
     assert(data.fetch(GameRoomStatistics::Queue::PATH).fetch("accounts").fetch(user.downcase).fetch("pending").empty?,
       "Normal-mode upload did not acknowledge preserved history")
     assert(warnings.empty?, "Normal-mode recovery emitted telemetry failures: #{warnings.inspect}")
+    assert(data.fetch(GameRoomSportsRankings::Service::PATH).fetch('accounts').fetch(user.downcase).fetch('pending').empty?,
+      'Normal-mode upload did not acknowledge preserved sports results')
+    factory.stop_sports_rankings
+    factory.stop_analytics
   end
 ensure
   GameRoomClock.define_singleton_method(:synchronized?, original_clock_ready)
@@ -138,6 +167,7 @@ ensure
   Session.define_singleton_method(:name, original_name)
   EltenLink::Client.define_singleton_method(:new, original_client)
   GameRoomStatistics::Queue.define_singleton_method(:new, original_queue)
+  GameRoomAnalyticsStorage.define_singleton_method(:new, original_storage)
   Log.define_singleton_method(:warning, original_warning)
 end
-puts "PASS development-mode telemetry suppression, captured callbacks, preserved pending history and normal-mode recovery (member and author)"
+puts 'PASS shared development-mode suppression: general/presence/sports, cold factories, captured ordinary/tournament callbacks, workers, preserved queues and normal-mode recovery (member and author)'

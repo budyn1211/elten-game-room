@@ -7,10 +7,10 @@ module GameRoomSportsRankings
     using GameRoomLocalization::Translations
 
     class Form < GameRoomUI::Form
-      attr_accessor :rankings_update
+      attr_accessor :statistics_update
       def update
         super
-        rankings_update&.call
+        statistics_update&.call
       end
     end
     private_constant :Form
@@ -23,16 +23,17 @@ module GameRoomSportsRankings
     end
 
     def run
-      unless @service
-        alert(text(_("Sports leaderboards are temporarily unavailable.")))
+      unless @service && @program.class.analytics_enabled?
+        alert(text(_("Player statistics are temporarily unavailable.")))
         return
       end
       index = 0
+      @player = @user
       loop do
         selected = choose([_('Single'), _('Doubles')], header: @game.name, index: index)
         break if selected.nil?
         index, @mode = selected, selected.zero? ? 'singles' : 'doubles'
-        show_periods
+        show_statistics
       end
     end
 
@@ -45,7 +46,7 @@ module GameRoomSportsRankings
     private
 
     def current?
-      !@closed && GameRoomParticipants.same?(@user, Session.name) &&
+      !@closed && @program.class.analytics_enabled? && GameRoomParticipants.same?(@user, Session.name) &&
         (!@runtime || @program.class.app_runtime.equal?(@runtime))
     end
 
@@ -65,20 +66,8 @@ module GameRoomSportsRankings
       selected if current?
     end
 
-    def show_periods
-      index = 0
-      labels = [_('My statistics'), _('Leaderboard: last 7 days'), _('Leaderboard: last 30 days'),
-        _('Leaderboard: last six months'), _('Leaderboard: last year')]
-      while current?
-        selected = choose(labels, header: heading, index: index)
-        break if selected.nil?
-        index = selected
-        show_results(selected, labels.fetch(selected))
-      end
-    end
-
-    def heading
-      text(_('%{game}: %{mode}')) % {game: text(@game.name), mode: text(@mode == 'doubles' ? _('Doubles') : _('Single'))}
+    def period_labels
+      [_('All time'), _('Last 7 days'), _('Last 30 days'), _('Last six months'), _('Last year')]
     end
 
     def range(index, today)
@@ -88,93 +77,92 @@ module GameRoomSportsRankings
       when 2 then today - 29
       when 3 then (today << 6) + 1
       when 4 then (today << 12) + 1
-      else raise ArgumentError, 'Unknown leaderboard period'
+      else raise ArgumentError, 'Unknown statistics period'
       end
       [first&.strftime('%Y%m%d')&.to_i, today.strftime('%Y%m%d').to_i]
     end
 
-    def show_results(index, label)
-      @rows = []
-      control = if index.zero?
-        EditBox.new(text(_('My statistics')), type: EditBox::Flags::ReadOnly | EditBox::Flags::MultiLine,
-          text: text(_('Loading statistics')), quiet: true)
-      else
-        TableBox.new([_('Place'), _('User')].map { |value| text(value) }, [],
-          header: text(label), empty_label: text(_('Loading statistics')), quiet: true)
-      end
-      details = Button.new(text(_('Player statistics')))
+    def show_statistics
+      @player ||= @user
+      @generation, @pending_request, @active_request = 0, nil, nil
+      @period = ListBox.new(period_labels.map { |label| text(label) }, header: text(_('Period')), quiet: true)
+      control = EditBox.new(text(_('Player statistics')), type: EditBox::Flags::ReadOnly | EditBox::Flags::MultiLine,
+        text: text(_('Loading statistics')), quiet: true)
+      choose_player, own = Button.new(text(_('Choose player'))), Button.new(text(_('My statistics')))
       refresh, back = Button.new(text(_('Refresh'))), Button.new(text(_('Back')))
-      @form = Form.new([control, refresh, details, back], program: @program, quiet: true)
+      @form = Form.new([control, @period, choose_player, own, refresh, back], program: @program, quiet: true)
       @form.cancel_button = back
-      @form.accept_button = details unless index.zero?
-      @form.hide(details)
       back.on(:press) { @form.resume }
-      details.on(:press) do
-        next if index.zero?
-        next unless @form.fields[@form.index].equal?(control) && @rows[control.index]
-        show_details(@rows.fetch(control.index), label)
+      choose_player.on(:press) do
+        selected = input_user(text(_('Player')))
+        next unless current? && selected && !selected.strip.empty?
+        @player = selected.strip
+        request_results(control)
       end
+      own.on(:press) { @player = @user; request_results(control) }
+      @period.on(:move) { request_results(control) }
       @work = GameRoomBackground::Work.new
-      refresh.on(:press) { request_results(index, control, fresh: true) }
-      @form.rankings_update = -> { receive_results(index, control) }
-      request_results(index, control)
+      refresh.on(:press) { request_results(control, fresh: true) }
+      @form.statistics_update = -> { receive_results(control) }
+      request_results(control)
       @form.wait
     ensure
       @token&.cancel
       @work&.close
-      @work = @token = nil
-      @form.rankings_update = nil if @form
+      @work = @token = @pending_request = @active_request = nil
+      @form.statistics_update = nil if @form
     end
 
-    def request_results(index, control, fresh: false)
-      return unless current? && !@work.busy?
-      @token = EltenAPI::Tasks::CancellationToken.new
-      token, mode = @token, @mode
-      @work.start do
+    def request_results(control, fresh: false)
+      return unless current?
+      @generation += 1
+      @pending_request = {generation: @generation, player: @player.dup.freeze,
+        mode: @mode, period: @period.index, fresh: fresh}.freeze
+      control.header = text(_('%{player}: %{period}')) % {player: text(@player), period: text(period_labels.fetch(@period.index))}
+      control.set_text(text(_('Loading statistics')))
+      start_pending
+    end
+
+    def start_pending
+      return unless current? && @pending_request && !@work.busy?
+      request = @pending_request
+      token = EltenAPI::Tasks::CancellationToken.new
+      return unless GameRoomBackground.admit(@work) do
         token.raise_if_cancelled!
-        raise Unavailable, 'Leaderboard account changed' unless current?
+        raise Unavailable, 'Statistics account changed' unless current?
         GameRoomClock.synchronize
-        from, to = range(index, @today.call)
-        @service.store.report(game: @game.id, mode: mode, from_day: from, to_day: to, cancellation_token: token, fresh: fresh)
+        from, to = range(request.fetch(:period), @today.call)
+        @service.store.report(game: @game.id, mode: request.fetch(:mode), from_day: from, to_day: to,
+          cancellation_token: token, fresh: request.fetch(:fresh))
       end
-    rescue EltenAPI::Tasks::Busy => error
-      show_error(control, error)
+      @active_request, @token, @pending_request = request, token, nil
     end
 
-    def receive_results(index, control)
+    def receive_results(control)
       return @form.resume unless current?
-      return unless (outcome = @work.take)
-      rows, error = outcome
-      return show_error(control, error || Unavailable.new('Missing leaderboard response')) unless rows.is_a?(Array) && !error
-      selected = @rows[control.index]&.fetch('user') unless index.zero?
-      @rows = rows
-      if index.zero?
-        own = rows.find { |row| GameRoomParticipants.same?(row.fetch('user'), @user) } || empty_statistics(@user)
-        control.set_text(statistics_text(own))
-      else
-        control.rows = rows.map { |row| [row.fetch('place').to_s, text(row.fetch('user'))] }
-        control.empty_label = text(_('No published results'))
-        control.reload
-        control.index = rows.index { |row| row['user'] == selected } || 0
+      if (outcome = @work.take)
+        request, @active_request, @token = @active_request, nil, nil
+        rows, error = outcome
+        if request && request.fetch(:generation) == @generation
+          if rows.is_a?(Array) && !error
+            row = rows.find { |value| GameRoomParticipants.same?(value.fetch('user'), request.fetch(:player)) }
+            control.set_text(statistics_text(row || empty_statistics(request.fetch(:player))))
+          else
+            show_error(control, error || Unavailable.new('Missing statistics response'))
+          end
+          control.focus if @form.fields[@form.index].equal?(control) && @form.game_room_hotkeys_active? && !@form.game_room_background_help?
+        end
       end
-      control.focus if @form.fields[@form.index].equal?(control) && @form.game_room_hotkeys_active? && !@form.game_room_background_help?
+      start_pending
     end
 
     def show_error(control, error)
-      Log.warning("Sports leaderboard read failed: #{error.class}") if defined?(Log)
-      message = text(_('Sports leaderboards are unavailable. Try Refresh.'))
-      @rows = []
-      if control.is_a?(EditBox)
-        control.set_text(message)
-      else
-        control.rows = []
-        control.empty_label = message
-        control.reload
-      end
+      Log.warning("Player statistics read failed: #{error.class}") if defined?(Log)
+      control.set_text(text(_('Player statistics are unavailable. Try Refresh.')))
     end
 
     def empty_statistics(user)
-      {'user'=>user, 'won'=>0, 'lost'=>0, 'scored'=>0, 'conceded'=>0, 'points'=>0.0}
+      {'user'=>user, 'won'=>0, 'lost'=>0, 'scored'=>0, 'conceded'=>0}
     end
 
     def statistics_text(row)
@@ -186,14 +174,5 @@ module GameRoomSportsRankings
         text(_('Goal balance: %{count}')) % {count: row.fetch('scored') - row.fetch('conceded')}].join("\n")
     end
 
-    def show_details(row, period)
-      field = EditBox.new(text(_('%{player}: %{period}')) % {player: text(row.fetch('user')), period: text(period)},
-        type: EditBox::Flags::ReadOnly | EditBox::Flags::MultiLine, text: statistics_text(row), quiet: true)
-      back = Button.new(text(_('Back')))
-      form = GameRoomUI::Form.new([field, back], program: @program, quiet: true)
-      form.cancel_button = back
-      back.on(:press) { form.resume }
-      form.wait
-    end
   end
 end

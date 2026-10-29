@@ -42,9 +42,9 @@ This is a read-only document with a heading for each version. H moves to the nex
 
 ## What you can play
 
-Power Games currently includes 36 games:
+Power Games currently includes 38 games:
 
-- Card games: 3-5-8, 99, 1000 miles, Biblios, Bridge, Makao, Spades, Poker, Rummy, Thousand, UNO, War and Scientific War.
+- Card games: 3-5-8, 99, 1000 miles, Biblios, Bouillabaisse, Bridge, Makao, Spades, Poker, Rummy, Scopa, Thousand, UNO, War and Scientific War.
 - Board and strategy games: Ludo, Four in a Row, Tic Tac Toe, Mancala, Monopoly, Reversi, Battleships, Chess, Checkers and Duck Racing.
 - Dice and dominoes: Cat, head, tail, Dominos, Farkle, Mexican Train and Yahtzee.
 - Words and knowledge: Krowa, Categories, Quiz Party, Scrabble and Taboo.
@@ -243,14 +243,6 @@ Ctrl+Shift+S saves the available table history to a TXT file in a folder you cho
 
 Choose Leaderboards in the main menu, then a game.
 
-### Axel Pong and Audio Ball
-
-Choose Single or Doubles, then My statistics or a leaderboard covering the last 7 days, 30 days, six months or year. The list shows places and usernames. Press Enter on a player to see their matches won and lost, match balance, goals scored and conceded, and goal balance for that period. My statistics shows the same information across all recorded matches.
-
-Your place depends on wins and losses, goal advantage and match length. Short matches carry less weight than longer ones; the winning side's actual goal total matters, not the target chosen before play. Audio Ball counts goals from every set. In doubles, each teammate receives the team's full result.
-
-Results are saved automatically after a match if both sides consist entirely of people at the end. Tournament matches count too, including the technical goal scores awarded for forfeits.
-
 ### Krowa
 
 - Word leaderboards favour fewer guesses. Search by a word or part of one.
@@ -259,9 +251,21 @@ Results are saved automatically after a match if both sides consist entirely of 
 
 ## Statistics
 
-“Statistics” shows activity in Power Games, including games started and completed, broken down by game and by playing with people, with bots or alone. You can choose a period, such as the last seven days or all recorded time.
+Choose Statistics in the main menu, then General, Axel Pong or Audio Ball.
+
+### General
+
+This section shows activity in Power Games, including games started and completed, broken down by game and by playing with people, with bots or alone. You can choose a period, such as the last seven days or all recorded time.
 
 In Power Games' main menu, Ctrl+W opens the overview of people currently at tables, with table and participant counts. This differs from its use in the table list, where it reads the participants at one selected table.
+
+### Axel Pong and Audio Ball
+
+Choose Single or Doubles. Your statistics initially cover all recorded matches: wins, losses, match balance, goals scored, goals conceded and goal balance.
+
+Press Tab to reach the period selector. Choose the last 7 days, 30 days, six months, year or all time. Choose player opens another person's statistics; My statistics returns to your own. Refresh retrieves the latest data.
+
+Audio Ball counts goals from every set. In doubles, each teammate receives the team's full result. Results are saved automatically after a match if both sides consist entirely of people at the end. Tournament matches count too, including the technical goal scores awarded for forfeits.
 
 ## Features you might miss
 

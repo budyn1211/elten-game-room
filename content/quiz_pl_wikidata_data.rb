@@ -3,7 +3,7 @@ require 'json'
 module GameRoomContent
   module Packa0830f585cc4689a1e2a6335
     def self.load
-      JSON.parse(<<'QUIZ_DATA_4c4481b99970865a3bc6e798869cca337d0f9b51cfdb3fdb1daa70f9678c221a')
+      JSON.parse(<<'QUIZ_DATA_2068980b7c11b16d70f221c379f37b559cfd828ab859cf59d06c89625ef78012')
 {
   "questions": [
     {
@@ -17146,10 +17146,10 @@ module GameRoomContent
       "id": "1z10_a4eeb972b17be78e",
       "category": "Geografia",
       "level": "medium",
-      "prompt": "Jakie jest zjawisko nocy polarnej?",
-      "correct": "Słońce nie wschodzi przez ponad 24 godziny",
+      "prompt": "Na czym polega noc polarna?",
+      "correct": "Słońce nie wschodzi przez co najmniej 24 godziny",
       "wrong": [
-        "Słońce nie zachodzi przez ponad 24 godziny",
+        "Słońce nie zachodzi przez co najmniej 24 godziny",
         "Księżyc pozostaje widoczny przez całą dobę",
         "Słońce zachodzi tylko na kilka minut każdej doby"
       ],
@@ -121978,7 +121978,7 @@ module GameRoomContent
       "id": "1z10_1da2080e7bccf707",
       "category": "Literatura",
       "level": "medium",
-      "prompt": "Kto jest autorem folwarku zwierzęcego i książki rok 1984?",
+      "prompt": "Kto napisał „Folwark zwierzęcy” i „Rok 1984”?",
       "correct": "George Orwell",
       "wrong": [
         "Aldous Huxley",
@@ -183002,7 +183002,7 @@ module GameRoomContent
       "id": "1z10_5a7501fff49cd44e",
       "category": "Religia",
       "level": "medium",
-      "prompt": "Jaką profesją parał się święty Mateusz Ewangelista, zanim został apostołem?",
+      "prompt": "Kim był święty Mateusz Ewangelista, zanim został apostołem?",
       "correct": "Celnikiem",
       "wrong": [
         "Rybakiem",
@@ -199642,7 +199642,7 @@ module GameRoomContent
       "id": "polqa_06007",
       "category": "Język",
       "level": "medium",
-      "prompt": "Z ilu wypukłych punktów składa się układ, który tworzy literę w alfabecie Braille'a?",
+      "prompt": "Jaka jest maksymalna liczba wypukłych punktów w jednym znaku tradycyjnego pisma Braille’a?",
       "correct": "6",
       "wrong": [
         "4",
@@ -222266,12 +222266,12 @@ module GameRoomContent
       "id": "1z10_375d099dbae7c729",
       "category": "Społeczeństwo",
       "level": "medium",
-      "prompt": "Kto jest przewodniczącym Komisji Europejskiej i obywatelem którego państwa?",
-      "correct": "Ursula von der Leyen — Niemcy",
+      "prompt": "Kto w 2019 roku stanął na czele Komisji Europejskiej?",
+      "correct": "Ursula von der Leyen",
       "wrong": [
-        "Christine Lagarde — Francja",
-        "Roberta Metsola — Malta",
-        "Kaja Kallas — Estonia"
+        "Christine Lagarde",
+        "Roberta Metsola",
+        "Kaja Kallas"
       ],
       "source": "https://huggingface.co/datasets/ipipan/maupqa",
       "source_dataset": "1z10/MAUPQA",
@@ -224170,7 +224170,7 @@ module GameRoomContent
       "id": "1z10_71913973088a420e",
       "category": "Społeczeństwo",
       "level": "medium",
-      "prompt": "Kto jest obecnie prezydentem Francji?",
+      "prompt": "Kto wygrał wybory prezydenckie we Francji w 2017 roku?",
       "correct": "Emmanuel Macron",
       "wrong": [
         "François Hollande",
@@ -230240,22 +230240,6 @@ module GameRoomContent
         "tłusty czwartek",
         "czarna środa",
         "biała niedziela"
-      ],
-      "source": "https://huggingface.co/datasets/ipipan/polqa",
-      "review_required": false,
-      "source_dataset": "PolQA",
-      "source_license": "CC-BY-SA-4.0"
-    },
-    {
-      "id": "polqa_05804",
-      "category": "Życie codzienne",
-      "level": "medium",
-      "prompt": "Jak nazywa się jubilerska miara masy równa 0,2 g?",
-      "correct": "karat",
-      "wrong": [
-        "gram",
-        "gran",
-        "uncja"
       ],
       "source": "https://huggingface.co/datasets/ipipan/polqa",
       "review_required": false,
@@ -238422,7 +238406,7 @@ module GameRoomContent
   ],
   "source": "content/QUIZ_PL_GENERAL_SOURCES.txt"
 }
-QUIZ_DATA_4c4481b99970865a3bc6e798869cca337d0f9b51cfdb3fdb1daa70f9678c221a
+QUIZ_DATA_2068980b7c11b16d70f221c379f37b559cfd828ab859cf59d06c89625ef78012
     end
   end
 end

@@ -1,12 +1,12 @@
 require_relative 'result'
 
 module GameRoomSportsRankings
-  # Opt-in to the existing leaderboard registry, using the game's existing
+  # Opt-in to personal statistics, using the game's existing
   # public score and team contracts rather than a second scoring model.
   module Game
-    def supports_leaderboards?; true; end
+    def supports_player_statistics?; true; end
 
-    def build_leaderboard_client(program, **_services)
+    def build_player_statistics_client(program)
       require_relative 'screen'
       Screen.new(program: program, game: self, service: program.class.sports_rankings_service)
     end

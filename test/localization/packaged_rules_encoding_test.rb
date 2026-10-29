@@ -14,7 +14,8 @@ GameRoomBotNames::NAMES.each do |token, name|
     raise "Binary lobby bot announcement lost name" unless global.valid_encoding? && global.include?(name) && !global.include?("komputer")
   end
 end
-raise "Lost games during binary loading" unless registry.ids.length == 36
+raise "Lost games during binary loading" unless registry.ids.length == 38
+%w[bouillabaisse scopa].each { |id| raise "Missing new card game: #{id}" unless registry.ids.include?(id) }
 raise "Bridge was not loaded from binary sources" unless registry.ids.include?("bridge")
 raise "Audio Ball was not loaded from binary sources" unless registry.ids.include?("audio_ball")
 raise "Quiz Party was not loaded from binary sources" unless registry.ids.include?("quiz")
@@ -74,7 +75,7 @@ end
 # second ordinary require of the checkout. No network or host UI is used.
 raise "Missing binary save engine" unless defined?(GameRoomSavedGameArchive) && GameRoomSavedGameArchive::FORMAT == 1
 raise "Missing binary saved games menu" unless EltenGameRoom::MAIN_OPTIONS.include?(RULES_CATALOG.fetch("Saved games"))
-raise "Wrong number of saveable games" unless registry.ids.count { |id| registry.build(id).supports_saved_games? } == 31
+raise "Wrong number of saveable games" unless registry.ids.count { |id| registry.build(id).supports_saved_games? } == 33
 raise "Bridge saves were lost during binary loading" unless registry.build("bridge").supports_saved_games?
 raise "Mille Bornes saves were lost during binary loading" unless registry.build("mille_bornes").supports_saved_games?
 raise "Duck Racing saves were lost during binary loading" unless registry.build("duck_racing").supports_saved_games?

@@ -37,8 +37,8 @@ layout = GameRoomLayout::Screen.new(
   users_header: "Users at the table (2)"
 )
 assert(layout_spec.sections == [:status, :game, :chat, :history, :users], "the shared game layout has the wrong section order")
-assert(layout.shortcut_fields == [*layout.surface.fields, layout.history, layout.users, layout.voice_button],
-  "the shared game layout did not expose all non-chat content fields")
+assert(layout.shortcut_fields == [*layout.surface.fields, layout.users, layout.voice_button],
+  "game shortcut fields must exclude chat and native history text")
 assert(layout.form.controls[0] == layout.surface.fields[0], "the game field is not first in the shared layout")
 assert(layout.form.controls[1] == layout.chat, "chat is not directly after the game")
 assert(layout.form.controls[2] == layout.history, "history is not directly after chat")

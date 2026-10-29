@@ -16,6 +16,7 @@ module GameRoomSportsRankings
     end
 
     def observe(game:, session:, replay:)
+      check_context!
       return false unless replay&.finished?
       result = Result.from_replay(game: game, session: session, replay: replay)
       return false unless result && Result.parse(result).fetch('sides').any? { |side| GameRoomParticipants.includes?(side['players'], @user) }
@@ -25,6 +26,7 @@ module GameRoomSportsRankings
     end
 
     def observe_tournament(game:, candidate:, match:, receipt:, players:, finished_at:)
+      check_context!
       result = Result.from_tournament(game: game, candidate: candidate, match: match, receipt: receipt,
         players: players, finished_at: finished_at)
       result ? record(result) : false

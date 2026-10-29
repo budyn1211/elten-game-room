@@ -61,9 +61,9 @@ następnego nagłówka, a Shift+H — do poprzedniego. Escape zamyka dokument.
 
 ## W co można zagrać
 
-Obecnie Power Games zawiera 36 gier:
+Obecnie Power Games zawiera 38 gier:
 
-- Karcianki: 3-5-8, 99, 1000 mil, Biblios, Brydż, Makao, Piki, Poker, Remik, Tysiąc,
+- Karcianki: 3-5-8, 99, 1000 mil, Biblios, Bouillabaisse, Brydż, Makao, Piki, Poker, Remik, Scopa, Tysiąc,
   UNO, Wojna i Wojna naukowa.
 - Gry planszowe i strategiczne: Chińczyk, Cztery w rzędzie,
   Kółko i krzyżyk, Mankala, Monopoly, Reversi, Statki, Szachy, Warcaby
@@ -386,24 +386,6 @@ zanim udostępnisz go dalej.
 
 W głównym menu wybierz „Rankingi”, a następnie grę.
 
-### Axel Pong i Audio Ball
-
-Najpierw wybierz singiel lub debel, a potem „Moje statystyki” albo ranking
-z ostatnich 7 dni, 30 dni, pół roku lub roku. Lista pokazuje miejsca i nicki.
-Enter na graczu otwiera jego wygrane i przegrane mecze, bilans meczów,
-strzelone i stracone bramki oraz bilans bramek z wybranego okresu.
-„Moje statystyki” zawierają te same informacje ze wszystkich zapisanych meczów.
-
-O miejscu w rankingu decydują wygrane i przegrane, przewaga w bramkach
-oraz długość meczu. Krótkie mecze mają mniejszą wagę niż dłuższe;
-liczy się liczba bramek zwycięskiej strony, nie cel ustawiony przed grą.
-W Audio Ballu sumują się bramki ze wszystkich setów. W deblu każdy gracz
-otrzymuje pełny wynik swojej drużyny.
-
-Wyniki zapisują się automatycznie po zakończeniu meczu, jeżeli obie strony
-składają się wtedy wyłącznie z ludzi. Liczą się także mecze turniejowe,
-a walkowery uwzględniają bramki przyznane w turnieju.
-
 ### Krowa
 
 - W rankingu słowa wyżej jest ten, kto odgadł je w mniejszej liczbie prób.
@@ -416,15 +398,24 @@ a walkowery uwzględniają bramki przyznane w turnieju.
 
 ## Statystyki
 
-„Statystyki” pokazują aktywność w Power Games: między innymi rozpoczęte
-i ukończone partie, z podziałem na gry oraz rozgrywki z ludźmi, z botami
-i samotne. Można wybrać okres, na przykład ostatnie siedem dni lub cały
-czas zbierania danych. 
+W głównym menu wybierz „Statystyki”, a następnie „Ogólne”, „Axel Pong” lub „Audio Ball”.
+
+### Ogólne
+
+Tutaj sprawdzisz aktywność w Power Games: między innymi rozpoczęte i ukończone partie, z podziałem na gry oraz rozgrywki z ludźmi, z botami i samotne. Można wybrać okres, na przykład ostatnie siedem dni lub cały czas zbierania danych.
 
 W głównym menu Power Games Ctrl+W otwiera „Obecnie w pokojach”:
 zestawienie liczby stołów i przebywających przy nich osób. To inne
 zastosowanie tego skrótu niż na liście stołów, gdzie odczytuje konkretną
 obsadę.
+
+### Axel Pong i Audio Ball
+
+Wybierz singiel lub debel. Domyślnie zobaczysz własne wyniki ze wszystkich zapisanych meczów: wygrane, przegrane, bilans meczów, strzelone i stracone bramki oraz bilans bramek.
+
+Tabem przejdziesz do wyboru okresu. Możesz sprawdzić ostatnie 7 dni, 30 dni, pół roku, rok albo cały okres. Przycisk „Wybierz gracza” pozwala wskazać inną osobę, a „Moje statystyki” wraca do Twoich wyników. „Odśwież” pobiera aktualne dane.
+
+W Audio Ballu sumują się bramki ze wszystkich setów. W deblu każdy gracz otrzymuje pełny wynik swojej drużyny. Wyniki zapisują się automatycznie po zakończeniu meczu, jeżeli obie strony składają się wtedy wyłącznie z ludzi. Liczą się także mecze turniejowe, a walkowery uwzględniają bramki przyznane w turnieju.
 
 ## Funkcje, które łatwo przeoczyć
 

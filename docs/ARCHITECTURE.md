@@ -278,12 +278,19 @@ presentation filter over a single chronological stream; it does not split
 the data back into separate stores.
 
 `GameRoomSync::Controller` collects notifications and triggers controlled
-state recovery after an error or gap. Do not replace this with frequent,
-periodic server polling. An uncertain write preserves the move identity and
-random result for reconciliation; repeated delivery does not apply it twice.
-A notification does not shorten the backoff after 429. During recovery, the
-UI preserves the last valid state and chat draft. A programming error requires
-diagnostics and stopping the faulty action.
+state recovery after an error or gap. Failed recovery attempts wait 5, 10,
+then at most 15 seconds between attempts; a successful complete recovery
+resets this schedule and disables further reads until another event. Repeated
+native error notices and the executor observing the same exception must not
+postpone an already scheduled read or count as additional failed attempts.
+An explicit rate limit or `Retry-After` can extend the wait. Do not replace
+this with frequent, periodic server polling. An uncertain write preserves
+the move identity and random result for reconciliation; repeated delivery
+does not apply it twice. During recovery, the UI preserves the last valid
+state and chat draft. A programming error requires diagnostics and stopping
+the faulty action. Regressions: `stack_retry_schedule_test.rb` and
+`native_stack_page_boundary_test.rb` exercise scheduling and the actual SDK
+stack-request rejection without replaying a move.
 
 Axel Pong and Audio Ball share a full-P2P option that is off by default.
 Enabling it reveals the next form field: the participant limit, 8 by default;

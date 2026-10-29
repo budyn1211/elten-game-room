@@ -92,25 +92,17 @@ module GameRoomSportsRankings
               scored, conceded = side.fetch('goals'), outcome.fetch('sides').fetch(1 - index).fetch('goals')
               won = outcome.fetch('winner') == index
               side.fetch('players').each do |name|
-                total = totals[name.downcase] ||= {'user'=>name, 'won'=>0, 'lost'=>0, 'scored'=>0, 'conceded'=>0, 'points'=>0.0}
+                total = totals[name.downcase] ||= {'user'=>name, 'won'=>0, 'lost'=>0, 'scored'=>0, 'conceded'=>0}
                 total[won ? 'won' : 'lost'] += 1
                 total['scored'] += scored
                 total['conceded'] += conceded
-                total['points'] += Result.points(won: won, scored: scored, conceded: conceded)
               end
             end
             count += 1
           end
           cursor = rows.last.fetch('__id')
         end
-        value = totals.values.sort_by { |row| [-row.fetch('points').round(8), row.fetch('user').downcase] }
-        previous_points, place = nil, 0
-        value.each_with_index do |row, index|
-          points = row.fetch('points').round(8)
-          place = index + 1 unless points == previous_points
-          row['place'] = place
-          previous_points = points
-        end
+        value = totals.values.sort_by { |row| row.fetch('user').downcase }
         @cache = {scope: scope, at: @monotonic.call, value: Marshal.load(Marshal.dump(value))} if count <= MAX_CACHED_MATCHES
         value
       end
@@ -140,7 +132,7 @@ module GameRoomSportsRankings
       check!(token)
       unless definition.is_a?(Hash) && definition['visibility'] == 'public' && definition['unique_per_user'] == false && definition['columns'] == Schema::COLUMNS &&
           %w[select insert].all? { |permission| definition.fetch('permissions').to_h[permission] == true }
-        raise Unavailable, 'Sports leaderboards are not available'
+        raise Unavailable, 'Sports player statistics are not available'
       end
       @limit = [[definition.dig('limits', 'max_select_limit').to_i, 1].max, 1000].min
       @api.table(client, @app_uuid, Schema::TABLE)

@@ -94,6 +94,8 @@ module GameRoomGames
     def build_start_guard(_program, user:, **_services); nil; end
     def supports_leaderboards?; false; end
     def build_leaderboard_client(_program, **_services); nil; end
+    def supports_player_statistics?; false; end
+    def build_player_statistics_client(_program); nil; end
     def precise_action_clock?; false; end
     # Opt in only when a game can deterministically cancel its own pending
     # private/minigame phase at the accepted seat-change boundary.

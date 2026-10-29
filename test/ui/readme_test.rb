@@ -63,6 +63,14 @@ paths.each do |language, path|
     "#{language}: invitation blacklist omits the tournament exception")
   tournament_title, help_title = section_titles.fetch(language)
   chapters = markdown.scan(/^## (.+)$/).flatten.map(&:strip)
+  # Sports results belong to Statistics, not to a competitive leaderboard.
+  sports = markdown.index(/^### Axel Pong /)
+  statistics_heading = {'pl'=>'Statystyki','en'=>'Statistics','cs'=>'Statistiky','es'=>'Estadísticas','ru'=>'Статистика'}.fetch(language)
+  statistics_offset = markdown.index(/^## #{Regexp.escape(statistics_heading)}\r?$/)
+  assert(sports && statistics_offset && sports > statistics_offset,
+    "#{language}: sports statistics remain in the leaderboard section")
+  assert(markdown.include?({'pl'=>'Wybierz gracza','en'=>'Choose player','cs'=>'Vybrat hráče','es'=>'Elegir jugador','ru'=>'Выбрать игрока'}.fetch(language)),
+    "#{language}: README does not explain selecting another player's statistics")
   tournament_index = chapters.index(tournament_title)
   assert(tournament_index && chapters[tournament_index + 1] == help_title,
     "#{language}: tournaments must immediately precede the contribution section")

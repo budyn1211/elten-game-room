@@ -26,10 +26,21 @@ check("Yahtzee pairs count all five dice, including the unpaired die") do
   state = initial(game)
   [["pair", [2, 2, 3, 4, 6], 17], ["pair", [1, 2, 3, 4, 6], 0],
    ["two_pairs", [1, 3, 3, 5, 5], 17], ["two_pairs", [2, 2, 5, 5, 5], 19],
-   ["two_pairs", [1, 4, 4, 4, 4], 0], ["misery", [1, 1, 1, 1, 1], 31],
-   ["misery", [6, 6, 6, 6, 6], 6]].each do |category, dice, points|
+   ["two_pairs", [1, 4, 4, 4, 4], 0]].each do |category, dice, points|
     actual = game.send(:score_category, category, dice, state, "Alice")
     assert(actual == points, "#{category}: #{dice} scored #{actual}, expected #{points}")
+  end
+end
+
+check("Yahtzee misery uses the ordinary sum unless five of a kind gives the special score") do
+  game = GameRoomGames::Yahtzee.new
+  state = initial(game)
+  # Keep ordinary Misery coverage separate from the approved Yahtzee score.
+  # Both extremes used to follow 36 minus the sum even for five equal dice.
+  [[[1, 1, 1, 1, 2], 30], [[6, 6, 6, 6, 5], 7],
+   [[1, 1, 1, 1, 1], 40], [[6, 6, 6, 6, 6], 40]].each do |dice, points|
+    actual = game.send(:score_category, 'misery', dice, state, 'Alice')
+    assert(actual == points, "misery: #{dice} scored #{actual}, expected #{points}")
   end
 end
 

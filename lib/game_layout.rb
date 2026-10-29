@@ -49,6 +49,8 @@ module GameRoomLayout
   end
 
   module ShortcutFormBehavior
+    attr_accessor :game_shortcut_fields
+
     def game_shortcut_keys=(keys)
       @game_shortcut_keys = keys.to_a.map do |key|
         key.to_s.sub(/\Akey_/, "").downcase
@@ -75,6 +77,14 @@ module GameRoomLayout
         return true if editable_text_field? && !%w[comma period , . < >].include?(normalized)
 
         return false
+      end
+      # A read-only text control still owns native selection/copy commands.
+      # Only text that is explicitly part of the game may opt into game keys.
+      field = fields[index.to_i]
+      if game_shortcut_fields && field.is_a?(EditBox) &&
+          (field.flags.to_i & EditBox::Flags::ReadOnly) != 0 &&
+          !game_shortcut_fields.include?(field)
+        return super
       end
       if @game_shortcut_keys.to_a.include?(normalized)
         if editable_text_field?
@@ -206,6 +216,8 @@ module GameRoomLayout
       binding_controls.each(&:reset_bindings!)
       GameRoomContextHelp.replace(@form.fields, [], source: :game)
       @form.game_shortcut_signatures = []
+      @form.game_shortcut_fields = []
+      @history.game_shortcut_signatures = []
       @form.history_navigation_signatures = []
       @form.game_room_general_help_tips = []
       @form.game_room_text_help_tips = []
@@ -425,7 +437,7 @@ module GameRoomLayout
     end
 
     def shortcut_fields
-      @content_fields.reject { |field| field.equal?(@chat) }
+      @content_fields.reject { |field| field.equal?(@chat) || field.equal?(@history) }
     end
 
     # Only visible game controls, never the participant list, history or chat.

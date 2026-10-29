@@ -16,6 +16,7 @@ module GameRoomShortcutBindings
   end
 
   def self.bind(form, fields, shortcuts, consume:, &handler)
+    form.game_shortcut_fields = fields.dup if form.respond_to?(:game_shortcut_fields=)
     shortcut_by_key = shortcuts.group_by(&:key)
     shortcut_signatures = shortcuts.map { |shortcut| [shortcut.key, shortcut.modifiers.to_a] }
     shortcut_keys = shortcut_by_key.keys

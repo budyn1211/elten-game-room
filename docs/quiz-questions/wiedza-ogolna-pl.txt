@@ -8569,12 +8569,12 @@ D. Helsinki
 Poprawna odpowiedź: B. Turku
 
 1072
-Jakie jest zjawisko nocy polarnej?
-A. Słońce nie wschodzi przez ponad 24 godziny
-B. Słońce nie zachodzi przez ponad 24 godziny
-C. Słońce zachodzi tylko na kilka minut każdej doby
-D. Księżyc pozostaje widoczny przez całą dobę
-Poprawna odpowiedź: A. Słońce nie wschodzi przez ponad 24 godziny
+Na czym polega noc polarna?
+A. Słońce nie wschodzi przez co najmniej 24 godziny
+B. Słońce zachodzi tylko na kilka minut każdej doby
+C. Księżyc pozostaje widoczny przez całą dobę
+D. Słońce nie zachodzi przez co najmniej 24 godziny
+Poprawna odpowiedź: A. Słońce nie wschodzi przez co najmniej 24 godziny
 
 1073
 Przez które województwa przebiega Szlak Orlich Gniazd?
@@ -60985,7 +60985,7 @@ D. Lewis Carroll
 Poprawna odpowiedź: C. George Orwell
 
 7624
-Kto jest autorem folwarku zwierzęcego i książki rok 1984?
+Kto napisał „Folwark zwierzęcy” i „Rok 1984”?
 A. George Orwell
 B. Herbert George Wells
 C. Aldous Huxley
@@ -91497,7 +91497,7 @@ D. Faustyna Kowalska
 Poprawna odpowiedź: B. Matka Teresa z Kalkuty
 
 11438
-Jaką profesją parał się święty Mateusz Ewangelista, zanim został apostołem?
+Kim był święty Mateusz Ewangelista, zanim został apostołem?
 A. Lekarzem
 B. Cieślą
 C. Celnikiem
@@ -99817,7 +99817,7 @@ D. na czarno
 Poprawna odpowiedź: C. na szaro
 
 12478
-Z ilu wypukłych punktów składa się układ, który tworzy literę w alfabecie Braille'a?
+Jaka jest maksymalna liczba wypukłych punktów w jednym znaku tradycyjnego pisma Braille’a?
 A. 7
 B. 5
 C. 6
@@ -111129,12 +111129,12 @@ D. Kardynała Adama Stefana Sapiehy
 Poprawna odpowiedź: A. Kardynała Stefana Wyszyńskiego
 
 13892
-Kto jest przewodniczącym Komisji Europejskiej i obywatelem którego państwa?
-A. Christine Lagarde — Francja
-B. Kaja Kallas — Estonia
-C. Ursula von der Leyen — Niemcy
-D. Roberta Metsola — Malta
-Poprawna odpowiedź: C. Ursula von der Leyen — Niemcy
+Kto w 2019 roku stanął na czele Komisji Europejskiej?
+A. Christine Lagarde
+B. Kaja Kallas
+C. Ursula von der Leyen
+D. Roberta Metsola
+Poprawna odpowiedź: C. Ursula von der Leyen
 
 13893
 Ile razy kobieta sprawowała w Polsce funkcję premiera?
@@ -112081,7 +112081,7 @@ D. Dinar
 Poprawna odpowiedź: A. Euro
 
 14011
-Kto jest obecnie prezydentem Francji?
+Kto wygrał wybory prezydenckie we Francji w 2017 roku?
 A. Nicolas Sarkozy
 B. Emmanuel Macron
 C. François Hollande
@@ -115121,14 +115121,6 @@ D. czarna środa
 Poprawna odpowiedź: B. lany poniedziałek
 
 14391
-Jak nazywa się jubilerska miara masy równa 0,2 g?
-A. gram
-B. karat
-C. gran
-D. uncja
-Poprawna odpowiedź: B. karat
-
-14392
 Z jakich owoców produkowana jest wódka kirsz?
 A. ze śliwek
 B. z gruszek
@@ -115136,7 +115128,7 @@ C. z moreli
 D. z wiśni
 Poprawna odpowiedź: D. z wiśni
 
-14393
+14392
 Jak nazywa się cienki, długi makaron będący narodową potrawą we Włoszech?
 A. penne
 B. fusilli
@@ -115144,7 +115136,7 @@ C. farfalle
 D. spaghetti
 Poprawna odpowiedź: D. spaghetti
 
-14394
+14393
 Nazwa którego języka programowania pochodzi od nazwiska znanego francuskiego uczonego?
 A. Pascal
 B. Fortran
@@ -115152,7 +115144,7 @@ C. Basic
 D. Cobol
 Poprawna odpowiedź: A. Pascal
 
-14395
+14394
 Jak nazywa się sztywny kapelusz, cylinder dający się złożyć płasko i rozprostować za pomocą specjalnej sprężyny?
 A. bikorn
 B. szapoklak
@@ -115160,7 +115152,7 @@ C. fedora
 D. melonik
 Poprawna odpowiedź: B. szapoklak
 
-14396
+14395
 Ilu graczy bierze udział w grze w warcaby?
 A. 2
 B. 3
@@ -115168,7 +115160,7 @@ C. 6
 D. 4
 Poprawna odpowiedź: A. 2
 
-14397
+14396
 Co jest podstawowym składnikiem musztardy?
 A. ziarna kolendry
 B. ziarna gorczycy
@@ -115176,7 +115168,7 @@ C. nasiona kminku
 D. ziarna sezamu
 Poprawna odpowiedź: B. ziarna gorczycy
 
-14398
+14397
 Jak nazywają się dzwonki przy uprzęży?
 A. dzwony rurowe
 B. kuranty
@@ -115184,7 +115176,7 @@ C. janczary
 D. gongi
 Poprawna odpowiedź: C. janczary
 
-14399
+14398
 Jak nazywają się ciastka z ubitej z cukrem piany z białek?
 A. bezy
 B. faworki
@@ -115192,7 +115184,7 @@ C. ptysie
 D. eklerki
 Poprawna odpowiedź: A. bezy
 
-14400
+14399
 Z którego państwa pochodzi ser mozarella?
 A. z Francji
 B. z Włoch
@@ -115200,7 +115192,7 @@ C. ze Szwajcarii
 D. z Grecji
 Poprawna odpowiedź: B. z Włoch
 
-14401
+14400
 Co oznacza okrągły czerwony znak drogowy z białym poziomym paskiem pośrodku?
 A. zakaz wjazdu
 B. zakaz postoju
@@ -115208,7 +115200,7 @@ C. nakaz zatrzymania się
 D. zakaz ruchu w obu kierunkach
 Poprawna odpowiedź: A. zakaz wjazdu
 
-14402
+14401
 Do której kategorii znaków drogowych należy znak ograniczenia prędkości?
 A. zakazu
 B. ostrzegawczych
@@ -115216,7 +115208,7 @@ C. nakazu
 D. informacyjnych
 Poprawna odpowiedź: A. zakazu
 
-14403
+14402
 Jak nazywa się wzajemne przyrzeczenie zawarcia małżeństwa, po którym zakochani stają się narzeczonymi?
 A. zapowiedzi
 B. zaślubiny
@@ -115224,7 +115216,7 @@ C. zaręczyny
 D. swaty
 Poprawna odpowiedź: C. zaręczyny
 
-14404
+14403
 Które z tych warzyw ma najwięcej kalorii w 100 g?
 A. cukinia
 B. brokuł
@@ -115232,7 +115224,7 @@ C. ziemniak
 D. ogórek
 Poprawna odpowiedź: C. ziemniak
 
-14405
+14404
 Jaka jest dopuszczalna prędkość samochodu osobowego na obszarze zabudowanym w dzień?
 A. 40 km/h
 B. 70 km/h
@@ -115240,7 +115232,7 @@ C. 60 km/h
 D. 50 km/h
 Poprawna odpowiedź: D. 50 km/h
 
-14406
+14405
 Jak nazywa się dobrowolne ubezpieczenie samochodu od wypadku albo kradzieży?
 A. assistance
 B. OC posiadaczy pojazdów
@@ -115248,7 +115240,7 @@ C. autocasco
 D. NNW kierowcy
 Poprawna odpowiedź: C. autocasco
 
-14407
+14406
 Jak nazywa się pisemne zawiadomienie odbiorcy o nadejściu przesyłki?
 A. awizo
 B. wezwanie do zapłaty
@@ -115256,7 +115248,7 @@ C. pokwitowanie odbioru
 D. faktura
 Poprawna odpowiedź: A. awizo
 
-14408
+14407
 Jak nazywa się regularnie oszlifowany diament?
 A. brylant
 B. szmaragd
@@ -115264,7 +115256,7 @@ C. kaboszon
 D. cyrkonia
 Poprawna odpowiedź: A. brylant
 
-14409
+14408
 Jak nazywał się pokój kobiecy, salonik służący do odpoczynku, zwykle wytwornie umeblowany; słowo pochodzi z francuskiego?
 A. gabinet
 B. alkierz gospodarczy
@@ -115272,7 +115264,7 @@ C. buduar
 D. westybul
 Poprawna odpowiedź: C. buduar
 
-14410
+14409
 Którą część garderoby się zzuwa albo wzuwa?
 A. spodnie
 B. buty
@@ -115280,7 +115272,7 @@ C. pończochy
 D. rękawiczki
 Poprawna odpowiedź: B. buty
 
-14411
+14410
 Czego dotyczą nazwy: Łyczakowski, Pere Lachaise, Pęksów Brzyzek?
 A. cmentarzy
 B. parków miejskich
@@ -115288,7 +115280,7 @@ C. placów targowych
 D. ogrodów botanicznych
 Poprawna odpowiedź: A. cmentarzy
 
-14412
+14411
 Zabarwione na jeden kolor jajka wielkanocne nazywamy kraszankami. Jaki kolor daje wywar z kory dębu?
 A. zielony
 B. czerwony
@@ -115296,7 +115288,7 @@ C. niebieski
 D. czarny
 Poprawna odpowiedź: D. czarny
 
-14413
+14412
 Którą kategorię prawa jazdy musi mieć kierowca prowadzący autobus?
 A. B
 B. C
@@ -115304,7 +115296,7 @@ C. A
 D. D
 Poprawna odpowiedź: D. D
 
-14414
+14413
 Jak nazywa się kasza z obłuskanych i polerowanych ziaren prosa?
 A. kasza gryczana
 B. kasza manna
@@ -115312,7 +115304,7 @@ C. kasza jaglana
 D. kasza pęczak
 Poprawna odpowiedź: C. kasza jaglana
 
-14415
+14414
 Urządzenie do napędu maszyn rolniczych poruszane przez zwierzę chodzące w koło nazywa się...?
 A. młocarnia
 B. sieczkarnia
@@ -115320,7 +115312,7 @@ C. kierat
 D. kołowrót
 Poprawna odpowiedź: C. kierat
 
-14416
+14415
 Jak nazywa się góralskie obuwie zrobione z jednego płata skóry, wiązane rzemykami?
 A. kierpce
 B. ciżmy
@@ -115328,7 +115320,7 @@ C. łapcie
 D. juchtówki
 Poprawna odpowiedź: A. kierpce
 
-14417
+14416
 Którym towarem handluje bukinista?
 A. książkami
 B. monetami
@@ -115336,7 +115328,7 @@ C. obrazami
 D. meblami
 Poprawna odpowiedź: A. książkami
 
-14418
+14417
 Jak nazywa się kirgiski napój alkoholowy sporządzany z mleka klaczy albo oślicy, rozpowszechniony głównie w Azji?
 A. kefir
 B. ajran
@@ -115344,7 +115336,7 @@ C. lassi
 D. kumys
 Poprawna odpowiedź: D. kumys
 
-14419
+14418
 Jak nazywa się trzeci miesiąc roku?
 A. marzec
 B. kwiecień
@@ -115352,7 +115344,7 @@ C. luty
 D. maj
 Poprawna odpowiedź: A. marzec
 
-14420
+14419
 Jak nazywa się deser nazwany na cześć słynnej australijskiej śpiewaczki operowej?
 A. melba
 B. bawaroise
@@ -115360,7 +115352,7 @@ C. pavlova
 D. tiramisu
 Poprawna odpowiedź: A. melba
 
-14421
+14420
 Jak nazywa się podziemna kolej miejska?
 A. tramwaj
 B. kolejka linowa
@@ -115368,7 +115360,7 @@ C. trolejbus
 D. metro
 Poprawna odpowiedź: D. metro
 
-14422
+14421
 Subway, tube, U-Bahn – czego dotyczą te określenia?
 A. kolej dalekobieżna
 B. autobus
@@ -115376,7 +115368,7 @@ C. tramwaj
 D. metro
 Poprawna odpowiedź: D. metro
 
-14423
+14422
 Jak z włoskiego nazywa się waga towaru bez opakowania?
 A. tara
 B. brutto
@@ -115384,7 +115376,7 @@ C. netto
 D. saldo
 Poprawna odpowiedź: C. netto
 
-14424
+14423
 Co to jest guacamole?
 A. deser
 B. żadne z wymienionych
@@ -115392,7 +115384,7 @@ C. zupa
 D. pasta
 Poprawna odpowiedź: D. pasta
 
-14425
+14424
 Po czym porusza się drezyna?
 A. po jezdni
 B. po szynach
@@ -115400,7 +115392,7 @@ C. po linach
 D. po wodzie
 Poprawna odpowiedź: B. po szynach
 
-14426
+14425
 Świętomarciński rogal to specjał którego miasta?
 A. Krakowa
 B. Poznania
@@ -115408,7 +115400,7 @@ C. Torunia
 D. Lublina
 Poprawna odpowiedź: B. Poznania
 
-14427
+14426
 W jakiej pozycji najczęściej używało się szezlongu?
 A. żadnej z wymienionych
 B. półleżącej
@@ -115416,7 +115408,7 @@ C. siedzącej
 D. klęczącej
 Poprawna odpowiedź: B. półleżącej
 
-14428
+14427
 Jak nazywa się gromadny wypęd owiec na odległe hale dozorowany przez bace i juhasów?
 A. koliba
 B. redyk
@@ -115424,7 +115416,7 @@ C. watra
 D. kierdel
 Poprawna odpowiedź: B. redyk
 
-14429
+14428
 Które zboże jest głównym składnikiem włoskiej potrawy risotto?
 A. kukurydza
 B. jęczmień
@@ -115432,7 +115424,7 @@ C. ryż
 D. proso
 Poprawna odpowiedź: C. ryż
 
-14430
+14429
 Brie i camembert to francuskie nazwy jakich produktów?
 A. żadnego z wymienionych produktów
 B. przypraw
@@ -115440,7 +115432,7 @@ C. serów
 D. wina
 Poprawna odpowiedź: C. serów
 
-14431
+14430
 Jaka jest ostatnia cyfra trzycyfrowych liczb w nazwach obecnie produkowanych pasażerskich Boeingów?
 A. pięć
 B. dziewięć
@@ -115448,7 +115440,7 @@ C. siedem
 D. trzy
 Poprawna odpowiedź: C. siedem
 
-14432
+14431
 Jak brzmi polska nazwa narzędzia do obróbki drewna nazywanego z niemiecka heblem?
 A. świder
 B. pilnik
@@ -115456,7 +115448,7 @@ C. dłuto
 D. strug
 Poprawna odpowiedź: D. strug
 
-14433
+14432
 Jak nazywa się sproszkowany tytoń, zwykle wciągany przez nos, wywołujący kichanie?
 A. snus
 B. prymka
@@ -115464,7 +115456,7 @@ C. tabaka
 D. machorka
 Poprawna odpowiedź: C. tabaka
 
-14434
+14433
 2% czego zawiera mleko dwuprocentowe?
 A. tłuszczu
 B. białka
@@ -115472,7 +115464,7 @@ C. laktozy
 D. wody
 Poprawna odpowiedź: A. tłuszczu
 
-14435
+14434
 Szamorodni i aszú to rodzaje którego węgierskiego wina?
 A. tokaju
 B. kékfrankos
@@ -115480,7 +115472,7 @@ C. egri bikavér
 D. kadarki
 Poprawna odpowiedź: A. tokaju
 
-14436
+14435
 Tarcza ruletki podzielona jest na przegródki, do których może wpaść kulka. Iloma kolorami są oznakowane te przegródki?
 A. trzema
 B. dwoma
@@ -115488,7 +115480,7 @@ C. czterema
 D. pięcioma
 Poprawna odpowiedź: A. trzema
 
-14437
+14436
 Najstarsza polska książka kucharska to „Compendium ferculorum” Stanisława Czernieckiego. W którym wieku powstała?
 A. w 15.
 B. w 17.
@@ -115496,7 +115488,7 @@ C. w 18.
 D. w 16.
 Poprawna odpowiedź: B. w 17.
 
-14438
+14437
 jak nazywa się duża, głęboka patelnia o półkulistym albo stożkowym dnie, używania m.in. w kuchni chińskiej?
 A. wok
 B. tadżin
@@ -115504,7 +115496,7 @@ C. brytfanna
 D. rondel
 Poprawna odpowiedź: A. wok
 
-14439
+14438
 Z ilu barwnych sześcianów składa się kostka Rubika?
 A. z 27
 B. z 24
@@ -115512,7 +115504,7 @@ C. z 26
 D. z 28
 Poprawna odpowiedź: C. z 26
 
-14440
+14439
 Co to jest sekretarzyk, używany kiedyś przez kobiety?
 A. sekretny schowek
 B. żadne z wymienionych
@@ -115520,7 +115512,7 @@ C. rodzaj toaletki
 D. rodzaj biurka
 Poprawna odpowiedź: D. rodzaj biurka
 
-14441
+14440
 Jajecznica ze szczypiorkiem to żartobliwe określenie połączenia których kolorów?
 A. białego i zielonego
 B. żółtego i czerwonego
@@ -115528,7 +115520,7 @@ C. żółtego i zielonego
 D. pomarańczowego i brązowego
 Poprawna odpowiedź: C. żółtego i zielonego
 
-14442
+14441
 Jak nazywa się okres zbioru zbóż?
 A. sianokosy
 B. wykopki
@@ -115536,7 +115528,7 @@ C. zwózka
 D. żniwa
 Poprawna odpowiedź: D. żniwa
 
-14443
+14442
 Jaki kształt mają zazwyczaj łazanki?
 A. okrągły
 B. kwadratowy
@@ -115544,7 +115536,7 @@ C. spiralny
 D. rurkowaty
 Poprawna odpowiedź: B. kwadratowy
 
-14444
+14443
 Jaki środek transportu nazywano dawniej aeroplanem?
 A. balon
 B. sterowiec
@@ -115552,7 +115544,7 @@ C. samolot
 D. śmigłowiec
 Poprawna odpowiedź: C. samolot
 
-14445
+14444
 Jakie zwierzęta biorą udział w słynnej gonitwie ulicami Pampeluny?
 A. osły
 B. barany
@@ -115560,7 +115552,7 @@ C. konie
 D. byki
 Poprawna odpowiedź: D. byki
 
-14446
+14445
 Zgodnie z kodeksem drogowym autobus jest przeznaczony do przewozu więcej niż ilu osób, łącznie z kierowcą?
 A. dziewięciu
 B. pięciu
@@ -115568,7 +115560,7 @@ C. żadnej z podanych liczb
 D. ośmiu
 Poprawna odpowiedź: A. dziewięciu
 
-14447
+14446
 Z czego wykonany był skopek, naczynie na mleko albo śmietanę?
 A. Z miedzi
 B. Z cyny
@@ -115576,7 +115568,7 @@ C. Z gliny
 D. Z drewna
 Poprawna odpowiedź: D. Z drewna
 
-14448
+14447
 Jak z niemieckiego nazywają się widełki przymocowane do burty łodzi służące do osadzania wioseł?
 A. Dulki
 B. Polery
@@ -115584,7 +115576,7 @@ C. Kabestany
 D. Knagi
 Poprawna odpowiedź: A. Dulki
 
-14449
+14448
 Który olej sporządzany jest z kopry?
 A. Olej rzepakowy
 B. Olej arachidowy
@@ -115592,7 +115584,7 @@ C. Olej sezamowy
 D. Olej kokosowy
 Poprawna odpowiedź: D. Olej kokosowy
 
-14450
+14449
 Nazwa której części stopy jest także nazwą części masztu?
 A. Podeszwa
 B. Pięta
@@ -115600,7 +115592,7 @@ C. Opuszka
 D. Kostka
 Poprawna odpowiedź: B. Pięta
 
-14451
+14450
 Jak nazywa się szałas pasterzy w Karpatach?
 A. Jurta
 B. Koliba
@@ -115608,7 +115600,7 @@ C. Lepianka
 D. Ziemianka
 Poprawna odpowiedź: B. Koliba
 
-14452
+14451
 Ile dni ma grudzień?
 A. 29
 B. 28
@@ -115616,7 +115608,7 @@ C. 30
 D. 31
 Poprawna odpowiedź: D. 31
 
-14453
+14452
 Co oprócz buraków jest podstawowym składnikiem ćwikły?
 A. Czosnek
 B. Seler
@@ -115624,7 +115616,7 @@ C. Por
 D. Chrzan
 Poprawna odpowiedź: D. Chrzan
 
-14454
+14453
 Jak nazywa się sznur używany do chwytania koni i bydła?
 A. Strzemię
 B. Siodło
@@ -115632,7 +115624,7 @@ C. Wędzidło
 D. Lasso
 Poprawna odpowiedź: D. Lasso
 
-14455
+14454
 Jak nazywa się bal urządzany zwykle mniej więcej trzy miesiące przed egzaminem maturalnym?
 A. Komers
 B. Studniówka
@@ -115640,7 +115632,7 @@ C. Bal absolwentów
 D. Półmetek
 Poprawna odpowiedź: B. Studniówka
 
-14456
+14455
 Mazagran to koniak albo rum z jakimi dodatkami?
 A. Z mlekiem, kakao i cynamonem
 B. Z herbatą, miodem i cytryną
@@ -115648,7 +115640,7 @@ C. Z czarną kawą, cukrem i lodem
 D. Z sokiem pomarańczowym, grenadyną i lodem
 Poprawna odpowiedź: C. Z czarną kawą, cukrem i lodem
 
-14457
+14456
 Jakie imię nosił trzeci zimny ogrodnik?
 A. Stanisław
 B. Bonifacy
@@ -115656,7 +115648,7 @@ C. Pankracy
 D. Serwacy
 Poprawna odpowiedź: B. Bonifacy
 
-14458
+14457
 Z którego państwa wywodzi się gulasz?
 A. Z Węgier
 B. Z Austrii
@@ -115664,7 +115656,7 @@ C. Z Rumunii
 D. Z Czech
 Poprawna odpowiedź: A. Z Węgier
 
-14459
+14458
 Co oprócz mięsa z ryb znajdziemy w paprykarzu szczecińskim?
 A. Ziemniaki
 B. Makaron
@@ -115672,7 +115664,7 @@ C. Kaszę
 D. Ryż
 Poprawna odpowiedź: D. Ryż
 
-14460
+14459
 Jak nazywa się rosyjska drewniana lalka w stroju ludowym, zawierająca kilka coraz mniejszych lalek wkładanych jedna w drugą?
 A. Motanka
 B. Matrioszka
@@ -115680,7 +115672,7 @@ C. Pacynka
 D. Kokeshi
 Poprawna odpowiedź: B. Matrioszka
 
-14461
+14460
 Spod którego znaku zodiaku są osoby urodzone trzeciego marca?
 A. Spod Barana
 B. Spod Ryb
@@ -115688,7 +115680,7 @@ C. Spod Wodnika
 D. Spod Byka
 Poprawna odpowiedź: B. Spod Ryb
 
-14462
+14461
 Jak nazywa się pas z kolorowego sukna naszyty wzdłuż zewnętrznego szwu spodni w mundurze?
 A. Epolet
 B. Lampas
@@ -115696,7 +115688,7 @@ C. Akselbant
 D. Galon
 Poprawna odpowiedź: B. Lampas
 
-14463
+14462
 Z jakiej części goździkowca korzennego otrzymuje się aromatyczną przyprawę goździki?
 A. Z kwiatów, zbieranych jako pąki
 B. Z liści
@@ -115704,7 +115696,7 @@ C. Z korzeni
 D. Z kory
 Poprawna odpowiedź: A. Z kwiatów, zbieranych jako pąki
 
-14464
+14463
 W którym państwie powstał pierwszy w Europie Disneyland?
 A. W Niemczech
 B. W Hiszpanii
@@ -115712,7 +115704,7 @@ C. We Włoszech
 D. We Francji
 Poprawna odpowiedź: D. We Francji
 
-14465
+14464
 Jak nazywa się pomost spacerowy na Palach, wychodzący z brzegu w morze albo jezioro?
 A. Grobla
 B. Śluza
@@ -115720,7 +115712,7 @@ C. Molo
 D. Bulwar
 Poprawna odpowiedź: C. Molo
 
-14466
+14465
 Jakim materiałem jest duralex?
 A. Szkłem hartowanym
 B. Ceramiką
@@ -115728,7 +115720,7 @@ C. Tworzywem sztucznym
 D. Stopem metali
 Poprawna odpowiedź: A. Szkłem hartowanym
 
-14467
+14466
 Po jakim amerykańskim święcie ma miejsce czarny piątek?
 A. Po Święcie Pracy
 B. Po Święcie Dziękczynienia
@@ -115736,7 +115728,7 @@ C. Po Dniu Niepodległości
 D. Po Dniu Weteranów
 Poprawna odpowiedź: B. Po Święcie Dziękczynienia
 
-14468
+14467
 Co jest osadzone w dulkach?
 A. Żagle
 B. Stery
@@ -115744,7 +115736,7 @@ C. Wiosła
 D. Maszty
 Poprawna odpowiedź: C. Wiosła
 
-14469
+14468
 Jak w grach karcianych nazywa się jedyna karta w danym kolorze otrzymana przy rozdaniu?
 A. Singel
 B. Sekwens
@@ -115752,7 +115744,7 @@ C. Renons
 D. Dubleton
 Poprawna odpowiedź: A. Singel
 
-14470
+14469
 Na ilu polach rozgrywa się grę planszową o nazwie Halma?
 A. Na 144 polach
 B. Na 256 polach
@@ -115760,7 +115752,7 @@ C. Na 64 polach
 D. Na 128 polach
 Poprawna odpowiedź: B. Na 256 polach
 
-14471
+14470
 Jak od nazwy morskiego ssaka nazywamy amatorów zimowych kąpieli na świeżym powietrzu?
 A. Foki
 B. Morsy
@@ -115768,7 +115760,7 @@ C. Delfiny
 D. Wieloryby
 Poprawna odpowiedź: B. Morsy
 
-14472
+14471
 Który owoc stanowi główny składnik szarlotki?
 A. Winogrono
 B. Mango
@@ -115776,7 +115768,7 @@ C. Awokado
 D. Jabłko
 Poprawna odpowiedź: D. Jabłko
 
-14473
+14472
 Jak nazywa się szałas na halach górskich, służący pasterzom za mieszkanie?
 A. Leśniczówka
 B. Gajówka
@@ -115784,7 +115776,7 @@ C. Bacówka
 D. Strażnica
 Poprawna odpowiedź: C. Bacówka
 
-14474
+14473
 Trencz to rodzaj której części garderoby?
 A. Kapelusza
 B. Swetra
@@ -115792,7 +115784,7 @@ C. Płaszcza
 D. Szala
 Poprawna odpowiedź: C. Płaszcza
 
-14475
+14474
 Jak nazywa się pomost ułatwiający przeładunek towarów w magazynie albo na stacji kolejowej?
 A. Zwrotnica
 B. Rampa
@@ -115800,7 +115792,7 @@ C. Suwnica
 D. Estakada
 Poprawna odpowiedź: B. Rampa
 
-14476
+14475
 Jak nazywa się rzemieślnik zajmujący się wyrobem skórzanych toreb, portfeli, pasków?
 A. Kaletnik
 B. Kuśnierz
@@ -115808,7 +115800,7 @@ C. Rymarz
 D. Garbarz
 Poprawna odpowiedź: A. Kaletnik
 
-14477
+14476
 Jakiej potocznej nazwy używa się w Polsce na określenie chusty w biało-czarny wzór noszonej przez palestyńskich Arabów?
 A. Apaszka
 B. Chustka tyrolska
@@ -115816,7 +115808,7 @@ C. Arafatka
 D. Bandana
 Poprawna odpowiedź: C. Arafatka
 
-14478
+14477
 Ile miesięcy ma jeden kwartał?
 A. Sześć
 B. Dwa
@@ -115824,7 +115816,7 @@ C. Cztery
 D. Trzy
 Poprawna odpowiedź: D. Trzy
 
-14479
+14478
 Z którego regionu Francji pochodzi nazwa sera Camembert?
 A. Normandia
 B. Prowansja
@@ -115832,7 +115824,7 @@ C. Burgundia
 D. Bretania
 Poprawna odpowiedź: A. Normandia
 
-14480
+14479
 Jak w żeglarstwie nazywa się otwór w burcie statku, przez który przesuwa się łańcuch kotwiczny?
 A. Odbijacz
 B. Stępka
@@ -115840,7 +115832,7 @@ C. Kluza
 D. Bulaj
 Poprawna odpowiedź: C. Kluza
 
-14481
+14480
 Jak nazywają się nożyce ogrodowe do cięcia pędów i drobnych gałęzi?
 A. Sierp
 B. Sekator
@@ -115848,7 +115840,7 @@ C. Wertykulator
 D. Szpadel
 Poprawna odpowiedź: B. Sekator
 
-14482
+14481
 W którym dniu tygodnia kończy się w Polsce karnawał?
 A. W poniedziałek
 B. W środę
@@ -115856,7 +115848,7 @@ C. We wtorek
 D. W niedzielę
 Poprawna odpowiedź: C. We wtorek
 
-14483
+14482
 Co to jest bulgur?
 A. Rodzaj sera
 B. Rodzaj pieczywa
@@ -115864,7 +115856,7 @@ C. Rodzaj kaszy
 D. Rodzaj zupy
 Poprawna odpowiedź: C. Rodzaj kaszy
 
-14484
+14483
 Jak od nazwy członka rodziny nazywa się przyrząd do łupania orzechów?
 A. Dziadek
 B. Stryjek
@@ -115872,7 +115864,7 @@ C. Wujek
 D. Bratanek
 Poprawna odpowiedź: A. Dziadek
 
-14485
+14484
 Która przyprawa może być sarepska, Dijon albo kremska?
 A. Musztarda
 B. Papryka
@@ -115880,7 +115872,7 @@ C. Kolendra
 D. Kurkuma
 Poprawna odpowiedź: A. Musztarda
 
-14486
+14485
 Z którego państwa pochodzą bardzo słodkie białe wina zwane Marsala?
 A. Z Francji
 B. Z Włoch
@@ -115888,7 +115880,7 @@ C. Z Portugalii
 D. Z Hiszpanii
 Poprawna odpowiedź: B. Z Włoch
 
-14487
+14486
 Z jakiego włókna wykonana jest lekka tkanina zwana korą?
 A. Z lnu
 B. Z bawełny
@@ -115896,7 +115888,7 @@ C. Z wełny
 D. Z jedwabiu
 Poprawna odpowiedź: B. Z bawełny
 
-14488
+14487
 Co nazywamy dzwonkiem w kuchni?
 A. Kawałek sera
 B. Kawałek winogrona
@@ -115904,7 +115896,7 @@ C. Kawałek ryby
 D. Kawałek tortu
 Poprawna odpowiedź: C. Kawałek ryby
 
-14489
+14488
 Co to jest miesiąc miodowy?
 A. Okres tuż po ślubie
 B. Okres tuż przed zaręczynami
@@ -115912,7 +115904,7 @@ C. Okres przed ogłoszeniem rozwodu
 D. Okres przygotowań do ślubu
 Poprawna odpowiedź: A. Okres tuż po ślubie
 
-14490
+14489
 Jakie są dwa główne składniki napoju Bloody Mary?
 A. Gin i tonik
 B. Wódka i sok pomidorowy
@@ -115920,7 +115912,7 @@ C. Rum i cola
 D. Tequila i sok pomarańczowy
 Poprawna odpowiedź: B. Wódka i sok pomidorowy
 
-14491
+14490
 O której części damskiej garderoby potocznie mówimy mała czarna?
 A. O spódnicy
 B. O bluzce
@@ -115928,7 +115920,7 @@ C. O torebce
 D. O sukience
 Poprawna odpowiedź: D. O sukience
 
-14492
+14491
 Jak nazywa się miękki kapelusz z szerokim rondem przepasany wstążką albo sznurem noszony w Hiszpanii i w krajach Ameryki Łacińskiej?
 A. Melonik
 B. Fedora
@@ -115936,7 +115928,7 @@ C. Sombrero
 D. Cylinder
 Poprawna odpowiedź: C. Sombrero
 
-14493
+14492
 Jak nazywamy orszak sań zaprzężonych w konie z muzyką i śpiewem?
 A. Kawalkada
 B. Kulig
@@ -115944,7 +115936,7 @@ C. Orszak weselny
 D. Procesja
 Poprawna odpowiedź: B. Kulig
 
-14494
+14493
 Cherry to likier wytwarzany z których owoców?
 A. Czarnych porzeczek
 B. Moreli
@@ -115952,7 +115944,7 @@ C. Śliwek
 D. Wiśni
 Poprawna odpowiedź: D. Wiśni
 
-14495
+14494
 Od nazwy którego ssaka pochodzi nazwa fryzury, w której krótko ostrzyżone włosy sterczą do góry?
 A. Od borsuka
 B. Od jeża
@@ -115960,7 +115952,7 @@ C. Od lisa
 D. Od bobra
 Poprawna odpowiedź: B. Od jeża
 
-14496
+14495
 Co przypominają lalki Reborn?
 A. Dorosłych aktorów
 B. Żywe niemowlęta
@@ -115968,7 +115960,7 @@ C. Bajkowe zwierzęta
 D. Postacie z komiksów
 Poprawna odpowiedź: B. Żywe niemowlęta
 
-14497
+14496
 Rodzajem czego jest fedora?
 A. Damskiej chusteczki
 B. Męskiej saszetki
@@ -115976,7 +115968,7 @@ C. Kapelusza z rondem
 D. Ozdobnej rękawiczki
 Poprawna odpowiedź: C. Kapelusza z rondem
 
-14498
+14497
 Jak nazywa się pojemnik do przechowywania cygar?
 A. Humidor
 B. Saturator
@@ -115984,7 +115976,7 @@ C. Inhalator
 D. Eksykator
 Poprawna odpowiedź: A. Humidor
 
-14499
+14498
 Ilu osób potrzeba do gry w brydża?
 A. Czterech
 B. Pięciu
@@ -115992,7 +115984,7 @@ C. Trzech
 D. Sześciu
 Poprawna odpowiedź: A. Czterech
 
-14500
+14499
 Jak nazywa się żerdź w kurniku, na której siada i odpoczywa domowe ptactwo?
 A. Żłób
 B. Karmidło
@@ -116000,7 +115992,7 @@ C. Grzęda
 D. Koryto
 Poprawna odpowiedź: C. Grzęda
 
-14501
+14500
 Jakiego koloru jest kawior uzyskiwany z łososia?
 A. Czarnego
 B. Zielonego
@@ -116008,7 +116000,7 @@ C. Czerwonego
 D. Białego
 Poprawna odpowiedź: C. Czerwonego
 
-14502
+14501
 Jak nazywają się publiczne ogródki dla dzieci wyposażone w sprzęt do zabaw i gier sportowych?
 A. Ogrody dendrologiczne
 B. Ogrody zoologiczne
@@ -116016,7 +116008,7 @@ C. Ogródki jordanowskie
 D. Ogródki działkowe
 Poprawna odpowiedź: C. Ogródki jordanowskie
 
-14503
+14502
 Jaka nazwa odnosi się do urządzenia służącego do pisania na komputerze i do gry na pianinie?
 A. Przełącznik
 B. Klawiatura
@@ -116024,7 +116016,7 @@ C. Pulpit
 D. Konsola
 Poprawna odpowiedź: B. Klawiatura
 
-14504
+14503
 Do których serów należy ser cheddar?
 A. Do miękkich serów pleśniowych
 B. Do serów twardych
@@ -116032,7 +116024,7 @@ C. Do miękkich serów twarogowych
 D. Do serów topionych
 Poprawna odpowiedź: B. Do serów twardych
 
-14505
+14504
 Jak nazywa się dziecięcy przysmak w postaci puszystego pasma włókien wytwarzanych z cukru i nawijanych na patyk?
 A. Wata cukrowa
 B. Beza
@@ -116040,7 +116032,7 @@ C. Karmel
 D. Pianka cukrowa
 Poprawna odpowiedź: A. Wata cukrowa
 
-14506
+14505
 Jak nazywają się meble wytwarzane z włókien i prętów palmy rotang?
 A. Rattanowe
 B. Teakowe
@@ -116048,7 +116040,7 @@ C. Wiklinowe
 D. Bambusowe
 Poprawna odpowiedź: A. Rattanowe
 
-14507
+14506
 Rzeszoto to rodzaj którego sprzętu kuchennego?
 A. Tarki
 B. Młynka
@@ -116056,7 +116048,7 @@ C. Sita
 D. Moździerza
 Poprawna odpowiedź: C. Sita
 
-14508
+14507
 Do utrzymania fasonu której części garderoby wykorzystywane są prawidła?
 A. Krawatów
 B. Marynarek
@@ -116064,7 +116056,7 @@ C. Spodni
 D. Butów
 Poprawna odpowiedź: D. Butów
 
-14509
+14508
 Wino to używana dawniej nazwa którego koloru w talii kart?
 A. Pik
 B. Kier
@@ -116072,7 +116064,7 @@ C. Trefl
 D. Karo
 Poprawna odpowiedź: A. Pik
 
-14510
+14509
 Czyja podobizna widnieje na polskim banknocie pięćdziesięciozłotowym?
 A. Władysława Jagiełły
 B. Kazimierza Wielkiego
@@ -116080,7 +116072,7 @@ C. Bolesława Chrobrego
 D. Zygmunta Starego
 Poprawna odpowiedź: B. Kazimierza Wielkiego
 
-14511
+14510
 Która z przypraw zawiera kurkumę?
 A. Papryka
 B. Cynamon
@@ -116088,7 +116080,7 @@ C. Curry
 D. Sól
 Poprawna odpowiedź: C. Curry
 
-14512
+14511
 Profesje. Elementy której części garderoby wytwarza kamasznik?
 A. Płaszczy
 B. Obuwia
@@ -116096,7 +116088,7 @@ C. Kapeluszy
 D. Rękawiczek
 Poprawna odpowiedź: B. Obuwia
 
-14513
+14512
 Czym należy zalać warzywa, aby otrzymać pikle?
 A. Roztopionym masłem
 B. Słodką śmietaną
@@ -116104,7 +116096,7 @@ C. Syropem cukrowym
 D. Zalewą octową
 Poprawna odpowiedź: D. Zalewą octową
 
-14514
+14513
 Rodzajem jakiej potrawy są litewskie kołduny?
 A. Klusek bez nadzienia
 B. Pierożków
@@ -116112,7 +116104,7 @@ C. Flaków
 D. Placków
 Poprawna odpowiedź: B. Pierożków
 
-14515
+14514
 Co to jest pappardelle?
 A. Rodzaj sera
 B. Rodzaj pieczywa
@@ -116120,7 +116112,7 @@ C. Rodzaj makaronu
 D. Rodzaj sosu
 Poprawna odpowiedź: C. Rodzaj makaronu
 
-14516
+14515
 Które warzywo jest podstawowym składnikiem keczupu?
 A. Burak
 B. Pomidor
@@ -116128,7 +116120,7 @@ C. Papryka
 D. Marchew
 Poprawna odpowiedź: B. Pomidor
 
-14517
+14516
 Które warzywo służy w Stanach Zjednoczonych do przygotowywania lampionów na święto Halloween?
 A. Rzepa
 B. Cukinia
@@ -116136,7 +116128,7 @@ C. Burak
 D. Dynia
 Poprawna odpowiedź: D. Dynia
 
-14518
+14517
 Którą częścią ubioru są espadryle?
 A. Bielizną
 B. Okryciem wierzchnim
@@ -116144,7 +116136,7 @@ C. Obuwiem
 D. Nakryciem głowy
 Poprawna odpowiedź: C. Obuwiem
 
-14519
+14518
 W której części roweru użyta jest śruba o odwrotnym gwincie?
 A. W kierownicy
 B. W siodełku
@@ -116152,7 +116144,7 @@ C. W pedale
 D. W przerzutkach
 Poprawna odpowiedź: C. W pedale
 
-14520
+14519
 Kto jest sfotografowany na zdjęciu zwanym selfie?
 A. Rozmówca fotografującego z wideorozmowy
 B. Przechodzień fotografowany z ukrycia
@@ -116160,7 +116152,7 @@ C. Model pozujący innemu fotografowi
 D. Sam fotografujący
 Poprawna odpowiedź: D. Sam fotografujący
 
-14521
+14520
 Z czego wykonane są saboty?
 A. Z tektury
 B. Z gumy
@@ -116168,7 +116160,7 @@ C. Ze skóry
 D. Z drewna
 Poprawna odpowiedź: D. Z drewna
 
-14522
+14521
 Popcorn to prażone ziarna którego zboża?
 A. Żyta
 B. Jęczmienia
@@ -116176,7 +116168,7 @@ C. Pszenicy
 D. Kukurydzy
 Poprawna odpowiedź: D. Kukurydzy
 
-14523
+14522
 Na ile kwartałów dzieli się rok?
 A. Na cztery
 B. Na sześć
@@ -116184,7 +116176,7 @@ C. Na trzy
 D. Na dwanaście
 Poprawna odpowiedź: A. Na cztery
 
-14524
+14523
 Co przydaje się do dobrego przymocowania namiotu do ziemi?
 A. Raki
 B. Flaki
@@ -116192,7 +116184,7 @@ C. Śledzie
 D. Karabińczyki
 Poprawna odpowiedź: C. Śledzie
 
-14525
+14524
 Co zbiera filatelista?
 A. Monety
 B. Podstawki pod piwo
@@ -116200,7 +116192,7 @@ C. Etykiety zapałczane
 D. Znaczki pocztowe
 Poprawna odpowiedź: D. Znaczki pocztowe
 
-14526
+14525
 Jak nazywa się przednia albo tylna część siodła wygięta do góry?
 A. Strzemię
 B. Łęk
@@ -116208,7 +116200,7 @@ C. Popręg
 D. Puślisko
 Poprawna odpowiedź: B. Łęk
 
-14527
+14526
 Mięso którego ptaka jest tradycyjną potrawą podczas amerykańskiego święta dziękczynienia?
 A. Gęsi
 B. Kaczki
@@ -116216,7 +116208,7 @@ C. Bażanta
 D. Indyka
 Poprawna odpowiedź: D. Indyka
 
-14528
+14527
 Jaką miarę określa termin „kubik”?
 A. Metr bieżący
 B. Metr kwadratowy
@@ -116224,7 +116216,7 @@ C. Metr sześcienny
 D. Metr przestrzenny
 Poprawna odpowiedź: C. Metr sześcienny
 
-14529
+14528
 Z jakim rodzajem silnika jest kojarzony skrót ON na stacjach benzynowych?
 A. Z silnikiem zasilanym LPG
 B. Z silnikiem Diesla
@@ -116232,7 +116224,7 @@ C. Z silnikiem zasilanym wodorem
 D. Z silnikiem benzynowym
 Poprawna odpowiedź: B. Z silnikiem Diesla
 
-14530
+14529
 Jaką tradycyjną zabawę urządza się corocznie wieczorem dwudziestego dziewiątego listopada?
 A. Ostatki
 B. Andrzejki
@@ -116240,7 +116232,7 @@ C. Sobótki
 D. Katarzynki
 Poprawna odpowiedź: B. Andrzejki
 
-14531
+14530
 Co to jest rozbratel?
 A. Mięso wieprzowe z części brzusznej tuszy
 B. Mięso cielęce z części piersiowej tuszy
@@ -116248,7 +116240,7 @@ C. Mięso wołowe z grzbietowej części tuszy
 D. Mięso baranie z części lędźwiowej tuszy
 Poprawna odpowiedź: C. Mięso wołowe z grzbietowej części tuszy
 
-14532
+14531
 W którym popularnym domowym urządzeniu znajduje się zwykle bęben?
 A. W zmywarce
 B. W lodówce
@@ -116256,7 +116248,7 @@ C. W kuchence mikrofalowej
 D. W pralce
 Poprawna odpowiedź: D. W pralce
 
-14533
+14532
 Jak jednym słowem określamy rower jednokołowy?
 A. Tandem
 B. Monocykl
@@ -116264,7 +116256,7 @@ C. Tricykl
 D. Bicykl
 Poprawna odpowiedź: B. Monocykl
 
-14534
+14533
 Którą cyfrą oznaczane są na skorupce jajka kurze z chowu ekologicznego?
 A. 0
 B. 2
@@ -116272,7 +116264,7 @@ C. 3
 D. 1
 Poprawna odpowiedź: A. 0
 
-14535
+14534
 Jak z francuskiego nazywa się długi ogon sukni ciągnący się po ziemi?
 A. Żabot
 B. Tren
@@ -116280,7 +116272,7 @@ C. Tiurniura
 D. Krynolina
 Poprawna odpowiedź: B. Tren
 
-14536
+14535
 Ale oraz lager to gatunki którego alkoholu?
 A. Cydru
 B. Wina
@@ -116288,7 +116280,7 @@ C. Whisky
 D. Piwa
 Poprawna odpowiedź: D. Piwa
 
-14537
+14536
 W jakich jednostkach podaje się zwyczajowo wielkość ekranu telewizora?
 A. W centymetrach
 B. W punktach typograficznych
@@ -116296,7 +116288,7 @@ C. W calach
 D. W pikselach
 Poprawna odpowiedź: C. W calach
 
-14538
+14537
 Do pojemnika oznaczonego którym kolorem wkładamy opakowania z papieru, gazety?
 A. Zielonym
 B. Niebieskim
@@ -116304,7 +116296,7 @@ C. Brązowym
 D. Żółtym
 Poprawna odpowiedź: B. Niebieskim
 
-14539
+14538
 Który produkt jest głównym składnikiem lukru?
 A. Cukier
 B. Śmietana
@@ -116312,7 +116304,7 @@ C. Masło
 D. Mąka
 Poprawna odpowiedź: A. Cukier
 
-14540
+14539
 Drewniana deseczka gont służy do krycia którego elementu domu?
 A. Parapetu
 B. Podłogi
@@ -116320,7 +116312,7 @@ C. Dachu
 D. Sufitu
 Poprawna odpowiedź: C. Dachu
 
-14541
+14540
 Z ilu części składa się bikini?
 A. Z jednej
 B. Z dwóch
@@ -116328,7 +116320,7 @@ C. Z trzech
 D. Z czterech
 Poprawna odpowiedź: B. Z dwóch
 
-14542
+14541
 Która z marek nie wywodzi się z Francji?
 A. Louis Vuitton
 B. Dior
@@ -116336,7 +116328,7 @@ C. Chanel
 D. Gucci
 Poprawna odpowiedź: D. Gucci
 
-14543
+14542
 Ile miesięcy w roku ma trzydzieści dni?
 A. Sześć
 B. Cztery
@@ -116344,7 +116336,7 @@ C. Jedenaście
 D. Pięć
 Poprawna odpowiedź: B. Cztery
 
-14544
+14543
 Z jakich roślin przygotowuje się botwinę?
 A. Z młodych buraków ćwikłowych
 B. Z młodej pietruszki
@@ -116352,7 +116344,7 @@ C. Z młodego pasternaku
 D. Z młodej marchwi
 Poprawna odpowiedź: A. Z młodych buraków ćwikłowych
 
-14545
+14544
 Jak nazywa się gra towarzyska prowadzona dwudziestoma ośmioma kamieniami w kształcie prostokątnych płytek podzielonych na dwa pola z punktami?
 A. Go
 B. Rummikub
@@ -116360,7 +116352,7 @@ C. Madżong
 D. Domino
 Poprawna odpowiedź: D. Domino
 
-14546
+14545
 Jak nazywa się wanna albo mały basen z dyszami, z których pod ciśnieniem wypływa woda masująca ciało?
 A. Brodzik
 B. Jacuzzi
@@ -116368,7 +116360,7 @@ C. Bidet
 D. Sauna
 Poprawna odpowiedź: B. Jacuzzi
 
-14547
+14546
 Jak nazywa się opaska papierowa na paczce banknotów świadcząca o tym, że zostały one sprawdzone i policzone?
 A. Plomba
 B. Winieta
@@ -116376,7 +116368,7 @@ C. Banderola
 D. Obwoluta
 Poprawna odpowiedź: C. Banderola
 
-14548
+14547
 Z jakiego mleka wyrabia się ser koryciński z Podlasia?
 A. Z mleka bawolego
 B. Z mleka koziego
@@ -116384,7 +116376,7 @@ C. Z mleka owczego
 D. Z mleka krowiego
 Poprawna odpowiedź: D. Z mleka krowiego
 
-14549
+14548
 Z jakiego materiału wykonane są góralskie buty?
 A. Ze skóry
 B. Z filcu
@@ -116392,7 +116384,7 @@ C. Z drewna
 D. Z łyka
 Poprawna odpowiedź: A. Ze skóry
 
-14550
+14549
 Który okres w roku nazywano dawniej w Polsce zapustami?
 A. Wielki Post
 B. Oktawę Wielkanocy
@@ -116400,7 +116392,7 @@ C. Karnawał
 D. Adwent
 Poprawna odpowiedź: C. Karnawał
 
-14551
+14550
 Czego pozbywamy się w trakcie pielenia?
 A. Nadmiaru wody
 B. Chwastów
@@ -116408,7 +116400,7 @@ C. Suchych gałęzi
 D. Mszyc
 Poprawna odpowiedź: B. Chwastów
 
-14552
+14551
 Jak nazywają się kuliste pierogi nadziewane śliwkami?
 A. Kluski śląskie
 B. Uszka
@@ -116416,7 +116408,7 @@ C. Kopytka
 D. Knedle
 Poprawna odpowiedź: D. Knedle
 
-14553
+14552
 Wyciągu z której rośliny używa się do produkcji absyntu?
 A. Z herbaty
 B. Z kakaowca
@@ -116424,7 +116416,7 @@ C. Z piołunu
 D. Z chmielu
 Poprawna odpowiedź: C. Z piołunu
 
-14554
+14553
 Jak nazywa się słony, biały, grecki ser owczy?
 A. Parmezan
 B. Rokpol
@@ -116432,7 +116424,7 @@ C. Gouda
 D. Feta
 Poprawna odpowiedź: D. Feta
 
-14555
+14554
 Które warzywo stanowi podstawę zupy zwanej chłodnikiem litewskim?
 A. Pomidor
 B. Por
@@ -116440,7 +116432,7 @@ C. Szczaw
 D. Burak ćwikłowy
 Poprawna odpowiedź: D. Burak ćwikłowy
 
-14556
+14555
 Co to jest nori w kuchni japońskiej?
 A. Glon morski
 B. Sos sojowy
@@ -116448,7 +116440,7 @@ C. Śliwkowe wino
 D. Zupa
 Poprawna odpowiedź: A. Glon morski
 
-14557
+14556
 Jak nazywany jest rzemieślnik budujący łodzie?
 A. Szkutnik
 B. Bednarz
@@ -116456,7 +116448,7 @@ C. Rymarz
 D. Kołodziej
 Poprawna odpowiedź: A. Szkutnik
 
-14558
+14557
 Jak nazywa się kompozycja z zeszytych razem kawałków różnych tkanin? Słowo pochodzi z angielskiego.
 A. Gobelin
 B. Patchwork
@@ -116464,7 +116456,7 @@ C. Haft
 D. Makrama
 Poprawna odpowiedź: B. Patchwork
 
-14559
+14558
 Przez ile miesięcy w roku obowiązuje w Polsce tak zwany czas zimowy?
 A. Przez około dziewięć miesięcy
 B. Przez około pięć miesięcy
@@ -116472,7 +116464,7 @@ C. Przez około siedem miesięcy
 D. Przez około trzy miesiące
 Poprawna odpowiedź: B. Przez około pięć miesięcy
 
-14560
+14559
 Rydel i saperka. To są rodzaje czego?
 A. Kilofów
 B. Łopat
@@ -116480,7 +116472,7 @@ C. Motyk
 D. Grabi
 Poprawna odpowiedź: B. Łopat
 
-14561
+14560
 Jak nazywa się barierka biegnąca wokół pokładu statku?
 A. Kil
 B. Reling
@@ -116488,7 +116480,7 @@ C. Bukszpryt
 D. Luk
 Poprawna odpowiedź: B. Reling
 
-14562
+14561
 Która marka samochodów produkowanych w NRD miała nadwozie z duroplastu?
 A. Wartburg
 B. Barkas
@@ -116496,7 +116488,7 @@ C. Trabant
 D. IFA
 Poprawna odpowiedź: C. Trabant
 
-14563
+14562
 Na ilu dolarowym banknocie widnieje portret Abrahama Lincolna?
 A. Na dwudziestodolarowym
 B. Na pięćdziesięciodolarowym
@@ -116504,7 +116496,7 @@ C. Na pięciodolarowym
 D. Na dziesięciodolarowym
 Poprawna odpowiedź: C. Na pięciodolarowym
 
-14564
+14563
 Do jakiej kategorii znaków drogowych należy niebieskie koło z białym rysunkiem?
 A. Nakazu
 B. Ostrzegawczych
@@ -116512,7 +116504,7 @@ C. Informacyjnych
 D. Zakazu
 Poprawna odpowiedź: A. Nakazu
 
-14565
+14564
 Z których owoców powstaje ocet balsamiczny?
 A. Z jabłek
 B. Ze śliwek
@@ -116520,7 +116512,7 @@ C. Z gruszek
 D. Z winogron
 Poprawna odpowiedź: D. Z winogron
 
-14566
+14565
 Do wieszania czego służą szaragi?
 A. Kluczy
 B. Narzędzi
@@ -116528,7 +116520,7 @@ C. Naczyń
 D. Odzieży
 Poprawna odpowiedź: D. Odzieży
 
-14567
+14566
 Jak nazywa się różnica między wagą brutto a netto?
 A. Tara
 B. Taryfa
@@ -116536,7 +116528,7 @@ C. Akcyza
 D. Marża
 Poprawna odpowiedź: A. Tara
 
-14568
+14567
 Co oznacza skrót DDM?
 A. Dystans, diagnostyka, monitorowanie
 B. Dystans, dezynfekcja, maseczka
@@ -116544,7 +116536,7 @@ C. Dystans, dieta, medytacja
 D. Drenaż, dezynfekcja, masaż
 Poprawna odpowiedź: B. Dystans, dezynfekcja, maseczka
 
-14569
+14568
 Jak nazywa się naczynie na atrament, w którym macza się stalówkę w czasie pisania?
 A. Sekretarzyk
 B. Kałamarz
@@ -116552,7 +116544,7 @@ C. Piórnik
 D. Przycisk
 Poprawna odpowiedź: B. Kałamarz
 
-14570
+14569
 Co oznacza włoska nazwa Frutti di Mare?
 A. Sery dojrzewające
 B. Pieczone mięso
@@ -116560,7 +116552,7 @@ C. Makaron z warzywami
 D. Owoce morza
 Poprawna odpowiedź: D. Owoce morza
 
-14571
+14570
 Jak nazywamy rzemieślnika stawiającego piece?
 A. Zdun
 B. Rymarz
@@ -116568,7 +116560,7 @@ C. Dekarz
 D. Bednarz
 Poprawna odpowiedź: A. Zdun
 
-14572
+14571
 Jak nazywa się wytwórnia, w której bije się monety?
 A. Mennica
 B. Walcownia
@@ -116576,7 +116568,7 @@ C. Probiernia
 D. Odlewnia
 Poprawna odpowiedź: A. Mennica
 
-14573
+14572
 Cydr to napój alkoholowy z których owoców?
 A. Z wiśni
 B. Z gruszek
@@ -116584,7 +116576,7 @@ C. Ze śliwek
 D. Z jabłek
 Poprawna odpowiedź: D. Z jabłek
 
-14574
+14573
 Do czego służy tamborek?
 A. Do przędzenia nici
 B. Do tkania gobelinów
@@ -116592,7 +116584,7 @@ C. Do robienia na drutach
 D. Do wyszywania
 Poprawna odpowiedź: D. Do wyszywania
 
-14575
+14574
 Z jakiego mięsa robi się befsztyk?
 A. Z baraniny
 B. Z mięsa indyka
@@ -116600,7 +116592,7 @@ C. Z wołowiny
 D. Z wieprzowiny
 Poprawna odpowiedź: C. Z wołowiny
 
-14576
+14575
 Co to jest zazdrostka?
 A. Wąski obrus na stół
 B. Krótka firanka zasłaniająca dolną część okna
@@ -116608,7 +116600,7 @@ C. Koronkowa poszewka na poduszkę
 D. Ozdobna serwetka pod wazon
 Poprawna odpowiedź: B. Krótka firanka zasłaniająca dolną część okna
 
-14577
+14576
 Jak nazywa się sprzęt do przenoszenia chorych i rannych składający się z dwu drążków połączonych płótnem?
 A. Balkonik
 B. Pionizator
@@ -116616,7 +116608,7 @@ C. Kule
 D. Nosze
 Poprawna odpowiedź: D. Nosze
 
-14578
+14577
 Mahoń i palisander. To są rodzaje którego surowca?
 A. Metalu
 B. Drewna
@@ -116624,7 +116616,7 @@ C. Kamienia
 D. Skóry
 Poprawna odpowiedź: B. Drewna
 
-14579
+14578
 Jak nazywa się pole po skoszeniu zboża?
 A. Ściernisko
 B. Ugór
@@ -116632,7 +116624,7 @@ C. Odłóg
 D. Ozimina
 Poprawna odpowiedź: A. Ściernisko
 
-14580
+14579
 Z której rośliny wyrabiany jest rum?
 A. Z winorośli
 B. Z trzciny cukrowej
@@ -116640,7 +116632,7 @@ C. Z jęczmienia
 D. Z agawy
 Poprawna odpowiedź: B. Z trzciny cukrowej
 
-14581
+14580
 Kształt której figury geometrycznej ma znak drogowy zakaz ruchu w obu kierunkach?
 A. Ośmiokąta
 B. Koła
@@ -116648,7 +116640,7 @@ C. Kwadratu
 D. Trójkąta
 Poprawna odpowiedź: B. Koła
 
-14582
+14581
 Rodzajem jakiego pojazdu jest chopper?
 A. Jachtu
 B. Motocykla
@@ -116656,7 +116648,7 @@ C. Samolotu
 D. Traktora
 Poprawna odpowiedź: B. Motocykla
 
-14583
+14582
 Jakim trzyliterowym skrótem oznaczana jest na stacjach benzynowych mieszanina propanu i butanu?
 A. GTL
 B. CNG
@@ -116664,7 +116656,7 @@ C. LNG
 D. LPG
 Poprawna odpowiedź: D. LPG
 
-14584
+14583
 Z mleka którego zwierzęcia produkuje się bundz?
 A. Bawolicy
 B. Krowy
@@ -116672,7 +116664,7 @@ C. Kozy
 D. Owcy
 Poprawna odpowiedź: D. Owcy
 
-14585
+14584
 Którą część garderoby można kupić u modystki?
 A. Fartuch
 B. Surdut
@@ -116680,7 +116672,7 @@ C. Gorset
 D. Kapelusz
 Poprawna odpowiedź: D. Kapelusz
 
-14586
+14585
 Który zwrot nadawany drogą radiową jest sygnałem wzywania pomocy? Jest odpowiednikiem telegraficznego sygnału SOS?
 A. Mayday
 B. Wilco
@@ -116688,7 +116680,7 @@ C. Sécurité
 D. Roger
 Poprawna odpowiedź: A. Mayday
 
-14587
+14586
 Jak nazywa się przynoszenie przez psa żądanych przedmiotów opiekunowi?
 A. Warowanie
 B. Aport
@@ -116696,7 +116688,7 @@ C. Osaczanie
 D. Tropienie
 Poprawna odpowiedź: B. Aport
 
-14588
+14587
 Co to jest carpaccio?
 A. Gęsta zupa rybna z pomidorami
 B. Danie z cienkich plastrów surowego mięsa lub ryby
@@ -116704,7 +116696,7 @@ C. Pieczony placek serowy
 D. Makaron nadziewany mięsem
 Poprawna odpowiedź: B. Danie z cienkich plastrów surowego mięsa lub ryby
 
-14589
+14588
 Jakie paliwo oznaczone jest skrótem ON?
 A. Olej napędowy
 B. Nafta lotnicza
@@ -116712,7 +116704,7 @@ C. Gaz płynny
 D. Benzyna bezołowiowa
 Poprawna odpowiedź: A. Olej napędowy
 
-14590
+14589
 Ilu wioseł używa gondolier na kanałach Wenecji?
 A. Trzech
 B. Jednego
@@ -116720,7 +116712,7 @@ C. Dwóch
 D. Czterech
 Poprawna odpowiedź: B. Jednego
 
-14591
+14590
 Co to jest baklawa?
 A. Napój
 B. Rodzaj sera
@@ -116728,7 +116720,7 @@ C. Rodzaj ciasta
 D. Danie mięsne
 Poprawna odpowiedź: C. Rodzaj ciasta
 
-14592
+14591
 Do którego rodzaju transportu należy Pendolino?
 A. Do szynowego
 B. Do wodnego
@@ -116736,7 +116728,7 @@ C. Do drogowego
 D. Do lotniczego
 Poprawna odpowiedź: A. Do szynowego
 
-14593
+14592
 Onkos i tupet to są rodzaje czego?
 A. Peruk
 B. Hełmów
@@ -116744,7 +116736,7 @@ C. Turbanów
 D. Kapeluszy
 Poprawna odpowiedź: A. Peruk
 
-14594
+14593
 Jak nazywa się nakrycie głowy z długiego pasa tkaniny noszone przez mężczyzn w krajach muzułmańskich i w Indiach?
 A. Kufi
 B. Turban
@@ -116752,7 +116744,7 @@ C. Kufija
 D. Fez
 Poprawna odpowiedź: B. Turban
 
-14595
+14594
 Kogo przedstawia sylwetka na masce Rolls-Royce'a, będąca symbolem tej marki?
 A. Drapieżne zwierzę
 B. Kobietę
@@ -116760,7 +116752,7 @@ C. Mężczyznę
 D. Ptaka
 Poprawna odpowiedź: B. Kobietę
 
-14596
+14595
 Jak nazywamy chusteczkę wkładaną do górnej zewnętrznej kieszonki marynarki?
 A. Apaszka
 B. Poszetka
@@ -116768,7 +116760,7 @@ C. Fular
 D. Plastron
 Poprawna odpowiedź: B. Poszetka
 
-14597
+14596
 Jaką nazwą pochodzącą z niemieckiego określa się omasztowanie, ożaglowanie i olinowanie statku?
 A. Balast
 B. Kadłub
@@ -116776,7 +116768,7 @@ C. Bukszpryt
 D. Takielunek
 Poprawna odpowiedź: D. Takielunek
 
-14598
+14597
 Jak nazywa się część fajki łącząca główkę z ustnikiem?
 A. Kapturek
 B. Cybuch
@@ -116784,7 +116776,7 @@ C. Komin
 D. Filtr
 Poprawna odpowiedź: B. Cybuch
 
-14599
+14598
 Jak nazywa się laska tatrzańskich górali?
 A. Ciupaga
 B. Czekan
@@ -116792,7 +116784,7 @@ C. Alpenstok
 D. Pastorał
 Poprawna odpowiedź: A. Ciupaga
 
-14600
+14599
 Z którego kraju pochodzi pizza?
 A. Z Grecji
 B. Z Włoch
@@ -116800,7 +116792,7 @@ C. Z Hiszpanii
 D. Z Francji
 Poprawna odpowiedź: B. Z Włoch
 
-14601
+14600
 Jak nazywa się wafel z ciasta naleśnikowego wypiekany w wyprofilowanych gorących żelazkach?
 A. Omlet
 B. Racuch
@@ -116808,7 +116800,7 @@ C. Gofr
 D. Blin
 Poprawna odpowiedź: C. Gofr
 
-14602
+14601
 Która witamina przeważa w składzie naturalnego masła?
 A. A
 B. C
@@ -116816,7 +116808,7 @@ C. D
 D. B
 Poprawna odpowiedź: A. A
 
-14603
+14602
 Czym jest grafion?
 A. Przyrządem do kreślenia linii tuszem
 B. Przyrządem do mierzenia kątów na rysunku
@@ -116824,7 +116816,7 @@ C. Przyrządem do mierzenia długości krzywych na mapie
 D. Przyrządem do powiększania i pomniejszania rysunków
 Poprawna odpowiedź: A. Przyrządem do kreślenia linii tuszem
 
-14604
+14603
 Z czego produkuje się sukno?
 A. Z wełny
 B. Z jedwabiu
@@ -116832,7 +116824,7 @@ C. Z bawełny
 D. Z lnu
 Poprawna odpowiedź: A. Z wełny
 
-14605
+14604
 A ile na ile pól ma plansza do gry w Scrabble?
 A. 8 na 8
 B. 10 na 10
@@ -116840,7 +116832,7 @@ C. 15 na 15
 D. 19 na 19
 Poprawna odpowiedź: C. 15 na 15
 
-14606
+14605
 Pas podtrzymujący siodło albo kulbakę nazywa się?
 A. Nachrapnik
 B. Popręg
@@ -116848,7 +116840,7 @@ C. Napierśnik
 D. Naczółek
 Poprawna odpowiedź: B. Popręg
 
-14607
+14606
 Jak w dawnych czasach nazywał się rzemieślnik wyrabiający przedmioty z cyny?
 A. Ludwisarz
 B. Kotlarz
@@ -116856,7 +116848,7 @@ C. Płatnerz
 D. Konwisarz
 Poprawna odpowiedź: D. Konwisarz
 
-14608
+14607
 Który japoński koncern elektroniczny jest twórcą pierwszego Walkmana?
 A. Panasonic
 B. Sony
@@ -116864,7 +116856,7 @@ C. Sharp
 D. Toshiba
 Poprawna odpowiedź: B. Sony
 
-14609
+14608
 Z jakiej zaprawy murarskiej korzysta zdun, kiedy buduje piec?
 A. Z cementowo-wapiennej
 B. Z wapiennej
@@ -116872,7 +116864,7 @@ C. Z glinianej
 D. Z gipsowej
 Poprawna odpowiedź: C. Z glinianej
 
-14610
+14609
 Jak brzmi polska nazwa airbagu?
 A. Strefa zgniotu
 B. Klatka bezpieczeństwa
@@ -116880,7 +116872,7 @@ C. Poduszka powietrzna
 D. Kolumna kierownicza
 Poprawna odpowiedź: C. Poduszka powietrzna
 
-14611
+14610
 O której godzinie nadawany jest w pierwszym programie Teleexpress?
 A. O 18:00
 B. O 16:00
@@ -116888,7 +116880,7 @@ C. O 19:30
 D. O 17:00
 Poprawna odpowiedź: D. O 17:00
 
-14612
+14611
 Jak nazywa się godziny pracy marynarza na statku? Taką zmianę roboczą na statku?
 A. Frajwachta
 B. Wachta
@@ -116896,7 +116888,7 @@ C. Mesa
 D. Szychta
 Poprawna odpowiedź: B. Wachta
 
-14613
+14612
 Ilu karatom odpowiadają wyroby z czystego złota?
 A. 14
 B. 22
@@ -116904,7 +116896,7 @@ C. 24
 D. 18
 Poprawna odpowiedź: C. 24
 
-14614
+14613
 Z czego wyrabia się kaszę krakowską?
 A. Z gryki
 B. Z jęczmienia
@@ -116912,7 +116904,7 @@ C. Z pszenicy
 D. Z prosa
 Poprawna odpowiedź: A. Z gryki
 
-14615
+14614
 Ile bierek, czyli figur i pionów w szachach ma każdy gracz na początku partii?
 A. 16
 B. 18
@@ -116920,7 +116912,7 @@ C. 12
 D. 8
 Poprawna odpowiedź: A. 16
 
-14616
+14615
 Jaką nazwę nosi skórzany worek do przewożenia płynów, rozpowszechniony wśród stepowych ludów?
 A. Tornister
 B. Bukłak
@@ -116928,7 +116920,7 @@ C. Kołczan
 D. Chlebak
 Poprawna odpowiedź: B. Bukłak
 
-14617
+14616
 Jak nazywa się rodzaj kotwicy, który jest długim, stożkowatym workiem wleczonym za statkiem na linie w celu hamowania jego biegu?
 A. Kotwica Danfortha
 B. Kotwica Halla
@@ -116936,7 +116928,7 @@ C. Kotwica admiralicji
 D. Dryfkotwa
 Poprawna odpowiedź: D. Dryfkotwa
 
-14618
+14617
 Którą część ciała nasze babcie chroniły przed mrozem mufką?
 A. Kolana
 B. Stopy
@@ -116944,7 +116936,7 @@ C. Uszy
 D. Dłonie
 Poprawna odpowiedź: D. Dłonie
 
-14619
+14618
 Jak nazywa się przyczepa używana przez pomoc drogową do transportu samochodu?
 A. Wywrotka
 B. Laweta
@@ -116952,7 +116944,7 @@ C. Chłodnia
 D. Cysterna
 Poprawna odpowiedź: B. Laweta
 
-14620
+14619
 Jak określamy długość spódnicy damskiej niesięgającej kolan?
 A. Mini
 B. 7/8
@@ -116960,7 +116952,7 @@ C. Maksi
 D. Midi
 Poprawna odpowiedź: A. Mini
 
-14621
+14620
 Jak nazywa się chustka na szyję z jedwabnej tkaniny, charakterystyczna dla męskiej mody okresu biedermeieru?
 A. Fular
 B. Musznik
@@ -116968,7 +116960,7 @@ C. Żabot
 D. Plastron
 Poprawna odpowiedź: A. Fular
 
-14622
+14621
 Jak nazywa się słomiana mata, która pokrywa podłogi w japońskich domach?
 A. Futon
 B. Tatami
@@ -116976,7 +116968,7 @@ C. Noren
 D. Shōji
 Poprawna odpowiedź: B. Tatami
 
-14623
+14622
 Z którego warzywa są wyrabiane pyzy?
 A. Z buraków
 B. Z ziemniaków
@@ -116984,7 +116976,7 @@ C. Z dyni
 D. Z marchwi
 Poprawna odpowiedź: B. Z ziemniaków
 
-14624
+14623
 Dania i napoje. Który składnik poza mąką i jajkami jest niezbędny do leniwych pierogów?
 A. Biały ser
 B. Śmietana
@@ -116992,7 +116984,7 @@ C. Kasza manna
 D. Ziemniaki
 Poprawna odpowiedź: A. Biały ser
 
-14625
+14624
 Z ziaren którego zboża powstaje drobna kasza kuskus?
 A. Z jęczmienia
 B. Z prosa
@@ -117000,7 +116992,7 @@ C. Z owsa
 D. Z pszenicy
 Poprawna odpowiedź: D. Z pszenicy
 
-14626
+14625
 Który zmysł nie pracuje u kogoś, kto gra w ciuciubabkę?
 A. Dotyk
 B. Wzrok
@@ -117008,7 +117000,7 @@ C. Węch
 D. Słuch
 Poprawna odpowiedź: B. Wzrok
 
-14627
+14626
 Ile masztów ma żaglowiec typu jol?
 A. Trzy
 B. Dwa
@@ -117016,7 +117008,7 @@ C. Cztery
 D. Jeden
 Poprawna odpowiedź: B. Dwa
 
-14628
+14627
 Jak nazywa się tępa część siekiery przeciwległa do ostrza?
 A. Policzek
 B. Obuch
@@ -117024,7 +117016,7 @@ C. Klin
 D. Trzonek
 Poprawna odpowiedź: B. Obuch
 
-14629
+14628
 Panie Tomaszu, żorżeta, popelina i atłas to są nazwy czego?
 A. Koronek
 B. Przędz
@@ -117032,7 +117024,7 @@ C. Ściegów
 D. Tkanin
 Poprawna odpowiedź: D. Tkanin
 
-14630
+14629
 Jak nazywa się mała, okrągła, pszenna bułka z wierzchu nacięta na krzyż, a czasem na pięć części?
 A. Grahamka
 B. Ciabatta
@@ -117040,7 +117032,7 @@ C. Brioszka
 D. Kajzerka
 Poprawna odpowiedź: D. Kajzerka
 
-14631
+14630
 Co oznacza okrągły biały znak z czerwoną obwódką i czarnym symbolem roweru?
 A. Drogę dla rowerów
 B. Ostrzeżenie przed rowerzystami
@@ -117048,7 +117040,7 @@ C. Zakaz wjazdu rowerów
 D. Miejsce postoju rowerów
 Poprawna odpowiedź: C. Zakaz wjazdu rowerów
 
-14632
+14631
 Jak nazywa się ozdoba choinkowa z kolorowego papieru składająca się z połączonych ze sobą ogniw?
 A. Łańcuch
 B. Rozeta
@@ -117056,7 +117048,7 @@ C. Bombka
 D. Lampion
 Poprawna odpowiedź: A. Łańcuch
 
-14633
+14632
 Ile numerów spośród 42 liczb jest losowanych w Express Lotku?
 A. Cztery
 B. Pięć
@@ -117064,7 +117056,7 @@ C. Sześć
 D. Siedem
 Poprawna odpowiedź: B. Pięć
 
-14634
+14633
 Który miesiąc kończy czwarty kwartał roku?
 A. Październik
 B. Listopad
@@ -117072,7 +117064,7 @@ C. Wrzesień
 D. Grudzień
 Poprawna odpowiedź: D. Grudzień
 
-14635
+14634
 Która część krzewu jałowca używana jest do produkcji dżinu?
 A. Korzenie
 B. Owoce (szyszkojagody)
@@ -117080,7 +117072,7 @@ C. Kora
 D. Iglaste gałązki
 Poprawna odpowiedź: B. Owoce (szyszkojagody)
 
-14636
+14635
 Jak w grze w karty nazywa się kolor bijący wszystkie pozostałe kolory?
 A. Renons
 B. Lewa
@@ -117088,7 +117080,7 @@ C. Atu
 D. Szlem
 Poprawna odpowiedź: C. Atu
 
-14637
+14636
 W której grze karcianej jednym z układów kart jest strit?
 A. W skacie
 B. W brydżu
@@ -117096,7 +117088,7 @@ C. W tysiącu
 D. W pokerze
 Poprawna odpowiedź: D. W pokerze
 
-14638
+14637
 Gdzie używa się protraktora?
 A. W studiu nagraniowym
 B. W gabinecie neurologa
@@ -117104,7 +117096,7 @@ C. U jubilera
 D. Na statku
 Poprawna odpowiedź: D. Na statku
 
-14639
+14638
 Jak nazywa się pojemnik na napoje mocowany do ramy roweru? Słowo pochodzi z francuskiego.
 A. Manierka
 B. Bidon
@@ -117112,7 +117104,7 @@ C. Termos
 D. Bukłak
 Poprawna odpowiedź: B. Bidon
 
-14640
+14639
 W procesie tworzenia wody sodowej saturator nasyca wodę którym gazem?
 A. Dwutlenkiem węgla
 B. Azotem
@@ -117120,7 +117112,7 @@ C. Wodorem
 D. Tlenem
 Poprawna odpowiedź: A. Dwutlenkiem węgla
 
-14641
+14640
 Jak dawniej nazywano posiłek podawany nad ranem po całonocnej pracy albo całonocnej zabawie?
 A. Podwieczorek
 B. Drugie śniadanie
@@ -117128,7 +117120,7 @@ C. Podkurek
 D. Obiad
 Poprawna odpowiedź: C. Podkurek
 
-14642
+14641
 Jak nazywa się metoda niszczenia drobnoustrojów w produktach spożywczych przez ogrzewanie ich w temperaturze powyżej sześćdziesięciu, ale poniżej stu stopni Celsjusza?
 A. Pasteryzacja
 B. Sterylizacja UHT
@@ -117136,7 +117128,7 @@ C. Liofilizacja
 D. Kiszenie
 Poprawna odpowiedź: A. Pasteryzacja
 
-14643
+14642
 Jak nazywa się nóż używany do cięcia trzciny cukrowej i wyrąbywania ścieżek w buszu?
 A. Szabla
 B. Kosa
@@ -117144,7 +117136,7 @@ C. Maczeta
 D. Brzytwa
 Poprawna odpowiedź: C. Maczeta
 
-14644
+14643
 Mama mamy to jest?
 A. Siostra
 B. Babcia
@@ -117152,7 +117144,7 @@ C. Ciotka
 D. Prababcia
 Poprawna odpowiedź: B. Babcia
 
-14645
+14644
 Dzwonek to potoczna nazwa którego koloru w talii kart?
 A. Kier
 B. Trefl
@@ -117160,7 +117152,7 @@ C. Pik
 D. Karo
 Poprawna odpowiedź: D. Karo
 
-14646
+14645
 Jak współcześnie nazywa się mebel, który w dawnej Polsce nazywany był kantorkiem albo pultyną?
 A. Biurko
 B. Szyfoniera
@@ -117168,7 +117160,7 @@ C. Toaletka
 D. Kredens
 Poprawna odpowiedź: A. Biurko
 
-14647
+14646
 Jak nazywa się zasłona z gęstej siatki chroniąca przed owadami?
 A. Żaluzja
 B. Markiza
@@ -117176,7 +117168,7 @@ C. Firanka
 D. Moskitiera
 Poprawna odpowiedź: D. Moskitiera
 
-14648
+14647
 Czym zajmuje się Bartnik?
 A. Hodowlą jedwabników
 B. Wyrabianiem beczek
@@ -117184,7 +117176,7 @@ C. Uprawą winorośli
 D. Hodowlą pszczół i zbieraniem miodu
 Poprawna odpowiedź: D. Hodowlą pszczół i zbieraniem miodu
 
-14649
+14648
 Które zboże jest podstawą kuchni w Chinach i w Japonii?
 A. Ryż
 B. Owies
@@ -117192,7 +117184,7 @@ C. Żyto
 D. Jęczmień
 Poprawna odpowiedź: A. Ryż
 
-14650
+14649
 Ile co najmniej masztów ma szkuner?
 A. Jeden
 B. Cztery
@@ -117200,7 +117192,7 @@ C. Dwa
 D. Trzy
 Poprawna odpowiedź: C. Dwa
 
-14651
+14650
 Jaki kształt ma znak STOP?
 A. Czworokąta
 B. Ośmiokąta
@@ -117208,7 +117200,7 @@ C. Sześciokąta
 D. Trójkąta
 Poprawna odpowiedź: B. Ośmiokąta
 
-14652
+14651
 Jak nazywa się kolekcjonowanie etykiet z pudełek od zapałek?
 A. Falerystyka
 B. Birofilistyka
@@ -117216,7 +117208,7 @@ C. Filatelistyka
 D. Filumenistyka
 Poprawna odpowiedź: D. Filumenistyka
 
-14653
+14652
 Jak nazywa się płytki basenik umieszczony pod natryskiem? Taka część kabiny prysznicowej.
 A. Umywalka
 B. Brodzik
@@ -117224,7 +117216,7 @@ C. Bidet
 D. Zlewozmywak
 Poprawna odpowiedź: B. Brodzik
 
-14654
+14653
 Jak nazywa się sklep sprzedający leki?
 A. Apteka
 B. Perfumeria
@@ -117232,7 +117224,7 @@ C. Drogeria
 D. Pasmanteria
 Poprawna odpowiedź: A. Apteka
 
-14655
+14654
 Ile kół ma rodzaj roweru zwany tandemem?
 A. Trzy
 B. Cztery
@@ -117240,7 +117232,7 @@ C. Jedno
 D. Dwa
 Poprawna odpowiedź: D. Dwa
 
-14656
+14655
 Jak nazywa się przyrząd stosowany przez policjantów, który sprawdza zawartość alkoholu we krwi na podstawie wydychanego powietrza?
 A. Alkomat
 B. Alkoholomierz
@@ -117248,7 +117240,7 @@ C. Spektrofotometr
 D. Gazomierz
 Poprawna odpowiedź: A. Alkomat
 
-14657
+14656
 Jak nazywają się śledzie lekko solone, a następnie wędzone w gorącym dymie?
 A. Rolmopsy
 B. Matiasy
@@ -117256,7 +117248,7 @@ C. Piklingi
 D. Kipery
 Poprawna odpowiedź: C. Piklingi
 
-14658
+14657
 Jak nazywa się angielskie święto obchodzone w wielu krajach Europy i Ameryki 14 lutego?
 A. Halloween
 B. Prima aprilis
@@ -117264,7 +117256,7 @@ C. Dzień Świętego Patryka
 D. Walentynki
 Poprawna odpowiedź: D. Walentynki
 
-14659
+14658
 Jak w pokerze nazywa się zestaw kart zawierający parę i trójkę?
 A. Kolor
 B. Ful
@@ -117272,7 +117264,7 @@ C. Poker
 D. Strit
 Poprawna odpowiedź: B. Ful
 
-14660
+14659
 Co to jest kambuz?
 A. Jadalnia załogi na statku
 B. Kuchnia na statku
@@ -117280,7 +117272,7 @@ C. Kabina sypialna na statku
 D. Magazyn żywności na statku
 Poprawna odpowiedź: B. Kuchnia na statku
 
-14661
+14660
 Co to jest talia?
 A. Szereg pionów na planszy
 B. Stos żetonów do pokera
@@ -117288,7 +117280,7 @@ C. Komplet kart do gry
 D. Zestaw kostek do gry
 Poprawna odpowiedź: C. Komplet kart do gry
 
-14662
+14661
 Fason damskich kostiumów i płaszczy sportowych szytych na wzór munduru lub stroju myśliwskiego, używanego w Afryce, nazywa się?
 A. Chanel
 B. Raglan
@@ -117296,7 +117288,7 @@ C. Empire
 D. Safari
 Poprawna odpowiedź: D. Safari
 
-14663
+14662
 Jak nazywa się jedna z najpopularniejszych na świecie gier planszowych, której nazwa określa mieszkańca azjatyckiego państwa?
 A. Mongol
 B. Tajlandczyk
@@ -117304,7 +117296,7 @@ C. Chińczyk
 D. Wietnamczyk
 Poprawna odpowiedź: C. Chińczyk
 
-14664
+14663
 Z czego robi się bezy?
 A. Z twarogu i miodu
 B. Ze śmietany i mąki
@@ -117312,7 +117304,7 @@ C. Z żółtek jaj i masła
 D. Z białek jaj i cukru
 Poprawna odpowiedź: D. Z białek jaj i cukru
 
-14665
+14664
 Czym jest garam masala w kuchni indyjskiej?
 A. Rodzajem pieczywa
 B. Sosem jogurtowym
@@ -117320,7 +117312,7 @@ C. Mieszanką gatunków ryżu
 D. Mieszanką przypraw
 Poprawna odpowiedź: D. Mieszanką przypraw
 
-14666
+14665
 Czym jest gipiura?
 A. Rodzajem futra
 B. Rodzajem przędzy
@@ -117328,7 +117320,7 @@ C. Rodzajem koronki
 D. Rodzajem dzianiny
 Poprawna odpowiedź: C. Rodzajem koronki
 
-14667
+14666
 Czym jest chopper?
 A. Rodzajem motocykla
 B. Rodzajem roweru szosowego
@@ -117336,7 +117328,7 @@ C. Rodzajem samochodu terenowego
 D. Rodzajem skutera wodnego
 Poprawna odpowiedź: A. Rodzajem motocykla
 
-14668
+14667
 Ile minut ma tak zwany kwadrans akademicki?
 A. 30 minut
 B. 10 minut
@@ -117344,7 +117336,7 @@ C. 20 minut
 D. 15 minut
 Poprawna odpowiedź: D. 15 minut
 
-14669
+14668
 Jak nazywamy skoszone i wysuszone rośliny łąkowe?
 A. Siano
 B. Kiszonka
@@ -117352,7 +117344,7 @@ C. Słoma
 D. Śruta
 Poprawna odpowiedź: A. Siano
 
-14670
+14669
 Jak nazywa się turecka pieczeń z jagnięcia?
 A. Falafel
 B. Pilaw
@@ -117360,7 +117352,7 @@ C. Kebab
 D. Börek
 Poprawna odpowiedź: C. Kebab
 
-14671
+14670
 Jak potocznie nazywa się metr sześcienny?
 A. Kubik
 B. Sąg
@@ -117368,7 +117360,7 @@ C. Korzec
 D. Garniec
 Poprawna odpowiedź: A. Kubik
 
-14672
+14671
 Który rzemieślnik zajmuje się oprawą książek?
 A. Korektor
 B. Ilustrator
@@ -117376,7 +117368,7 @@ C. Introligator
 D. Zecer
 Poprawna odpowiedź: C. Introligator
 
-14673
+14672
 Jak nazywa się fińska łaźnia?
 A. Mykwa
 B. Sauna
@@ -117384,7 +117376,7 @@ C. Łaźnia turecka
 D. Bania
 Poprawna odpowiedź: B. Sauna
 
-14674
+14673
 Jak nazywa się narzędzie murarskie w kształcie trójkątnej łopatki do nabierania i rozprowadzania zaprawy?
 A. Szpachla
 B. Poziomica
@@ -117392,7 +117384,7 @@ C. Kielnia
 D. Paca
 Poprawna odpowiedź: C. Kielnia
 
-14675
+14674
 Giemza jest wyprawioną skórą którego zwierzęcia?
 A. Owcy
 B. Krowy
@@ -117400,7 +117392,7 @@ C. Świni
 D. Kozy
 Poprawna odpowiedź: D. Kozy
 
-14676
+14675
 Jakim gazem zwykle nasyca się napoje gazowane?
 A. Wodorem
 B. Tlenem
@@ -117408,7 +117400,7 @@ C. Dwutlenkiem węgla
 D. Helem
 Poprawna odpowiedź: C. Dwutlenkiem węgla
 
-14677
+14676
 Jak nazywa się nakrycie głowy, które powinien nosić motocyklista w czasie jazdy?
 A. Kask
 B. Beret
@@ -117416,7 +117408,7 @@ C. Turban
 D. Kapelusz
 Poprawna odpowiedź: A. Kask
 
-14678
+14677
 Jak z francuskiego nazywa się dolna partia ściany pomalowana farbą olejną albo wyłożona dekoracyjną okładziną?
 A. Lamperia
 B. Faseta
@@ -117424,7 +117416,7 @@ C. Attyka
 D. Rozeta
 Poprawna odpowiedź: A. Lamperia
 
-14679
+14678
 Co obok cukru jest głównym składnikiem marcepanu?
 A. Pistacje
 B. Orzechy włoskie
@@ -117432,7 +117424,7 @@ C. Orzechy laskowe
 D. Migdały
 Poprawna odpowiedź: D. Migdały
 
-14680
+14679
 Jak nazywa się stara chińska gra dla czterech osób o zasadach zbliżonych do domina?
 A. Go
 B. Mahjong
@@ -117440,7 +117432,7 @@ C. Shogi
 D. Xiangqi
 Poprawna odpowiedź: B. Mahjong
 
-14681
+14680
 Co to jest food truck?
 A. Furgonetka będąca punktem sprzedaży jedzenia
 B. Automat wydający gorące posiłki
@@ -117448,7 +117440,7 @@ C. Restauracja urządzona w wagonie kolejowym
 D. Magazyn żywności przy autostradzie
 Poprawna odpowiedź: A. Furgonetka będąca punktem sprzedaży jedzenia
 
-14682
+14681
 Który składnik piwa odpowiada za fermentację alkoholową?
 A. Chmiel
 B. Woda
@@ -117456,7 +117448,7 @@ C. Słód
 D. Drożdże
 Poprawna odpowiedź: D. Drożdże
 
-14683
+14682
 Co imituje tkanina zwana dywetyną?
 A. Futro
 B. Jedwab
@@ -117464,7 +117456,7 @@ C. Zamsz
 D. Len
 Poprawna odpowiedź: C. Zamsz
 
-14684
+14683
 Jak nazywa się smażenie owoców w cukrze w celu ich utrwalenia?
 A. Blanszowanie
 B. Marynowanie
@@ -117472,7 +117464,7 @@ C. Pasteryzowanie
 D. Kandyzowanie
 Poprawna odpowiedź: D. Kandyzowanie
 
-14685
+14684
 Mała czarna to potoczne określenie którego napoju?
 A. Herbaty
 B. Kawy
@@ -117480,7 +117472,7 @@ C. Czekolady
 D. Kakao
 Poprawna odpowiedź: B. Kawy
 
-14686
+14685
 Jak nazywa się miód skrystalizowany?
 A. Krupiec
 B. Propolis
@@ -117488,7 +117480,7 @@ C. Pierzga
 D. Patoka
 Poprawna odpowiedź: A. Krupiec
 
-14687
+14686
 Ojciec babci to...
 A. Dziadek
 B. Prapradziadek
@@ -117496,7 +117488,7 @@ C. Pradziadek
 D. Stryj
 Poprawna odpowiedź: C. Pradziadek
 
-14688
+14687
 Jak z angielskiego nazywamy ofertę wczasów turystycznych sprzedawaną na krótko przed terminem wyjazdu?
 A. Last minute
 B. City break
@@ -117504,7 +117496,7 @@ C. First minute
 D. All inclusive
 Poprawna odpowiedź: A. Last minute
 
-14689
+14688
 Jak nazywa się wycięcie w bluzce, które może być w szpic, w łódkę albo w karo?
 A. Karczek
 B. Dekolt
@@ -117512,7 +117504,7 @@ C. Kołnierz
 D. Mankiet
 Poprawna odpowiedź: B. Dekolt
 
-14690
+14689
 Jak nazywa się utworzona na drodze przez kierowców wolna przestrzeń, która umożliwia służbom ratowniczym szybki przejazd?
 A. Pas rozbiegowy
 B. Korytarz życia
@@ -117520,7 +117512,7 @@ C. Pas awaryjny
 D. Pas do zjazdu
 Poprawna odpowiedź: B. Korytarz życia
 
-14691
+14690
 Jaki napój uzyskamy z połączenia rumu, limonki, mięty, cukru i lodu?
 A. Margarita
 B. Daiquiri
@@ -117528,7 +117520,7 @@ C. Mojito
 D. Cuba libre
 Poprawna odpowiedź: C. Mojito
 
-14692
+14691
 Z jakiego drewna zrobione są zwykle beczki, w których dojrzewa szkocka whisky?
 A. Z sosnowego
 B. Z brzozowego
@@ -117536,7 +117528,7 @@ C. Z klonowego
 D. Z dębowego
 Poprawna odpowiedź: D. Z dębowego
 
-14693
+14692
 Gdzie znajdziemy nakastlik?
 A. W garażu
 B. W łazience
@@ -117544,7 +117536,7 @@ C. W sypialni
 D. W kuchni
 Poprawna odpowiedź: C. W sypialni
 
-14694
+14693
 Jak nazywa się osoba zajmująca się zawodowo przyrządzaniem różnych rodzajów kawy?
 A. Piwowar
 B. Sommelier
@@ -117552,7 +117544,7 @@ C. Barista
 D. Cukiernik
 Poprawna odpowiedź: C. Barista
 
-14695
+14694
 Jak nazywa się potrawa z jaj z dodatkiem mąki smażona na patelni w formie pulchnego placka?
 A. Naleśnik
 B. Faworek
@@ -117560,7 +117552,7 @@ C. Krokiet
 D. Omlet
 Poprawna odpowiedź: D. Omlet
 
-14696
+14695
 Spośród ilu liczb losuje się w multilotku grze totalizatora sportowego?
 A. Spośród 90
 B. Spośród 80
@@ -117568,7 +117560,7 @@ C. Spośród 49
 D. Spośród 42
 Poprawna odpowiedź: B. Spośród 80
 
-14697
+14696
 Jak nazywa się kilkuosobowa zabawa, w której rzuca się i chwyta wiklinowe kółka za pomocą kijków?
 A. Ringo
 B. Krokiet
@@ -117576,7 +117568,7 @@ C. Frisbee
 D. Serso
 Poprawna odpowiedź: D. Serso
 
-14698
+14697
 Jak nazywały się noszone w Polsce w siedemnastym, osiemnastym wieku szerokie spodnie sięgające powyżej kolan?
 A. Szarawary
 B. Pludry
@@ -117584,7 +117576,7 @@ C. Hajdawery
 D. Pumpy
 Poprawna odpowiedź: B. Pludry
 
-14699
+14698
 Bez którego z tych produktów nie można zrobić ruskich pierogów?
 A. Bez suszonych grzybów
 B. Bez białego sera
@@ -117592,7 +117584,7 @@ C. Bez kiszonej kapusty
 D. Bez kaszy gryczanej
 Poprawna odpowiedź: B. Bez białego sera
 
-14700
+14699
 Który owoc jest nieodzownym składnikiem klasycznego lodowego deseru melby?
 A. Brzoskwinia
 B. Śliwka
@@ -117600,7 +117592,7 @@ C. Gruszka
 D. Morela
 Poprawna odpowiedź: A. Brzoskwinia
 
-14701
+14700
 Co to jest tamagotchi?
 A. Gra planszowa
 B. Zabawka elektroniczna
@@ -117608,7 +117600,7 @@ C. Przytulanka
 D. Łamigłówka mechaniczna
 Poprawna odpowiedź: B. Zabawka elektroniczna
 
-14702
+14701
 Jak nazywają się małe krążki kolorowego papieru, którymi obsypują się uczestnicy zabawy?
 A. Konfetti
 B. Serpentyny
@@ -117616,7 +117608,7 @@ C. Cekiny
 D. Papiloty
 Poprawna odpowiedź: A. Konfetti
 
-14703
+14702
 Z jakiego mięsa przyrządza się rostbef?
 A. Z koniny
 B. Z wieprzowiny
@@ -117624,7 +117616,7 @@ C. Z wołowiny
 D. Z baraniny
 Poprawna odpowiedź: C. Z wołowiny
 
-14704
+14703
 Gry karciane. Ile kart potrzeba do gry w skata?
 A. 32
 B. 36
@@ -117632,7 +117624,7 @@ C. 52
 D. 24
 Poprawna odpowiedź: A. 32
 
-14705
+14704
 Który ser jest składnikiem sałatki caprese?
 A. Mozzarella
 B. Mascarpone
@@ -117640,7 +117632,7 @@ C. Ricotta
 D. Gorgonzola
 Poprawna odpowiedź: A. Mozzarella
 
-14706
+14705
 Jak z francuskiego nazywają się pokarmy konserwowane w occie z dodatkami przypraw i korzeni?
 A. Marmolady
 B. Konfitury
@@ -117648,7 +117640,7 @@ C. Marynaty
 D. Kiszonki
 Poprawna odpowiedź: C. Marynaty
 
-14707
+14706
 Z którego kontynentu pochodzi gra karciana kanasta?
 A. Z Europy
 B. Z Ameryki Południowej
@@ -117656,7 +117648,7 @@ C. Z Afryki
 D. Z Azji
 Poprawna odpowiedź: B. Z Ameryki Południowej
 
-14708
+14707
 Boloński, carbonara, arrabbiata. To są nazwy którego dodatku do makaronu?
 A. Oliwy
 B. Sera
@@ -117664,7 +117656,7 @@ C. Mięsa
 D. Sosu
 Poprawna odpowiedź: D. Sosu
 
-14709
+14708
 Jak nazywa się zagłębienie w rufowej części żaglówki służące jako miejsce dla załogi?
 A. Forluk
 B. Jaskółka
@@ -117672,7 +117664,7 @@ C. Kokpit
 D. Forpik
 Poprawna odpowiedź: C. Kokpit
 
-14710
+14709
 Co jest głównym składnikiem majonezu?
 A. Jajka
 B. Śmietana
@@ -117680,7 +117672,7 @@ C. Musztarda
 D. Olej
 Poprawna odpowiedź: D. Olej
 
-14711
+14710
 Renons to ile kart w danym kolorze?
 A. Zero
 B. Jedna
@@ -117688,7 +117680,7 @@ C. Trzy
 D. Dwie
 Poprawna odpowiedź: A. Zero
 
-14712
+14711
 Jakie zboże może być basmati, długoziarniste, białe albo brązowe?
 A. Sorgo
 B. Proso
@@ -117696,7 +117688,7 @@ C. Jęczmień
 D. Ryż
 Poprawna odpowiedź: D. Ryż
 
-14713
+14712
 Jak nazywa się najprostsze urządzenie latające? Bez napędu, cięższe od powietrza, trzymane na uwięzi.
 A. Lotnia
 B. Latawiec
@@ -117704,7 +117696,7 @@ C. Szybowiec
 D. Paralotnia
 Poprawna odpowiedź: B. Latawiec
 
-14714
+14713
 Szetland to sweter z wełny których zwierząt?
 A. Kóz
 B. Królików
@@ -117712,7 +117704,7 @@ C. Owiec
 D. Alpak
 Poprawna odpowiedź: C. Owiec
 
-14715
+14714
 Co oznacza ogłoszenie krupiera 'rien ne va plus'?
 A. Gra zostaje unieważniona
 B. Można rozpocząć obstawianie
@@ -117720,7 +117712,7 @@ C. Kulka wypadła poza koło
 D. Koniec obstawiania
 Poprawna odpowiedź: D. Koniec obstawiania
 
-14716
+14715
 W którym mieście ma miejsce 11 listopada barwny korowód świętomarciński?
 A. W Gdańsku
 B. W Toruniu
@@ -117728,7 +117720,7 @@ C. W Krakowie
 D. W Poznaniu
 Poprawna odpowiedź: D. W Poznaniu
 
-14717
+14716
 Z ilu kart składa się meldunek w Grze w Tysiąca?
 A. Z pięciu kart
 B. Z czterech kart
@@ -117736,7 +117728,7 @@ C. Z trzech kart
 D. Z dwóch kart
 Poprawna odpowiedź: D. Z dwóch kart
 
-14718
+14717
 Z którego owocu wyciskany jest sok używany przy dekoracji kawalerów i dam orderu uśmiechu?
 A. Z pomarańczy
 B. Z limonki
@@ -117744,7 +117736,7 @@ C. Z grejpfruta
 D. Z cytryny
 Poprawna odpowiedź: D. Z cytryny
 
-14719
+14718
 Na które święta tradycyjnie pieczemy mazurki?
 A. Na Wielkanoc
 B. Na Trzech Króli
@@ -117752,7 +117744,7 @@ C. Na Boże Narodzenie
 D. Na Zielone Świątki
 Poprawna odpowiedź: A. Na Wielkanoc
 
-14720
+14719
 Z jakiego kraju pochodzi zapiekane danie musaka?
 A. Z Portugalii
 B. Z Grecji
@@ -117760,7 +117752,7 @@ C. Z Francji
 D. Z Meksyku
 Poprawna odpowiedź: B. Z Grecji
 
-14721
+14720
 Co może być drożdżowe, parzone, francuskie albo kruche?
 A. Lukier
 B. Ciasto
@@ -117768,7 +117760,7 @@ C. Krem
 D. Nadzienie
 Poprawna odpowiedź: B. Ciasto
 
-14722
+14721
 Od czego wywodzi się nazwa włoskiego sera parmezan?
 A. Od nazwiska jego twórcy
 B. Od miejsca pochodzenia sera
@@ -117776,7 +117768,7 @@ C. Od czasu jego dojrzewania
 D. Od kształtu jego kręgów
 Poprawna odpowiedź: B. Od miejsca pochodzenia sera
 
-14723
+14722
 Jak żeglarze nazywają kamizelkę ratunkową?
 A. Kapok
 B. Odbijacz
@@ -117784,7 +117776,7 @@ C. Bosak
 D. Sztormiak
 Poprawna odpowiedź: A. Kapok
 
-14724
+14723
 Na statku morskim kto jest pierwszy po Bogu?
 A. Bosman
 B. Mechanik
@@ -117792,7 +117784,7 @@ C. Kapitan
 D. Sternik
 Poprawna odpowiedź: C. Kapitan
 
-14725
+14724
 Co to jest robron?
 A. Koronkowa chusta
 B. Wełniana halka
@@ -117800,7 +117792,7 @@ C. Szeroka, kloszowa suknia
 D. Ozdobna peleryna
 Poprawna odpowiedź: C. Szeroka, kloszowa suknia
 
-14726
+14725
 Z których dwóch składników przygotowywana jest maca?
 A. Z kaszy i miodu
 B. Z mąki i mleka
@@ -117808,7 +117800,7 @@ C. Z ryżu i jajek
 D. Z mąki i wody
 Poprawna odpowiedź: D. Z mąki i wody
 
-14727
+14726
 Co w cukiernictwie oznacza określenie kuwertura?
 A. Masa migdałowa do modelowania
 B. Lukier z białek i cukru
@@ -117816,7 +117808,7 @@ C. Masa czekoladowa do oblewania wyrobów
 D. Krem z ubitej śmietany
 Poprawna odpowiedź: C. Masa czekoladowa do oblewania wyrobów
 
-14728
+14727
 Jaki producent wytwarza kremy przeciwzmarszczkowe z roślinną placentą?
 A. Nivea
 B. Dermika
@@ -117824,7 +117816,7 @@ C. Garnier
 D. Dove
 Poprawna odpowiedź: B. Dermika
 
-14729
+14728
 Jakie wesele obchodzi się z okazji dwudziestej piątej rocznicy ślubu?
 A. Srebrne
 B. Złote
@@ -117832,7 +117824,7 @@ C. Drewniane
 D. Cynowe
 Poprawna odpowiedź: A. Srebrne
 
-14730
+14729
 Co to są planty?
 A. Tereny zielone
 B. Przedmieścia
@@ -117840,7 +117832,7 @@ C. Centralny plac
 D. Dzielnice przemysłowe
 Poprawna odpowiedź: A. Tereny zielone
 
-14731
+14730
 Cholewa. To część czego?
 A. Buta
 B. Rękawiczki
@@ -117848,7 +117840,7 @@ C. Płaszcza
 D. Kapelusza
 Poprawna odpowiedź: A. Buta
 
-14732
+14731
 Jak nazywa się schronisko turystyczne przy szlaku wodnym?
 A. Bosmanat
 B. Strażnica
@@ -117856,7 +117848,7 @@ C. Latarnia
 D. Stanica
 Poprawna odpowiedź: D. Stanica
 
-14733
+14732
 Jak nazywają się zużyte papiery albo gazety przeznaczone do powtórnej przeróbki na papier?
 A. Pulpa
 B. Makulatura
@@ -117864,7 +117856,7 @@ C. Celuloza
 D. Masa drzewna
 Poprawna odpowiedź: B. Makulatura
 
-14734
+14733
 W którym dniu tygodnia wypada w Stanach Zjednoczonych święto zwane Dniem Dziękczynienia?
 A. W czwartek
 B. W piątek
@@ -117872,7 +117864,7 @@ C. W niedzielę
 D. W poniedziałek
 Poprawna odpowiedź: A. W czwartek
 
-14735
+14734
 Do czego jest przytroczone strzemię za pomocą rzemienia zwanego puśliskiem?
 A. Do napierśnika
 B. Do ogłowia
@@ -117880,7 +117872,7 @@ C. Do siodła
 D. Do popręgu
 Poprawna odpowiedź: C. Do siodła
 
-14736
+14735
 Jak nazywamy proces utrwalania mięsa dymem?
 A. Peklowanie
 B. Liofilizacja
@@ -117888,7 +117880,7 @@ C. Wędzenie
 D. Marynowanie
 Poprawna odpowiedź: C. Wędzenie
 
-14737
+14736
 Gdzie pracuje Sztygar?
 A. W kopalni
 B. W hucie
@@ -117896,7 +117888,7 @@ C. W stoczni
 D. W tartaku
 Poprawna odpowiedź: A. W kopalni
 
-14738
+14737
 Jak nazywa się statek, który ciągnie inne statki albo barki?
 A. Holownik
 B. Stawiacz min
@@ -117904,7 +117896,7 @@ C. Lodołamacz
 D. Pogłębiarka
 Poprawna odpowiedź: A. Holownik
 
-14739
+14738
 Jak nazywa się zewnętrzna rowkowana warstwa opony?
 A. Karkas
 B. Zawór
@@ -117912,7 +117904,7 @@ C. Bieżnik
 D. Kord
 Poprawna odpowiedź: C. Bieżnik
 
-14740
+14739
 Jaka budowla umożliwia przepływanie statków między akwenami o różnych poziomach wody?
 A. Grobla
 B. Śluza
@@ -117920,7 +117912,7 @@ C. Zapora
 D. Przystań
 Poprawna odpowiedź: B. Śluza
 
-14741
+14740
 Ile pól liczy w sumie plansza do gry w Sudoku?
 A. 81
 B. 64
@@ -117928,7 +117920,7 @@ C. 100
 D. 121
 Poprawna odpowiedź: A. 81
 
-14742
+14741
 Z którego zwierzęcia pochodzi kurdyban?
 A. Z węża
 B. Z rekina
@@ -117936,7 +117928,7 @@ C. Z kozy
 D. Z krokodyla
 Poprawna odpowiedź: C. Z kozy
 
-14743
+14742
 Jakim terminem określa się remis w szachach, kiedy strona mająca kolejny ruch nie może wykonać żadnego prawidłowego posunięcia?
 A. Mat
 B. Zugzwang
@@ -117944,7 +117936,7 @@ C. Pat
 D. Wieczny szach
 Poprawna odpowiedź: C. Pat
 
-14744
+14743
 Co jest losowane podczas gry w bingo?
 A. Nazwiska
 B. Liczby
@@ -117952,7 +117944,7 @@ C. Kolory
 D. Litery
 Poprawna odpowiedź: B. Liczby
 
-14745
+14744
 Jaki kształt ma makaron farfalle?
 A. Muszelek
 B. Kokardek
@@ -117960,7 +117952,7 @@ C. Świderków
 D. Falbanek
 Poprawna odpowiedź: B. Kokardek
 
-14746
+14745
 W skład bigosu mogą wchodzić różne składniki, ale które warzywo musi w nim być zawsze?
 A. Kapusta
 B. Cebula
@@ -117968,7 +117960,7 @@ C. Marchew
 D. Papryka
 Poprawna odpowiedź: A. Kapusta
 
-14747
+14746
 Co jest parą do krzyżyka w prostej grze strategicznej?
 A. Trójkąt
 B. Kółko
@@ -117976,7 +117968,7 @@ C. Romb
 D. Kwadrat
 Poprawna odpowiedź: B. Kółko
 
-14748
+14747
 Jak nazywa się metalowy pręt służący do pieczenia mięsa nad ogniem?
 A. Rożen
 B. Pogrzebacz
@@ -117984,7 +117976,7 @@ C. Kociołek
 D. Ruszt
 Poprawna odpowiedź: A. Rożen
 
-14749
+14748
 Jak nazywamy soloną ikrę ryb jesiotrowatych?
 A. Aspik
 B. Surimi
@@ -117992,7 +117984,7 @@ C. Kawior
 D. Pasztet
 Poprawna odpowiedź: C. Kawior
 
-14750
+14749
 Jaką wspólną nazwę noszą szynka, kiełbasa, polędwica?
 A. Wędliny
 B. Nabiał
@@ -118000,7 +117992,7 @@ C. Pieczywo
 D. Podroby
 Poprawna odpowiedź: A. Wędliny
 
-14751
+14750
 W grze kółko i krzyżyk ile znaków trzeba ustawić w jednej linii, żeby wygrać?
 A. Trzy znaki
 B. Dwa znaki
@@ -118008,7 +118000,7 @@ C. Pięć znaków
 D. Cztery znaki
 Poprawna odpowiedź: A. Trzy znaki
 
-14752
+14751
 Z jakiego ciasta powstają knedliczki, kulebiak i strucla?
 A. Z biszkoptowego
 B. Z drożdżowego
@@ -118016,7 +118008,7 @@ C. Z kruchego
 D. Z francuskiego
 Poprawna odpowiedź: B. Z drożdżowego
 
-14753
+14752
 Jak nazywa się rower przeznaczony dla dwóch osób?
 A. Bicykl
 B. Tandem
@@ -118024,7 +118016,7 @@ C. BMX
 D. Monocykl
 Poprawna odpowiedź: B. Tandem
 
-14754
+14753
 Ile lat niepowodzenia czeka tego, kto stłucze zwierciadło?
 A. Trzy lata
 B. Siedem lat
@@ -118032,7 +118024,7 @@ C. Pięć lat
 D. Dziewięć lat
 Poprawna odpowiedź: B. Siedem lat
 
-14755
+14754
 Jak z niemieckiego nazywamy ceremoniał poprzedzający wzajemne mówienie sobie po imieniu?
 A. Aperitif
 B. Bruderszaft
@@ -118040,7 +118032,7 @@ C. Bankiet
 D. Toast
 Poprawna odpowiedź: B. Bruderszaft
 
-14756
+14755
 Jak potocznie nazywamy pieniądze, które dzieci dostają na drobne wydatki?
 A. Wpisowe
 B. Odstępne
@@ -118048,7 +118040,7 @@ C. Kieszonkowe
 D. Czesne
 Poprawna odpowiedź: C. Kieszonkowe
 
-14757
+14756
 Jaki jest największy nominał obiegowych banknotów w Wielkiej Brytanii?
 A. 50 funtów
 B. 100 funtów
@@ -118056,7 +118048,7 @@ C. 20 funtów
 D. 200 funtów
 Poprawna odpowiedź: B. 100 funtów
 
-14758
+14757
 Kto zajmuje się wyrabianiem przedmiotów skórzanych?
 A. Złotnik
 B. Rymarz
@@ -118064,7 +118056,7 @@ C. Stolarz
 D. Bednarz
 Poprawna odpowiedź: B. Rymarz
 
-14759
+14758
 Ile kart dostaje każdy gracz w brydżu?
 A. 13
 B. 14
@@ -118072,7 +118064,7 @@ C. 12
 D. 10
 Poprawna odpowiedź: A. 13
 
-14760
+14759
 Z którego zboża produkuje się płatki owsiane?
 A. Z żyta
 B. Z jęczmienia
@@ -118080,7 +118072,7 @@ C. Z owsa
 D. Z pszenicy
 Poprawna odpowiedź: C. Z owsa
 
-14761
+14760
 Czym zajmuje się strycharz?
 A. Wyrobem drewnianych beczek
 B. Kryciem dachów słomą
@@ -118088,7 +118080,7 @@ C. Stawianiem pieców kaflowych
 D. Wyrabianiem cegieł
 Poprawna odpowiedź: D. Wyrabianiem cegieł
 
-14762
+14761
 Co oznacza międzynarodowy symbol MS? Przed nazwą statku.
 A. Statek badawczy
 B. Statek motorowy
@@ -118096,7 +118088,7 @@ C. Statek żaglowy
 D. Statek parowy
 Poprawna odpowiedź: B. Statek motorowy
 
-14763
+14762
 Co to jest żuchel?
 A. Placek z tartych ziemniaków
 B. Zupa z żytniego zakwasu
@@ -118104,7 +118096,7 @@ C. Słodka kasza gotowana na mleku
 D. Suszona kiełbasa wieprzowa
 Poprawna odpowiedź: A. Placek z tartych ziemniaków
 
-14764
+14763
 Przy której grze hazardowej padają słowa „Rien ne va plus”?
 A. Przy bingo
 B. Przy lotto
@@ -118112,7 +118104,7 @@ C. Przy ruletce
 D. Przy pokerze
 Poprawna odpowiedź: C. Przy ruletce
 
-14765
+14764
 Jak nazywa się wysuszony miąższ orzecha palmy kokosowej?
 A. Sago
 B. Kaszawa
@@ -118120,7 +118112,7 @@ C. Tapioka
 D. Kopra
 Poprawna odpowiedź: D. Kopra
 
-14766
+14765
 Które warzywo jest podstawowym składnikiem klusek śląskich?
 A. Rzepa
 B. Marchew
@@ -118128,7 +118120,7 @@ C. Kalafior
 D. Ziemniak
 Poprawna odpowiedź: D. Ziemniak
 
-14767
+14766
 Przy produkcji czego wykorzystuje się podpuszczkę?
 A. Piwa
 B. Chleba
@@ -118136,7 +118128,7 @@ C. Sera
 D. Czekolady
 Poprawna odpowiedź: C. Sera
 
-14768
+14767
 Jak nazywa się odmiana fasoli, której całe strąki, zielone albo żółte, są jadalne?
 A. Czarna
 B. Czerwona nerkowata
@@ -118144,7 +118136,7 @@ C. Biała drobna
 D. Szparagowa
 Poprawna odpowiedź: D. Szparagowa
 
-14769
+14768
 Która z tych rzeczy nie nadaje się do jedzenia?
 A. Tablet
 B. Suflet
@@ -118152,7 +118144,7 @@ C. Omlet
 D. Kotlet
 Poprawna odpowiedź: A. Tablet
 
-14770
+14769
 Jak nazywa się żeliwny krążek, częściowo zamykający otwór w płycie kuchennej?
 A. Fajerka
 B. Szyber
@@ -118160,7 +118152,7 @@ C. Ruszt
 D. Popielnik
 Poprawna odpowiedź: A. Fajerka
 
-14771
+14770
 W jakim kraju produkowany jest samochód o nazwie Wołga?
 A. W Rumunii
 B. W Rosji
@@ -118168,7 +118160,7 @@ C. W Czechach
 D. W Polsce
 Poprawna odpowiedź: B. W Rosji
 
-14772
+14771
 Jak nazywa się łódź okrętowa używana do celów ratowniczych?
 A. Gondola
 B. Kajak
@@ -118176,7 +118168,7 @@ C. Szalupa
 D. Barka
 Poprawna odpowiedź: C. Szalupa
 
-14773
+14772
 Jak nazywa się trójkątna chustka na szyję?
 A. Halsztuk
 B. Żabot
@@ -118184,7 +118176,7 @@ C. Mankiet
 D. Kryza
 Poprawna odpowiedź: A. Halsztuk
 
-14774
+14773
 Jak nazywa się wysoki, sztywny kapelusz z walcowatą główką i małym rondem, używany na uroczyste okazje w 20. wieku?
 A. Melonik
 B. Cylinder
@@ -118192,7 +118184,7 @@ C. Trilby
 D. Fedora
 Poprawna odpowiedź: B. Cylinder
 
-14775
+14774
 Jak nazywa się jarzyny i zieleninę, którymi ozdabia się potrawy?
 A. Garnirunek
 B. Zasmażka
@@ -118200,7 +118192,7 @@ C. Panierka
 D. Marynata
 Poprawna odpowiedź: A. Garnirunek
 
-14776
+14775
 Co to jest krupczatka?
 A. Rodzaj mąki żytniej
 B. Rodzaj mąki kukurydzianej
@@ -118208,7 +118200,7 @@ C. Rodzaj kaszy jęczmiennej
 D. Rodzaj mąki pszennej
 Poprawna odpowiedź: D. Rodzaj mąki pszennej
 
-14777
+14776
 Jak nazywa się okrągły stolik wprowadzany w ruch obrotowy nogami, na którym kształtuje się ręcznie naczynia z gliny?
 A. Żarna obrotowe
 B. Koło garncarskie
@@ -118216,7 +118208,7 @@ C. Kołowrotek
 D. Tokarka do drewna
 Poprawna odpowiedź: B. Koło garncarskie
 
-14778
+14777
 Jak z niemieckiego nazywa się umocnienie ścian studni, na przykład kręgami betonowymi?
 A. Cembrowina
 B. Podmurówka
@@ -118224,7 +118216,7 @@ C. Palisada
 D. Cokół
 Poprawna odpowiedź: A. Cembrowina
 
-14779
+14778
 Jak nazywa się metoda łowienia ryb przez zarzucanie na dużą odległość przynęty i powolne przyciąganie kołowrotkiem?
 A. Metoda spławikowa
 B. Spinning
@@ -118232,7 +118224,7 @@ C. Trolling
 D. Metoda gruntowa
 Poprawna odpowiedź: B. Spinning
 
-14780
+14779
 Precel, kajzerka, bagietka. To są rodzaje czego?
 A. Klusek
 B. Makaronów
@@ -118240,7 +118232,7 @@ C. Ciast deserowych
 D. Pieczywa
 Poprawna odpowiedź: D. Pieczywa
 
-14781
+14780
 Do czyjego wyposażenia należy czaprak?
 A. Giermka
 B. Konia
@@ -118248,7 +118240,7 @@ C. Rycerza
 D. Wozu
 Poprawna odpowiedź: B. Konia
 
-14782
+14781
 Jak nazywa się ozdoba choinkowa w postaci błyszczących metalowych albo foliowych nitek?
 A. Włosy anielskie
 B. Girlanda z gałązek
@@ -118256,7 +118248,7 @@ C. Bombka
 D. Łańcuch papierowy
 Poprawna odpowiedź: A. Włosy anielskie
 
-14783
+14782
 W którym miesiącu obchodzimy w Polsce Dzień Babci?
 A. W marcu
 B. W lutym
@@ -118264,7 +118256,7 @@ C. W styczniu
 D. W maju
 Poprawna odpowiedź: C. W styczniu
 
-14784
+14783
 Którą część stroju chce kupić ktoś, kto prosi w sklepie o hajdawery?
 A. Buty
 B. Czapkę
@@ -118272,7 +118264,7 @@ C. Kamizelkę
 D. Spodnie
 Poprawna odpowiedź: D. Spodnie
 
-14785
+14784
 Jak nazywa się likier sporządzany ze skórek gorzkiej pomarańczy?
 A. Amaretto
 B. Curaçao
@@ -118280,7 +118272,7 @@ C. Kahlúa
 D. Sambuca
 Poprawna odpowiedź: B. Curaçao
 
-14786
+14785
 Jak z francuskiego określa się sklep, gdzie kupujemy kosmetyki, a także środki chemiczne, medyczne?
 A. Apteka
 B. Drogeria
@@ -118288,7 +118280,7 @@ C. Pasmanteria
 D. Perfumeria
 Poprawna odpowiedź: B. Drogeria
 
-14787
+14786
 Jakie danie jest przyrządzane z ryżu i kawałków mięsa?
 A. Bigos
 B. Pilaw
@@ -118296,7 +118288,7 @@ C. Leczo
 D. Ratatouille
 Poprawna odpowiedź: B. Pilaw
 
-14788
+14787
 Za pomocą czego napędzany jest rower wodny?
 A. Żagla
 B. Wioseł
@@ -118304,7 +118296,7 @@ C. Silnika spalinowego
 D. Pedałów
 Poprawna odpowiedź: D. Pedałów
 
-14789
+14788
 Jak nazywa się rzemiosło zajmujące się wytwarzaniem drewnianych balii, cebrzyków?
 A. Ciesielstwo
 B. Tokarstwo
@@ -118312,7 +118304,7 @@ C. Kołodziejstwo
 D. Bednarstwo
 Poprawna odpowiedź: D. Bednarstwo
 
-14790
+14789
 Odmianą którego warzywa jest mamut?
 A. Buraka
 B. Ogórka
@@ -118320,7 +118312,7 @@ C. Papryki
 D. Fasoli
 Poprawna odpowiedź: D. Fasoli
 
-14791
+14790
 Ile zwykle potrzebujemy drutów, żeby zrobić na nich szalik z włóczki?
 A. Pięciu
 B. Trzech
@@ -118328,7 +118320,7 @@ C. Dwóch
 D. Czterech
 Poprawna odpowiedź: C. Dwóch
 
-14792
+14791
 Na której części ciała nosi się baletki?
 A. Na łokciach
 B. Na stopach
@@ -118336,7 +118328,7 @@ C. Na kolanach
 D. Na dłoniach
 Poprawna odpowiedź: B. Na stopach
 
-14793
+14792
 Która część owocu jest usuwana podczas drylowania?
 A. Pestka
 B. Skórka
@@ -118344,7 +118336,7 @@ C. Szypułka
 D. Miąższ
 Poprawna odpowiedź: A. Pestka
 
-14794
+14793
 W którym kolorze jest najbardziej wartościowy meldunek w grze w tysiąca?
 A. Kier
 B. Trefl
@@ -118352,7 +118344,7 @@ C. Pik
 D. Karo
 Poprawna odpowiedź: A. Kier
 
-14795
+14794
 Ile pól może zaatakować wieża stojąca na pustej szachownicy?
 A. 14
 B. 16
@@ -118360,7 +118352,7 @@ C. 15
 D. 7
 Poprawna odpowiedź: A. 14
 
-14796
+14795
 Jaki kształt ma makaron zwany penne?
 A. Kokardek
 B. Muszelek
@@ -118368,7 +118360,7 @@ C. Rurek ściętych ukośnie
 D. Świderków
 Poprawna odpowiedź: C. Rurek ściętych ukośnie
 
-14797
+14796
 Co zgodnie z zasadami savoir-vivre'u należy zrobić z pestkami owoców z kompotu?
 A. Odłożyć łyżeczką na talerzyk pod kompotierką
 B. Trzymać dyskretnie w dłoni
@@ -118376,7 +118368,7 @@ C. Wrzucić z powrotem do kompotierki
 D. Schować w serwetce
 Poprawna odpowiedź: A. Odłożyć łyżeczką na talerzyk pod kompotierką
 
-14798
+14797
 Jak nazywa się roślina, z nasion której produkuje się chałwę?
 A. Sezam
 B. Rzepak
@@ -118384,7 +118376,7 @@ C. Gorczyca
 D. Kminek
 Poprawna odpowiedź: A. Sezam
 
-14799
+14798
 Gdzie jest umieszczany galion?
 A. Na rufie statku
 B. Na dziobie statku
@@ -118392,7 +118384,7 @@ C. Na pokładzie śródokręcia
 D. Na szczycie masztu
 Poprawna odpowiedź: B. Na dziobie statku
 
-14800
+14799
 Jaki kolor ma fala sygnalizacji świetlnej na drodze, tak zaprogramowana, by pojazdy nie musiały się zatrzymywać?
 A. Niebieska
 B. Czerwona
@@ -118400,7 +118392,7 @@ C. Żółta
 D. Zielona
 Poprawna odpowiedź: D. Zielona
 
-14801
+14800
 Jak nazywa się ozdoba przypinana do ucha, niewymagająca przekłuwania uszu?
 A. Kolczyk na sztyfcie
 B. Tunel do ucha
@@ -118408,7 +118400,7 @@ C. Klips
 D. Kolczyk z biglem
 Poprawna odpowiedź: C. Klips
 
-14802
+14801
 Co to jest cheeseburger?
 A. Kanapka z parówką
 B. Kanapka z filetem rybnym
@@ -118416,7 +118408,7 @@ C. Hamburger z dodatkiem bekonu zamiast sera
 D. Hamburger z dodatkiem sera
 Poprawna odpowiedź: D. Hamburger z dodatkiem sera
 
-14803
+14802
 Który składnik piwa nadaje mu gorzki smak?
 A. Chmiel
 B. Drożdże
@@ -118424,7 +118416,7 @@ C. Woda
 D. Cukier
 Poprawna odpowiedź: A. Chmiel
 
-14804
+14803
 Który koncern motoryzacyjny produkuje auta osobowe?
 A. DAF
 B. Tatra
@@ -118432,7 +118424,7 @@ C. Scania
 D. Hyundai
 Poprawna odpowiedź: D. Hyundai
 
-14805
+14804
 Jak nazywa się myśliwska broń kulowa o lufie gwintowanej do polowań na grubą zwierzynę?
 A. Sztucer
 B. Garłacz
@@ -118440,7 +118432,7 @@ C. Strzelba gładkolufowa
 D. Wiatrówka
 Poprawna odpowiedź: A. Sztucer
 
-14806
+14805
 Które części szparagów są jadalne?
 A. Nasiona
 B. Owoce
@@ -118448,7 +118440,7 @@ C. Młode pędy
 D. Korzenie
 Poprawna odpowiedź: C. Młode pędy
 
-14807
+14806
 Z czym związane przedmioty kolekcjonuje birofil?
 A. Winem
 B. Artykułami biurowymi
@@ -118456,7 +118448,7 @@ C. Piwem
 D. Znaczkami pocztowymi
 Poprawna odpowiedź: C. Piwem
 
-14808
+14807
 Proszę wymienić przynajmniej dwie potrawy, w nazwie których występuje określenie wiedeński albo powiedeńsku.
 A. Pierogi ruskie i barszcz ukraiński
 B. Ryba po grecku i fasolka po bretońsku
@@ -118464,7 +118456,7 @@ C. Placki po węgiersku i kotlet po parysku
 D. Sernik wiedeński i sznycel wiedeński
 Poprawna odpowiedź: D. Sernik wiedeński i sznycel wiedeński
 
-14809
+14808
 Co to jest tradycyjna, gęsta pasta japońska produkowana ze sfermentowanej soi?
 A. Tahini
 B. Wasabi
@@ -118472,7 +118464,7 @@ C. Pesto
 D. Miso
 Poprawna odpowiedź: D. Miso
 
-14810
+14809
 Które zwierzę jest symbolem koncernu Peugeot?
 A. Jaguar
 B. Lew
@@ -118480,7 +118472,7 @@ C. Koń
 D. Byk
 Poprawna odpowiedź: B. Lew
 
-14811
+14810
 Żaby i ślimaki to specjalność której kuchni europejskiej?
 A. Francuskiej
 B. Węgierskiej
@@ -118488,7 +118480,7 @@ C. Irlandzkiej
 D. Szwedzkiej
 Poprawna odpowiedź: A. Francuskiej
 
-14812
+14811
 W jakim języku napisana jest najstarsza zachowana polska książka kucharska Compendium Ferculorum autorstwa Stanisława Czernieckiego?
 A. Po łacinie
 B. Po polsku
@@ -118496,7 +118488,7 @@ C. Po francusku
 D. Po włosku
 Poprawna odpowiedź: B. Po polsku
 
-14813
+14812
 Jak nazywa się nawóz organiczny z odpadków roślinnych po ich rozłożeniu przez drobnoustroje?
 A. Gnojówka
 B. Guano
@@ -118504,7 +118496,7 @@ C. Kompost
 D. Obornik
 Poprawna odpowiedź: C. Kompost
 
-14814
+14813
 Jak nazywa się bufet na terenie jednostki wojskowej?
 A. Kantyna
 B. Komendantura
@@ -118512,7 +118504,7 @@ C. Kancelaria
 D. Wartownia
 Poprawna odpowiedź: A. Kantyna
 
-14815
+14814
 Jak nazywa się nić używana do prowizorycznego zszywania materiału albo ścieg wykonany taką nicią?
 A. Mulina
 B. Fastryga
@@ -118520,7 +118512,7 @@ C. Dratwa
 D. Kordonek
 Poprawna odpowiedź: B. Fastryga
 
-14816
+14815
 Jak żeglarze nazywają prawą burtę statku?
 A. Sterburta
 B. Rufa
@@ -118528,7 +118520,7 @@ C. Bakburta
 D. Dziób
 Poprawna odpowiedź: A. Sterburta
 
-14817
+14816
 Co to są chinkali?
 A. Gruzińskie placki z serem
 B. Gruzińskie pierogi
@@ -118536,7 +118528,7 @@ C. Gruzińskie szaszłyki
 D. Gruziński gulasz
 Poprawna odpowiedź: B. Gruzińskie pierogi
 
-14818
+14817
 Jak nazywają się podhalańskie placki pieczone na blasze z ugotowanych ziemniaków, mąki, wody i soli?
 A. Proziaki
 B. Moskole
@@ -118544,7 +118536,7 @@ C. Podpłomyki
 D. Racuchy
 Poprawna odpowiedź: B. Moskole
 
-14819
+14818
 Do jakiej grupy warzyw zalicza się pasternak?
 A. Do korzeniowych
 B. Do strączkowych
@@ -118552,7 +118544,7 @@ C. Do liściowych
 D. Do cebulowych
 Poprawna odpowiedź: A. Do korzeniowych
 
-14820
+14819
 Garbus. To potoczne określenie samochodu której marki?
 A. Opel
 B. Fiat
@@ -118560,7 +118552,7 @@ C. Volkswagen
 D. Citroën
 Poprawna odpowiedź: C. Volkswagen
 
-14821
+14820
 Z którego państwa pochodzi kiełbasa chorizo i szynka serrano?
 A. Z Portugalii
 B. Z Włoch
@@ -118568,7 +118560,7 @@ C. Z Hiszpanii
 D. Z Francji
 Poprawna odpowiedź: C. Z Hiszpanii
 
-14822
+14821
 Jakiego koloru obwódkę mają drogowe znaki ostrzegawcze?
 A. Czerwonego
 B. Niebieskiego
@@ -118576,7 +118568,7 @@ C. Czarnego
 D. Żółtego
 Poprawna odpowiedź: A. Czerwonego
 
-14823
+14822
 Sommelier to znawca którego trunku?
 A. Wina
 B. Koniaku
@@ -118584,7 +118576,7 @@ C. Whisky
 D. Piwa
 Poprawna odpowiedź: A. Wina
 
-14824
+14823
 Jaki kolor tła ma zwyczajna tablica rejestracyjna samochodu w Polsce?
 A. Żółty
 B. Czerwony
@@ -118592,7 +118584,7 @@ C. Niebieski
 D. Biały
 Poprawna odpowiedź: D. Biały
 
-14825
+14824
 Jakie orzechy nazywane są potocznie fistażkami?
 A. Orzechy ziemne
 B. Orzechy pekan
@@ -118600,7 +118592,7 @@ C. Orzechy nerkowca
 D. Orzechy laskowe
 Poprawna odpowiedź: A. Orzechy ziemne
 
-14826
+14825
 Jak nazywa się metalowa przykrywka używana zamiast korka do zamykania butelek?
 A. Pierścień
 B. Kołnierz
@@ -118608,7 +118600,7 @@ C. Kapiszon
 D. Kapsel
 Poprawna odpowiedź: D. Kapsel
 
-14827
+14826
 Proszę rozwinąć polski skrót AGD.
 A. Artykuły gospodarstwa domowego
 B. Aparatura gospodarki domowej
@@ -118616,7 +118608,7 @@ C. Automatyka gospodarstwa domowego
 D. Artykuły gospodarstwa detalicznego
 Poprawna odpowiedź: A. Artykuły gospodarstwa domowego
 
-14828
+14827
 Którą literą oznaczone są w Polsce drogi ekspresowe?
 A. D
 B. A
@@ -118624,7 +118616,7 @@ C. E
 D. S
 Poprawna odpowiedź: D. S
 
-14829
+14828
 Jaki jest nominał polskiego banknotu, na rewersie którego są dwa miecze?
 A. 20 złotych
 B. 50 złotych
@@ -118632,7 +118624,7 @@ C. 200 złotych
 D. 100 złotych
 Poprawna odpowiedź: D. 100 złotych
 
-14830
+14829
 Jak nazywa się japońska sproszkowana zielona herbata?
 A. Matcha
 B. Sencha
@@ -118640,7 +118632,7 @@ C. Gyokuro
 D. Hōjicha
 Poprawna odpowiedź: A. Matcha
 
-14831
+14830
 Jak nazywa się dodatkowe obciążenie statku, które ma polepszyć jego stateczność?
 A. Fracht
 B. Ożaglowanie
@@ -118648,7 +118640,7 @@ C. Balast
 D. Trym
 Poprawna odpowiedź: C. Balast
 
-14832
+14831
 Z czego wykonana jest tkanina zwana organdyną?
 A. Z wełny
 B. Z jedwabiu
@@ -118656,7 +118648,7 @@ C. Z cienkiego lnu
 D. Z bawełny
 Poprawna odpowiedź: D. Z bawełny
 
-14833
+14832
 Jak nazywamy czterocyfrowy kod wpisywany w bankomacie przy wypłacaniu pieniędzy?
 A. IBAN
 B. CVV
@@ -118664,7 +118656,7 @@ C. PIN
 D. PUK
 Poprawna odpowiedź: C. PIN
 
-14834
+14833
 Którym miesiącem roku jest sierpień?
 A. Szóstym
 B. Dziewiątym
@@ -118672,7 +118664,7 @@ C. Ósmym
 D. Siódmym
 Poprawna odpowiedź: C. Ósmym
 
-14835
+14834
 Jak nazywane jest łóżko na statku?
 A. Mesa
 B. Kubryk
@@ -118680,7 +118672,7 @@ C. Bakista
 D. Koja
 Poprawna odpowiedź: D. Koja
 
-14836
+14835
 Jak nazywa się filet śledziowy zwinięty w rulonik i zamarynowany?
 A. Gravlax
 B. Sashimi
@@ -118688,7 +118680,7 @@ C. Matjas
 D. Rolmops
 Poprawna odpowiedź: D. Rolmops
 
-14837
+14836
 Częścią którego urządzenia na statku jest szturwał?
 A. Żurawia pokładowego
 B. Urządzenia sterowego
@@ -118696,7 +118688,7 @@ C. Pompy zęzowej
 D. Kabestanu kotwicznego
 Poprawna odpowiedź: B. Urządzenia sterowego
 
-14838
+14837
 Szydełkowanie, robienie na drutach, haftowanie to są robótki, jakie robótki?
 A. Maszynowe
 B. Rzeźbiarskie
@@ -118704,7 +118696,7 @@ C. Ręczne
 D. Stolarskie
 Poprawna odpowiedź: C. Ręczne
 
-14839
+14838
 Podstawowym składnikiem góralskiej zupy kwaśnicy jest które warzywo?
 A. Buraki ćwikłowe
 B. Kiszone ogórki
@@ -118712,7 +118704,7 @@ C. Seler
 D. Kiszona kapusta
 Poprawna odpowiedź: D. Kiszona kapusta
 
-14840
+14839
 Botwina to młode liście i korzenie:
 A. rzodkiewki
 B. buraka ćwikłowego
@@ -118720,7 +118712,7 @@ C. selera
 D. pietruszki
 Poprawna odpowiedź: B. buraka ćwikłowego
 
-14841
+14840
 Frywolitka to rodzaj:
 A. lekkiej karety
 B. techniki koronczarskiej
@@ -118728,7 +118720,7 @@ C. jedwabnej koszulki
 D. gry karcianej
 Poprawna odpowiedź: B. techniki koronczarskiej
 
-14842
+14841
 Do wykonania kokówki najbardziej przyda się:
 A. pierś z kurczaka
 B. sierść dzika
@@ -118736,7 +118728,7 @@ C. wątroba rekina
 D. skóra z węża
 Poprawna odpowiedź: B. sierść dzika
 
-14843
+14842
 Sudoku się:
 A. rozwiązuje
 B. je
@@ -118744,7 +118736,7 @@ C. śpiewa
 D. pije
 Poprawna odpowiedź: A. rozwiązuje
 
-14844
+14843
 W zastosowaniach motoryzacyjnych prostownik służy do:
 A. prostowania felg
 B. ładowania akumulatora
@@ -118752,7 +118744,7 @@ C. utrzymywania toru jazdy
 D. wyrównywania obrotów silnika
 Poprawna odpowiedź: B. ładowania akumulatora
 
-14845
+14844
 Waluta i klub piłkarski
 A. Real
 B. Peso
@@ -118760,7 +118752,7 @@ C. Cruz Azul
 D. Atletico
 Poprawna odpowiedź: A. Real
 
-14846
+14845
 Popularne przed laty w Polsce pepegi kupowało się w sklepie:
 A. meblowym
 B. obuwniczym
@@ -118768,7 +118760,7 @@ C. papierniczym
 D. spożywczym
 Poprawna odpowiedź: B. obuwniczym
 
-14847
+14846
 Chińczycy może by się z tym nie zgodzili, ale u nas herbata pu-erh jest klasyfikowana jako herbata:
 A. czarna
 B. biała
@@ -118776,7 +118768,7 @@ C. zielona
 D. czerwona
 Poprawna odpowiedź: D. czerwona
 
-14848
+14847
 Na kołach, ale bez dachu:
 A. kabriolet
 B. pickup
@@ -118784,7 +118776,7 @@ C. kombi
 D. sedan
 Poprawna odpowiedź: A. kabriolet
 
-14849
+14848
 Które z tych obchodzonych w Polsce świąt wypada najpóźniej w roku kalendarzowym:
 A. Dzień Matki
 B. Dzień Ojca
@@ -118792,7 +118784,7 @@ C. Dzień Babci
 D. Dzień Dziadka
 Poprawna odpowiedź: B. Dzień Ojca
 
-14850
+14849
 Aby para młoda pocałowała się na weselu, należy wołać:
 A. gorzko, gorzko!
 B. słono, słono!
@@ -118800,7 +118792,7 @@ C. słodko, słodko!
 D. kwaśno, kwaśno!
 Poprawna odpowiedź: A. gorzko, gorzko!
 
-14851
+14850
 Cuda z organdyny potrafi wyczarować:
 A. muzyk
 B. kucharz
@@ -118808,7 +118800,7 @@ C. krawiec
 D. chemik
 Poprawna odpowiedź: C. krawiec
 
-14852
+14851
 Puf to:
 A. popiół wulkaniczny
 B. gęsi puch
@@ -118816,7 +118808,7 @@ C. pyłek iglaków
 D. miękki taboret
 Poprawna odpowiedź: D. miękki taboret
 
-14853
+14852
 Jak w kalendarzu Tłusty Czwartek ma się do Walentynek?
 A. wypada zawsze wcześniej
 B. wypada zawsze tego samego dnia
@@ -118824,7 +118816,7 @@ C. bywa różnie
 D. wypada zawsze później
 Poprawna odpowiedź: C. bywa różnie
 
-14854
+14853
 Coroczna jesienna akcja promocyjna zachęcająca do szalonych zakupów to:
 A. Black Friday
 B. Bloody Sunday
@@ -118832,7 +118824,7 @@ C. Blue Monday
 D. Saturday Fever
 Poprawna odpowiedź: A. Black Friday
 
-14855
+14854
 Makadamia i pili to rodzaje:
 A. masażu
 B. orzechów
@@ -118840,7 +118832,7 @@ C. kwiatów
 D. drinków
 Poprawna odpowiedź: B. orzechów
 
-14856
+14855
 Szpicruta to rodzaj
 A. pióra do pisania
 B. wiertła do drewna
@@ -118848,7 +118840,7 @@ C. szpiczastej czapki
 D. krótkiego bata
 Poprawna odpowiedź: D. krótkiego bata
 
-14857
+14856
 Klakson w samochodzie uruchamia się przyciskiem zlokalizowanym zazwyczaj:
 A. w bagażniku
 B. pod siedzeniem
@@ -118856,7 +118848,7 @@ C. na kierownicy
 D. pod maską
 Poprawna odpowiedź: C. na kierownicy
 
-14858
+14857
 Warząchew to rodzaj:
 A. zupy
 B. łyżki
@@ -118864,7 +118856,7 @@ C. noża
 D. widelca
 Poprawna odpowiedź: B. łyżki
 
-14859
+14858
 Miedza rozdziela:
 A. pola
 B. szlachtę od chłopów
@@ -118872,7 +118864,7 @@ C. białko od żółtka
 D. włosy
 Poprawna odpowiedź: A. pola
 
-14860
+14859
 Mitenkę najlepiej wykonać:
 A. ze szkła
 B. z włóczki
@@ -118880,7 +118872,7 @@ C. z gliny
 D. z blachy
 Poprawna odpowiedź: B. z włóczki
 
-14861
+14860
 Do gry w scrabble najbardziej przyda się biegłość
 A. w jeździe na motocyklu
 B. w grze na instrumencie
@@ -118888,7 +118880,7 @@ C. w układaniu słów
 D. we wspinaczce skałkowej
 Poprawna odpowiedź: C. w układaniu słów
 
-14862
+14861
 Gdy mowa o samochodach, to określenia hatchback i coupé odnoszą się do:
 A. silnika
 B. napędu
@@ -118896,7 +118888,7 @@ C. skrzyni biegów
 D. karoserii
 Poprawna odpowiedź: D. karoserii
 
-14863
+14862
 Jaka figura geometryczna widnieje zwykle na drzwiach przybytku, gdzie dama może sobie przed lustrem przypudrować nosek?
 A. kwadrat
 B. romb
@@ -118904,7 +118896,7 @@ C. koło
 D. trójkąt
 Poprawna odpowiedź: C. koło
 
-14864
+14863
 Jak się nazywa ta wywodząca się z Nicei potrawa warzywna?
 A. ragoût
 B. ratatouille
@@ -118912,7 +118904,7 @@ C. bouillabaisse
 D. fondue
 Poprawna odpowiedź: B. ratatouille
 
-14865
+14864
 Najmniejszy jest arkusz papieru o znormalizowanym formacie
 A. A3
 B. A4
@@ -118920,7 +118912,7 @@ C. A2
 D. A5
 Poprawna odpowiedź: D. A5
 
-14866
+14865
 Ramen najbardziej przyda się do
 A. transportu mebli
 B. prac w ogródku
@@ -118928,7 +118920,7 @@ C. napełnienia żołądka
 D. komponowania muzyki
 Poprawna odpowiedź: C. napełnienia żołądka
 
-14867
+14866
 Produkty czeskiej firmy Zetor najłatwiej znaleźć
 A. w szafce na buty
 B. na welodromie
@@ -118936,7 +118928,7 @@ C. w salonie fryzjerskim
 D. w szczerym polu
 Poprawna odpowiedź: D. w szczerym polu
 
-14868
+14867
 Ma cztery koła i kierownicę. To Alfa:
 A. Centauri
 B. Beta
@@ -118944,7 +118936,7 @@ C. Romeo
 D. Otello
 Poprawna odpowiedź: C. Romeo
 
-14869
+14868
 Umywalka, wanna i prysznic wchodzą w skład łazienkowej:
 A. armatury
 B. buchalterii
@@ -118952,7 +118944,7 @@ C. artylerii
 D. baterii
 Poprawna odpowiedź: A. armatury
 
-14870
+14869
 W którym kwartale roku jest wrzesień?
 A. czwartym
 B. trzecim
@@ -118960,7 +118952,7 @@ C. drugim
 D. pierwszym
 Poprawna odpowiedź: B. trzecim
 
-14871
+14870
 Jeśli w domu zalęgły się pluskwy, to najlepiej od razu wezwać
 A. Brygadę RR
 B. Psi Patrol
@@ -118968,7 +118960,7 @@ C. Drużynę A
 D. ekipę DDD
 Poprawna odpowiedź: D. ekipę DDD
 
-14872
+14871
 Karafka najczęściej wykonana jest:
 A. z drewna
 B. z bawełny
@@ -118976,7 +118968,7 @@ C. ze szkła
 D. ze złota
 Poprawna odpowiedź: C. ze szkła
 
-14873
+14872
 „Aglio e olio” to sposób przyrządzania:
 A. makaronu
 B. gulaszu
@@ -118984,7 +118976,7 @@ C. rosołu
 D. leczo
 Poprawna odpowiedź: A. makaronu
 
-14874
+14873
 Z największej liczby znaków składa się współcześnie nadawany numer:
 A. NIP
 B. REGON
@@ -118992,7 +118984,7 @@ C. VIN
 D. PESEL
 Poprawna odpowiedź: C. VIN
 
-14875
+14874
 Wulkanizator żyje z wymiany:
 A. uprzejmości
 B. jeńców
@@ -119000,7 +118992,7 @@ C. walut
 D. opon
 Poprawna odpowiedź: D. opon
 
-14876
+14875
 Określenie „na pazia” odnosi się do
 A. stroju
 B. fryzury
@@ -119008,7 +119000,7 @@ C. opalenizny
 D. zachowania
 Poprawna odpowiedź: B. fryzury
 
-14877
+14876
 Gdzie szukać zęzy na statku
 A. na dnie kadłuba
 B. na mostku kapitańskim
@@ -119016,7 +119008,7 @@ C. w olinowaniu
 D. na pokładzie
 Poprawna odpowiedź: A. na dnie kadłuba
 
-14878
+14877
 Przeciętny mieszkaniec Tajlandii ucieszy się najbardziej, gdy dostanie:
 A. tydzień aresztu
 B. dwadzieścia klapsów
@@ -119024,7 +119016,7 @@ C. sto batów
 D. wysokiej gorączki
 Poprawna odpowiedź: C. sto batów
 
-14879
+14878
 Oryginalny kaszmir, delikatna i cenna tkanina, powstaje z wełny:
 A. owiec
 B. wielbłądów
@@ -119032,7 +119024,7 @@ C. kóz
 D. jaków
 Poprawna odpowiedź: C. kóz
 
-14880
+14879
 Zupa nic, tradycyjne danie kuchni polskiej, jest:
 A. gorzka
 B. kwaśna
@@ -119040,7 +119032,7 @@ C. słona
 D. słodka
 Poprawna odpowiedź: D. słodka
 
-14881
+14880
 Jako wyraz aprobaty wspólnej radości lub na przyjacielskie powitanie, przybija się z drugą osobą:
 A. trójkę
 B. piątkę
@@ -119048,7 +119040,7 @@ C. gwóźdź
 D. jedynkę
 Poprawna odpowiedź: B. piątkę
 
-14882
+14881
 Na żadnym z polskich znaków drogowych ostrzegawczych nie ma koloru:
 A. niebieskiego
 B. czerwonego
@@ -119056,7 +119048,7 @@ C. zielonego
 D. żółtego
 Poprawna odpowiedź: A. niebieskiego
 
-14883
+14882
 Szezlong służy przede wszystkim do:
 A. majsterkowania
 B. leżenia
@@ -119064,7 +119056,7 @@ C. gotowania
 D. ujeżdżania
 Poprawna odpowiedź: B. leżenia
 
-14884
+14883
 Który ser jest składnikiem tiramisu?
 A. parmezan
 B. pecorino
@@ -119072,7 +119064,7 @@ C. mozzarella
 D. mascarpone
 Poprawna odpowiedź: D. mascarpone
 
-14885
+14884
 Który słynny kucharz ma przydomek „Nagi szef”?
 A. Gordon Ramsay
 B. Modest Amaro
@@ -119080,7 +119072,7 @@ C. Jamie Oliver
 D. Robert Makłowicz
 Poprawna odpowiedź: C. Jamie Oliver
 
-14886
+14885
 Rekamiera to rodzaj:
 A. szezlongu
 B. berżery
@@ -119088,7 +119080,7 @@ C. etażerki
 D. gerydonu
 Poprawna odpowiedź: A. szezlongu
 
-14887
+14886
 Tuk-tuk służy w Azji do:
 A. gotowania
 B. masażu
@@ -119096,7 +119088,7 @@ C. odprawiania czarów
 D. transportu
 Poprawna odpowiedź: D. transportu
 
-14888
+14887
 W którym podlaskim mieście kręcono sceny do filmu „Znachor” Jerzego Hoffmana?
 A. W Siemiatyczach
 B. W Hajnówce
@@ -119104,7 +119096,7 @@ C. W Bielsku Podlaskim
 D. W Kleszczelach
 Poprawna odpowiedź: C. W Bielsku Podlaskim
 
-14889
+14888
 Które z tych rosyjskich miast leży na wschodnich stokach Uralu?
 A. Nowosybirsk
 B. Jekaterynburg
@@ -119112,7 +119104,7 @@ C. Kazań
 D. Smoleńsk
 Poprawna odpowiedź: B. Jekaterynburg
 
-14890
+14889
 W którym roku polski Kościół prawosławny uzyskał od Konstantynopola autokefalię, czyli niezależność?
 A. 1992
 B. 1948
@@ -119120,7 +119112,7 @@ C. 1986
 D. 1924
 Poprawna odpowiedź: D. 1924
 
-14891
+14890
 Ile złotych pobierano z konta każdej drużyny na początku licytacji w „Awanturze o kasę” w latach 2002–2005?
 A. 300 zł
 B. 100 zł
@@ -119128,7 +119120,7 @@ C. 200 zł
 D. 400 zł
 Poprawna odpowiedź: C. 200 zł
 
-14892
+14891
 Z którym podlaskim miastem wiąże się tradycja pieczenia marcinka?
 A. Z Sejnami
 B. Z Sokółką
@@ -119136,7 +119128,7 @@ C. Z Szepietowem
 D. Z Hajnówką
 Poprawna odpowiedź: D. Z Hajnówką
 
-14893
+14892
 Która zupa jest szczególnie kojarzona z polską kuchnią wojskową?
 A. Pomidorowa
 B. Rosół
@@ -119144,7 +119136,7 @@ C. Flaki
 D. Grochówka
 Poprawna odpowiedź: D. Grochówka
 
-14894
+14893
 Kto prowadził pierwszą polską edycję „Tańca z gwiazdami”?
 A. Magda Mołek i Hubert Urbański
 B. Katarzyna Skrzynecka i Piotr Gąsowski
@@ -119152,7 +119144,7 @@ C. Natasza Urbańska i Piotr Gąsowski
 D. Katarzyna Skrzynecka i Hubert Urbański
 Poprawna odpowiedź: A. Magda Mołek i Hubert Urbański
 
-14895
+14894
 Od nazwiska którego fizyka pochodzi nazwa promieniowania, przez które czarna dziura może tracić masę?
 A. Maxa Plancka
 B. Stephena Hawkinga
@@ -119160,7 +119152,7 @@ C. Freemana Dysona
 D. Erwina Schrödingera
 Poprawna odpowiedź: B. Stephena Hawkinga
 
-14896
+14895
 Który teleturniej prowadził Hubert Urbański w Polsacie, zanim został gospodarzem „Milionerów”?
 A. 100% dla stu
 B. Magia liter
@@ -119168,7 +119160,7 @@ C. Piramida
 D. Rekiny kart
 Poprawna odpowiedź: C. Piramida
 
-14897
+14896
 Z którym regionem Polski kojarzy się używanie formy „daj dla mnie” zamiast „daj mi”?
 A. Z Podlasiem
 B. Z Małopolską
@@ -119176,7 +119168,7 @@ C. Z Podkarpaciem
 D. Ze Śląskiem
 Poprawna odpowiedź: A. Z Podlasiem
 
-14898
+14897
 Kto napisał wiersz „Maja maleńkaja ajczyna”, opowiadający o rodzinnej Białostocczyźnie?
 A. Mira Łuksza
 B. Wiktor Szwed
@@ -119184,7 +119176,7 @@ C. Janka Kupała
 D. Barbara Goralczuk
 Poprawna odpowiedź: B. Wiktor Szwed
 
-14899
+14898
 Jak nazywa się czekolada z wizerunkiem dziewczynki w chustce, produkowana przez rosyjską fabrykę Krasnyj Oktiabr?
 A. Babajewski
 B. Spartak
@@ -119192,7 +119184,7 @@ C. Alionka
 D. Komunarka
 Poprawna odpowiedź: C. Alionka
 
-14900
+14899
 Kliocki to rosyjska nazwa jakiej potrawy?
 A. Wędliny
 B. Klusek

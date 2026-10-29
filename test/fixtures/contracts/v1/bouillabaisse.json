@@ -1,0 +1,519 @@
+{
+  "game": "bouillabaisse",
+  "seed": 310,
+  "players": [
+    "Alice",
+    "Bob"
+  ],
+  "options": {
+    "all_or_nothing": true,
+    "bot_delay": 0
+  },
+  "steps": [
+    {
+      "events": 1,
+      "replay": "e675d75004e6a49510c283edfa82074bacc3cfe6ff66e98a6a28e22940390d62",
+      "actor": "Bob",
+      "legal": "19e165b5bf77fd02927777506f5c08b25311c9043cc470b4b19a0acf0b05a2d8",
+      "rng": [
+        704,
+        949,
+        367,
+        265,
+        787,
+        964,
+        668,
+        795
+      ],
+      "action": {
+        "kind": "card",
+        "action": "select",
+        "zone": "hand",
+        "card": "3D",
+        "card_id": "3D"
+      }
+    },
+    {
+      "events": 2,
+      "replay": "dc5dce7b50fb48b451db439fe15183c9f110d7ce1055d56f4d1a62841aa87e98",
+      "actor": "Alice",
+      "legal": "124e4d88178e1b9c6b549f64cb36049a4adb0a96136c9554f546ee074dc63ddc",
+      "rng": [
+        704,
+        949,
+        367,
+        265,
+        787,
+        964,
+        668,
+        795
+      ],
+      "action": {
+        "kind": "card",
+        "action": "select",
+        "zone": "hand",
+        "card": "JD",
+        "card_id": "JD"
+      }
+    },
+    {
+      "events": 3,
+      "replay": "89fcfc568797ed65a9e6df3362e0e27cb54a3cb27777b9e08d4568c75cfd1cf6",
+      "actor": "Alice",
+      "legal": "fca14fc2f9ca1f0d345a698d16783fe4329ea9820191a0461b7fea424283d7fe",
+      "rng": [
+        704,
+        949,
+        367,
+        265,
+        787,
+        964,
+        668,
+        795
+      ],
+      "action": {
+        "kind": "card",
+        "action": "select",
+        "zone": "hand",
+        "card": "JH",
+        "card_id": "JH"
+      }
+    },
+    {
+      "events": 4,
+      "replay": "46b8315258c85dad1938adea7d426c862d36093e8c5c4a4366e5f9d42df73f62",
+      "actor": "Bob",
+      "legal": "c099d28c04a38c40901238e44446b306ff990e554f45535638a994e77f7bfff8",
+      "rng": [
+        704,
+        949,
+        367,
+        265,
+        787,
+        964,
+        668,
+        795
+      ],
+      "action": {
+        "kind": "card",
+        "action": "select",
+        "zone": "hand",
+        "card": "AH",
+        "card_id": "AH"
+      }
+    },
+    {
+      "events": 5,
+      "replay": "1f80d459b896b6aa73226c5b6c7c01b598e11d06b5df81d4a6b6e1f6b45d5b8c",
+      "actor": "Bob",
+      "legal": "53137b9c6f746e5f2e1887f4d2f657aa0da3828aca710cf5c2ebd7d2bf8b9a67",
+      "rng": [
+        704,
+        949,
+        367,
+        265,
+        787,
+        964,
+        668,
+        795
+      ],
+      "action": {
+        "kind": "card",
+        "action": "select",
+        "zone": "hand",
+        "card": "8C",
+        "card_id": "8C"
+      }
+    },
+    {
+      "events": 6,
+      "replay": "68da9cc10393e6f0ea062218390c16618bdf863ec0339eed1e68f1830aff6292",
+      "actor": "Alice",
+      "legal": "5015d56b1660a8b21e7a450692dfece87817e3ec205a7ffa7c2ba6bcbf25ff51",
+      "rng": [
+        704,
+        949,
+        367,
+        265,
+        787,
+        964,
+        668,
+        795
+      ],
+      "action": {
+        "kind": "card",
+        "action": "select",
+        "zone": "hand",
+        "card": "KC",
+        "card_id": "KC"
+      }
+    },
+    {
+      "events": 7,
+      "replay": "514bcbe45159daa4ce7b93dcb11a36ae2c71d58cec2804e5a79d0b5837b7e5c0",
+      "actor": "Alice",
+      "legal": "eb6c7e98031662b20a70086bf1b653e664769d0e733ebbc91d01a9a122810391",
+      "rng": [
+        704,
+        949,
+        367,
+        265,
+        787,
+        964,
+        668,
+        795
+      ],
+      "action": {
+        "kind": "card",
+        "action": "select",
+        "zone": "hand",
+        "card": "TD",
+        "card_id": "TD"
+      }
+    },
+    {
+      "events": 8,
+      "replay": "1b88348e39dc28a5f0cd8e21514336e3d96f9f33e7d388078d2272afd3423981",
+      "actor": "Bob",
+      "legal": "60e85b87ea789c824b0561bc05d1edb145560021f95a1973a43921e6e038f226",
+      "rng": [
+        704,
+        949,
+        367,
+        265,
+        787,
+        964,
+        668,
+        795
+      ],
+      "action": {
+        "kind": "card",
+        "action": "select",
+        "zone": "hand",
+        "card": "7D",
+        "card_id": "7D"
+      }
+    },
+    {
+      "events": 9,
+      "replay": "77c40aba1a1ac324b5b141e80965f648399f8c3f16fd7901e95aad95595a59a1",
+      "actor": "Alice",
+      "legal": "eefb000510078b85d6f2218388fc98ea653376fc294e487330a610acde07f484",
+      "rng": [
+        704,
+        949,
+        367,
+        265,
+        787,
+        964,
+        668,
+        795
+      ],
+      "action": {
+        "kind": "card",
+        "action": "select",
+        "zone": "hand",
+        "card": "9H",
+        "card_id": "9H"
+      }
+    },
+    {
+      "events": 10,
+      "replay": "04e54228312ef8634786897decb186499d4f3a0db49abae1be57feb5be756441",
+      "actor": "Bob",
+      "legal": "b5649849881c2407d11e3d8b610f8826214deca2ff40b953d05609be82695397",
+      "rng": [
+        704,
+        949,
+        367,
+        265,
+        787,
+        964,
+        668,
+        795
+      ],
+      "action": {
+        "kind": "card",
+        "action": "select",
+        "zone": "hand",
+        "card": "7H",
+        "card_id": "7H"
+      }
+    },
+    {
+      "events": 11,
+      "replay": "f331855ad86dfd4d036a0182054656a83fa6ed417c758c92f37600b19ea102a2",
+      "actor": "Alice",
+      "legal": "31f71bcd82ed75dd6df76cc7037cb84810467ab5373670d574e53ead8cb9f322",
+      "rng": [
+        704,
+        949,
+        367,
+        265,
+        787,
+        964,
+        668,
+        795
+      ],
+      "action": {
+        "kind": "card",
+        "action": "select",
+        "zone": "hand",
+        "card": "KS",
+        "card_id": "KS"
+      }
+    },
+    {
+      "events": 12,
+      "replay": "88e36a84278cb1f083d5a4200f842aae40edcef5148f028ba52f9f2d3d59bcdd",
+      "actor": "Bob",
+      "legal": "f6e7e57c27cfbc2c9e980465d8e169d45f2968c66967b556a8f865084245b066",
+      "rng": [
+        704,
+        949,
+        367,
+        265,
+        787,
+        964,
+        668,
+        795
+      ],
+      "action": {
+        "kind": "card",
+        "action": "select",
+        "zone": "hand",
+        "card": "9S",
+        "card_id": "9S"
+      }
+    },
+    {
+      "events": 13,
+      "replay": "043614c1e9187826c8916fbd52551cf050adc7a238fd8c50083cfa032f07f3cd",
+      "actor": "Alice",
+      "legal": "e943b209e14253831e4ed72126a0755cc2e550558296ae8ca16360372c715d22",
+      "rng": [
+        704,
+        949,
+        367,
+        265,
+        787,
+        964,
+        668,
+        795
+      ],
+      "action": {
+        "kind": "card",
+        "action": "select",
+        "zone": "hand",
+        "card": "QD",
+        "card_id": "QD"
+      }
+    },
+    {
+      "events": 14,
+      "replay": "371de407e77e242a5ae9a966af93a7f1f297c3a48cb8b787f93308f7e556713f",
+      "actor": "Bob",
+      "legal": "8d96e72ea6955ab7606b1c6cab2d17e1694e140f2100cc9e40d7a705d0fe5c7a",
+      "rng": [
+        704,
+        949,
+        367,
+        265,
+        787,
+        964,
+        668,
+        795
+      ],
+      "action": {
+        "kind": "card",
+        "action": "select",
+        "zone": "hand",
+        "card": "4D",
+        "card_id": "4D"
+      }
+    },
+    {
+      "events": 15,
+      "replay": "d8de2a147e3f6ccc88a70d50d32cf85f4fc087c84aed653419f19571a7087d7c",
+      "actor": "Alice",
+      "legal": "bef659a572262236da73b8be4022d32dc2834f45b1de2ac3eb98b96759fbfb74",
+      "rng": [
+        704,
+        949,
+        367,
+        265,
+        787,
+        964,
+        668,
+        795
+      ],
+      "action": {
+        "kind": "card",
+        "action": "select",
+        "zone": "hand",
+        "card": "3H",
+        "card_id": "3H"
+      }
+    },
+    {
+      "events": 16,
+      "replay": "65ecfeed5f860055fc9049d5596501669c3ed730998646b7c837b61395298a91",
+      "actor": "Bob",
+      "legal": "30f5b72482a0985dddf005b3017d80f5a11365055dbfb1b13be36f68bfe2e78a",
+      "rng": [
+        704,
+        949,
+        367,
+        265,
+        787,
+        964,
+        668,
+        795
+      ],
+      "action": {
+        "kind": "card",
+        "action": "select",
+        "zone": "hand",
+        "card": "KH",
+        "card_id": "KH"
+      }
+    }
+  ],
+  "final": {
+    "events": 17,
+    "replay": "1b4dadbbb247a79e3356e3cf2dca9080b862b311e4b90848c5607b842ff7e106",
+    "actor": "Bob",
+    "legal": "bf68b8e6ff11e731ae8acb3134ae8ef8c2cb6737d0a44b3eb8cbe85a3ce148a0",
+    "rng": [
+      704,
+      949,
+      367,
+      265,
+      787,
+      964,
+      668,
+      795
+    ]
+  },
+  "events": [
+    {
+      "id": 1,
+      "sequence": 1,
+      "actor": "Alice",
+      "action": "deal",
+      "value": "1|0|f67cfc5d0148904bfd03c703b59bc454"
+    },
+    {
+      "id": 2,
+      "sequence": 2,
+      "actor": "Bob",
+      "action": "play",
+      "value": "3D"
+    },
+    {
+      "id": 3,
+      "sequence": 3,
+      "actor": "Alice",
+      "action": "play",
+      "value": "JD"
+    },
+    {
+      "id": 4,
+      "sequence": 4,
+      "actor": "Alice",
+      "action": "play",
+      "value": "JH"
+    },
+    {
+      "id": 5,
+      "sequence": 5,
+      "actor": "Bob",
+      "action": "play",
+      "value": "AH"
+    },
+    {
+      "id": 6,
+      "sequence": 6,
+      "actor": "Bob",
+      "action": "play",
+      "value": "8C"
+    },
+    {
+      "id": 7,
+      "sequence": 7,
+      "actor": "Alice",
+      "action": "play",
+      "value": "KC"
+    },
+    {
+      "id": 8,
+      "sequence": 8,
+      "actor": "Alice",
+      "action": "play",
+      "value": "TD"
+    },
+    {
+      "id": 9,
+      "sequence": 9,
+      "actor": "Bob",
+      "action": "play",
+      "value": "7D"
+    },
+    {
+      "id": 10,
+      "sequence": 10,
+      "actor": "Alice",
+      "action": "play",
+      "value": "9H"
+    },
+    {
+      "id": 11,
+      "sequence": 11,
+      "actor": "Bob",
+      "action": "play",
+      "value": "7H"
+    },
+    {
+      "id": 12,
+      "sequence": 12,
+      "actor": "Alice",
+      "action": "play",
+      "value": "KS"
+    },
+    {
+      "id": 13,
+      "sequence": 13,
+      "actor": "Bob",
+      "action": "play",
+      "value": "9S"
+    },
+    {
+      "id": 14,
+      "sequence": 14,
+      "actor": "Alice",
+      "action": "play",
+      "value": "QD"
+    },
+    {
+      "id": 15,
+      "sequence": 15,
+      "actor": "Bob",
+      "action": "play",
+      "value": "4D"
+    },
+    {
+      "id": 16,
+      "sequence": 16,
+      "actor": "Alice",
+      "action": "play",
+      "value": "3H"
+    },
+    {
+      "id": 17,
+      "sequence": 17,
+      "actor": "Bob",
+      "action": "play",
+      "value": "KH"
+    }
+  ]
+}

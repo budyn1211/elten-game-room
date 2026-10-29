@@ -468,6 +468,26 @@ assert(GameRoomChangelog.pending_entries(256, 257).map(&:build) == [257], 'build
 assert(GameRoomChangelog.pending_entries(nil, 257).map(&:build) == [257], 'first build 257 launch repeats history')
 assert(GameRoomChangelog.pending_entries(257, 257).empty?, 'build 257 reopens after being read')
 assert(GameRoomChangelog.list_items([entry_257]).first == 'Version 2.0.5.6, build 257', 'build 257 heading differs')
+entry_258 = entries.find { |entry| entry.build == 258 }
+assert(entry_258 && entry_258.version == '2.0.5.7' && entry_258.changes.length == 6, 'build 258 has incorrect release metadata')
+assert(entry_258.changes.uniq.length == 6, 'build 258 contains duplicate notes')
+['Inferno', 'background', 'Leaving a table', 'five-of-a-kind', '100-point bonus', 'T shortcut', 'Russian'].each do |topic|
+  assert(entry_258.changes.join(' ').include?(topic), "build 258 lacks #{topic}")
+end
+assert(GameRoomChangelog.pending_entries(257, 258).map(&:build) == [258], 'build 258 repeats older notes')
+assert(GameRoomChangelog.pending_entries(nil, 258).map(&:build) == [258], 'first build 258 launch repeats history')
+assert(GameRoomChangelog.pending_entries(258, 258).empty?, 'build 258 reopens after being read')
+assert(GameRoomChangelog.list_items([entry_258]).first == 'Version 2.0.5.7, build 258', 'build 258 heading differs')
+entry_259 = entries.find { |entry| entry.build == 259 }
+assert(entry_259 && entry_259.version == '2.0.5.8' && entry_259.changes.length == 8, 'build 259 has incorrect release metadata')
+assert(entry_259.changes.uniq.length == 8, 'build 259 contains duplicate notes')
+['Bouillabaisse', 'Scopa', 'Unfortunately', 'Statistics', '5, 10', 'Ctrl+C', 'Ctrl+P', 'Zuzler', 'paulinux', 'developer mode'].each do |topic|
+  assert(entry_259.changes.join(' ').include?(topic), "build 259 lacks #{topic}")
+end
+assert(GameRoomChangelog.pending_entries(258, 259).map(&:build) == [259], 'build 259 repeats older notes')
+assert(GameRoomChangelog.pending_entries(nil, 259).map(&:build) == [259], 'first build 259 launch repeats history')
+assert(GameRoomChangelog.pending_entries(259, 259).empty?, 'build 259 reopens after being read')
+assert(GameRoomChangelog.list_items([entry_259]).first == 'Version 2.0.5.8, build 259', 'build 259 heading differs')
 %w[PL CS ES RU].each do |language|
   bytes = File.binread(File.expand_path("../../locale/#{language}.mo", __dir__))
   total, source_table, target_table = bytes.byteslice(8, 12).unpack('V3')
@@ -497,5 +517,9 @@ assert(GameRoomChangelog.list_items([entry_257]).first == 'Version 2.0.5.6, buil
     "build 256 has untranslated #{language} notes")
   assert(entry_257.changes.all? { |source| !release_catalog.fetch(source, '').empty? },
     "build 257 has untranslated #{language} notes")
+  assert(entry_258.changes.all? { |source| !release_catalog.fetch(source, '').empty? },
+    "build 258 has untranslated #{language} notes")
+  assert(entry_259.changes.all? { |source| !release_catalog.fetch(source, '').empty? },
+    "build 259 has untranslated #{language} notes")
 end
-puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, old notes preserved and multilingual build 257 notes"
+puts "Changelog tests passed: first launch, updates, downgrade, Enter, storage, old notes preserved and multilingual build 259 notes"

@@ -3,8 +3,8 @@
   "id": "c24d98cc-9ccd-4d50-b801-459da324ff60",
   "name": "Power Games",
   "description": "Accessible multiplayer games for ELTEN users.",
-  "version": "2.0.5.6",
-  "build_id": "257",
+  "version": "2.0.5.8",
+  "build_id": "259",
   "EltenAPIVersion": "3.0.4",
   "main_language": "en",
   "supported_languages": ["en", "pl", "cs", "es", "ru"],
@@ -25,7 +25,7 @@
     "sounds": [
       "connect", "disconnect", "chatmsg", "notice", "table_notice", "invitation_rejected", "conference_created", "buzzer", "buzzer2", "quiz_wrong_answer", "duck_challenge", "duck_question", "duck_countdown", "duck_quack", "duck_correct", "duck_frozen",
       "duck_final_lap", "duck_shot", "duck_note_c", "duck_memory_bark", "duck_memory_bell", "duck_memory_drop", "duck_memory_clap", "duck_memory_zip",
-      "duck_rhythm_f", "duck_rhythm_j", "war_open", "ding", "shuffle", "draw", "draw2",
+      "duck_rhythm_f", "duck_rhythm_j", "war_open", "ding", "shuffle", "scopa", "scopa_deal", "scopa_take", "draw", "draw2",
       "farkle", "cht-roll-dice", "cht-bank", "cht-lost-points", "cht-cat-minus-8", "cht-cat-plus-8",
       "hit1", "hit_ship1", "hit_ship2", "rocket_launch1", "rocket_launch2", "rocket_launch3", "rocket_miss",
       "interception", "lose1", "lose3", "play", "play2", "replay",
@@ -195,8 +195,8 @@ class EltenGameRoom < Program
   extend GameRoomContactFiltersRuntime
   extend GameRoomAnalyticsRuntime
   extend GameRoomSportsRankings::Runtime
-  GAME_ROOM_VERSION = "2.0.5.6".freeze
-  GAME_ROOM_BUILD_ID = 257
+  GAME_ROOM_VERSION = "2.0.5.8".freeze
+  GAME_ROOM_BUILD_ID = 259
   GAME_ROOM_CAPABILITIES = ["invitations", "live_sessions", "live_session_stack"].freeze
   LOBBY_ACTIVITY_POLL_INTERVAL = 5.0
 
@@ -517,9 +517,11 @@ class EltenGameRoom < Program
   end
 
   def statistics_observer_for(game, service: self.class.statistics_service, viewer: Session.name.to_s.dup.freeze)
+    return nil unless self.class.analytics_enabled?
     rankings = self.class.sports_rankings_service if game.respond_to?(:sports_ranking_result)
     return nil unless rankings || service && self.class.analytics_enabled?
     lambda do |session, replay|
+      next unless self.class.analytics_enabled?
       rankings&.observe(game: game, session: session, replay: replay)
       next unless service && self.class.analytics_enabled?
       participants = session.fetch("__players", [])
@@ -1011,6 +1013,7 @@ class EltenGameRoom < Program
   end
 
   def record_tournament_ranking(candidate, match, receipt, players, finished_at)
+    return unless self.class.analytics_enabled?
     game = game_definition(candidate.fetch('game_id'))
     return unless game&.respond_to?(:sports_ranking_result)
     self.class.sports_rankings_service&.observe_tournament(game: game, candidate: candidate, match: match,
@@ -1061,6 +1064,11 @@ class EltenGameRoom < Program
   end
 
   def show_statistics
+    GameRoomStatisticsMenu.new(program: self, registry: GAME_REGISTRY,
+      general: method(:show_general_statistics)).run
+  end
+
+  def show_general_statistics
     service = self.class.statistics_service
     runtime = self.class.app_runtime if self.class.respond_to?(:app_runtime)
     account = [Session.name.to_s.downcase.freeze, Session.token.to_s.dup.freeze].freeze

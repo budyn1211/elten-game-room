@@ -12,7 +12,7 @@ include GameRoomTest::Assertions
 # Exercise the actual blocking Session/Endpoint queue, JSON envelope parser
 # and worker. Only the HTTP reply is local; no real account or socket exists.
 class StackPageReply
-  attr_accessor :context, :page
+  attr_accessor :context, :page, :rejected
   attr_reader :requests, :workers
 
   def initialize
@@ -22,6 +22,7 @@ class StackPageReply
   def e_json_request(method, path, params, **_options)
     @workers << Thread.current
     @requests << [method, path, params]
+    return yield('null', nil) if @rejected
     page = @page.respond_to?(:call) ? @page.call(method, path, params) : @page
     yield JSON.generate('success' => true, 'data' => page), nil
   end
@@ -67,6 +68,43 @@ ensure
   endpoint&.close
   EltenAPI::LiveSessions.unregister(endpoint) if endpoint
   client&.workers&.uniq&.each(&:join)
+end
+
+with_stack_page_reader do |store, transport, client, valid|
+  now = 0.0
+  sync = GameRoomSync::Controller.new(transport: transport, table_id: 41, clock: -> { now })
+  client.rejected = true
+  error = assert_raises(EltenLink::Error) do
+    sync.synchronize { store.send(:ensure_current, 41, force: true) }
+  end
+  assert_equal('Live session stack request failed', error.message, 'The real SDK parser did not reproduce the reported rejection')
+  assert_equal('network_error', error.code)
+  assert_equal(5.0, sync.next_reconcile_at)
+  state = store.send(:room_state, 41)
+  assert_equal([0, []], [state.stack_cursor, state.records], 'An exhausted read changed the history')
+  reads = client.requests.length
+  native_endpoint = store.send(:endpoint)
+  [1.0, 4.0].each do |tick|
+    now = tick
+    native_endpoint.record_error(error)
+    transport.dispatch_pending_events
+    assert_equal(nil, sync.next_event)
+    assert_equal(5.0, sync.next_reconcile_at, 'The native error callback postponed recovery')
+    assert_equal(reads, client.requests.length, 'The native callback read synchronously')
+  end
+  client.rejected = false
+  client.page = lambda do |_method, path, _params|
+    after = URI.decode_www_form(URI.parse(path).query).to_h.fetch('after').to_i
+    valid.merge('entries' => valid['entries'].select { |entry| entry['seq'] > after })
+  end
+  now = 5.0
+  assert_equal(:recovery, sync.next_event&.kind, 'A rejected stack read needed another user action')
+  assert_equal(:caught_up, sync.synchronize { :caught_up })
+  assert_equal([2, [1, 2]], [state.stack_cursor, state.records.map(&:sequence)], 'Retry lost or duplicated the recovered entries')
+  assert_equal(reads + 1, client.requests.length, 'A successful recovery did not use one bounded read')
+  assert(client.requests.all? { |method, _path, _params| method == 'GET' }, 'Read recovery issued a mutation')
+  100.times { sync.next_event }
+  assert_equal(reads + 1, client.requests.length, 'Recovery left periodic polling enabled')
 end
 
 malformed = {

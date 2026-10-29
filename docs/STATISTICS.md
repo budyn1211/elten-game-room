@@ -69,7 +69,7 @@ Payloads do not include nicknames, private room names, participant lists, chat, 
 
 ## Development mode
 
-Game Room disables its new analytics when the host's actual `$developer_mode` flag is true. This is an intentional local opt-out, even if the application author could access a particular table. Do not create telemetry queues or reporter identities, collect developer-mode activity for later upload, read analytics tables, or attempt background uploads. Do not display or log sending failures for this expected disabled state. Existing pending normal-mode events are retained without being sent or deleted.
+Game Room disables its analytics, including Axel Pong and Audio Ball player statistics, when the host's actual `$developer_mode` flag is true. Both use `analytics_enabled?`. This is an intentional local opt-out, even if the application author could access a particular table. Do not create telemetry queues or reporter identities, collect developer-mode activity for later upload, read analytics tables, or attempt background uploads. Do not display or log sending failures for this expected disabled state. Existing pending normal-mode events are retained without being sent or deleted.
 
 Native gameplay communication is unaffected. A normal-mode participant can still report a shared room and its member count, including people playing in development mode; a room with no eligible reporter is missing from these counts. Explicitly opening an analytics screen can show unavailable without querying tables. Existing unrelated lobby/invitation table-access behavior is not changed by this analytics opt-out.
 

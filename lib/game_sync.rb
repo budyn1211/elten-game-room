@@ -1,7 +1,7 @@
 require_relative "network_errors"
 
 module GameRoomSync
-  ERROR_BACKOFF = 30.0
+  ERROR_BACKOFF = 5.0
   RATE_LIMIT_BACKOFF = 60.0
 
   Event = Struct.new(:kind, :session_id, :received_at, keyword_init: true)
@@ -84,8 +84,9 @@ module GameRoomSync
     end
 
     def synchronize(complete: true)
-      @reconnect&.call
       recovering = complete && recovery_pending? && !waiting?
+      @recovering = true if recovering
+      @reconnect&.call
       @reconciled = false
       if recovering && @transport.respond_to?(:reconcile)
         @transport.reconcile(@table_id)
@@ -106,6 +107,7 @@ module GameRoomSync
     def synchronized!
       @recovery_pending = false
       @recovering = false
+      @recovery_failures = 0
       @retry_not_before = 0.0
       @next_reconcile_at = Float::INFINITY
       self
@@ -113,7 +115,15 @@ module GameRoomSync
 
     def failed!(error)
       raise error unless GameRoomNetworkErrors.expected?(error) || GameRoomNetworkErrors.cancelled?(error)
-      delay = GameRoomNetworkErrors.retry_delay(error, normal: @error_backoff, rate_limit: @rate_limit_backoff)
+      # Native stack errors may arrive faster than our recovery can run, and
+      # the executor also catches synchronize's exception. Neither is another
+      # failed attempt: keep its scheduled read instead of starving it by
+      # repeatedly moving the deadline. Actual attempts use 5/10/15 seconds;
+      # explicit rate limits and Retry-After can still extend that boundary.
+      repeated = recovery_pending? && !@recovering
+      @recovery_failures = [@recovery_failures + 1, 3].min unless repeated
+      normal = repeated ? 0.0 : @error_backoff * @recovery_failures
+      delay = GameRoomNetworkErrors.retry_delay(error, normal: normal, rate_limit: @rate_limit_backoff)
       @recovery_pending = true
       @recovering = false
       @retry_not_before = [@retry_not_before.to_f, now + delay].max

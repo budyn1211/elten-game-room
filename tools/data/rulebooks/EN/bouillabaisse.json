@@ -1,0 +1,132 @@
+{
+  "source": "games/bouillabaisse.rb",
+  "sections": [
+    {
+      "id": "aim",
+      "title": {
+        "en": "The aim"
+      },
+      "paragraphs": [
+        {
+          "en": "Bouillabaisse is a card game for 2–8 players. Over six rounds you try to finish with the lowest total. Most rounds give you penalty points for collecting particular cards; in the last round those points help you instead."
+        }
+      ]
+    },
+    {
+      "id": "play",
+      "title": {
+        "en": "Playing a round"
+      },
+      "paragraphs": [
+        {
+          "en": "Everyone receives the same number of cards from one deck. If necessary, a few of the lowest cards are removed so the deal is even. The first dealer is chosen at random; dealing then passes to the next player each round."
+        },
+        {
+          "en": "The player after the dealer leads. Choose a card with the arrows and play it with Enter. Each player adds one card in turn. You must follow the suit led if you can; otherwise, play any card."
+        },
+        {
+          "en": "The highest card in the suit led takes all the cards played and leads next. Ace is highest, followed by king, queen, jack, 10 and so on down to 2. There are no trumps. Once all hands are empty, the round is scored."
+        },
+        {
+          "en": "C reads the cards currently on the table, and F repeats the suit led. H reads your hand. Z finds a playable card; if only one is possible, it plays it."
+        }
+      ]
+    },
+    {
+      "id": "rounds",
+      "title": {
+        "en": "The six rounds"
+      },
+      "paragraphs": [
+        {
+          "en": "A suit, a face-card rank and one particular card are drawn at the start of the game. They stay the same throughout the six rounds. Each round begins with an explanation of its scoring. Press R to hear it again; V also works."
+        },
+        {
+          "en": "- Round 1: each trick you take costs 5 points."
+        },
+        {
+          "en": "- Round 2: each card you take in the selected suit costs 10 points."
+        },
+        {
+          "en": "- Round 3: each card of the selected rank — jack, queen or king — costs 50 points."
+        },
+        {
+          "en": "- Round 4: taking the selected card costs 200 points."
+        },
+        {
+          "en": "- Round 5: all four penalties apply together. A card can count towards more than one penalty."
+        },
+        {
+          "en": "- Round 6: the same values are subtracted from your total, so collecting cards can improve your result."
+        }
+      ]
+    },
+    {
+      "id": "scoring",
+      "title": {
+        "en": "All or nothing and the final result"
+      },
+      "paragraphs": [
+        {
+          "en": "All or nothing is on by default. If you take every scoring item in a round, the sign of your round score is reversed: a penalty becomes a reduction. It does not apply in round 4."
+        },
+        {
+          "en": "In round 1 you must take every trick; in round 2, every card of the chosen suit; in round 3, all four cards of the chosen rank. In rounds 5 and 6 you must take every trick. In the final round, all or nothing turns your reduction into a penalty instead."
+        },
+        {
+          "en": "After round 6, the lowest total wins. Equal lowest totals are a draw. S reads the standings during the game. You can turn all or nothing off in the table settings."
+        }
+      ]
+    },
+    {
+      "id": "controls",
+      "title": {
+        "en": "Keyboard shortcuts"
+      },
+      "paragraphs": [
+        {
+          "en": "Arrows: browse your cards."
+        },
+        {
+          "en": "Enter: play the selected card."
+        },
+        {
+          "en": "H: read your hand."
+        },
+        {
+          "en": "C: read the current trick."
+        },
+        {
+          "en": "Ctrl+C: inspect its cards."
+        },
+        {
+          "en": "F: repeat the suit led."
+        },
+        {
+          "en": "R / V: read the current round's scoring rules."
+        },
+        {
+          "en": "S: read the scores."
+        },
+        {
+          "en": "T: read whose turn it is."
+        },
+        {
+          "en": "Z / Shift+Z: find the next / previous playable card."
+        },
+        {
+          "en": "Shift+C: sort by suit."
+        },
+        {
+          "en": "Shift+H: sort by rank."
+        },
+        {
+          "en": "Shift+M: restore received order."
+        }
+      ]
+    }
+  ],
+  "option_chapters": {
+    "all_or_nothing": "scoring"
+  }
+}

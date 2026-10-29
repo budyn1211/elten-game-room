@@ -41,7 +41,7 @@ safeguard as leaving normally.
 
 ## Server-private tournament hands
 
-Tournament Mille Bornes, Spades, Bridge, Thousand, 3-5-8, 99, Poker, War, Rummy, Makao,
+Tournament Mille Bornes, Spades, Bridge, Bouillabaisse, Scopa, Thousand, 3-5-8, 99, Poker, War, Rummy, Makao,
 Domino, Mexican Train, Scrabble, Biblios, UNO and Taboo tables advertise
 protocol 9 and `private_cards: 1`.
 Normal tables use protocol 8 and a public server-generated shuffle seed, retaining
@@ -161,6 +161,11 @@ memberships. It does not change native pool retirement or the history limit.
 
 Rules depending on another player's hidden cards cannot be fully validated
 immediately. Trick games audit the disclosed round before recording its score.
+Bouillabaisse uses this audit at each of its six round boundaries, including
+follow-suit validation and all-or-nothing scoring. Scopa uses one private pool
+per round: the opening table is drawn publicly and later hands append receipts
+from the same pool. Captures depend only on the played card and the public
+table, so they do not require claims about the rest of a hidden hand.
 Local Poker opening-hand checks remain in place, but are not a server-side
 proof of an opening pair. Do not advertise the private-deal feature as complete
 validation of hidden-information rules.

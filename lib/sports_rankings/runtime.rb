@@ -4,6 +4,7 @@ require_relative '../game_room_analytics_storage'
 module GameRoomSportsRankings
   module Runtime
     def sports_rankings_service
+      return unless analytics_enabled?
       return unless respond_to?(:app_runtime) && (runtime = app_runtime) && !Session.name.to_s.empty?
       @sports_rankings_lock ||= Mutex.new
       @sports_rankings_lock.synchronize do
@@ -14,7 +15,7 @@ module GameRoomSportsRankings
         unless @sports_rankings_service
           @sports_rankings_context = [runtime, user.freeze].freeze
           context = @sports_rankings_context
-          enabled = -> { @sports_rankings_context.equal?(context) && app_runtime.equal?(runtime) && Session.name.to_s.casecmp?(user) }
+          enabled = -> { @sports_rankings_context.equal?(context) && analytics_enabled? && app_runtime.equal?(runtime) && Session.name.to_s.casecmp?(user) }
           job = nil
           service = Service.new(program: self, user: user, storage: GameRoomAnalyticsStorage.new(self), enabled: enabled,
             trigger: -> { job&.request })
@@ -34,6 +35,7 @@ module GameRoomSportsRankings
     end
 
     def sports_rankings_tick
+      return unless analytics_enabled?
       sports_rankings_service
       @sports_rankings_job&.tick
     end

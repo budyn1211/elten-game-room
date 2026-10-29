@@ -23,6 +23,9 @@ module GameRoomSounds
     war_open
     ding
     shuffle
+    scopa
+    scopa_deal
+    scopa_take
     card-shuffle
     draw
     draw2

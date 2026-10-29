@@ -75,7 +75,7 @@ begin
   controller.synchronize { raise GameRoomNetworkErrors::UncertainWrite, "temporary network failure" }
 rescue StandardError
 end
-assert(controller.next_reconcile_at == 134.0, "a normal failure did not use the shared backoff")
+assert(controller.next_reconcile_at == 109.0, "a normal failure did not use the shared five-second backoff")
 
 now = 140.0
 begin

@@ -522,6 +522,10 @@ class GameScreen
     source = replay.finished? ? @room_snapshot&.table.to_h["game_options"] : @session["options"]
     options = @game.options_from_json(source)
     tips = @layout && GameRoomContextHelp.game_field_tips(@layout.game_help_fields) if tips == nil
+    if tips && (settings = GameRoomParticipantMenu.personal_settings_entry(@game))
+      tip = GameRoomContextHelp.shortcut_tip(settings.help_key, settings.label)
+      tips = [*tips, tip].uniq
+    end
     screen = GameRoomScreens::GameRules.new(@game.rule_book(options: options),
       program: @program, game_shortcuts: tips, audio_tutorial: @game.audio_tutorial_entries)
     if @layout&.form&.game_room_background_help_enabled
